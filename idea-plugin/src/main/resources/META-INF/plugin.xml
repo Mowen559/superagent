@@ -1,0 +1,18 @@
+<idea-plugin>
+    <id>com.aindex.hub</id>
+    <name>AIndex Hub</name>
+    <vendor email="support@aindex.com" url="https://www.aindex.com">AIndex</vendor>
+    <description><![CDATA[
+      AIndex Hub Integration for IntelliJ IDEA.<br>
+      Provides a local intelligent workspace and codebase memory via an embedded JCEF browser.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="AIndex Hub"
+                    anchor="right"
+                    icon="AllIcons.General.Web"
+                    factoryClass="com.aindex.hub.AIndexHubToolWindowFactory" />
+    </extensions>
+</idea-plugin>

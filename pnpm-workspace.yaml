@@ -1,0 +1,40 @@
+packages:
+  - hub-web
+  - GitNexus/gitnexus
+  - GitNexus/gitnexus-web
+  - codebase-memory-mcp
+  - codebase-memory-mcp/graph-ui
+
+allowBuilds:
+  '@ladybugdb/core': true
+  '@scarf/scarf': true
+  '@sentry/cli': true
+  better-sqlite3: true
+  bun: true
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+  keytar: true
+  onnxruntime-node: true
+  protobufjs: true
+  puppeteer: true
+  sharp: true
+  spawn-sync: true
+  tree-sitter: true
+  tree-sitter-c: true
+  tree-sitter-c-sharp: true
+  tree-sitter-cli: true
+  tree-sitter-cpp: true
+  tree-sitter-dart: true
+  tree-sitter-go: true
+  tree-sitter-java: true
+  tree-sitter-javascript: true
+  tree-sitter-kotlin: true
+  tree-sitter-php: true
+  tree-sitter-python: true
+  tree-sitter-ruby: true
+  tree-sitter-rust: true
+  tree-sitter-swift: true
+  tree-sitter-typescript: true
+  unrs-resolver: true
+  workerd: true

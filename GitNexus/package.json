@@ -1,0 +1,45 @@
+{
+  "name": "gitnexus-monorepo",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "install:shared": "npm --prefix gitnexus-shared install",
+    "install:backend": "npm --prefix gitnexus install",
+    "install:web": "npm --prefix gitnexus-web install",
+    "install:all": "npm run install:shared && npm run install:backend && npm run install:web",
+    "build:shared": "npm --prefix gitnexus-shared run build",
+    "build:backend": "npm --prefix gitnexus run build",
+    "build:web": "npm --prefix gitnexus-web run build",
+    "build:all": "npm run build:shared && npm run build:backend && npm run build:web",
+    "serve:backend": "npm --prefix gitnexus run serve",
+    "dev:web": "npm --prefix gitnexus-web run dev",
+    "analyze": "npx --prefix gitnexus gitnexus analyze .",
+    "start:all": ".\\start-gitnexus.cmd",
+    "package:all": ".\\build-gitnexus.cmd",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "gitnexus:refresh": "gitnexus analyze --embeddings --skills",
+    "gitnexus:full": "gitnexus analyze --force --embeddings --skills"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0",
+    "prettier": "^3.8.0",
+    "prettier-plugin-tailwindcss": "^0.7.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,mjs,json,css,yml,yaml}": "prettier --write"
+  }
+}

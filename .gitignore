@@ -5,19 +5,64 @@ rust_errors.txt
 fix*.py
 inject*.py
 test*.rs
-/target
-.aindex-hub/
-errors.json
-rust_errors.txt
-fix*.py
-inject*.py
-test*.rs
 claude-code-main/
 Understand-Anything/
-
 plugins/
 rtk/
 scratch/
 ai-agent-book/
-  
- 
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.gradle
+
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Next.js
+.next
+out
+
+# AIndex Memory
+.aindex_memory
+
+# AI / Agent Memory and Cache
+.ai_history.db
+.codegraph
+.shadow-git
+.supermemory
+.understand-anything
+clouddeepcloudsuper agent
+batches_*.json
+
+# Build Outputs & Large Artifacts
+*.exe
+*.vsix
+*.zip
+*.jar
+deepcloud-bundle/
+vscode-plugin/bundle/
+idea-plugin/build/
+idea-plugin/src/main/resources/bundle.zip
+GitNexus/.gitnexus/
+deploy-test/

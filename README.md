@@ -1,4 +1,4 @@
-# SuperAgent (hub-rs)
+# SuperAgent (hub-rs) / AI-index
 
 SuperAgent (`hub-rs`) is an advanced agentic backend and MCP (Model Context Protocol) server designed to orchestrate LLM workflows, optimize token usage (via RTK), and provide a long-term "Supermemory" for autonomous agents.
 
