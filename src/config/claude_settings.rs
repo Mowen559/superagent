@@ -17,7 +17,7 @@ pub fn default_settings() -> Value {
     json!({
         "env": {
             "ANTHROPIC_BASE_URL": "http://127.0.0.1:8045",
-            "ANTHROPIC_API_KEY": "sk-3c22e1fdc7ab4dce8cf3c5d2d0c7a18c"
+            "ANTHROPIC_API_KEY": ""
         },
         "model": "gemini-pro-agent",
         "permissions": {

@@ -35,9 +35,29 @@ async fn claude_status() -> Json<serde_json::Value> {
     }))
 }
 
+fn redact_api_key(key: &str) -> String {
+    if key.is_empty() {
+        return String::new();
+    }
+    if key.len() > 8 {
+        format!("{}***{}", &key[0..4], &key[key.len()-4..])
+    } else {
+        "***".to_string()
+    }
+}
+
 async fn get_settings() -> Json<serde_json::Value> {
     claude_settings::ensure_persisted();
-    Json(claude_settings::read_settings())
+    let mut settings = claude_settings::read_settings();
+    
+    if let Some(env) = settings.get_mut("env").and_then(|v| v.as_object_mut()) {
+        if let Some(key) = env.get("ANTHROPIC_API_KEY").and_then(|v| v.as_str()) {
+            let redacted = redact_api_key(key);
+            env.insert("ANTHROPIC_API_KEY".to_string(), serde_json::json!(redacted));
+        }
+    }
+    
+    Json(settings)
 }
 
 async fn put_settings(Json(body): Json<serde_json::Value>) -> Json<serde_json::Value> {
@@ -51,12 +71,68 @@ async fn run(
     if body.prompt.trim().is_empty() {
         return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing prompt" }))).into_response();
     }
-    let task_manager = Arc::new(TaskManager::new(&state.app_paths));
-    let task_id = claude_cli::run_prompt(
-        task_manager,
-        body.project.clone(),
-        body.prompt.clone(),
-        Some(state.runtime_config.rtk_bin.clone()),
-    );
+    
+    let kind = crate::services::agent::AgentKind::Claude;
+    
+    let project = body.project.clone().unwrap_or_default();
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&state.runtime_config.projects_root) {
+        Ok(g) => g,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
+    let project = if project.is_empty() {
+        "".to_string()
+    } else {
+        match guard.resolve_safe(&project, "") {
+            Ok(p) => p.to_string_lossy().to_string(),
+            Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": e.to_string() }))).into_response(),
+        }
+    };
+
+    let (task, cancel_rx) = state
+        .task_manager
+        .create_task("claude", &project, Some(json!({ "agent": "claude-code" })));
+    let task_id = task.id.clone();
+    state.task_manager.update_status(&task_id, crate::models::task::TaskStatus::Running, None);
+
+    let opts = crate::services::agent::ExecOptions {
+        cwd: body.project.filter(|p| !p.is_empty()),
+        ..Default::default()
+    };
+
+    let state_bg = state.clone();
+    let task_bg = task_id.clone();
+    let prompt = body.prompt.clone();
+    tokio::spawn(async move {
+        let backend = crate::services::agent::new(kind);
+        let mut session = match backend.execute(prompt, opts, cancel_rx).await {
+            Ok(s) => s,
+            Err(e) => {
+                let msg = e.to_string();
+                state_bg.task_manager.append_event(&task_bg, &crate::services::agent::AgentMessage::Error { content: msg.clone() });
+                state_bg.task_manager.update_status(&task_bg, crate::models::task::TaskStatus::Failed, Some(msg));
+                return;
+            }
+        };
+
+        while let Some(event) = session.messages.recv().await {
+            state_bg.task_manager.append_event(&task_bg, &event);
+        }
+
+        match session.result.await {
+            Ok(result) => {
+                let status = match result.status.as_str() {
+                    "completed" => crate::models::task::TaskStatus::Completed,
+                    "cancelled" | "aborted" => crate::models::task::TaskStatus::Cancelled,
+                    _ => crate::models::task::TaskStatus::Failed,
+                };
+                let error = if result.error.is_empty() { None } else { Some(result.error) };
+                state_bg.task_manager.update_status(&task_bg, status, error);
+            }
+            Err(e) => {
+                state_bg.task_manager.update_status(&task_bg, crate::models::task::TaskStatus::Failed, Some(e.to_string()));
+            }
+        }
+    });
+
     Json(json!({ "taskId": task_id, "status": "running" })).into_response()
 }

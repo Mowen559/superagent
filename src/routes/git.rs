@@ -8,6 +8,7 @@ use crate::AppState;
 use crate::models::task::TaskStatus;
 use crate::services::git_service::{self, RepoKind};
 use crate::services::workspace_guard::WorkspaceGuard;
+use crate::services::destructive_ops::DestructiveOps;
 
 #[derive(Deserialize)]
 pub struct GitQuery {
@@ -68,7 +69,7 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 async fn git_status(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project {
@@ -83,7 +84,7 @@ async fn git_status(
 }
 
 async fn git_diff(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project.clone() {
@@ -122,14 +123,20 @@ async fn git_restore(
     };
     let kind = RepoKind::parse(body.repo.as_deref());
 
-    match git_service::restore_file(&project, &file_path, body.hash.as_deref(), kind) {
+    let guard = match WorkspaceGuard::new(&state.runtime_config.projects_root) {
+        Ok(g) => g,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
+    let ops = DestructiveOps::new(&guard);
+
+    match ops.git_restore(&project, &file_path, body.hash.as_deref(), kind) {
         Ok(()) => Json(json!({ "success": true, "path": file_path })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
     }
 }
 
 async fn file_git_history(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project.clone() {
@@ -154,7 +161,7 @@ async fn file_git_history(
 }
 
 async fn shadow_git(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project {
@@ -191,7 +198,7 @@ async fn shadow_snapshot(
 }
 
 async fn shadow_history(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project {
@@ -225,7 +232,13 @@ async fn shadow_rollback(
         None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing hash param" }))).into_response(),
     };
 
-    match git_service::rollback_to_snapshot(&project, &hash) {
+    let guard = match WorkspaceGuard::new(&state.runtime_config.projects_root) {
+        Ok(g) => g,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
+    let ops = DestructiveOps::new(&guard);
+
+    match ops.shadow_rollback(&project, &hash) {
         Ok(_) => Json(json!({ "success": true, "hash": hash })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
     }
@@ -244,7 +257,13 @@ async fn apply_patch(
         _ => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing patchContent" }))).into_response(),
     };
 
-    match git_service::apply_patch(&project, &patch) {
+    let guard = match WorkspaceGuard::new(&state.runtime_config.projects_root) {
+        Ok(g) => g,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
+    let ops = DestructiveOps::new(&guard);
+
+    match ops.apply_patch(&project, &patch) {
         Ok(()) => Json(json!({ "success": true })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
     }

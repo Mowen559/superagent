@@ -24,3 +24,4 @@ pub mod protocol_converter;
 
 pub mod workspace_guard;
 pub mod code_intelligence;
+pub mod destructive_ops;
