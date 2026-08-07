@@ -33,13 +33,21 @@ pub fn run_mcp() -> ! {
                             let empty_params = json!({});
                             let params = req.get("params").unwrap_or(&empty_params);
                             
-                            let response = handle_request(method, params, &config).await;
-                            
-                            let rpc_response = json!({
-                                "jsonrpc": "2.0",
-                                "id": id,
-                                "result": response
-                            });
+                            let rpc_response = match handle_request(method, params, &config).await {
+                                Ok(res) => json!({
+                                    "jsonrpc": "2.0",
+                                    "id": id,
+                                    "result": res
+                                }),
+                                Err((code, msg)) => json!({
+                                    "jsonrpc": "2.0",
+                                    "id": id,
+                                    "error": {
+                                        "code": code,
+                                        "message": msg
+                                    }
+                                })
+                            };
                             
                             if let Ok(res_str) = serde_json::to_string(&rpc_response) {
                                 println!("{}", res_str);
@@ -61,10 +69,10 @@ pub fn run_mcp() -> ! {
     std::process::exit(0);
 }
 
-async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) -> Value {
+async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) -> Result<Value, (i32, String)> {
     match method {
         "initialize" => {
-            json!({
+            Ok(json!({
                 "protocolVersion": "2024-11-05",
                 "capabilities": {
                     "tools": {}
@@ -73,10 +81,10 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                     "name": "deepcloud-hub",
                     "version": "0.1.0"
                 }
-            })
+            }))
         },
         "tools/list" => {
-            json!({
+            Ok(json!({
                 "tools": [
                     {
                         "name": "analyze_requirement",
@@ -127,25 +135,25 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                         }
                     }
                 ]
-            })
+            }))
         },
         "tools/call" => {
             let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
             let empty_args = json!({});
             let args = params.get("arguments").unwrap_or(&empty_args);
             
-            match name {
+            let res = match name {
                 "analyze_requirement" => {
                     let project = args.get("project_path").and_then(|p| p.as_str()).unwrap_or("");
                     let req = args.get("requirement").and_then(|r| r.as_str()).unwrap_or("");
                     
                     let guard = match WorkspaceGuard::new(&config.projects_root) {
                         Ok(g) => g,
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] })),
                     };
                     let safe_project = match guard.resolve_safe(project, "") {
                         Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] })),
                     };
                     
                     let llm = LlmProvider::new(Client::new());
@@ -163,11 +171,11 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                     
                     let guard = match WorkspaceGuard::new(&config.projects_root) {
                         Ok(g) => g,
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] })),
                     };
                     let safe_project = match guard.resolve_safe(project, "") {
                         Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] })),
                     };
                     
                     match git_service::record_ai_snapshot(&safe_project, msg) {
@@ -181,11 +189,11 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                     
                     let guard = match WorkspaceGuard::new(&config.projects_root) {
                         Ok(g) => g,
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] })),
                     };
                     let safe_project = match guard.resolve_safe(project, "") {
                         Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] })),
                     };
                     
                     match git_service::get_ai_history(&safe_project, limit) {
@@ -199,11 +207,11 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                     
                     let guard = match WorkspaceGuard::new(&config.projects_root) {
                         Ok(g) => g,
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] })),
                     };
                     let safe_project = match guard.resolve_safe(project, "") {
                         Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => return json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] })),
                     };
                     
                     match git_service::rollback_to_snapshot(&safe_project, hash) {
@@ -212,8 +220,9 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                     }
                 },
                 _ => json!({ "isError": true, "content": [{ "type": "text", "text": "Unknown tool" }] })
-            }
+            };
+            Ok(res)
         },
-        _ => json!({ "error": "Method not found" })
+        _ => Err((-32601, "Method not found".to_string()))
     }
 }
