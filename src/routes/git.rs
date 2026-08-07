@@ -7,6 +7,7 @@ use serde_json::json;
 use crate::AppState;
 use crate::models::task::TaskStatus;
 use crate::services::git_service::{self, RepoKind};
+use crate::services::workspace_guard::WorkspaceGuard;
 
 #[derive(Deserialize)]
 pub struct GitQuery {
@@ -67,7 +68,7 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 async fn git_status(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project {
@@ -82,7 +83,7 @@ async fn git_status(
 }
 
 async fn git_diff(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project.clone() {
@@ -108,7 +109,7 @@ async fn git_diff(
 }
 
 async fn git_restore(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<GitRestoreRequest>,
 ) -> Response {
     let project = match body.project {
@@ -128,7 +129,7 @@ async fn git_restore(
 }
 
 async fn file_git_history(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project.clone() {
@@ -153,7 +154,7 @@ async fn file_git_history(
 }
 
 async fn shadow_git(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project {
@@ -174,7 +175,7 @@ pub struct ShadowSnapshotRequest {
 }
 
 async fn shadow_snapshot(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<ShadowSnapshotRequest>,
 ) -> Response {
     let project = match body.project {
@@ -190,7 +191,7 @@ async fn shadow_snapshot(
 }
 
 async fn shadow_history(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Query(params): Query<GitQuery>,
 ) -> Response {
     let project = match params.project {
@@ -212,7 +213,7 @@ pub struct ShadowRollbackRequest {
 }
 
 async fn shadow_rollback(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<ShadowRollbackRequest>,
 ) -> Response {
     let project = match body.project {
@@ -231,7 +232,7 @@ async fn shadow_rollback(
 }
 
 async fn apply_patch(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<ApplyPatchRequest>,
 ) -> Response {
     let project = match body.project {
@@ -264,24 +265,23 @@ async fn git_clone(
     });
 
     // Clone in a background task so large repos don't block the request.
-    let task_manager = Arc::new(crate::services::task_manager::TaskManager::new(&state.app_paths));
-    let (task, _) = task_manager.create_task("git-clone", &target, Some(json!({ "url": url })));
+    let tm = state.clone();
+    let (task, _) = state.task_manager.create_task("git-clone", &target, Some(json!({ "url": url })));
     let task_id = task.id.clone();
     let target_owned = target.clone();
     let url_owned = url.clone();
-    let tm = task_manager.clone();
-
+    
     tokio::task::spawn_blocking(move || {
-        tm.update_status(&task_id, TaskStatus::Running, None);
-        tm.append_log(&task_id, &format!("[Git] Cloning {} into {}", url_owned, target_owned));
+        tm.task_manager.update_status(&task_id, TaskStatus::Running, None);
+        tm.task_manager.append_log(&task_id, &format!("[Git] Cloning {} into {}", url_owned, target_owned));
         match git_service::clone_repo(&url_owned, &target_owned) {
             Ok(path) => {
-                tm.append_log(&task_id, &format!("[Git] Clone completed: {}", path));
-                tm.update_status(&task_id, TaskStatus::Completed, None);
+                tm.task_manager.append_log(&task_id, &format!("[Git] Clone completed: {}", path));
+                tm.task_manager.update_status(&task_id, TaskStatus::Completed, None);
             }
             Err(e) => {
-                tm.append_log(&task_id, &format!("[Git] Clone failed: {}", e));
-                tm.update_status(&task_id, TaskStatus::Failed, Some(e));
+                tm.task_manager.append_log(&task_id, &format!("[Git] Clone failed: {}", e));
+                tm.task_manager.update_status(&task_id, TaskStatus::Failed, Some(e));
             }
         }
     });

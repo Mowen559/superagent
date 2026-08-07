@@ -80,10 +80,15 @@ async fn handle_request(
     let is_stream = upstream_body.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
 
     if !is_stream {
+        let status = res.status();
         let res_body: Value = res
             .json()
             .await
             .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))?;
+            
+        if !status.is_success() {
+            return Ok((status, Json(res_body)).into_response());
+        }
             
         let standard_res = upstream_adapter
             .response_to_standard(res_body)

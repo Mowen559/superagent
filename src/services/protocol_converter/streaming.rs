@@ -1920,13 +1920,13 @@ mod tests {
 
     async fn test_streaming_chinese_split_across_chunks_no_replacement_chars() {
 
-        // "浣犲ソ" split across two TCP chunks inside a streaming text delta.
+        // "你好" split across two TCP chunks inside a streaming text delta.
 
         // Before the fix, from_utf8_lossy would produce U+FFFD for each half.
 
         let full = concat!(
 
-            "data: {\"id\":\"chatcmpl_3\",\"model\":\"gpt-4o\",\"choices\":[{\"delta\":{\"content\":\"浣犲ソ\"}}]}\n\n",
+            "data: {\"id\":\"chatcmpl_3\",\"model\":\"gpt-4o\",\"choices\":[{\"delta\":{\"content\":\"你好\"}}]}\n\n",
 
             "data: {\"id\":\"chatcmpl_3\",\"model\":\"gpt-4o\",\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":2}}\n\n",
 
@@ -1980,9 +1980,9 @@ mod tests {
 
         assert!(
 
-            merged.contains("浣犲ソ"),
+            merged.contains("你好"),
 
-            "expected '浣犲ソ' in output, got replacement chars (U+FFFD)"
+            "expected '你好' in output, got replacement chars (U+FFFD)"
 
         );
 

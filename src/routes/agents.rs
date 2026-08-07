@@ -75,6 +75,19 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
     };
 
     let project = body.project.clone().unwrap_or_default();
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&state.runtime_config.projects_root) {
+        Ok(g) => g,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
+    let project = if project.is_empty() {
+        "".to_string()
+    } else {
+        match guard.resolve_safe(&project, "") {
+            Ok(p) => p.to_string_lossy().to_string(),
+            Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": e.to_string() }))).into_response(),
+        }
+    };
+
     let (task, cancel_rx) = state
         .task_manager
         .create_task("agent", &project, Some(json!({ "agent": body.agent })));

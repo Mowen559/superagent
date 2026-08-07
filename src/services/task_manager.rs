@@ -72,8 +72,15 @@ impl TaskManager {
     pub fn update_status(&self, task_id: &str, status: TaskStatus, error: Option<String>) {
         if let Some(mut task) = self.get_task(task_id) {
             let now = chrono::Utc::now().timestamp_millis();
+            
+            // Prevent terminal states from being overwritten
+            let is_currently_terminal = matches!(task.status, TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Cancelled);
+            if is_currently_terminal {
+                return; // Do not overwrite a terminal state
+            }
             task.status = status.clone();
             task.updated_at = now;
+
             let is_terminal = matches!(status, TaskStatus::Completed | TaskStatus::Failed | TaskStatus::Cancelled);
             if is_terminal {
                 task.duration_ms = Some(now - task.created_at);
@@ -178,8 +185,11 @@ impl TaskManager {
 
     fn save_task(&self, task: &Task) {
         let path = self.task_file_path(&task.id);
+        let temp_path = self.tasks_dir.join(format!("{}.json.tmp", task.id));
         if let Ok(json) = serde_json::to_string_pretty(task) {
-            std::fs::write(&path, json).ok();
+            if std::fs::write(&temp_path, json).is_ok() {
+                let _ = std::fs::rename(&temp_path, &path);
+            }
         }
     }
 
