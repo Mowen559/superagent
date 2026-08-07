@@ -1,0 +1,9 @@
+﻿/target
+.aindex-hub/
+errors.json
+rust_errors.txt
+fix*.py
+inject*.py
+test*.rs
+claude-code-main/
+Understand-Anything/
