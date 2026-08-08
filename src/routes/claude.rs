@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde_json::json;
 use crate::AppState;
 use crate::config::claude_settings;
-use crate::services::{claude_cli, task_manager::TaskManager};
+use crate::services::claude_cli;
 
 #[derive(Deserialize)]
 pub struct ClaudeRunBody {

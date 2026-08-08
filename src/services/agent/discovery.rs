@@ -8,7 +8,7 @@ pub struct AgentDiscoverySpec {
 }
 
 pub fn get_agent_discovery_spec(kind: AgentKind) -> AgentDiscoverySpec {
-    let home = dirs::home_dir().unwrap_or_default();
+    let home = crate::config::app_paths::AppPaths::home_dir().unwrap_or_default();
     match kind {
         AgentKind::Claude => AgentDiscoverySpec {
             skill_paths: vec![home.join(".claude").join("skills")],

@@ -11,7 +11,7 @@ impl AgentBackend for QwenBackend {
     async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>) -> BackendResult<AgentSession> {
         stream_json::run(
             StreamJsonSpec {
-                command: "qwen-agent".to_string(),
+                command: "qwen".to_string(),
                 prompt_on_stdin: true,
                 build_args: Box::new(|_prompt, opts, _mcp_path| {
                     let mut args = vec![];

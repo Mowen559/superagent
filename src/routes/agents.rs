@@ -40,12 +40,39 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/agents/{kind}/skills/{skill_name}/uninstall", post(uninstall_agent_skill))
         .route("/api/agents/{kind}/mcps", get(list_agent_mcps))
         .route("/api/agents/{kind}/models", get(list_agent_models))
+        .route("/api/agents/install_missing", post(install_missing_agents))
 }
 
 /// Probe every known agent CLI and report install/version/support status.
 async fn list_agents() -> Json<serde_json::Value> {
     let agents = agent::detect_all().await;
     Json(json!({ "agents": agents }))
+}
+
+/// Install missing agents to the local agents directory.
+async fn install_missing_agents() -> Json<serde_json::Value> {
+    let mut results = vec![];
+    let detections = agent::detect_all().await;
+    
+    for det in detections {
+        if !det.installed && det.supported {
+            if let Ok(kind) = AgentKind::from_str(det.agent) {
+                let info = kind.info();
+                if matches!(info.install_strategy, agent::registry::InstallStrategy::Unsupported) {
+                    continue;
+                }
+                
+                let result = agent::installer::install_agent(kind);
+                results.push(json!({
+                    "agent": det.agent,
+                    "success": result.is_ok(),
+                    "error": result.err().map(|e| e.to_string())
+                }));
+            }
+        }
+    }
+    
+    Json(json!({ "results": results }))
 }
 
 #[derive(Deserialize)]

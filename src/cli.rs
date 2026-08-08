@@ -1,63 +1,185 @@
-//! Argument dispatch for the `hub` binary.
-//!
-//! The single `hub` executable plays two roles, selected by its first argument:
-//!
-//! * `hub service [PORT]` — launch the web backend (defaults to
-//!   [`server::DEFAULT_PORT`] when the port is omitted or unparseable).
-//! * anything else (including no arguments) — act as the rtk hook: forward the
-//!   full argument vector to [`rtk::cli::run`], so Claude's `PreToolUse` hook
-//!   (`hub hook claude`) and the rewritten commands (`hub read ...`,
-//!   `hub git ...`) resolve to this same binary. No separate `rtk` binary is
-//!   needed.
-//!
-//! Keeping this split here — rather than in `main` — lets `main` stay a trivial
-//! entry point and keeps the two roles decoupled from one another.
-
+use clap::{Parser, Subcommand};
+use std::ffi::OsString;
 use crate::server;
 
-/// Subcommand that selects the web-backend role.
-const SERVICE_SUBCOMMAND: &str = "service";
+/// Global CLI configuration and arguments
+#[derive(Parser, Debug)]
+#[command(name = "hub", about = "DeepCloud Hub Super Agent CLI", version, author)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Start the backend service
+    Service {
+        /// Port to listen on
+        #[arg(default_value_t = server::DEFAULT_PORT)]
+        port: u16,
+    },
+    /// Launch the interactive chat session
+    Chat,
+    /// Run the MCP server
+    McpServer,
+    /// Agent operations
+    Agent {
+        #[command(subcommand)]
+        command: AgentCommand,
+    },
+    /// Task operations
+    Task {
+        #[command(subcommand)]
+        command: TaskCommand,
+    },
+    /// Configuration operations
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommand,
+    },
+    /// Sync agents operations
+    Sync,
+    /// Skill operations
+    Skill {
+        #[command(subcommand)]
+        command: SkillCommand,
+    },
+    /// MCP operations
+    Mcp {
+        #[command(subcommand)]
+        command: McpCommand,
+    },
+    #[command(external_subcommand)]
+    External(Vec<OsString>),
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AgentCommand {
+    /// Run an agent task
+    Run {
+        /// The agent backend to use (e.g., claude, codex, qwen)
+        #[arg(short, long, default_value = "claude")]
+        agent: String,
+        
+        /// Project directory to act on
+        #[arg(long)]
+        project: Option<String>,
+        
+        /// Model string to use
+        #[arg(long)]
+        model: Option<String>,
+        
+        /// Task description prompt
+        prompt: Vec<String>,
+    },
+    /// List available agents
+    List,
+    /// Install an agent
+    Install {
+        agent: String,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum TaskCommand {
+    /// List active tasks
+    List,
+    /// Watch a specific task
+    Watch {
+        task_id: String,
+    }
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ConfigCommand {
+    /// Set a configuration value
+    Set {
+        key: String,
+        value: String,
+    },
+    /// Get a configuration value
+    Get {
+        key: String,
+    },
+    /// Configure the model provider and authentication
+    Model,
+    /// List available models from the provider
+    Models,
+    /// Configure routing strategy for load balancing
+    Routing,
+    /// Toggle enable/disable status for a specific LLM account configuration
+    Toggle {
+        /// Account ID to toggle
+        account_id: String,
+        /// Optional boolean state (true/false). If omitted, toggles current state.
+        state: Option<bool>,
+    },
+    /// Remove a specific LLM account configuration
+    Remove {
+        /// Account ID to remove
+        account_id: String,
+    },
+    /// Show current quota and usage for configured models
+    Quota,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum SkillCommand {
+    /// List installed skills
+    List,
+    /// Install a skill
+    Install {
+        name: String,
+    },
+    /// Remove a skill
+    Remove {
+        name: String,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum McpCommand {
+    /// List configured MCP servers
+    List,
+    /// Install an MCP server
+    Install {
+        name: String,
+    },
+    /// Remove an MCP server
+    Remove {
+        name: String,
+    },
+}
 
 /// Entry point invoked from `main`. Never returns for the hook role (it exits
 /// with rtk's process code); returns after the server stops for the service
 /// role.
 pub fn dispatch() {
-    match parse_mode(std::env::args().skip(1)) {
-        Mode::Service { port } => run_service(port),
-        Mode::Chat => crate::repl::run_chat(),
-        Mode::Mcp => crate::mcp_server::run_mcp(),
-        Mode::Hook => run_hook(),
-    }
-}
-
-/// The role selected from the command line.
-enum Mode {
-    /// Run the HTTP backend on `port`.
-    Service { port: u16 },
-    /// Run the interactive REPL chat.
-    Chat,
-    /// Run the MCP server over stdio.
-    Mcp,
-    /// Delegate the whole invocation to rtk's CLI dispatch.
-    Hook,
-}
-
-/// Decide the role from the argument list (everything after `argv[0]`).
-///
-/// Only a leading `service` token switches to the web backend; every other
-/// shape — including an empty argument list — is treated as a hook call.
-fn parse_mode(mut args: impl Iterator<Item = String>) -> Mode {
-    match args.next().as_deref() {
-        Some(SERVICE_SUBCOMMAND) => {
-            let port = args
-                .next()
-                .and_then(|p| p.parse::<u16>().ok())
-                .unwrap_or(server::DEFAULT_PORT);
-            Mode::Service { port }
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(e) => {
+            e.exit();
         }
-        Some("chat") => Mode::Chat,
-        Some("mcp") => Mode::Mcp,
-        _ => Mode::Hook,
+    };
+
+    match cli.command {
+        Some(Commands::Service { port }) => run_service(port),
+        Some(Commands::Chat) => crate::repl::run_chat(),
+        Some(Commands::McpServer) => crate::mcp_server::run_mcp(),
+        Some(Commands::Agent { command }) => crate::cli_commands::handle_agent(command),
+        Some(Commands::Task { command }) => crate::cli_commands::handle_task(command),
+        Some(Commands::Config { command }) => crate::cli_commands::handle_config(command),
+        Some(Commands::Sync) => crate::cli_commands::handle_sync(),
+        Some(Commands::Skill { command }) => crate::cli_commands::handle_skill(command),
+        Some(Commands::Mcp { command }) => crate::cli_commands::handle_mcp(command),
+        Some(Commands::External(ext)) => {
+            if ext.first().map(|s| s.to_string_lossy()) == Some("mcp".into()) && ext.len() == 1 {
+                 crate::mcp_server::run_mcp()
+            } else {
+                 run_hook()
+            }
+        },
+        None => run_hook(),
     }
 }
 
@@ -70,69 +192,15 @@ fn run_service(port: u16) {
     runtime.block_on(server::serve(port));
 }
 
-/// Stack size for the rtk hook thread. rtk's own binary reserves 8 MiB via a
-/// linker arg in its `build.rs`, because clap parsing the full command graph
-/// can overflow the default 1 MiB Windows main-thread stack during startup.
-/// A dependency's link arg does not propagate to this binary, so we reproduce
-/// the headroom by running the dispatch on a thread with an explicit stack.
 const HOOK_STACK_SIZE: usize = 8 * 1024 * 1024;
 
-/// Hook role: run rtk's CLI over the current process arguments and exit with
-/// its status code. rtk re-reads `std::env::args_os()` itself, so the hook
-/// sees the arguments verbatim (e.g. `hub hook claude`, `hub read foo.rs`).
-///
-/// Runs on a dedicated large-stack thread (see [`HOOK_STACK_SIZE`]).
-fn run_hook() -> ! {
-    let code = std::thread::Builder::new()
+fn run_hook() {
+    let thread = std::thread::Builder::new()
+        .name("rtk_hook".to_string())
         .stack_size(HOOK_STACK_SIZE)
-        .spawn(rtk::cli::run)
-        .expect("failed to spawn rtk hook thread")
-        .join()
-        .unwrap_or(1);
-    std::process::exit(code);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn mode(args: &[&str]) -> Mode {
-        parse_mode(args.iter().map(|s| s.to_string()))
-    }
-
-    #[test]
-    fn service_without_port_uses_default() {
-        assert!(matches!(
-            mode(&["service"]),
-            Mode::Service { port } if port == server::DEFAULT_PORT
-        ));
-    }
-
-    #[test]
-    fn service_with_port_parses_it() {
-        assert!(matches!(mode(&["service", "3000"]), Mode::Service { port: 3000 }));
-    }
-
-    #[test]
-    fn service_with_bad_port_falls_back_to_default() {
-        assert!(matches!(
-            mode(&["service", "notaport"]),
-            Mode::Service { port } if port == server::DEFAULT_PORT
-        ));
-    }
-
-    #[test]
-    fn no_args_is_hook() {
-        assert!(matches!(mode(&[]), Mode::Hook));
-    }
-
-    #[test]
-    fn hook_claude_is_hook() {
-        assert!(matches!(mode(&["hook", "claude"]), Mode::Hook));
-    }
-
-    #[test]
-    fn read_command_is_hook() {
-        assert!(matches!(mode(&["read", "foo.rs"]), Mode::Hook));
-    }
+        .spawn(move || {
+            std::process::exit(rtk::cli::run());
+        })
+        .expect("failed to spawn hook thread");
+    let _ = thread.join().expect("hook thread panicked");
 }

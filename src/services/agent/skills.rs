@@ -278,7 +278,7 @@ fn dedupe_skills(skills: &mut Vec<DetectedSkill>) {
 
 // .agents/.skill-lock.json parsing
 fn parse_agents_lock() -> HashMap<String, AgentsLockInfo> {
-    let home = dirs::home_dir().unwrap_or_default();
+    let home = crate::config::app_paths::AppPaths::home_dir().unwrap_or_default();
     let lock_path = home.join(".agents").join(".skill-lock.json");
     
     let Some(content) = std::fs::read_to_string(&lock_path).ok() else {
@@ -379,7 +379,7 @@ fn parse_branch_from_source_url(source_url: Option<&str>) -> Option<String> {
 }
 
 pub fn write_agents_lock_skill(skill_name: &str, source: &AgentsLockInfo) -> Result<(), String> {
-    let home = dirs::home_dir().unwrap_or_default();
+    let home = crate::config::app_paths::AppPaths::home_dir().unwrap_or_default();
     let lock_path = home.join(".agents").join(".skill-lock.json");
     if let Some(parent) = lock_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("failed to create lock dir: {e}"))?;
@@ -435,7 +435,7 @@ pub fn write_agents_lock_skill(skill_name: &str, source: &AgentsLockInfo) -> Res
 }
 
 pub fn remove_agents_lock_skill(skill_name: &str) -> Result<bool, String> {
-    let home = dirs::home_dir().unwrap_or_default();
+    let home = crate::config::app_paths::AppPaths::home_dir().unwrap_or_default();
     let lock_path = home.join(".agents").join(".skill-lock.json");
 
     let Some(content) = std::fs::read_to_string(&lock_path).ok() else {

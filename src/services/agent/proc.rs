@@ -17,14 +17,16 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// Build a [`Command`] that resolves `name` through the shell on Windows (to
 /// handle `.cmd`/`.ps1` shims) and directly on Unix. On Windows the console
 /// window is suppressed.
-pub fn agent_command(name: &str) -> Command {
+pub fn agent_command(default_name: &str) -> Command {
+    let resolved_name = resolve_agent_path(default_name);
+
     #[allow(unused_mut)]
     let mut cmd = if cfg!(windows) {
         let mut c = Command::new("cmd");
-        c.arg("/C").arg(name);
+        c.arg("/C").arg(resolved_name);
         c
     } else {
-        Command::new(name)
+        Command::new(resolved_name)
     };
     #[cfg(windows)]
     {
@@ -57,4 +59,32 @@ pub async fn detect_version(name: &str) -> Option<String> {
     } else {
         Some(version)
     }
+}
+
+pub fn resolve_agent_path(name: &str) -> String {
+    let install_dir = super::installer::get_agents_install_dir();
+    
+    let p_ext = install_dir.join("node_modules").join(".bin").join(format!("{name}.cmd"));
+    if p_ext.exists() {
+        return p_ext.to_string_lossy().into_owned();
+    }
+    let p = install_dir.join("node_modules").join(".bin").join(name);
+    if p.exists() {
+        return p.to_string_lossy().into_owned();
+    }
+
+    for info in super::registry::KINDS {
+        if info.command == name {
+            let p = if cfg!(windows) {
+                install_dir.join("venvs").join(info.slug).join("Scripts").join(format!("{name}.exe"))
+            } else {
+                install_dir.join("venvs").join(info.slug).join("bin").join(name)
+            };
+            if p.exists() {
+                return p.to_string_lossy().into_owned();
+            }
+        }
+    }
+
+    name.to_string()
 }

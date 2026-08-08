@@ -5,7 +5,6 @@
 //! and the most referenced symbols.
 
 use std::collections::BTreeMap;
-use std::path::Path;
 use rusqlite::Connection;
 use serde_json::{json, Value};
 use crate::services::code_intelligence::CodeIntelligenceRuntime;

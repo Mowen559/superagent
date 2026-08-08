@@ -1,3 +1,4 @@
+﻿
 pub mod anthropic;
 pub mod gemini;
 pub mod openai;
@@ -23,3 +24,7 @@ pub trait ProtocolConverter: Send + Sync {
         stream: std::pin::Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>>,
     ) -> std::pin::Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>>;
 }
+
+
+
+pub mod gemini_internal_upstream;

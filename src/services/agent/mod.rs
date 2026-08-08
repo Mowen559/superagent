@@ -20,6 +20,7 @@ pub mod app_server;
 pub mod args;
 pub mod backends;
 pub mod discovery;
+pub mod installer;
 pub mod json_lines;
 pub mod mcp;
 pub mod proc;

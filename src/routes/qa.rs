@@ -27,7 +27,7 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 async fn playwright_list(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<QaQuery>,
 ) -> Response {
     let project = match params.project {
@@ -53,7 +53,7 @@ async fn playwright_list(
 }
 
 async fn playwright_run(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(body): Json<QaRunRequest>,
 ) -> Response {
     let project = match body.project {
@@ -84,7 +84,7 @@ async fn playwright_run(
 }
 
 async fn playwright_record(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(body): Json<QaRunRequest>,
 ) -> Response {
     let project = match body.project {
@@ -105,7 +105,7 @@ async fn playwright_record(
 }
 
 async fn k6_run(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(body): Json<QaRunRequest>,
 ) -> Response {
     let project = match body.project {

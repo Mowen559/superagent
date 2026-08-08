@@ -16,12 +16,15 @@ use crate::config::app_paths::AppPaths;
 use crate::config::runtime::RuntimeConfig;
 use crate::services::task_manager::TaskManager;
 
+use std::sync::atomic::AtomicUsize;
+
 /// Shared application state handed to every route via `axum::extract::State`.
 pub struct AppState {
     pub runtime_config: RuntimeConfig,
     pub app_paths: AppPaths,
     pub task_manager: TaskManager,
     pub http_client: reqwest::Client,
+    pub request_counter: AtomicUsize,
 }
 
 /// Default listen port when `hub service` is invoked without an explicit port.
@@ -77,6 +80,7 @@ fn build_state() -> Arc<AppState> {
         app_paths,
         task_manager,
         http_client: reqwest::Client::new(),
+        request_counter: std::sync::atomic::AtomicUsize::new(0),
     })
 }
 
@@ -114,7 +118,7 @@ fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::compress::router())
         .merge(routes::agents::router())
         .merge(routes::analyze::router())
-        .nest("/proxy", routes::proxy::router())
+        .merge(routes::proxy::router())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)

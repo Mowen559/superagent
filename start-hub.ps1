@@ -1,7 +1,7 @@
 Set-Location D:\mowen\deepcloud\super-agent\hub-rs
 $exe = 'D:\mowen\deepcloud\super-agent\hub-rs\target\release\hub-rs.exe'
-Start-Process -FilePath $exe -WindowStyle Hidden
-Write-Output 'started hub-rs'
+Start-Process -FilePath $exe -ArgumentList "service", "3001" -WindowStyle Hidden
+Write-Output 'started hub-rs service on port 3001'
 for ($i = 0; $i -lt 15; $i++) {
   Start-Sleep -Seconds 2
   try {

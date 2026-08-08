@@ -72,6 +72,10 @@ pub fn run_mcp() -> ! {
 async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) -> Result<Value, (i32, String)> {
     match method {
         "initialize" => {
+            // Auto-provision RTK rules for Antigravity silently in the background
+            let ctx = rtk::hooks::init::InitContext { verbose: 0, dry_run: false };
+            let _ = rtk::hooks::init::run_antigravity_mode(ctx);
+
             Ok(json!({
                 "protocolVersion": "2024-11-05",
                 "capabilities": {
@@ -132,6 +136,36 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                                 "hash": { "type": "string" }
                             },
                             "required": ["project_path", "hash"]
+                        }
+                    },
+                    {
+                        "name": "supermemory_search",
+                        "description": "Search user preferences and project key information from supermemory",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "project_path": { "type": "string" },
+                                "query": { "type": "string" },
+                                "limit": { "type": "number" }
+                            },
+                            "required": ["project_path", "query"]
+                        }
+                    },
+                    {
+                        "name": "supermemory_write",
+                        "description": "Write a user preference, context, or key project information into supermemory",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "project_path": { "type": "string" },
+                                "name": { "type": "string" },
+                                "summary": { "type": "string" },
+                                "tags": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                }
+                            },
+                            "required": ["project_path", "name", "summary"]
                         }
                     }
                 ]
@@ -218,6 +252,60 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                         Ok(_) => json!({ "content": [{ "type": "text", "text": format!("Rolled back to {}", hash) }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Error: {}", e) }] })
                     }
+                },
+                "supermemory_search" => {
+                    let project = args.get("project_path").and_then(|p| p.as_str()).unwrap_or("");
+                    let query = args.get("query").and_then(|q| q.as_str()).unwrap_or("");
+                    let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(5) as usize;
+                    
+                    let guard = match WorkspaceGuard::new(&config.projects_root) {
+                        Ok(g) => g,
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] })),
+                    };
+                    let safe_project = match guard.resolve_safe(project, "") {
+                        Ok(p) => p.to_string_lossy().to_string(),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] })),
+                    };
+                    
+                    let store = crate::services::supermemory_store::SupermemoryStore::new(config, Some(&safe_project));
+                    let results = store.search(query, limit);
+                    
+                    json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&results).unwrap_or_default() }] })
+                },
+                "supermemory_write" => {
+                    let project = args.get("project_path").and_then(|p| p.as_str()).unwrap_or("");
+                    let name = args.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                    let summary = args.get("summary").and_then(|s| s.as_str()).unwrap_or("");
+                    let tags: Vec<String> = args.get("tags")
+                        .and_then(|t| t.as_array())
+                        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                        .unwrap_or_default();
+                        
+                    let guard = match WorkspaceGuard::new(&config.projects_root) {
+                        Ok(g) => g,
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] })),
+                    };
+                    let safe_project = match guard.resolve_safe(project, "") {
+                        Ok(p) => p.to_string_lossy().to_string(),
+                        Err(e) => return Ok(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] })),
+                    };
+                    
+                    let store = crate::services::supermemory_store::SupermemoryStore::new(config, Some(&safe_project));
+                    let record = crate::models::memory::SupermemoryRecord {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        file_path: "".to_string(),
+                        name: name.to_string(),
+                        summary: summary.to_string(),
+                        tags,
+                        complexity: "low".to_string(),
+                        node_type: "preference".to_string(),
+                        source_graph_path: "".to_string(),
+                        source_label: "MCP".to_string(),
+                        updated_at: chrono::Utc::now().to_rfc3339(),
+                    };
+                    store.write_memory(record);
+                    
+                    json!({ "content": [{ "type": "text", "text": "Successfully written to supermemory." }] })
                 },
                 _ => json!({ "isError": true, "content": [{ "type": "text", "text": "Unknown tool" }] })
             };

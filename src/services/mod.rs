@@ -25,3 +25,10 @@ pub mod protocol_converter;
 pub mod workspace_guard;
 pub mod code_intelligence;
 pub mod destructive_ops;
+pub mod auth_validator;
+pub mod cli_auth;pub mod provider_presets;
+
+
+
+pub mod keyring_auth;
+pub mod subscription;

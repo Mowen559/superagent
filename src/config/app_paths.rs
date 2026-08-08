@@ -27,16 +27,28 @@ impl AppPaths {
         }
     }
 
-    /// Stable, cwd-independent app data root: `{HOME|USERPROFILE}/.aindex-hub`.
-    /// Falls back to `cwd/.aindex-hub` only when no home directory is available.
-    fn default_app_data_root() -> PathBuf {
-        let home = std::env::var("USERPROFILE")
-            .or_else(|_| std::env::var("HOME"))
+    pub fn home_dir() -> Option<PathBuf> {
+        let home = std::env::var("HUB_APP_DATA_ROOT")
             .ok()
             .map(|v| v.trim().to_string())
             .filter(|v| !v.is_empty());
-        match home {
-            Some(h) => PathBuf::from(h).join(".aindex-hub"),
+        if home.is_some() {
+            return home.map(PathBuf::from);
+        }
+
+        std::env::var("USERPROFILE")
+            .or_else(|_| std::env::var("HOME"))
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .map(PathBuf::from)
+    }
+
+    /// Stable, cwd-independent app data root: `{HOME|USERPROFILE}/.aindex-hub`.
+    /// Falls back to `cwd/.aindex-hub` only when no home directory is available.
+    fn default_app_data_root() -> PathBuf {
+        match Self::home_dir() {
+            Some(h) => h.join(".aindex-hub"),
             None => std::env::current_dir()
                 .unwrap_or_else(|_| PathBuf::from("."))
                 .join(".aindex-hub"),

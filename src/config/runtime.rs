@@ -16,6 +16,8 @@ pub struct RuntimeConfig {
     /// Path to the rtk (Rust Token Killer) binary, invoked as a subprocess for
     /// command-output filtering and agent-hook installation.
     pub rtk_bin: PathBuf,
+    /// Base URL for SSO Token Introspection
+    pub sso_api_url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -80,6 +82,9 @@ impl RuntimeConfig {
         let codebase_memory_bin = Self::resolve_cbm_binary(app_paths);
         let rtk_bin = Self::resolve_rtk_binary(app_paths, &workspace_root);
 
+        let sso_api_url = std::env::var("DEEPCLOUD_API_URL")
+            .unwrap_or_else(|_| "https://api.supermemory.ai".to_string());
+
         Self {
             workspace_root,
             understand_anything_root,
@@ -89,6 +94,7 @@ impl RuntimeConfig {
             codebase_memory_cache_root,
             codebase_memory_bin,
             rtk_bin,
+            sso_api_url,
         }
     }
 

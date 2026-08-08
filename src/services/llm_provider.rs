@@ -101,10 +101,27 @@ impl LlmProvider {
             None => format!("{}\n{}", ENGINEERING_SYSTEM_PROMPT, NO_TOOLS_DIRECTIVE),
         };
 
-        let url = if self.settings.provider == "anthropic" {
-            format!("{}/v1/messages", self.settings.base_url)
+        let base = self.settings.base_url.trim_end_matches('/');
+        let url = if self.settings.provider == "anthropic" || base.contains("api.anthropic.com") {
+            if base.ends_with("/v1") {
+                format!("{}/messages", base)
+            } else {
+                format!("{}/v1/messages", base)
+            }
+        } else if self.settings.provider.contains("gemini") || self.settings.provider.contains("google") || base.contains("generativelanguage.googleapis.com") {
+            if base.ends_with("/v1beta") {
+                format!("{}/openai/chat/completions", base)
+            } else if base.ends_with("/v1beta/openai") {
+                format!("{}/chat/completions", base)
+            } else {
+                format!("{}/chat/completions", base)
+            }
         } else {
-            format!("{}/v1/chat/completions", self.settings.base_url)
+            if base.ends_with("/v1") {
+                format!("{}/chat/completions", base)
+            } else {
+                format!("{}/v1/chat/completions", base)
+            }
         };
 
         let body = if self.settings.provider == "anthropic" {
@@ -314,5 +331,46 @@ impl LlmProvider {
             )
         })];
         self.chat(messages, Some("你是资深业务架构师，擅长将底层的方法调用图翻译为清晰的业务处理流程。")).await.map(|(c, _)| c)
+    }
+
+    /// Fetch available models from the provider (OpenAI compatible /v1/models endpoint)
+    pub async fn fetch_models(&self) -> Result<Vec<String>, String> {
+        let base = self.settings.base_url.trim_end_matches('/');
+        let url = if (self.settings.provider.contains("gemini") || self.settings.provider.contains("google") || base.contains("generativelanguage.googleapis.com")) && base.ends_with("/v1beta") {
+            format!("{}/openai/models", base)
+        } else if base.ends_with("/v1") {
+            format!("{}/models", base)
+        } else {
+            format!("{}/v1/models", base)
+        };
+        
+        let response = self.client.get(&url)
+            .header("Authorization", format!("Bearer {}", self.settings.api_key))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to fetch models: {}", e))?;
+            
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(format!("Failed to fetch models ({}): {}", status, text));
+        }
+        
+        let result: Value = response.json().await.map_err(|e| format!("Failed to parse models JSON: {}", e))?;
+        
+        let mut models = vec![];
+        if let Some(data) = result.get("data").and_then(|d| d.as_array()) {
+            for item in data {
+                if let Some(id) = item.get("id").and_then(|id| id.as_str()) {
+                    models.push(id.to_string());
+                }
+            }
+        } else {
+            // Anthropic doesn't have a standard models endpoint in the same way, or it might just return empty/different format.
+            // Some providers might just return an array directly or a different structure.
+        }
+        
+        models.sort();
+        Ok(models)
     }
 }

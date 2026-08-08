@@ -410,7 +410,7 @@ fn remove_skill_from_json(skills_dir: &Path, skill_name: &str) -> bool {
 }
 
 fn git_cache_dir(git_url: &str) -> PathBuf {
-    let mut cache_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let mut cache_dir = crate::config::app_paths::AppPaths::home_dir().unwrap_or_else(|| PathBuf::from("."));
     cache_dir.push(".ai-service-repository");
     cache_dir.push("skill-cache");
     cache_dir.push(format!("{:x}", xxhash_rust::xxh3::xxh3_64(git_url.as_bytes())));
