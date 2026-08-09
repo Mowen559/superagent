@@ -39,6 +39,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: ConfigCommand,
     },
+    /// Authentication operations
+    Auth {
+        #[command(subcommand)]
+        command: AuthCommand,
+    },
     /// Sync agents operations
     Sync,
     /// Skill operations
@@ -130,6 +135,16 @@ pub enum ConfigCommand {
 }
 
 #[derive(Subcommand, Debug)]
+pub enum AuthCommand {
+    /// Log in to DeepCloud
+    Login,
+    /// Check authentication status
+    Status,
+    /// Log out of DeepCloud
+    Logout,
+}
+
+#[derive(Subcommand, Debug)]
 pub enum SkillCommand {
     /// List installed skills
     List,
@@ -176,6 +191,7 @@ pub fn dispatch() {
         Some(Commands::Agent { command }) => crate::cli_commands::handle_agent(command),
         Some(Commands::Task { command }) => crate::cli_commands::handle_task(command),
         Some(Commands::Config { command }) => crate::cli_commands::handle_config(command),
+        Some(Commands::Auth { command }) => crate::cli_commands::handle_auth(command),
         Some(Commands::Sync) => crate::cli_commands::handle_sync(),
         Some(Commands::Skill { command }) => crate::cli_commands::handle_skill(command),
         Some(Commands::Mcp { command }) => crate::cli_commands::handle_mcp(command),

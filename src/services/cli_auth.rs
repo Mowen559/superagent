@@ -700,3 +700,103 @@ async fn handle_callback(
         Html("<html><body><p>Login already processed. You can close this tab.</p></body><script>window.close()</script></html>")
     }
 }
+
+// -----------------------------------------------------------------------------
+// DeepCloud Custom Auth Flow
+// -----------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize)]
+struct DeepcloudCallbackQuery {
+    token: Option<String>,
+    error: Option<String>,
+}
+
+pub async fn handle_deepcloud_flow() -> Result<(), String> {
+    let port = 1455;
+    let redirect_uri = format!("http://localhost:{}/auth/deepcloud/callback", port);
+    
+    // Default to a common local dev port if not specified, 
+    // deepcloud-ui usually runs on 3000
+    let deepcloud_url = "http://localhost:3000/cli/login";
+    
+    let login_url = format!("{}?callback={}", deepcloud_url, urlencoding::encode(&redirect_uri));
+
+    println!("Opening browser to login to DeepCloud: {}", login_url);
+    if webbrowser::open(&login_url).is_err() {
+        println!("Could not open browser automatically. Please navigate to:");
+        println!("{}", login_url);
+    }
+
+    let (tx, rx) = oneshot::channel();
+    let state = std::sync::Arc::new(AppState {
+        expected_state: "".to_string(), // not strictly needed for this simplified flow
+        tx: std::sync::Mutex::new(Some(tx)),
+    });
+
+    let app = Router::new()
+        .route("/auth/deepcloud/callback", get(handle_deepcloud_callback))
+        .with_state(state);
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| e.to_string())?;
+
+    let server = axum::serve(listener, app);
+
+    tokio::select! {
+        _ = server => {
+            Err("Server stopped unexpectedly".into())
+        }
+        res = rx => {
+            let token = res.map_err(|_| "Failed to receive token".to_string())??;
+            
+            // Save to keyring
+            let entry = keyring::Entry::new("deepcloud_hub", "access_token")
+                .map_err(|e| format!("Failed to access keyring: {}", e))?;
+            
+            entry.set_password(&token)
+                .map_err(|e| format!("Failed to save token to keyring: {}", e))?;
+                
+            println!("✅ Successfully logged into DeepCloud and saved credentials securely.");
+            Ok(())
+        }
+    }
+}
+
+async fn handle_deepcloud_callback(
+    Query(query): Query<DeepcloudCallbackQuery>,
+    State(state): State<std::sync::Arc<AppState>>,
+) -> impl IntoResponse {
+    let mut tx_guard = state.tx.lock().unwrap();
+    if let Some(tx) = tx_guard.take() {
+        if let Some(err) = query.error {
+            let _ = tx.send(Err(err));
+            return Html("<html><body><h1>Login Failed</h1><p>Check the terminal.</p></body><script>window.close()</script></html>");
+        }
+        
+        if let Some(token) = query.token {
+            let _ = tx.send(Ok(token));
+            return Html("<html><body><h1>Login Successful!</h1><p>You can close this tab and return to the terminal.</p></body><script>window.close()</script></html>");
+        }
+        
+        let _ = tx.send(Err("No token found in callback".into()));
+        Html("<html><body><h1>Login Failed</h1><p>No token found.</p></body><script>window.close()</script></html>")
+    } else {
+        Html("<html><body><p>Login already processed. You can close this tab.</p></body><script>window.close()</script></html>")
+    }
+}
+
+pub fn get_deepcloud_token() -> Result<String, String> {
+    let entry = keyring::Entry::new("deepcloud_hub", "access_token")
+        .map_err(|e| format!("Failed to access keyring: {}", e))?;
+        
+    entry.get_password()
+        .map_err(|e| format!("Token not found or keyring error: {}", e))
+}
+
+pub fn clear_deepcloud_token() -> Result<(), String> {
+    let entry = keyring::Entry::new("deepcloud_hub", "access_token")
+        .map_err(|e| format!("Failed to access keyring: {}", e))?;
+        
+    entry.delete_credential()
+        .map_err(|e| format!("Failed to delete token from keyring: {}", e))
+}

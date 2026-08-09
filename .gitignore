@@ -7,3 +7,7 @@ inject*.py
 test*.rs
 claude-code-main/
 Understand-Anything/
+
+plugins/
+rtk/
+scratch/

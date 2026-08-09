@@ -1,4 +1,4 @@
-use crate::cli::{AgentCommand, TaskCommand, ConfigCommand, SkillCommand, McpCommand};
+use crate::cli::{AgentCommand, TaskCommand, ConfigCommand, SkillCommand, McpCommand, AuthCommand};
 use crate::services::agent::{registry, installer};
 use crate::services::agent::types::{ExecOptions, AgentMessage};
 use std::str::FromStr;
@@ -390,4 +390,40 @@ pub fn handle_install() {
         println!("Please add {:?} to your PATH manually in your ~/.bashrc or ~/.zshrc:", install_dir_str);
         println!("export PATH=\"{}:$PATH\"", install_dir_str);
     }
+}
+
+pub fn handle_auth(cmd: AuthCommand) {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to build Tokio runtime for auth cli");
+
+    runtime.block_on(async {
+        match cmd {
+            AuthCommand::Login => {
+                println!("Starting DeepCloud login flow...");
+                if let Err(e) = crate::services::cli_auth::handle_deepcloud_flow().await {
+                    eprintln!("Login failed: {}", e);
+                }
+            }
+            AuthCommand::Status => {
+                match crate::services::cli_auth::get_deepcloud_token() {
+                    Ok(token) => {
+                        println!("✅ Logged into DeepCloud.");
+                        println!("Token snippet: {}...", &token[0..std::cmp::min(10, token.len())]);
+                    }
+                    Err(_) => {
+                        println!("❌ Not logged into DeepCloud. Run `hub auth login`.");
+                    }
+                }
+            }
+            AuthCommand::Logout => {
+                if let Err(e) = crate::services::cli_auth::clear_deepcloud_token() {
+                    eprintln!("Failed to clear token: {}", e);
+                } else {
+                    println!("Logged out successfully.");
+                }
+            }
+        }
+    });
 }
