@@ -259,6 +259,7 @@ async fn understand_project(
         }
 
         let structure = understand_service::summarize_project_structure(&result);
+        let project_language = understand_service::detect_primary_language(&db_path_str).unwrap_or_else(|_| "unknown".to_string());
         let explanation = if use_claude {
             if claude_cli::detect_version().await.is_none() {
                 Err("Claude CLI not installed".to_string())
@@ -277,7 +278,7 @@ async fn understand_project(
             if !llm.is_available() {
                 Err("LLM not configured".to_string())
             } else {
-                llm.explain_project(&structure, &lang).await
+                llm.explain_project(&structure, &lang, &project_language).await
             }
         };
         match explanation {

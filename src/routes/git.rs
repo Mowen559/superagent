@@ -123,7 +123,7 @@ async fn git_restore(
     };
     let kind = RepoKind::parse(body.repo.as_deref());
 
-    let guard = match WorkspaceGuard::new(&state.runtime_config.projects_root) {
+    let guard = match WorkspaceGuard::new(&project) {
         Ok(g) => g,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
     };
@@ -232,7 +232,7 @@ async fn shadow_rollback(
         None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing hash param" }))).into_response(),
     };
 
-    let guard = match WorkspaceGuard::new(&state.runtime_config.projects_root) {
+    let guard = match WorkspaceGuard::new(&project) {
         Ok(g) => g,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
     };
@@ -257,7 +257,7 @@ async fn apply_patch(
         _ => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing patchContent" }))).into_response(),
     };
 
-    let guard = match WorkspaceGuard::new(&state.runtime_config.projects_root) {
+    let guard = match WorkspaceGuard::new(&project) {
         Ok(g) => g,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
     };

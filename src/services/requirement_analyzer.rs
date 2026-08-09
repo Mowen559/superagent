@@ -32,7 +32,9 @@ impl RequirementAnalyzer {
         if let Some(r) = &reporter { r.report("Fetching file context from DB", crate::services::progress::StepStatus::InProgress); }
 
         let mut file_context = String::new();
+        let mut project_language = "unknown".to_string();
         {
+            project_language = crate::services::understand_service::detect_primary_language(db_path).unwrap_or_else(|_| "unknown".to_string());
             let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
                 .context("Failed to open graph DB for requirement analysis")?;
 
@@ -51,7 +53,7 @@ impl RequirementAnalyzer {
         if let Some(r) = &reporter { r.report("Predicting entry points via LLM", crate::services::progress::StepStatus::InProgress); }
         
         // 2. 询问 LLM 拟修改的入口文件
-        let entry_points_resp = self.llm.predict_requirement_entry(requirement, &file_context, "zh-CN").await
+        let entry_points_resp = self.llm.predict_requirement_entry(requirement, &file_context, "zh-CN", &project_language).await
             .unwrap_or_else(|e| format!("LLM Error: {}", e));
 
         info!("Predicted Entry Points:\n{}", entry_points_resp);

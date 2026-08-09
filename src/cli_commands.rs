@@ -308,3 +308,74 @@ pub fn handle_mcp(cmd: McpCommand) {
         }
     }
 }
+
+
+pub fn handle_install() {
+    println!("Installing hub to global PATH...");
+    
+    let current_exe = match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(e) => {
+            eprintln!("Error getting current executable path: {}", e);
+            return;
+        }
+    };
+
+    let Some(home) = dirs::home_dir() else {
+        eprintln!("Error getting user home directory");
+        return;
+    };
+    
+    let install_dir = home.join(".hub").join("bin");
+    if !install_dir.exists() {
+        if let Err(e) = std::fs::create_dir_all(&install_dir) {
+            eprintln!("Error creating installation directory {:?}: {}", install_dir, e);
+            return;
+        }
+    }
+
+    let install_exe_path = install_dir.join(if cfg!(windows) { "hub.exe" } else { "hub" });
+    
+    // Copy the executable
+    match std::fs::copy(&current_exe, &install_exe_path) {
+        Ok(_) => println!("Successfully copied binary to {:?}", install_exe_path),
+        Err(e) => {
+            eprintln!("Error copying binary to {:?}: {}", install_exe_path, e);
+            return;
+        }
+    }
+
+    let install_dir_str = install_dir.to_string_lossy().to_string();
+
+    #[cfg(windows)]
+    {
+        println!("Adding {:?} to User PATH using PowerShell...", install_dir_str);
+        // Using PowerShell to safely append to User PATH without 1024 char limit of setx
+        let script = format!(
+            r#"$path = [Environment]::GetEnvironmentVariable('Path', 'User'); if ($path -notmatch [regex]::Escape('{}')) {{ [Environment]::SetEnvironmentVariable('Path', $path + ';{}', 'User'); Write-Host 'PATH updated.' }} else {{ Write-Host 'PATH already contains the directory.' }}"#,
+            install_dir_str, install_dir_str
+        );
+        
+        let output = std::process::Command::new("powershell.exe")
+            .args(&["-NoProfile", "-Command", &script])
+            .output();
+
+        match output {
+            Ok(out) => {
+                if out.status.success() {
+                    println!("{}", String::from_utf8_lossy(&out.stdout).trim());
+                    println!("Successfully installed! Please restart your terminal for the new PATH to take effect.");
+                } else {
+                    eprintln!("Error updating PATH: {}", String::from_utf8_lossy(&out.stderr));
+                }
+            }
+            Err(e) => eprintln!("Failed to run PowerShell: {}", e),
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        println!("Please add {:?} to your PATH manually in your ~/.bashrc or ~/.zshrc:", install_dir_str);
+        println!("export PATH=\"{}:$PATH\"", install_dir_str);
+    }
+}

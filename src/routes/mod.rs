@@ -14,3 +14,5 @@ pub mod compress;
 pub mod agents;
 pub mod analyze;
 pub mod proxy;
+pub mod skills;
+pub mod mcp;

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "memories": [
+    {
+      "id": "project-overview",
+      "filePath": "",
+      "name": "Project Overview",
+      "summary": "### 1. 项目概述\n本项目是一个基于 Rust 构建的**本地 AI 智能体（Agent）系统及 CLI 代理服务**。从文档命名（《本地智能体CLI代理模型同步规范》）和测试脚本可以看出，该系统主要作为本地 Hub 运行，负责管理智能体生命周期、维护会话状态，并与大语言模型（特别是 Claude）进行深度集成和交互。\n\n### 2. 主要模块\n*   **`src` (122个文件)**：核心业务逻辑目录。包含 Web 服务路由、智能体状态机、会话管理以及底层系统交互的 Rust 源码。\n*   **根目录脚本 (`*.ps1`, `*.py`)**：\n    *   **生命周期管理**：`start-hub.ps1`, `stop-hub.ps1` 用于本地代理服务的启停。\n    *   **集成测试**：`test_auth*.py` 处理鉴权测试，`test-understand-claude*.ps1` 等脚本用于测试 Claude 模型的理解能力、缓存机制及执行逻辑。\n*   **`scripts` (7个文件)**：通用的构建、部署或辅助运维脚本。\n*   **`skills` (1个文件)**：智能体技能模块，定义了 Agent 可调用的本地工具或能力。\n*   **文档 (`*.md`)**：包含系统架构设计与模型同步规范，指导项目整体演进。\n\n### 3. 技术栈\n*   **核心语言**：**Rust**（109个文件），主导核心服务端与 CLI 逻辑，保证高性能与内存安全。\n*   **Web 框架**：极大概率使用了 **Axum**。高频符号中的 `AppState`（状态共享）和 `into_response`（响应转换 Trait）是 Axum 生态的典型特征。\n*   **辅助脚本**：**PowerShell** 和 **Python**，主要用于跨平台的自动化测试、服务启停和鉴权流程验证。\n*   **数据存储**：依赖本地文件系统与轻量级本地数据库（如 SQLite 或 Sled），通过 `temp.toml` 进行配置管理。\n\n### 4. 核心符号\n*   **Web 服务与状态管理**：\n    *   `AppState` (66 refs)：应用全局状态容器，通常包含数据库连接池、配置信息和 HTTP 客户端。\n    *   `into_response` (64 refs)：HTTP 响应转换接口，负责将 Rust 内部结构体序列化为 API 响应。\n*   **智能体核心领域模型**：\n    *   `AgentSession` (21 refs)：智能体上下文管理器，负责追踪多轮对话历史和当前任务状态。\n    *   `ExecOptions` (24 refs)：执行配置项，定义 Agent 运行时的参数（如超时、重试策略、模型参数等）。\n*   **系统与存储交互**：\n    *   `home_dir` (29 refs) / `db_path_str` (19 refs) / `path` (32 refs)：反映了系统强依赖本地文件系统，数据和配置均存储在用户本地目录中。\n*   **基础构建与日志**：\n    *   `new` / `get` / `from_str`：Rust 标准的构造函数与类型转换惯用法。\n    *   `info` (19 refs)：使用 `tracing` 或 `log` 库进行系统运行状态的记录。",
+      "tags": [
+        "project_overview",
+        "auto-generated"
+      ],
+      "complexity": "",
+      "nodeType": "project_overview",
+      "sourceGraphPath": "C:\\Users\\24778\\.cache\\codebase-memory-mcp\\D-mowen-deepcloud-super-agent-hub-rs.db",
+      "sourceLabel": "understand/project",
+      "updatedAt": "2026-08-09T10:01:13.494229200+00:00"
+    }
+  ],
+  "logs": [
+    {
+      "id": "4c38716d-3405-43aa-a366-fbccab6ae566",
+      "timestamp": "2026-08-09T10:01:13.495683400+00:00",
+      "type": "sync",
+      "message": "Auto-generated project overview after indexing"
+    }
+  ],
+  "stats": {
+    "totalQueries": 0,
+    "activeAgents": 0,
+    "lastSync": "2026-08-09T10:01:13.494324400+00:00",
+    "totalMemories": 1
+  }
+}

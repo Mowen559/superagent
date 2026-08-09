@@ -12,6 +12,8 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Install this application globally to the system PATH
+    Install,
     /// Start the backend service
     Service {
         /// Port to listen on
@@ -163,6 +165,7 @@ pub fn dispatch() {
     };
 
     match cli.command {
+        Some(Commands::Install) => crate::cli_commands::handle_install(),
         Some(Commands::Service { port }) => run_service(port),
         Some(Commands::Chat) => crate::repl::run_chat(),
         Some(Commands::McpServer) => crate::mcp_server::run_mcp(),

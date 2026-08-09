@@ -229,6 +229,9 @@ async fn handle_request(
             }
         }
         
+        // 3. Handle Streaming vs Non-streaming
+        let is_stream = attempt_body.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
+        
         // Prepare HTTP request to the upstream provider
         let upstream_adapter: Box<dyn UpstreamAdapter> = if attempt_settings.provider == "gemini_native" {
             Box::new(GeminiInternalUpstreamAdapter)
@@ -268,8 +271,6 @@ async fn handle_request(
         
         let status = res.status();
         
-        // 3. Handle Streaming vs Non-streaming
-        let is_stream = upstream_body.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
         
         if !is_stream {
             let res_body: Value = match res.json().await {

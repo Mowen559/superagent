@@ -119,6 +119,8 @@ fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::agents::router())
         .merge(routes::analyze::router())
         .merge(routes::proxy::router())
+        .merge(routes::skills::router())
+        .merge(routes::mcp::router())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)

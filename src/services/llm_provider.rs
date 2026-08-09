@@ -102,6 +102,79 @@ impl LlmProvider {
         };
 
         let base = self.settings.base_url.trim_end_matches('/');
+
+        let actual_model = {
+            let mapping = self.settings.active_account_id.as_ref()
+                .and_then(|id| self.settings.accounts.iter().find(|a| a.id == *id))
+                .map(|account| &account.model_mapping);
+            
+            mapping
+                .and_then(|m| m.get(&self.settings.model))
+                .unwrap_or(&self.settings.model)
+                .clone()
+        };
+
+        if self.settings.provider == "gemini_native" {
+            use crate::services::protocol_converter::upstream::UpstreamAdapter;
+            use crate::services::protocol_converter::gemini_internal_upstream::GeminiInternalUpstreamAdapter;
+            
+            let adapter = GeminiInternalUpstreamAdapter;
+            
+            // Build standard body
+            let mut msgs = Vec::new();
+            msgs.push(json!({ "role": "system", "content": combined_system }));
+            msgs.extend(messages.iter().cloned());
+            
+            let standard_body = json!({
+                "model": actual_model,
+                "max_tokens": self.settings.max_tokens,
+                "temperature": self.settings.temperature,
+                "messages": msgs,
+            });
+
+            let (target_url, headers_map, upstream_body) = adapter.prepare_request(&self.settings, standard_body).map_err(|e| format!("Adapter error: {}", e))?;
+            
+            let mut req = self.client.post(&target_url).timeout(std::time::Duration::from_secs(180));
+            for (k, v) in headers_map.iter() {
+                req = req.header(k, v);
+            }
+            
+            tracing::info!("LLM Request: POST {} via GeminiInternalUpstreamAdapter", target_url);
+
+            let response = req.json(&upstream_body).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
+            
+            if !response.status().is_success() {
+                let status = response.status();
+                let text = response.text().await.unwrap_or_default();
+                return Err(format!("LLM API error ({}): {}", status, text));
+            }
+            
+            let result: Value = response.json().await.map_err(|e| format!("Failed to parse LLM response: {}", e))?;
+            let standard_res = adapter.response_to_standard(result).map_err(|e| format!("Adapter response error: {}", e))?;
+            
+            let content = standard_res["choices"][0]["message"]["content"].as_str().unwrap_or_default().to_string();
+            
+            let mut usage = TokenUsage::default();
+            if let Some(u) = standard_res.get("usage") {
+                usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                let comp = u.get("completion_tokens")
+                    .or_else(|| u.get("output_tokens"))
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0) as u32;
+                usage.completion_tokens = comp;
+            }
+            usage.duration_ms = start_time.elapsed().as_millis() as u64;
+            usage.cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
+                &actual_model,
+                usage.prompt_tokens,
+                usage.completion_tokens,
+                0,
+                0,
+            );
+            
+            return Ok((content, usage));
+        }
+
         let url = if self.settings.provider == "anthropic" || base.contains("api.anthropic.com") {
             if base.ends_with("/v1") {
                 format!("{}/messages", base)
@@ -126,7 +199,7 @@ impl LlmProvider {
 
         let body = if self.settings.provider == "anthropic" {
             let mut b = json!({
-                "model": self.settings.model,
+                "model": actual_model,
                 "max_tokens": self.settings.max_tokens,
                 "temperature": self.settings.temperature,
                 "messages": messages,
@@ -138,18 +211,28 @@ impl LlmProvider {
             msgs.push(json!({ "role": "system", "content": combined_system }));
             msgs.extend(messages.iter().cloned());
             json!({
-                "model": self.settings.model,
+                "model": actual_model,
                 "max_tokens": self.settings.max_tokens,
                 "temperature": self.settings.temperature,
                 "messages": msgs,
             })
         };
 
-        let response = self.client
+        let mut req = self.client
             .post(&url)
             .timeout(std::time::Duration::from_secs(180))
-            .header("Content-Type", "application/json")
-            .header("Authorization", format!("Bearer {}", self.settings.api_key))
+            .header("Content-Type", "application/json");
+
+        req = req.header("Authorization", format!("Bearer {}", self.settings.api_key));
+        if self.settings.api_key.starts_with("ya29.") {
+            if let Some(pid) = &self.settings.project_id {
+                req = req.header("x-goog-user-project", pid);
+            }
+        }
+
+        tracing::info!("LLM Request: POST {} with Auth len {}", url, self.settings.api_key.len());
+
+        let response = req
             .json(&body)
             .send()
             .await
@@ -191,7 +274,10 @@ impl LlmProvider {
 
         // Extract usage
         let mut usage = TokenUsage::default();
-        if let Some(u) = result.get("usage") {
+        if let Some(u) = result.get("usageMetadata") {
+            usage.prompt_tokens = u.get("promptTokenCount").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+            usage.completion_tokens = u.get("candidatesTokenCount").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        } else if let Some(u) = result.get("usage") {
             usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
             // Anthropic uses output_tokens, OpenAI uses completion_tokens
             let comp = u.get("completion_tokens")
@@ -203,7 +289,7 @@ impl LlmProvider {
 
         usage.duration_ms = start_time.elapsed().as_millis() as u64;
         usage.cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
-            &self.settings.model,
+            &actual_model,
             usage.prompt_tokens,
             usage.completion_tokens,
             0,
@@ -268,7 +354,7 @@ impl LlmProvider {
 
     /// Produce a project-level architecture overview from graph statistics.
     /// Returns Markdown in the requested output language.
-    pub async fn explain_project(&self, structure: &str, lang: &str) -> Result<String, String> {
+    pub async fn explain_project(&self, structure: &str, lang: &str, project_language: &str) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let messages = vec![json!({
             "role": "user",
@@ -277,7 +363,7 @@ impl LlmProvider {
                 directive, structure
             )
         })];
-        self.chat(messages, Some("你是资深软件架构分析师，擅长从代码图谱统计推断项目结构，回答务必简洁、准确、结构化。")).await.map(|(c, _)| c)
+        self.chat(messages, Some(&format!("你是资深软件架构分析师，擅长从代码图谱统计推断项目结构，回答务必简洁、准确、结构化。当前项目的主力编程语言是：{}。在分析和输出报告时，请务必贴合该语言的生态特性、代码惯例（如包管理、框架范式）提供最专业的建议。", project_language))).await.map(|(c, _)| c)
     }
 
     /// 解释修改带来的爆炸半径 (Impact Analyzer)
@@ -307,7 +393,7 @@ impl LlmProvider {
     }
 
     /// 逆向推演需求：找出拟修改的入口文件
-    pub async fn predict_requirement_entry(&self, requirement: &str, file_context: &str, lang: &str) -> Result<String, String> {
+    pub async fn predict_requirement_entry(&self, requirement: &str, file_context: &str, lang: &str, project_language: &str) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let messages = vec![serde_json::json!({
             "role": "user",
@@ -317,7 +403,7 @@ impl LlmProvider {
             )
         })];
 
-        self.chat(messages, Some("你是一个高级代码架构师引擎。请根据用户的需求和当前项目的代码库上下文，推演出为了实现该需求，大概率需要修改哪些核心入口文件，以及可能产生的影响面。\n【关键编排准则】：在评估时请重点分析“是否有侵入性更小、更务实的替代方案？”。请根据诊断和事实如实报告，杜绝无根据的臆测。")).await.map(|(c, _)| c)
+        self.chat(messages, Some(&format!("你是一个高级代码架构师引擎。请根据用户的需求和当前项目的代码库上下文，推演出为了实现该需求，大概率需要修改哪些核心入口文件，以及可能产生的影响面。\n当前项目的主力编程语言是：{}。在分析和输出报告时，请务必贴合该语言的生态特性、代码惯例提供最专业的建议。\n【关键编排准则】：在评估时请重点分析“是否有侵入性更小、更务实的替代方案？”。请根据诊断和事实如实报告，杜绝无根据的臆测。", project_language))).await.map(|(c, _)| c)
     }
 
     /// 解释业务骨架和调用链路 (Domain Analyzer)

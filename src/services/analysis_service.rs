@@ -140,6 +140,7 @@ async fn generate_project_overview(
         task_manager.append_log(task_id, "[System] LLM not configured; skipping project overview generation.");
         return;
     }
+    task_manager.append_log(task_id, "[System] LLM is configured. Checking db...");
 
     let db_path = runtime_config.codebase_memory_db_path(Some(target_path));
     let db_path_str = db_path.to_string_lossy().to_string();
@@ -150,7 +151,10 @@ async fn generate_project_overview(
             return;
         }
     };
-    if result.get("indexed").and_then(|v| v.as_bool()) != Some(true) {
+    
+    let is_indexed = result.get("indexed").and_then(|v| v.as_bool());
+    if is_indexed != Some(true) {
+        task_manager.append_log(task_id, &format!("[System] Database not indexed. Indexed flag: {:?}", is_indexed));
         return;
     }
 
@@ -165,7 +169,8 @@ async fn generate_project_overview(
 
     task_manager.append_log(task_id, "[System] Generating project overview via LLM...");
     let structure = understand_service::summarize_project_structure(&result);
-    match llm.explain_project(&structure, lang).await {
+    let project_language = understand_service::detect_primary_language(&db_path_str).unwrap_or_else(|_| "unknown".to_string());
+    match llm.explain_project(&structure, lang, &project_language).await {
         Ok(text) => {
             cache.put(&key, serde_json::json!({ "understanding": &text }));
             let store = SupermemoryStore::new(runtime_config, Some(target_path));

@@ -106,7 +106,15 @@ impl RuntimeConfig {
         let repo_root = project_path
             .map(PathBuf::from)
             .unwrap_or_else(|| self.project_root.clone());
-        repo_root.join(".deepcloud").join("graph.db")
+            
+        let slug = repo_root
+            .to_string_lossy()
+            .replace(":\\", "-")
+            .replace("\\", "-")
+            .replace("/", "-")
+            .replace(":", "-");
+            
+        self.codebase_memory_cache_root.join(format!("{}.db", slug))
     }
 
     /// Get shadow git root for a specific project

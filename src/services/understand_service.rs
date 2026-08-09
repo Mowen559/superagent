@@ -110,6 +110,22 @@ fn file_relations(conn: &Connection, rel_path: &str, outgoing: bool) -> Result<V
         .collect())
 }
 
+/// Returns the most prominent programming language detected in the graph database.
+pub fn detect_primary_language(db_path: &str) -> Result<String, String> {
+    let rt = CodeIntelligenceRuntime::new(db_path);
+    if !rt.is_indexed() {
+        return Ok("unknown".to_string());
+    }
+    let conn = rt.open_ro()?;
+    let langs = language_breakdown(&conn)?;
+    if let Some(first) = langs.first() {
+        if let Some(name) = first.get("name").and_then(|n| n.as_str()) {
+            return Ok(name.to_string());
+        }
+    }
+    Ok("unknown".to_string())
+}
+
 /// Project-level understanding: totals, distributions, modules, hot symbols.
 pub fn understand_project(db_path: &str) -> Result<Value, String> {
     let rt = CodeIntelligenceRuntime::new(db_path);
