@@ -59,3 +59,45 @@ impl UpstreamAdapter for OpenAiUpstreamAdapter {
         }))
     }
 }
+
+pub struct CopilotUpstreamAdapter;
+
+impl UpstreamAdapter for CopilotUpstreamAdapter {
+    fn prepare_request(
+        &self,
+        settings: &LLMSettings,
+        standard_body: Value,
+    ) -> Result<(String, HeaderMap, Value), anyhow::Error> {
+        let base = settings.base_url.trim_end_matches("/v1");
+        let target_url = format!("{}/chat/completions", base); // Copilot endpoint is /chat/completions
+        
+        let mut headers = HeaderMap::new();
+        headers.insert("Content-Type", "application/json".parse().unwrap());
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", settings.api_key).parse().unwrap(),
+        );
+        // Inject required Copilot headers
+        headers.insert("Editor-Version", "vscode/1.85.0".parse().unwrap());
+        headers.insert("Editor-Plugin-Version", "copilot-chat/0.11.1".parse().unwrap());
+        headers.insert("OpenAI-Organization", "github-copilot".parse().unwrap());
+        headers.insert("OpenAI-Intent", "conversation-panel".parse().unwrap());
+
+        Ok((target_url, headers, standard_body))
+    }
+
+    fn response_to_standard(&self, body: Value) -> Result<Value, anyhow::Error> {
+        // Already standard format
+        Ok(body)
+    }
+
+    fn response_stream_to_standard(
+        &self,
+        stream: std::pin::Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>>,
+    ) -> std::pin::Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>> {
+        // Just map errors for passthrough
+        Box::pin(futures::stream::StreamExt::map(stream, |res| {
+            res.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        }))
+    }
+}

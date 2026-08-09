@@ -419,8 +419,7 @@ impl LlmProvider {
         self.chat(messages, Some("你是资深业务架构师，擅长将底层的方法调用图翻译为清晰的业务处理流程。")).await.map(|(c, _)| c)
     }
 
-    /// Fetch available models from the provider (OpenAI compatible /v1/models endpoint)
-    pub async fn fetch_models(&self) -> Result<Vec<String>, String> {
+    pub async fn fetch_models_with_info(&self) -> Result<(Vec<String>, std::collections::HashMap<String, Value>), String> {
         let base = self.settings.base_url.trim_end_matches('/');
         let url = if (self.settings.provider.contains("gemini") || self.settings.provider.contains("google") || base.contains("generativelanguage.googleapis.com")) && base.ends_with("/v1beta") {
             format!("{}/openai/models", base)
@@ -445,18 +444,23 @@ impl LlmProvider {
         let result: Value = response.json().await.map_err(|e| format!("Failed to parse models JSON: {}", e))?;
         
         let mut models = vec![];
+        let mut models_info = std::collections::HashMap::new();
+        
         if let Some(data) = result.get("data").and_then(|d| d.as_array()) {
             for item in data {
                 if let Some(id) = item.get("id").and_then(|id| id.as_str()) {
                     models.push(id.to_string());
+                    models_info.insert(id.to_string(), item.clone());
                 }
             }
-        } else {
-            // Anthropic doesn't have a standard models endpoint in the same way, or it might just return empty/different format.
-            // Some providers might just return an array directly or a different structure.
         }
         
         models.sort();
-        Ok(models)
+        Ok((models, models_info))
+    }
+
+    /// Fetch available models from the provider (OpenAI compatible /v1/models endpoint)
+    pub async fn fetch_models(&self) -> Result<Vec<String>, String> {
+        self.fetch_models_with_info().await.map(|(models, _)| models)
     }
 }

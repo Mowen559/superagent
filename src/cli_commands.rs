@@ -91,6 +91,17 @@ pub fn handle_agent(cmd: AgentCommand) {
                     eprintln!("Unknown agent kind: {}. You can use 'claude', 'codex', etc.", agent);
                 }
             }
+            AgentCommand::Update { agent } => {
+                if let Ok(kind) = registry::AgentKind::from_str(&agent) {
+                    println!("Updating agent {}...", agent);
+                    match installer::update_agent(kind) {
+                        Ok(_) => println!("Successfully updated {} to the latest version.", agent),
+                        Err(e) => eprintln!("Failed to update {}: {}", agent, e),
+                    }
+                } else {
+                    eprintln!("Unknown agent kind: {}. You can use 'claude', 'codex', etc.", agent);
+                }
+            }
         }
     });
 }
@@ -334,7 +345,8 @@ pub fn handle_install() {
         }
     }
 
-    let install_exe_path = install_dir.join(if cfg!(windows) { "hub.exe" } else { "hub" });
+    let exe_name = current_exe.file_name().unwrap_or_else(|| std::ffi::OsStr::new("hub.exe"));
+    let install_exe_path = install_dir.join(exe_name);
     
     // Copy the executable
     match std::fs::copy(&current_exe, &install_exe_path) {

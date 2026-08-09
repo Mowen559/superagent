@@ -15,6 +15,8 @@ pub struct LLMAccount {
     #[serde(default)]
     pub models: Vec<String>,
     #[serde(default)]
+    pub models_info: Option<std::collections::HashMap<String, serde_json::Value>>,
+    #[serde(default)]
     pub model_mapping: std::collections::HashMap<String, String>,
     pub base_url: String,
     pub api_key: String,
@@ -33,6 +35,7 @@ impl Default for LLMAccount {
             enabled: true,
             provider: String::new(),
             models: vec![],
+            models_info: None,
             model_mapping: std::collections::HashMap::new(),
             base_url: String::new(),
             api_key: String::new(),

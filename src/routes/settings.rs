@@ -49,8 +49,32 @@ async fn fetch_models(State(state): State<Arc<AppState>>) -> axum::response::Res
         ).into_response();
     }
     
-    match provider.fetch_models().await {
-        Ok(models) => Json(json!({"models": models})).into_response(),
+    match provider.fetch_models_with_info().await {
+        Ok((models, models_info)) => {
+            let mut settings = llm_settings::read_llm_settings();
+            let mut updated = false;
+            
+            // Try to find the active account and update its models_info
+            if let Some(active_id) = &settings.active_account_id {
+                for account in settings.accounts.iter_mut() {
+                    if account.id == *active_id {
+                        account.models_info = Some(models_info.clone());
+                        updated = true;
+                        break;
+                    }
+                }
+            } else if !settings.accounts.is_empty() {
+                // Fallback: update the first account if no active_account_id is set
+                settings.accounts[0].models_info = Some(models_info);
+                updated = true;
+            }
+            
+            if updated {
+                llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
+            }
+            
+            Json(json!({"models": models})).into_response()
+        },
         Err(e) => (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"error": e}))

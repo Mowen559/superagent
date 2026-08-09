@@ -80,6 +80,10 @@ pub enum AgentCommand {
     Install {
         agent: String,
     },
+    /// Update an agent
+    Update {
+        agent: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -182,7 +186,38 @@ pub fn dispatch() {
                  run_hook()
             }
         },
-        None => run_hook(),
+        None => {
+            let current_exe = std::env::current_exe().unwrap_or_default();
+            let install_dir = dirs::home_dir().unwrap_or_default().join(".hub").join("bin");
+            let cargo_dir = dirs::home_dir().unwrap_or_default().join(".cargo").join("bin");
+
+            if current_exe.starts_with(&install_dir) || current_exe.starts_with(&cargo_dir) {
+                println!("DeepCloud Hub is installed. Starting service on default port {}...", crate::server::DEFAULT_PORT);
+                run_service(crate::server::DEFAULT_PORT);
+            } else {
+                use dialoguer::Confirm;
+                println!("============================================================");
+                println!("Welcome to DeepCloud Hub Super Agent!");
+                println!("It looks like you are running this executable for the first time.");
+                println!("============================================================");
+                
+                let install = Confirm::new()
+                    .with_prompt("Do you want to automatically install and register hub to your system PATH?")
+                    .default(true)
+                    .interact()
+                    .unwrap_or(false);
+
+                if install {
+                    crate::cli_commands::handle_install();
+                } else {
+                    println!("Installation skipped. You can run 'hub install' manually later.");
+                }
+                
+                println!("\nPress Enter to exit...");
+                let mut s = String::new();
+                let _ = std::io::stdin().read_line(&mut s);
+            }
+        },
     }
 }
 

@@ -117,3 +117,72 @@ fn install_binary(_kind: AgentKind, _url: &str) -> Result<(), InstallError> {
     // Stub for now. We don't have binary downloads defined yet.
     Err(InstallError::Unsupported)
 }
+
+pub fn update_agent(kind: AgentKind) -> Result<(), InstallError> {
+    let info = kind.info();
+    match info.install_strategy {
+        InstallStrategy::Npm(package_name) => update_npm(package_name),
+        InstallStrategy::Pip(package_name) => update_pip(kind, package_name),
+        InstallStrategy::BinaryDownload(_url) => Err(InstallError::Unsupported),
+        InstallStrategy::Unsupported => Err(InstallError::Unsupported),
+    }
+}
+
+fn update_npm(package_name: &str) -> Result<(), InstallError> {
+    let install_dir = get_agents_install_dir();
+    if !install_dir.exists() {
+        return Err(InstallError::CommandFailed("Agent is not installed yet.".into()));
+    }
+
+    let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
+    let mut cmd = Command::new(npm_cmd);
+    cmd.arg("install")
+        .arg("--prefix")
+        .arg(&install_dir)
+        .arg(format!("{}@latest", package_name))
+        .arg("--no-save");
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+
+    let status = cmd.status()
+        .map_err(|e| InstallError::CommandFailed(e.to_string()))?;
+
+    if !status.success() {
+        return Err(InstallError::ProcessFailed(status.to_string()));
+    }
+    Ok(())
+}
+
+fn update_pip(kind: AgentKind, package_name: &str) -> Result<(), InstallError> {
+    let install_dir = get_agents_install_dir().join("venvs").join(kind.info().slug);
+    if !install_dir.exists() {
+        return Err(InstallError::CommandFailed("Agent is not installed yet.".into()));
+    }
+
+    let pip_cmd = if cfg!(windows) {
+        install_dir.join("Scripts").join("pip")
+    } else {
+        install_dir.join("bin").join("pip")
+    };
+
+    let mut cmd = Command::new(pip_cmd);
+    cmd.arg("install").arg("--upgrade").arg(package_name);
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+
+    let status = cmd.status()
+        .map_err(|e| InstallError::CommandFailed(format!("Failed to run pip: {}", e)))?;
+
+    if !status.success() {
+        return Err(InstallError::ProcessFailed(format!("pip install failed: {}", status)));
+    }
+    Ok(())
+}

@@ -14,7 +14,7 @@ use crate::{
         auth_validator,
         protocol_converter::{
             anthropic::AnthropicConverter, gemini::GeminiConverter, openai::OpenAiConverter,
-            openai_responses::OpenAiResponsesConverter, upstream::{OpenAiUpstreamAdapter, UpstreamAdapter}, gemini_internal_upstream::GeminiInternalUpstreamAdapter, ProtocolConverter,
+            openai_responses::OpenAiResponsesConverter, upstream::{OpenAiUpstreamAdapter, UpstreamAdapter, CopilotUpstreamAdapter}, gemini_internal_upstream::GeminiInternalUpstreamAdapter, ProtocolConverter,
         },
     },
     AppState,
@@ -109,6 +109,15 @@ async fn handle_request(
             ).await {
                 attempt_settings.api_key = token;
             }
+        } else if attempt_settings.provider == "openai" {
+            if let Some(token) = crate::services::keyring_auth::get_or_refresh_credential(
+                &state.http_client, 
+                "openai:antigravity",
+                "app_EMoamEEZ73f0CkXaXp7hrann",
+                None
+            ).await {
+                attempt_settings.api_key = token;
+            }
         } else if attempt_settings.provider == "gemini" {
             if let Some(token) = crate::services::keyring_auth::get_or_refresh_credential(
                 &state.http_client, 
@@ -127,57 +136,78 @@ async fn handle_request(
             if chrono::Utc::now().timestamp() + 300 >= expires_at {
                 tracing::info!("Token expired or expiring soon, refreshing...");
                 
-                let token_url = if account.provider == "openai" {
-                    "https://auth.openai.com/oauth/token"
-                } else if account.provider == "gemini" || account.provider == "gemini_native" {
-                    "https://oauth2.googleapis.com/token"
-                } else {
-                    ""
-                };
-                
-                if !token_url.is_empty() {
-                    let client_id = if account.provider == "openai" {
-                        "app_EMoamEEZ73f0CkXaXp7hrann"
-                    } else if account.provider == "gemini_native" {
-                        "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
-                    } else {
-                        "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
-                    };
-                    
-                    let client_secret = if account.provider == "gemini" {
-                        Some("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")
-                    } else if account.provider == "gemini_native" {
-                        Some("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")
-                    } else {
-                        None
-                    };
-                    
-                    let req = state.http_client.post(token_url)
-                        .header("Content-Type", "application/x-www-form-urlencoded");
+                if account.provider == "github_copilot" {
+                    // Copilot uses a specific internal token exchange with the gho_ token
+                    let req = state.http_client.get("https://api.github.com/copilot_internal/v2/token")
+                        .header("Authorization", format!("token {}", refresh_token))
+                        .header("Accept", "application/json")
+                        .header("User-Agent", "GitHubCopilotChat/0.11.1");
                         
-                    let mut body_str = format!(
-                        "grant_type=refresh_token&refresh_token={}&client_id={}",
-                        refresh_token, client_id
-                    );
-                    if let Some(secret) = client_secret {
-                        body_str.push_str(&format!("&client_secret={}", secret));
-                    }
-                    
-                    if let Ok(res) = req.body(body_str).send().await {
-                        if let Ok(res_json) = res.json::<serde_json::Value>().await {
-                            if let Some(access_token) = res_json.get("access_token").and_then(|v| v.as_str()) {
-                                account.api_key = access_token.to_string();
-                                
-                                if let Some(new_refresh) = res_json.get("refresh_token").and_then(|v| v.as_str()) {
-                                    account.refresh_token = Some(new_refresh.to_string());
+                    if let Ok(res) = req.send().await {
+                        if let Ok(json_res) = res.json::<serde_json::Value>().await {
+                            if let Some(token) = json_res.get("token").and_then(|v| v.as_str()) {
+                                account.api_key = token.to_string();
+                                if let Some(expires_in) = json_res.get("expires_at").and_then(|v| v.as_i64()) {
+                                    account.expires_at = Some(expires_in);
                                 }
-                                
-                                if let Some(expires_in) = res_json.get("expires_in").and_then(|v| v.as_i64()) {
-                                    account.expires_at = Some(chrono::Utc::now().timestamp() + expires_in);
-                                }
-                                
                                 attempt_settings.api_key = account.api_key.clone();
                                 needs_save = true;
+                            }
+                        }
+                    }
+                } else {
+                    let token_url = if account.provider == "openai" {
+                        "https://auth.openai.com/oauth/token"
+                    } else if account.provider == "gemini" || account.provider == "gemini_native" {
+                        "https://oauth2.googleapis.com/token"
+                    } else {
+                        ""
+                    };
+                    
+                    if !token_url.is_empty() {
+                        let client_id = if account.provider == "openai" {
+                            "app_EMoamEEZ73f0CkXaXp7hrann"
+                        } else if account.provider == "gemini_native" {
+                            "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+                        } else {
+                            "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
+                        };
+                        
+                        let client_secret = if account.provider == "gemini" {
+                            Some("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")
+                        } else if account.provider == "gemini_native" {
+                            Some("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")
+                        } else {
+                            None
+                        };
+                        
+                        let req = state.http_client.post(token_url)
+                            .header("Content-Type", "application/x-www-form-urlencoded");
+                            
+                        let mut body_str = format!(
+                            "grant_type=refresh_token&refresh_token={}&client_id={}",
+                            refresh_token, client_id
+                        );
+                        if let Some(secret) = client_secret {
+                            body_str.push_str(&format!("&client_secret={}", secret));
+                        }
+                        
+                        if let Ok(res) = req.body(body_str).send().await {
+                            if let Ok(res_json) = res.json::<serde_json::Value>().await {
+                                if let Some(access_token) = res_json.get("access_token").and_then(|v| v.as_str()) {
+                                    account.api_key = access_token.to_string();
+                                    
+                                    if let Some(new_refresh) = res_json.get("refresh_token").and_then(|v| v.as_str()) {
+                                        account.refresh_token = Some(new_refresh.to_string());
+                                    }
+                                    
+                                    if let Some(expires_in) = res_json.get("expires_in").and_then(|v| v.as_i64()) {
+                                        account.expires_at = Some(chrono::Utc::now().timestamp() + expires_in);
+                                    }
+                                    
+                                    attempt_settings.api_key = account.api_key.clone();
+                                    needs_save = true;
+                                }
                             }
                         }
                     }
@@ -235,6 +265,8 @@ async fn handle_request(
         // Prepare HTTP request to the upstream provider
         let upstream_adapter: Box<dyn UpstreamAdapter> = if attempt_settings.provider == "gemini_native" {
             Box::new(GeminiInternalUpstreamAdapter)
+        } else if attempt_settings.provider == "github_copilot" {
+            Box::new(CopilotUpstreamAdapter)
         } else {
             Box::new(OpenAiUpstreamAdapter)
         };
@@ -386,32 +418,72 @@ async fn handle_gemini(
 
 async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
     let settings = llm_settings::read_llm_settings();
-    let mut unique_models = std::collections::HashSet::new();
+    let mut unique_models = std::collections::HashMap::new();
     
     // Add models and aliases from all accounts
     for account in settings.accounts.iter() {
-        for model in &account.models {
-            unique_models.insert(model.clone());
+        if !account.enabled {
+            continue;
         }
-        for alias in account.model_mapping.keys() {
-            unique_models.insert(alias.clone());
+        
+        // Add actual models
+        for model in &account.models {
+            let mut model_obj = account.models_info.as_ref()
+                .and_then(|info| info.get(model))
+                .cloned()
+                .unwrap_or_else(|| {
+                    serde_json::json!({
+                        "id": model,
+                        "object": "model",
+                        "created": 1686935002,
+                        "owned_by": "hub-rs"
+                    })
+                });
+            
+            // Ensure ID is correct
+            model_obj["id"] = serde_json::json!(model);
+            if model_obj.get("object").is_none() {
+                model_obj["object"] = serde_json::json!("model");
+            }
+            
+            unique_models.insert(model.clone(), model_obj);
+        }
+        
+        // Add aliases (mapping)
+        for (alias, target) in &account.model_mapping {
+            let mut model_obj = account.models_info.as_ref()
+                .and_then(|info| info.get(target))
+                .cloned()
+                .unwrap_or_else(|| {
+                    serde_json::json!({
+                        "id": target,
+                        "object": "model",
+                        "created": 1686935002,
+                        "owned_by": "hub-rs"
+                    })
+                });
+            
+            // Use alias as the ID
+            model_obj["id"] = serde_json::json!(alias);
+            if model_obj.get("object").is_none() {
+                model_obj["object"] = serde_json::json!("model");
+            }
+            
+            unique_models.insert(alias.clone(), model_obj);
         }
     }
     
     // Fallback if no models are configured
     if unique_models.is_empty() {
-        unique_models.insert("gpt-4o".to_string());
-    }
-    
-    let mut data = Vec::new();
-    for model in unique_models {
-        data.push(serde_json::json!({
-            "id": model,
+        unique_models.insert("gpt-4o".to_string(), serde_json::json!({
+            "id": "gpt-4o",
             "object": "model",
             "created": 1686935002,
             "owned_by": "hub-rs"
         }));
     }
+    
+    let data: Vec<serde_json::Value> = unique_models.into_values().collect();
     
     let res = serde_json::json!({
         "object": "list",

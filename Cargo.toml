@@ -3,6 +3,13 @@ name = "hub-rs"
 version = "0.1.0"
 edition = "2021"
 description = "AIndex Hub - Code Intelligence Platform Backend"
+[[bin]]
+name = "hub"
+path = "src/main.rs"
+
+[[bin]]
+name = "mowen"
+path = "src/main.rs"
 
 [dependencies]
 # HTTP framework
@@ -33,7 +40,7 @@ regex = "1"
 
 # rtk (Rust Token Killer) - source-compression engine linked as a library.
 # The rtk binary is also invoked as a subprocess for command filtering + hooks.
-rtk = { path = "../rtk" }
+rtk = { path = "rtk" }
 
 # Hashing (must match codebase-memory-mcp XXH3 sparse random indexing)
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
@@ -82,3 +89,7 @@ windows-sys = { version = "0.61.2", features = ["Win32_Security_Credentials", "W
 opt-level = 3
 lto = true
 strip = true
+
+[workspace]
+members = ["rtk"]
+

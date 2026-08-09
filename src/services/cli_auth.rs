@@ -131,7 +131,7 @@ pub async fn ensure_logged_in(force: bool) -> Result<(), String> {
     }
 
     // Add New Provider Flow - Categories
-    let categories = vec!["Official", "Third-Party", "Aggregator", "Custom"];
+    let categories = vec!["OAuth (Native)", "Official", "Third-Party", "Aggregator", "Custom"];
     let cat_selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Provider Category")
         .default(0)
@@ -172,10 +172,12 @@ pub async fn ensure_logged_in(force: bool) -> Result<(), String> {
                 
             if auth_selection == 0 {
                 // Route to specific OAuth flow based on provider name
-                if provider.name == "OpenAI Official" {
-                    handle_openai_device_flow().await?
+                if provider.name == "OpenAI Native" {
+                    handle_openai_pkce_flow().await?
                 } else if provider.name == "Gemini Native" {
                     handle_gemini_oauth_flow().await?
+                } else if provider.name == "GitHub Copilot" {
+                    handle_github_copilot_flow().await?
                 } else {
                     // Fallback to API Key if no local OAuth implementation exists yet for others
                     println!("[Auth] Note: Native OAuth for {} is not yet implemented in hub-rs. Falling back to API Key.", provider.name);
@@ -200,19 +202,95 @@ pub async fn ensure_logged_in(force: bool) -> Result<(), String> {
     Ok(())
 }
 
-async fn handle_openai_device_flow() -> Result<LLMAccount, String> {
-    println!("[Auth] Starting Device Code flow for OpenAI...");
+async fn handle_openai_pkce_flow() -> Result<LLMAccount, String> {
+    println!("[Auth] Starting PKCE flow for OpenAI...");
+    
+    let client_id = "app_EMoamEEZ73f0CkXaXp7hrann"; // Codex / OpenAI Native client id
+    let auth_endpoint = "https://auth.openai.com/oauth/authorize";
+    let token_endpoint = "https://auth.openai.com/oauth/token";
+    let scope = "openid profile email offline_access";
+    let port = 1455;
+    let redirect_path = "/auth/callback";
+    let redirect_uri = format!("http://localhost:{}{}", port, redirect_path);
+    
+    let extra_auth_params = "&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=codex_cli_rs";
+
+    let (access_token, refresh_token, expires_in) = execute_pkce_flow(
+        client_id, 
+        None, 
+        auth_endpoint, 
+        token_endpoint, 
+        scope, 
+        port, 
+        &redirect_uri, 
+        redirect_path,
+        extra_auth_params
+    ).await?;
+    
+    let expires_at = expires_in.map(|secs| chrono::Utc::now().timestamp() + secs);
+
+    // Save to Windows Credential Manager for the local proxy
+    #[cfg(target_os = "windows")]
+    {
+        let expiry = expires_at.map(|ts| (chrono::Utc::now() + chrono::Duration::seconds(expires_in.unwrap_or(3599)))
+            .to_rfc3339_opts(chrono::SecondsFormat::Micros, true))
+            .unwrap_or_else(|| chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Micros, true));
+            
+        let payload = serde_json::json!({
+            "token": {
+                "access_token": access_token.clone(),
+                "token_type": "Bearer",
+                "refresh_token": refresh_token.clone().unwrap_or_default(),
+                "expiry": expiry
+            },
+            "auth_method": "web_oauth"
+        });
+
+        if let Ok(payload_str) = serde_json::to_string(&payload) {
+            let target_name = "openai:antigravity";
+            if crate::services::keyring_auth::write_credential(target_name, payload_str.as_bytes()) {
+                println!("[Auth] Successfully saved OAuth token to Windows Credential Manager as '{}'", target_name);
+            } else {
+                eprintln!("[Auth] Failed to save token to Windows Credential Manager.");
+            }
+        }
+    }
+
+    let name: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Account Name")
+        .default("OpenAI Native".into())
+        .interact_text()
+        .map_err(|e| e.to_string())?;
+
+    Ok(LLMAccount {
+        id: Uuid::new_v4().to_string(),
+        name,
+        enabled: true,
+        provider: "openai".to_string(),
+        models: vec!["gpt-4o".to_string(), "gpt-4-turbo".to_string(), "gpt-3.5-turbo".to_string()],
+        models_info: None,
+        model_mapping: std::collections::HashMap::new(),
+        base_url: "https://api.openai.com/v1".to_string(),
+        api_key: access_token,
+        refresh_token,
+        expires_at,
+        project_id: None,
+        quota_info: None,
+    })
+}
+
+async fn handle_github_copilot_flow() -> Result<LLMAccount, String> {
+    println!("[Auth] Starting Device Code flow for GitHub Copilot...");
     let client = Client::new();
-    let client_id = "app_EMoamEEZ73f0CkXaXp7hrann"; // cc-switch Codex client id
+    let client_id = "01ab8ac9400c4e429b23"; // Standard GitHub Copilot Plugin Client ID
     
     // 1. Get device code
-    let res_text = client.post("https://auth0.openai.com/oauth/device/code")
-        .header("Content-Type", "application/json")
-        .json(&serde_json::json!({
-            "client_id": client_id,
-            "audience": "https://api.openai.com/v1",
-            "scope": "openid profile email offline_access"
-        }))
+    let res_text = client.post("https://github.com/login/device/code")
+        .header("Accept", "application/json")
+        .form(&[
+            ("client_id", client_id),
+            ("scope", "read:user"),
+        ])
         .send().await.map_err(|e| e.to_string())?
         .text().await.map_err(|e| e.to_string())?;
 
@@ -234,13 +312,13 @@ async fn handle_openai_device_flow() -> Result<LLMAccount, String> {
     
     loop {
         interval.tick().await;
-        let token_res_text = client.post("https://auth0.openai.com/oauth/token")
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "client_id": client_id,
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                "device_code": device_auth.device_code,
-            }))
+        let token_res_text = client.post("https://github.com/login/oauth/access_token")
+            .header("Accept", "application/json")
+            .form(&[
+                ("client_id", client_id),
+                ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+                ("device_code", &device_auth.device_code),
+            ])
             .send().await.map_err(|e| e.to_string())?
             .text().await.map_err(|e| e.to_string())?;
             
@@ -262,25 +340,45 @@ async fn handle_openai_device_flow() -> Result<LLMAccount, String> {
         }
         
         if let Some(access_token) = token_res.access_token {
-            let expires_at = token_res.expires_in.map(|secs| chrono::Utc::now().timestamp() + secs);
-            
             let name: String = Input::with_theme(&ColorfulTheme::default())
                 .with_prompt("Account Name")
-                .default("OpenAI ChatGPT".into())
+                .default("GitHub Copilot".into())
                 .interact_text()
                 .map_err(|e| e.to_string())?;
+
+            // Fetch the initial Copilot session token
+            println!("[Auth] Authenticated with GitHub. Fetching Copilot session token...");
+            let copilot_token_req = client.get("https://api.github.com/copilot_internal/v2/token")
+                .header("Authorization", format!("token {}", access_token))
+                .header("Accept", "application/json")
+                .header("User-Agent", "GitHubCopilotChat/0.11.1")
+                .send().await;
+
+            let (api_key, expires_at) = match copilot_token_req {
+                Ok(res) if res.status().is_success() => {
+                    let json_res: serde_json::Value = res.json().await.unwrap_or_default();
+                    let token = json_res.get("token").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let expires = json_res.get("expires_at").and_then(|v| v.as_i64()); // This is unix timestamp in seconds
+                    (token, expires)
+                }
+                _ => {
+                    println!("[Auth] Failed to fetch initial Copilot token. You may not have an active Copilot subscription.");
+                    return Err("Failed to fetch initial Copilot token. Ensure you have an active GitHub Copilot subscription.".to_string());
+                }
+            };
                 
             return Ok(LLMAccount {
                 id: Uuid::new_v4().to_string(),
                 name,
                 enabled: true,
-                provider: "openai".to_string(),
-                models: vec![],
-                model_mapping: std::collections::HashMap::new(),
-                base_url: "https://chatgpt.com/backend-api/codex".to_string(), // match cc-switch
-                api_key: access_token,
-                refresh_token: token_res.refresh_token,
-                expires_at,
+                provider: "github_copilot".to_string(),
+                models: vec!["gpt-4o".into(), "gpt-4".into(), "gpt-3.5-turbo".into()],
+                models_info: None,
+            model_mapping: std::collections::HashMap::new(),
+                base_url: "https://api.githubcopilot.com".to_string(),
+                api_key,
+                refresh_token: Some(access_token), // Store the GitHub OAuth token here!
+                expires_at, 
                 project_id: None,
                 quota_info: None,
             });
@@ -320,7 +418,17 @@ async fn handle_gemini_oauth_flow() -> Result<LLMAccount, String> {
     let token_endpoint = "https://oauth2.googleapis.com/token";
     let scope = "openid https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/cclog https://www.googleapis.com/auth/experimentsandconfigs";
     
-    let (access_token, refresh_token, expires_in) = execute_pkce_flow(client_id, Some(client_secret), auth_endpoint, token_endpoint, scope).await?;
+    let (access_token, refresh_token, expires_in) = execute_pkce_flow(
+        client_id, 
+        Some(client_secret), 
+        auth_endpoint, 
+        token_endpoint, 
+        scope,
+        8765,
+        "http://127.0.0.1:8765/callback",
+        "/callback",
+        ""
+    ).await?;
     let expires_at = expires_in.map(|secs| chrono::Utc::now().timestamp() + secs);
     
     println!("[Auth] Fetching Google Cloud AI Companion Project...");
@@ -374,7 +482,8 @@ async fn handle_gemini_oauth_flow() -> Result<LLMAccount, String> {
         enabled: true,
         provider: "gemini_native".to_string(),
         models: vec![],
-        model_mapping: std::collections::HashMap::new(),
+        models_info: None,
+            model_mapping: std::collections::HashMap::new(),
         base_url,
         api_key: access_token,
         refresh_token,
@@ -413,7 +522,8 @@ async fn handle_custom_api_key() -> Result<LLMAccount, String> {
         enabled: true,
         provider: "openai-compatible".to_string(),
         models: vec![],
-        model_mapping: std::collections::HashMap::new(),
+        models_info: None,
+            model_mapping: std::collections::HashMap::new(),
         base_url,
         api_key,
         refresh_token: None,
@@ -447,7 +557,8 @@ async fn handle_custom_api_key_with_defaults(display_name: &str, provider: &str,
         enabled: true,
         provider: provider.to_string(),
         models: vec![],
-        model_mapping: std::collections::HashMap::new(),
+        models_info: None,
+            model_mapping: std::collections::HashMap::new(),
         base_url,
         api_key,
         refresh_token: None,
@@ -462,10 +573,12 @@ async fn execute_pkce_flow(
     client_secret: Option<&str>,
     auth_endpoint: &str, 
     token_endpoint: &str, 
-    scope: &str
+    scope: &str,
+    port: u16,
+    redirect_uri: &str,
+    redirect_path: &str,
+    extra_auth_params: &str
 ) -> Result<(String, Option<String>, Option<i64>), String> {
-    let port = 8765;
-    let redirect_uri = format!("http://127.0.0.1:{}/callback", port);
 
     // Generate PKCE params
     let mut verifier_bytes = [0u8; 32];
@@ -482,13 +595,14 @@ async fn execute_pkce_flow(
 
     // Construct Authorization URL
     let auth_url = format!(
-        "{}?response_type=code&client_id={}&redirect_uri={}&code_challenge={}&code_challenge_method=S256&scope={}&state={}",
+        "{}?response_type=code&client_id={}&redirect_uri={}&code_challenge={}&code_challenge_method=S256&scope={}&state={}{}",
         auth_endpoint,
         client_id,
-        urlencoding::encode(&redirect_uri),
+        urlencoding::encode(redirect_uri),
         challenge,
         urlencoding::encode(scope),
-        state
+        state,
+        extra_auth_params
     );
 
     // Start Local Server to receive callback
@@ -499,7 +613,7 @@ async fn execute_pkce_flow(
     });
 
     let app = Router::new()
-        .route("/callback", get(handle_callback))
+        .route(redirect_path, get(handle_callback))
         .with_state(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -536,7 +650,7 @@ async fn execute_pkce_flow(
         code,
         client_id,
         verifier,
-        urlencoding::encode(&redirect_uri)
+        urlencoding::encode(redirect_uri)
     );
     
     if let Some(secret) = client_secret {
