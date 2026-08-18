@@ -4,6 +4,8 @@ use super::app_paths::AppPaths;
 
 fn default_true() -> bool { true }
 
+fn default_weight() -> f32 { 1.0 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LLMAccount {
@@ -25,6 +27,12 @@ pub struct LLMAccount {
     pub project_id: Option<String>,
     #[serde(default)]
     pub quota_info: Option<serde_json::Value>,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub priority: i32,
+    #[serde(default = "default_weight")]
+    pub weight: f32,
 }
 
 impl Default for LLMAccount {
@@ -43,6 +51,9 @@ impl Default for LLMAccount {
             expires_at: None,
             project_id: None,
             quota_info: None,
+            tags: vec![],
+            priority: 0,
+            weight: 1.0,
         }
     }
 }

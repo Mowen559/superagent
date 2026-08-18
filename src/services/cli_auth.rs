@@ -275,7 +275,7 @@ async fn handle_openai_pkce_flow() -> Result<LLMAccount, String> {
         refresh_token,
         expires_at,
         project_id: None,
-        quota_info: None,
+        quota_info: None, tags: vec![], priority: 0, weight: 1.0,
     })
 }
 
@@ -380,7 +380,7 @@ async fn handle_github_copilot_flow() -> Result<LLMAccount, String> {
                 refresh_token: Some(access_token), // Store the GitHub OAuth token here!
                 expires_at, 
                 project_id: None,
-                quota_info: None,
+                quota_info: None, tags: vec![], priority: 0, weight: 1.0,
             });
         }
     }
@@ -489,7 +489,7 @@ async fn handle_gemini_oauth_flow() -> Result<LLMAccount, String> {
         refresh_token,
         expires_at,
         project_id: Some(project_id),
-        quota_info: None,
+        quota_info: None, tags: vec![], priority: 0, weight: 1.0,
     })
 }
 
@@ -529,7 +529,7 @@ async fn handle_custom_api_key() -> Result<LLMAccount, String> {
         refresh_token: None,
         expires_at: None,
         project_id: None,
-        quota_info: None,
+        quota_info: None, tags: vec![], priority: 0, weight: 1.0,
     })
 }
 
@@ -564,7 +564,7 @@ async fn handle_custom_api_key_with_defaults(display_name: &str, provider: &str,
         refresh_token: None,
         expires_at: None,
         project_id: None,
-        quota_info: None,
+        quota_info: None, tags: vec![], priority: 0, weight: 1.0,
     })
 }
 

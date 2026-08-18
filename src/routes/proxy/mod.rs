@@ -50,21 +50,51 @@ async fn handle_request(
     let mut attempt_accounts = Vec::new();
     
     if !requested_model.is_empty() {
-        let matching_accounts: Vec<_> = settings.accounts.iter().filter(|a| {
-            a.enabled && (a.models.contains(&requested_model) || a.model_mapping.contains_key(&requested_model))
-        }).cloned().collect();
-        
-        if !matching_accounts.is_empty() {
-            if settings.routing_strategy == "round_robin" {
-                let req_count = state.request_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                let start_idx = req_count % matching_accounts.len();
-                for i in 0..matching_accounts.len() {
-                    let idx = (start_idx + i) % matching_accounts.len();
-                    attempt_accounts.push(matching_accounts[idx].clone());
+        let requested_tags: Vec<String> = headers
+            .get("X-Hub-Routing-Tags")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect())
+            .unwrap_or_default();
+
+        let mut matching_accounts: Vec<_> = settings.accounts.iter().filter(|a| {
+            if !a.enabled { return false; }
+            if !a.models.contains(&requested_model) && !a.model_mapping.contains_key(&requested_model) { return false; }
+            
+            // Check tags
+            if !requested_tags.is_empty() {
+                for tag in &requested_tags {
+                    if !a.tags.contains(tag) { return false; }
                 }
+            }
+            true
+        }).cloned().collect();
+
+        // Group by priority
+        let mut grouped: std::collections::BTreeMap<i32, Vec<crate::config::llm_settings::LLMAccount>> = std::collections::BTreeMap::new();
+        for acc in matching_accounts {
+            grouped.entry(acc.priority).or_default().push(acc);
+        }
+
+        use rand::Rng;
+        let mut rng = rand::rng();
+
+        for (_priority, mut group) in grouped.into_iter().rev() {
+            // Priority groups are processed from highest priority down to lowest
+            if settings.routing_strategy == "round_robin" {
+                // Weighted shuffle using random key = rand ^ (1 / weight)
+                group.sort_by(|a, b| {
+                    let w_a = a.weight.max(0.001) as f64;
+                    let w_b = b.weight.max(0.001) as f64;
+                    let r_a: f64 = rand::random();
+                    let r_b: f64 = rand::random();
+                    let k_a = r_a.powf(1.0 / w_a);
+                    let k_b = r_b.powf(1.0 / w_b);
+                    k_b.partial_cmp(&k_a).unwrap_or(std::cmp::Ordering::Equal)
+                });
+                attempt_accounts.extend(group);
             } else {
-                // Failover (Primary/Standby) - strictly follow configured order
-                attempt_accounts = matching_accounts;
+                // Failover mode: keep original order within the same priority
+                attempt_accounts.extend(group);
             }
         }
     }
@@ -330,6 +360,16 @@ async fn handle_request(
                 .response_to_standard(res_body)
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     
+            // Intercept standard_res to extract usage
+            if let Some(usage) = standard_res.get("usage") {
+                let prompt_tokens = usage.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                let comp = usage.get("completion_tokens").or_else(|| usage.get("output_tokens")).and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                if prompt_tokens > 0 || comp > 0 {
+                    let cost = crate::services::cost_calculator::CostCalculator::calculate_cost(&requested_model, prompt_tokens, comp, 0, 0);
+                    crate::services::usage_tracker::record_usage(account.id.clone(), requested_model.clone(), prompt_tokens, comp, cost);
+                }
+            }
+
             let converted_res = converter
                 .standard_to_response(standard_res)
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -362,7 +402,34 @@ async fn handle_request(
                 r.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
             });
             let standard_stream = upstream_adapter.response_stream_to_standard(Box::pin(io_stream));
-            let mapped_stream = converter.standard_to_response_stream(standard_stream);
+            
+            // Intercept standard_stream for SSE usage extraction
+            let account_id = account.id.clone();
+            let req_model = requested_model.clone();
+            let intercepted_stream = futures::stream::StreamExt::map(standard_stream, move |chunk_res| {
+                if let Ok(chunk) = &chunk_res {
+                    if let Ok(text) = std::str::from_utf8(chunk) {
+                        // Quick and dirty SSE parse for usage
+                        for line in text.lines() {
+                            if line.starts_with("data: ") && line != "data: [DONE]" {
+                                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line[6..]) {
+                                    if let Some(usage) = json.get("usage") {
+                                        let prompt_tokens = usage.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                                        let comp = usage.get("completion_tokens").or_else(|| usage.get("output_tokens")).and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                                        if prompt_tokens > 0 || comp > 0 {
+                                            let cost = crate::services::cost_calculator::CostCalculator::calculate_cost(&req_model, prompt_tokens, comp, 0, 0);
+                                            crate::services::usage_tracker::record_usage(account_id.clone(), req_model.clone(), prompt_tokens, comp, cost);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                chunk_res
+            });
+
+            let mapped_stream = converter.standard_to_response_stream(Box::pin(intercepted_stream));
     
             let body = axum::body::Body::from_stream(mapped_stream);
     
@@ -418,7 +485,7 @@ async fn handle_gemini(
 
 async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
     let settings = llm_settings::read_llm_settings();
-    let mut unique_models = std::collections::HashMap::new();
+    let mut unique_models: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
     
     // Add models and aliases from all accounts
     for account in settings.accounts.iter() {
@@ -426,50 +493,73 @@ async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
             continue;
         }
         
+        let source_info = serde_json::json!({
+            "accountId": account.id,
+            "accountName": account.name,
+            "provider": account.provider,
+            "tags": account.tags,
+            "priority": account.priority,
+            "weight": account.weight
+        });
+        
         // Add actual models
         for model in &account.models {
-            let mut model_obj = account.models_info.as_ref()
-                .and_then(|info| info.get(model))
-                .cloned()
-                .unwrap_or_else(|| {
-                    serde_json::json!({
-                        "id": model,
-                        "object": "model",
-                        "created": 1686935002,
-                        "owned_by": "hub-rs"
-                    })
-                });
-            
-            // Ensure ID is correct
-            model_obj["id"] = serde_json::json!(model);
-            if model_obj.get("object").is_none() {
-                model_obj["object"] = serde_json::json!("model");
+            if let Some(existing) = unique_models.get_mut(model) {
+                if let Some(sources) = existing.get_mut("sources").and_then(|v| v.as_array_mut()) {
+                    sources.push(source_info.clone());
+                }
+            } else {
+                let mut model_obj = account.models_info.as_ref()
+                    .and_then(|info| info.get(model))
+                    .cloned()
+                    .unwrap_or_else(|| {
+                        serde_json::json!({
+                            "id": model,
+                            "object": "model",
+                            "created": 1686935002,
+                            "owned_by": "hub-rs"
+                        })
+                    });
+                
+                // Ensure ID is correct
+                model_obj["id"] = serde_json::json!(model);
+                if model_obj.get("object").is_none() {
+                    model_obj["object"] = serde_json::json!("model");
+                }
+                model_obj["sources"] = serde_json::json!([source_info.clone()]);
+                
+                unique_models.insert(model.clone(), model_obj);
             }
-            
-            unique_models.insert(model.clone(), model_obj);
         }
         
         // Add aliases (mapping)
         for (alias, target) in &account.model_mapping {
-            let mut model_obj = account.models_info.as_ref()
-                .and_then(|info| info.get(target))
-                .cloned()
-                .unwrap_or_else(|| {
-                    serde_json::json!({
-                        "id": target,
-                        "object": "model",
-                        "created": 1686935002,
-                        "owned_by": "hub-rs"
-                    })
-                });
-            
-            // Use alias as the ID
-            model_obj["id"] = serde_json::json!(alias);
-            if model_obj.get("object").is_none() {
-                model_obj["object"] = serde_json::json!("model");
+            if let Some(existing) = unique_models.get_mut(alias) {
+                if let Some(sources) = existing.get_mut("sources").and_then(|v| v.as_array_mut()) {
+                    sources.push(source_info.clone());
+                }
+            } else {
+                let mut model_obj = account.models_info.as_ref()
+                    .and_then(|info| info.get(target))
+                    .cloned()
+                    .unwrap_or_else(|| {
+                        serde_json::json!({
+                            "id": target,
+                            "object": "model",
+                            "created": 1686935002,
+                            "owned_by": "hub-rs"
+                        })
+                    });
+                
+                // Use alias as the ID
+                model_obj["id"] = serde_json::json!(alias);
+                if model_obj.get("object").is_none() {
+                    model_obj["object"] = serde_json::json!("model");
+                }
+                model_obj["sources"] = serde_json::json!([source_info.clone()]);
+                
+                unique_models.insert(alias.clone(), model_obj);
             }
-            
-            unique_models.insert(alias.clone(), model_obj);
         }
     }
     
@@ -479,7 +569,8 @@ async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
             "id": "gpt-4o",
             "object": "model",
             "created": 1686935002,
-            "owned_by": "hub-rs"
+            "owned_by": "hub-rs",
+            "sources": []
         }));
     }
     

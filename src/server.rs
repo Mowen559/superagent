@@ -35,6 +35,8 @@ pub const DEFAULT_PORT: u16 = 3001;
 pub async fn serve(port: u16) {
     init_tracing();
 
+    crate::services::usage_tracker::init_db();
+
     // Load .env if present
     let _ = dotenvy::dotenv();
 

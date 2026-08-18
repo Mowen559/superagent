@@ -33,3 +33,4 @@ pub mod cli_auth;pub mod provider_presets;
 
 pub mod keyring_auth;
 pub mod subscription;
+pub mod usage_tracker;
