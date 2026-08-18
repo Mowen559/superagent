@@ -18,7 +18,7 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
         let is_stream = standard_body.get("stream").and_then(|v| v.as_bool()).unwrap_or(false);
         let method = if is_stream { "streamGenerateContent" } else { "generateContent" };
         let query_string = if is_stream { "?alt=sse" } else { "" };
-        let base_url = "https://cloudcode-pa.googleapis.com/v1internal";
+        let base_url = "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal";
         let target_url = format!("{}:{}{}", base_url, method, query_string);
 
         let mut headers = HeaderMap::new();
