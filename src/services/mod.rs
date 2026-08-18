@@ -11,6 +11,7 @@ pub mod vector_service;
 pub mod understand_service;
 pub mod token_filter;
 pub mod understanding_cache;
+pub mod brain;
 pub mod architecture_analyzer;
 pub mod domain_analyzer;
 pub mod tour_builder;

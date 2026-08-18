@@ -253,7 +253,8 @@ fn run_hook() {
         .name("rtk_hook".to_string())
         .stack_size(HOOK_STACK_SIZE)
         .spawn(move || {
-            std::process::exit(rtk::cli::run());
+            rtk::cli::run();
+            std::process::exit(0);
         })
         .expect("failed to spawn hook thread");
     let _ = thread.join().expect("hook thread panicked");

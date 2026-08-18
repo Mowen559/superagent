@@ -6,13 +6,13 @@
 //! acts as the rtk hook. `main` stays trivial — it only wires up the module
 //! tree and hands off to [`cli::dispatch`].
 
-mod cli;
-mod config;
-mod models;
-mod routes;
-mod reverse_engineering;
-mod server;
-mod services;
+pub mod cli;
+pub mod config;
+pub mod models;
+pub mod routes;
+pub mod reverse_engineering;
+pub mod server;
+pub mod services;
 pub mod repl;
 pub mod mcp_server;
 pub mod cli_commands;
@@ -20,7 +20,3 @@ pub mod cli_commands;
 // Re-exported at the crate root so route modules keep referring to
 // `crate::AppState` after the state moved into `server`.
 pub use server::AppState;
-
-fn main() {
-    cli::dispatch();
-}

@@ -94,44 +94,40 @@ impl Language {
     }
 }
 
-/// Map hub's `FilterLevel` onto rtk's equivalent.
-fn to_rtk_level(level: FilterLevel) -> rtk::core::filter::FilterLevel {
-    match level {
+// to_rtk_level and to_rtk_lang bridging
+fn to_rtk_level(l: FilterLevel) -> rtk::core::filter::FilterLevel {
+    match l {
         FilterLevel::None => rtk::core::filter::FilterLevel::None,
         FilterLevel::Minimal => rtk::core::filter::FilterLevel::Minimal,
         FilterLevel::Aggressive => rtk::core::filter::FilterLevel::Aggressive,
     }
 }
 
-/// Map hub's `Language` onto rtk's equivalent (identical variant set).
-fn to_rtk_lang(lang: &Language) -> rtk::core::filter::Language {
-    use rtk::core::filter::Language as R;
-    match lang {
-        Language::Rust => R::Rust,
-        Language::Python => R::Python,
-        Language::JavaScript => R::JavaScript,
-        Language::TypeScript => R::TypeScript,
-        Language::Go => R::Go,
-        Language::C => R::C,
-        Language::Cpp => R::Cpp,
-        Language::Java => R::Java,
-        Language::Ruby => R::Ruby,
-        Language::Shell => R::Shell,
-        Language::Data => R::Data,
-        Language::Unknown => R::Unknown,
+fn to_rtk_lang(l: &Language) -> rtk::core::filter::Language {
+    match l {
+        Language::Rust => rtk::core::filter::Language::Rust,
+        Language::Python => rtk::core::filter::Language::Python,
+        Language::TypeScript => rtk::core::filter::Language::TypeScript,
+        Language::JavaScript => rtk::core::filter::Language::JavaScript,
+        Language::Go => rtk::core::filter::Language::Go,
+        Language::C => rtk::core::filter::Language::C,
+        Language::Cpp => rtk::core::filter::Language::Cpp,
+        Language::Java => rtk::core::filter::Language::Java,
+        Language::Ruby => rtk::core::filter::Language::Ruby,
+        Language::Shell => rtk::core::filter::Language::Shell,
+        Language::Data => rtk::core::filter::Language::Data,
+        Language::Unknown => rtk::core::filter::Language::Unknown,
     }
 }
 
-/// Apply a filter level to `content`, delegating to rtk's filter strategies.
+/// Apply a filter level to `content`.
 pub fn filter(content: &str, lang: &Language, level: FilterLevel) -> String {
-    if level == FilterLevel::None {
-        return content.to_string();
-    }
-    rtk::core::filter::get_filter(to_rtk_level(level)).filter(content, &to_rtk_lang(lang))
+    let rtk_level = to_rtk_level(level);
+    let rtk_lang = to_rtk_lang(lang);
+    rtk::core::filter::get_filter(rtk_level).filter(content, &rtk_lang)
 }
 
-/// Truncate to `max_lines`, prioritizing structurally important lines
-/// (delegates to rtk).
+/// Truncate to `max_lines`
 #[allow(dead_code)]
 pub fn smart_truncate(content: &str, max_lines: usize, lang: &Language) -> String {
     rtk::core::filter::smart_truncate(content, max_lines, &to_rtk_lang(lang))

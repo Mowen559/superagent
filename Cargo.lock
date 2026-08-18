@@ -1338,6 +1338,7 @@ dependencies = [
  "git2",
  "ignore",
  "keyring",
+ "lazy_static",
  "machine-uid",
  "open",
  "petgraph",
@@ -2469,6 +2470,7 @@ dependencies = [
 [[package]]
 name = "rtk"
 version = "0.42.4"
+source = "git+https://github.com/Mowen559/rtk.git#49da2d93e9a88e9bc0666c4f8c06257656717e88"
 dependencies = [
  "anyhow",
  "automod",

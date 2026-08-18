@@ -72,6 +72,69 @@ impl LlmProvider {
         llm_settings::has_usable_settings(&self.settings)
     }
 
+    /// Send a chat completion request with Tool schemas
+    pub async fn chat_with_tools(&self, messages: Vec<Value>, system: Option<&str>, tools: Option<Value>) -> Result<(Value, TokenUsage), String> {
+        if !self.is_available() {
+            return Err("LLM is not configured".into());
+        }
+
+        // Drop the NO_TOOLS_DIRECTIVE if tools are actually provided
+        let mut combined_system = system.unwrap_or("").to_string();
+        if tools.is_none() {
+            combined_system.push_str(&format!("\n{}\n{}", ENGINEERING_SYSTEM_PROMPT, NO_TOOLS_DIRECTIVE));
+        } else {
+            combined_system.push_str(&format!("\n{}", ENGINEERING_SYSTEM_PROMPT));
+        }
+
+        let actual_model = {
+            let mapping = self.settings.active_account_id.as_ref()
+                .and_then(|id| self.settings.accounts.iter().find(|a| a.id == *id))
+                .map(|account| &account.model_mapping);
+            mapping.and_then(|m| m.get(&self.settings.model)).unwrap_or(&self.settings.model).clone()
+        };
+
+        let base = "http://127.0.0.1:3001/v1";
+        let url = format!("{}/chat/completions", base);
+
+        let mut msgs = Vec::new();
+        msgs.push(json!({ "role": "system", "content": combined_system }));
+        msgs.extend(messages.iter().cloned());
+
+        let mut body_obj = json!({
+            "model": actual_model,
+            "max_tokens": self.settings.max_tokens,
+            "temperature": self.settings.temperature,
+            "messages": msgs,
+        });
+
+        if let Some(t) = tools {
+            body_obj["tools"] = t;
+        }
+
+        let api_key = self.settings.api_key.clone();
+        
+        let mut req = self.client.post(&url).timeout(std::time::Duration::from_secs(180)).header("Content-Type", "application/json");
+        req = req.header("Authorization", format!("Bearer {}", api_key));
+
+        let response = req.json(&body_obj).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
+        if !response.status().is_success() {
+            return Err(format!("LLM API error: {}", response.text().await.unwrap_or_default()));
+        }
+
+        let result: Value = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
+        
+        let msg = result["choices"][0]["message"].clone();
+        
+        // Extract usage
+        let mut usage = TokenUsage::default();
+        if let Some(u) = result.get("usage") {
+            usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+            usage.completion_tokens = u.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        }
+
+        Ok((msg, usage))
+    }
+
     /// Send a chat completion request
     pub async fn chat(&self, messages: Vec<Value>, system: Option<&str>) -> Result<(String, TokenUsage), String> {
         if !self.is_available() {

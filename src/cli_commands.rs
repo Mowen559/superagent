@@ -17,9 +17,15 @@ pub fn handle_agent(cmd: AgentCommand) {
                     return;
                 }
 
+                let text = prompt.join(" ");
+
+                if agent == "superagent" {
+                    crate::services::brain::supervisor::run_superagent_with_evolution(&text).await;
+                    return;
+                }
+                
                 let kind = registry::AgentKind::from_str(&agent).unwrap_or(registry::AgentKind::Claude);
                 let backend = registry::new(kind);
-                let text = prompt.join(" ");
                 
                 let opts = ExecOptions {
                     cwd: project,

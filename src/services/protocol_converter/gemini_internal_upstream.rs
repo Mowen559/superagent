@@ -25,21 +25,7 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         headers.insert(AUTHORIZATION, format!("Bearer {}", settings.api_key).parse().unwrap());
         headers.insert(USER_AGENT, HeaderValue::from_static("antigravity"));
-        headers.insert("x-client-name", HeaderValue::from_static("antigravity"));
-        
-        let version = "vscode/1.X.X (Antigravity/4.3.6)";
-        headers.insert("x-client-version", version.parse().unwrap());
-
-        if let Ok(mid) = machine_uid::get() {
-            headers.insert("x-machine-id", mid.parse().unwrap());
-        } else {
-            headers.insert("x-machine-id", "0000000000000000000000000000000000000000000000000000000000000000".parse().unwrap());
-        }
-        
-        let session_id = Uuid::new_v4().to_string();
-        headers.insert("x-vscode-sessionid", session_id.parse().unwrap());
-
-        // We do not send x-goog-user-project header anymore because the API complains with duplicated projects when both the body and header are set
+        headers.insert("Connection", HeaderValue::from_static("close"));
 
         // Convert standard (OpenAI) to Gemini
         let gemini_body = convert_standard_to_gemini(standard_body, settings.model.clone());

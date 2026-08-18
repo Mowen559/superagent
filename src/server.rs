@@ -79,7 +79,10 @@ fn build_state() -> Arc<AppState> {
         runtime_config,
         app_paths,
         task_manager,
-        http_client: reqwest::Client::new(),
+        http_client: reqwest::Client::builder()
+            .http1_only()
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new()),
         request_counter: std::sync::atomic::AtomicUsize::new(0),
     })
 }
