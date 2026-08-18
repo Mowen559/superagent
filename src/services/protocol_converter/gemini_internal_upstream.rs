@@ -24,7 +24,7 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         headers.insert(AUTHORIZATION, format!("Bearer {}", settings.api_key).parse().unwrap());
-        headers.insert(USER_AGENT, HeaderValue::from_static("antigravity"));
+        headers.insert(USER_AGENT, HeaderValue::from_static("antigravity/1.21.9 darwin/arm64"));
         headers.insert("Connection", HeaderValue::from_static("close"));
 
         // Convert standard (OpenAI) to Gemini
@@ -42,7 +42,7 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
             "project": project_id,
             "request": gemini_body,
             "model": settings.model,
-            "userAgent": "antigravity",
+            "userAgent": "antigravity/1.21.9 darwin/arm64",
             "requestType": "agent",
             "requestId": official_request_id,
             "enabledCreditTypes": ["GOOGLE_ONE_AI"],
