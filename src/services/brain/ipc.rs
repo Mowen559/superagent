@@ -3,20 +3,29 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use std::process::Child;
 
 /// 指令载体
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", content = "payload")]
 pub enum IpcMessage {
     Prompt(String),
+    Spawn {
+        role: String,
+        system_prompt: Option<String>,
+        prompt: String,
+    },
+    Intervene(String),
     ReloadRequest,
     AskUser { question: String },
     UserResponse(String),
     Result(String),
     Error(String),
+    Event {
+        event_type: String,
+        content: String,
+    },
 }
 
 /// 专属于大脑 A (Hub) 的 IPC 客户端
@@ -68,36 +77,59 @@ impl IpcClient {
 
 /// 大脑 B 内部启动的独立进程事件循环
 pub async fn start_worker_loop(mut engine: super::executor::AgentLoop) {
-    let stdin = io::stdin();
-    let mut handle = stdin.lock();
-    let mut buffer = String::new();
+    let interventions_handle = engine.interventions.clone();
 
-    loop {
-        buffer.clear();
-        match handle.read_line(&mut buffer) {
-            Ok(0) => break, // EOF, pipe closed
-            Ok(_) => {
-                if let Ok(msg) = serde_json::from_str::<IpcMessage>(&buffer) {
-                    match msg {
-                        IpcMessage::Prompt(prompt) => {
-                            // 执行引擎处理
-                            match engine.run(&prompt).await {
-                                Ok(res) => send_to_hub(IpcMessage::Result(res)),
-                                Err(e) => send_to_hub(IpcMessage::Error(e)),
-                            }
-                        }
-                        _ => {}
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<IpcMessage>();
+
+    // 启动后台 Stdin 异步读取 Task
+    tokio::spawn(async move {
+        let stdin = tokio::io::stdin();
+        let mut reader = BufReader::new(stdin);
+        let mut line = String::new();
+        while let Ok(n) = reader.read_line(&mut line).await {
+            if n == 0 { break; }
+            if let Ok(msg) = serde_json::from_str::<IpcMessage>(&line) {
+                match &msg {
+                    IpcMessage::Intervene(instruction) => {
+                        let mut guard = interventions_handle.lock().unwrap();
+                        guard.push(instruction.clone());
+                    }
+                    _ => {
+                        let _ = tx.send(msg);
                     }
                 }
             }
-            Err(_) => break,
+            line.clear();
+        }
+    });
+
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            IpcMessage::Spawn { role, system_prompt, prompt } => {
+                if let Some(sys) = system_prompt {
+                    engine.set_system_prompt(&sys);
+                }
+                engine.set_role(&role);
+                match engine.run(&prompt).await {
+                    Ok(res) => send_to_hub(IpcMessage::Result(res)),
+                    Err(e) => send_to_hub(IpcMessage::Error(e)),
+                }
+            }
+            IpcMessage::Prompt(prompt) => {
+                match engine.run(&prompt).await {
+                    Ok(res) => send_to_hub(IpcMessage::Result(res)),
+                    Err(e) => send_to_hub(IpcMessage::Error(e)),
+                }
+            }
+            _ => {}
         }
     }
 }
 
 /// 大脑 B 向大本营发送消息的统一通道
 pub fn send_to_hub(msg: IpcMessage) {
-    let json_str = serde_json::to_string(&msg).unwrap();
-    println!("{}", json_str);
-    io::stdout().flush().unwrap();
+    if let Ok(json_str) = serde_json::to_string(&msg) {
+        println!("{}", json_str);
+        let _ = io::stdout().flush();
+    }
 }

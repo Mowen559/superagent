@@ -113,6 +113,14 @@ impl ToolExecutor for WriteFileTool {
                 }
             }
         }
+        // 自动快照：脊髓反射 (Spinal Reflex - Shadow Backup)
+        eprintln!("\x1b[36m[Spinal Reflex] 运动中枢触发防卫：自动备份 {}\x1b[0m", target_file);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
+        let cwd_str = cwd.to_string_lossy().to_string();
+        let _ = crate::services::git_service::record_ai_snapshot(
+            &cwd_str,
+            &format!("[Shadow Backup] Auto-backup before modifying {}", target_file)
+        );
 
         match fs::write(path, code_content) {
             Ok(_) => Ok(json!({ "status": "success", "message": format!("File written to {}", target_file) })),

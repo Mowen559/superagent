@@ -1,5 +1,8 @@
 //! 进程管理器 (Process Manager)
 //! 用于托管后台长时间运行的 Terminal 进程，收集日志，并在需要时终止它们。
+//! 吸收 DeepSeek Harness 防御性模式 (Defensive Patterns):
+//! 1. dispose 必须达到完全停稳 (dispose must reach complete settlement via kill + wait)
+//! 2. 正交状态上报 (running, exit_code, timed_out, command)
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
@@ -83,37 +86,48 @@ pub fn get_process_logs(id: &str) -> Option<String> {
     None
 }
 
-/// 杀死指定进程
+/// 杀死指定进程 (防御性模式：确保 kill + wait 完全停稳，回收 OS 资源)
 pub fn kill_process(id: &str) -> bool {
     if let Ok(mut registry) = PROCESS_REGISTRY.write() {
         if let Some(mut state) = registry.remove(id) {
             let _ = state.child.kill();
+            let _ = state.child.wait(); // 完全停稳，防止僵尸进程
             return true;
         }
     }
     false
 }
 
-/// 列出所有后台进程
+/// 列出所有后台进程，并上报正交状态
 pub fn list_processes() -> Vec<serde_json::Value> {
     let mut list = Vec::new();
-    if let Ok(registry) = PROCESS_REGISTRY.read() {
-        for (id, state) in registry.iter() {
+    if let Ok(mut registry) = PROCESS_REGISTRY.write() {
+        for (id, state) in registry.iter_mut() {
+            let status_res = state.child.try_wait();
+            let (is_running, exit_code) = match status_res {
+                Ok(Some(status)) => (false, status.code()),
+                Ok(None) => (true, None),
+                Err(_) => (false, None),
+            };
+
             list.push(serde_json::json!({
                 "process_id": id,
                 "command": state.command,
+                "is_running": is_running,
+                "exit_code": exit_code,
             }));
         }
     }
     list
 }
 
-/// 清理所有孤儿进程
+/// 清理所有孤儿进程 (防御性模式：kill + wait 确保全停稳)
 pub fn cleanup_all_processes() {
     if let Ok(mut registry) = PROCESS_REGISTRY.write() {
         for (id, state) in registry.iter_mut() {
-            eprintln!("[Brain B] Cleaning up orphan process: {} ({})", id, state.command);
+            eprintln!("[Brain B ProcessManager] Completely disposing orphan process: {} ({})", id, state.command);
             let _ = state.child.kill();
+            let _ = state.child.wait();
         }
         registry.clear();
     }

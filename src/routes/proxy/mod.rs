@@ -336,7 +336,10 @@ async fn handle_request(
         
         if !is_stream {
             let res_body: Value = match res.json().await {
-                Ok(b) => b,
+                Ok(b) => {
+                    tracing::debug!("raw response body: {}", serde_json::to_string(&b).unwrap_or_default());
+                    b
+                },
                 Err(e) => {
                     last_error = (StatusCode::BAD_GATEWAY, e.to_string());
                     continue;

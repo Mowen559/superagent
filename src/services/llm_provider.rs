@@ -93,9 +93,7 @@ impl LlmProvider {
             mapping.and_then(|m| m.get(&self.settings.model)).unwrap_or(&self.settings.model).clone()
         };
 
-        let base = "http://127.0.0.1:3001/v1";
-        let url = format!("{}/chat/completions", base);
-
+        let start_time = std::time::Instant::now();
         let mut msgs = Vec::new();
         msgs.push(json!({ "role": "system", "content": combined_system }));
         msgs.extend(messages.iter().cloned());
@@ -111,10 +109,66 @@ impl LlmProvider {
             body_obj["tools"] = t;
         }
 
+        if self.settings.provider == "gemini_native" {
+            use crate::services::protocol_converter::upstream::UpstreamAdapter;
+            use crate::services::protocol_converter::gemini_internal_upstream::GeminiInternalUpstreamAdapter;
+            
+            let adapter = GeminiInternalUpstreamAdapter;
+            let (target_url, headers_map, upstream_body) = adapter.prepare_request(&self.settings, body_obj).map_err(|e| format!("Adapter error: {}", e))?;
+            
+            let mut req = self.client.post(&target_url).timeout(std::time::Duration::from_secs(180));
+            for (k, v) in headers_map.iter() {
+                req = req.header(k, v);
+            }
+            
+            let response = req.json(&upstream_body).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
+            if !response.status().is_success() {
+                let status = response.status();
+                let text = response.text().await.unwrap_or_default();
+                return Err(format!("LLM API error ({}): {}", status, text));
+            }
+            
+            let result: Value = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
+            let standard_res = adapter.response_to_standard(result).map_err(|e| format!("Adapter response error: {}", e))?;
+            
+            let msg = standard_res["choices"][0]["message"].clone();
+            let mut usage = TokenUsage::default();
+            if let Some(u) = standard_res.get("usage") {
+                usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                usage.completion_tokens = u.get("completion_tokens").or_else(|| u.get("output_tokens")).and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+            }
+            usage.duration_ms = start_time.elapsed().as_millis() as u64;
+            return Ok((msg, usage));
+        }
+
+        let base = self.settings.base_url.trim_end_matches('/');
+        let url = if self.settings.provider.contains("gemini") || self.settings.provider.contains("google") || base.contains("generativelanguage.googleapis.com") {
+            if base.ends_with("/v1beta") {
+                format!("{}/openai/chat/completions", base)
+            } else if base.ends_with("/v1beta/openai") {
+                format!("{}/chat/completions", base)
+            } else if !base.contains("/v1beta") {
+                format!("{}/v1beta/openai/chat/completions", base)
+            } else {
+                format!("{}/chat/completions", base)
+            }
+        } else {
+            if base.ends_with("/v1") {
+                format!("{}/chat/completions", base)
+            } else {
+                format!("{}/v1/chat/completions", base)
+            }
+        };
+
         let api_key = self.settings.api_key.clone();
         
         let mut req = self.client.post(&url).timeout(std::time::Duration::from_secs(180)).header("Content-Type", "application/json");
         req = req.header("Authorization", format!("Bearer {}", api_key));
+        if self.settings.api_key.starts_with("ya29.") {
+            if let Some(pid) = &self.settings.project_id {
+                req = req.header("x-goog-user-project", pid);
+            }
+        }
 
         let response = req.json(&body_obj).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
         if !response.status().is_success() {
@@ -132,6 +186,7 @@ impl LlmProvider {
             usage.completion_tokens = u.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
         }
 
+        usage.duration_ms = start_time.elapsed().as_millis() as u64;
         Ok((msg, usage))
     }
 
