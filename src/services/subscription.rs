@@ -170,7 +170,7 @@ async fn query_openai_quota(client: &reqwest::Client, access_token: &str, accoun
 const GEMINI_OAUTH_CLIENT_ID: &str = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
 const GEMINI_OAUTH_CLIENT_SECRET: &str = "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";
 
-async fn refresh_gemini_token(client: &reqwest::Client, refresh_token: &str) -> Option<String> {
+pub async fn refresh_gemini_token(client: &reqwest::Client, refresh_token: &str) -> Option<String> {
     let resp = client
         .post("https://oauth2.googleapis.com/token")
         .form(&[

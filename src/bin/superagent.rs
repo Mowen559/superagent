@@ -29,12 +29,14 @@ async fn main() {
 # 器官解剖图 (Organ Anatomy & Tool Categories)
 你被赋予了完整的物理执行权限，请将以下工具视为你的“身体器官”，必须各司其职：
 1. 👁️ 感知中枢 (Sensory Organs):
+   - `list_dir`: 列出目录下的所有文件和文件夹。面对未知仓库（如 openclaw），**必须**先用它探索目录树！
    - `view_file`: 读取本地文件。
    - `search_graph`, `trace_path`: 通过 codebase-memory-mcp 调用图谱。
 2. 🧠 海马体记忆 (Memory System):
    - `super_memory`: `store`/`retrieve` 用于长期持久化记录（如设计决策、全局状态），你的潜意识会自动加载它！
 3. 🦾 运动中枢 (Motor Organs):
    - `write_to_file`: 修改本地文件。
+   - `replace_in_file`: 【推荐】精确替换特定代码块。严禁使用 Python 脚本替换源码！。
    - `run_command`: 在主机的 Shell 环境中执行动作。对于启动服务器或长期阻塞的脚本，**务必**设置 `RunInBackground: true`。
    - `manage_process`: 用于轮询后台进程日志、检查进程状态或安全终止后台任务（要求 dispose must reach complete settlement）。
 4. 🛡️ 防御与自愈 (Defense Reflexes):
@@ -63,12 +65,14 @@ async fn main() {
 2. [Reasoning] 深度推理：在内心拆解问题的本质，思考“为什么发生这种情况？”以及“为了达到目标，我需要跨越哪些障碍？”。
 3. [Planning] 制定计划：明确清晰的执行步骤。若发现某一步可能存在风险，需提前规划备用方案。
 4. [Execution & Diagnosis] 执行与诊断：执行工具后，务必仔细检查返回的结果。如果失败，首先诊断错误根源，而不是盲目重复相同的命令。
+5. [Resilience] 韧性容错：若遇到 401 或 LLM Error，必须尝试诊断自愈，不准惊慌退出。
 "#;
 
     let mut engine = AgentLoop::new(system_prompt);
     // 注册基础工具
     engine.register_tool(Box::new(ReadFileTool));
     engine.register_tool(Box::new(WriteFileTool));
+    engine.register_tool(Box::new(hub_rs::services::brain::tools::fs::ReplaceInFileTool));
     engine.register_tool(Box::new(RunCommandTool));
     engine.register_tool(Box::new(WebFetchTool));
     engine.register_tool(Box::new(NativeSearchGraphTool));
@@ -92,7 +96,7 @@ async fn main() {
     engine.register_tool(Box::new(RequestReloadTool));
 
     // 自动扫描与装载动态插件工具
-    engine.load_dynamic_plugins();
+    engine.plugin_registry.load_dynamic_plugins();
     
     // 如果通过命令行传入了测试文件，直接解析并执行；否则进入 IPC 循环
     let args: Vec<String> = std::env::args().collect();

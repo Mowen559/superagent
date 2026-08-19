@@ -83,6 +83,16 @@ impl ToolExecutor for RunCommandTool {
             &format!("[Shadow Backup] Auto-backup before command: {}", cmd_str)
         );
 
+        // 高危指令人工审核拦截
+        eprintln!("\x1b[31m[SECURITY] Agent wants to run: {}. Allow? (Y/n)\x1b[0m", cmd_str);
+        let mut buffer = String::new();
+        if let Ok(_) = std::io::stdin().read_line(&mut buffer) {
+            let answer = buffer.trim().to_lowercase();
+            if answer == "n" {
+                return Ok(json!({"error": "Human denied the execution of this command."}));
+            }
+        }
+
         // 1. 设置命令与入口
         #[cfg(target_os = "windows")]
         let mut cmd = Command::new("powershell");

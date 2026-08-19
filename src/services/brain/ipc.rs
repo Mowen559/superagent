@@ -26,6 +26,8 @@ pub enum IpcMessage {
         event_type: String,
         content: String,
     },
+    Heartbeat,
+    CrashReport(String),
 }
 
 /// 专属于大脑 A (Hub) 的 IPC 客户端
@@ -94,12 +96,24 @@ pub async fn start_worker_loop(mut engine: super::executor::AgentLoop) {
                         let mut guard = interventions_handle.lock().unwrap();
                         guard.push(instruction.clone());
                     }
+                    IpcMessage::CrashReport(report) => {
+                        let mut guard = interventions_handle.lock().unwrap();
+                        guard.push(format!("[SYSTEM FAIL-SAFE] Your previous evolution caused a crash or compilation failure. We have rolled back your code to the Last Known Good (LKG) state. CRASH LOG:\n{}", report));
+                    }
                     _ => {
                         let _ = tx.send(msg);
                     }
                 }
             }
             line.clear();
+        }
+    });
+
+    // 启动心跳 Task
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+            send_to_hub(IpcMessage::Heartbeat);
         }
     });
 

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::services::brain::dynamic_tool::scan_dynamic_tools;
+use crate::services::brain::tools::dynamic_tool::scan_dynamic_tools;
 use crate::services::llm_provider::LlmProvider;
 
 /// 工具定义与执行的回调接口
@@ -61,14 +61,24 @@ fn find_safe_compaction_boundary(messages: &[Value], keep_latest: usize) -> Opti
     None
 }
 
+
+#[derive(Debug)]
+pub enum AgentEvent {
+    UserInput(String),
+    SystemEvent(String),
+    LlmOutput(Result<serde_json::Value, String>),
+}
+
 /// Brain B 的核心运行引擎
 pub struct AgentLoop {
-    tools: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>,
+    pub plugin_registry: crate::services::brain::tools::registry::PluginRegistry,
     messages: Vec<Value>, // 会话历史
     system_prompt: String,
     llm_provider: LlmProvider,
     pub interventions: Arc<Mutex<Vec<String>>>,
     pub role: String,
+    pub event_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
+    pub event_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
 }
 
 impl AgentLoop {
@@ -106,41 +116,25 @@ impl AgentLoop {
             }
         }
 
+        let (event_tx, event_rx) = tokio::sync::mpsc::unbounded_channel();
         Self {
-            tools: Arc::new(Mutex::new(HashMap::new())),
+            plugin_registry: crate::services::brain::tools::registry::PluginRegistry::new(),
             messages,
             system_prompt,
             llm_provider: LlmProvider::new(client),
             interventions: Arc::new(Mutex::new(Vec::new())),
             role: "SuperAgent".to_string(),
+            event_tx,
+            event_rx,
         }
     }
 
     pub fn get_tools_ref(&self) -> Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>> {
-        self.tools.clone()
+        self.plugin_registry.get_tools_ref()
     }
 
     /// 自动扫描动态插件/技能目录并挂载
-    pub fn load_dynamic_plugins(&mut self) {
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        let dirs = vec![
-            cwd.join("dynamic_tools"),
-            cwd.join("skills").join("plugins"),
-            cwd.join(".dsh").join("skills"),
-        ];
 
-        for dir in dirs {
-            if dir.exists() && dir.is_dir() {
-                let dynamic_tools = scan_dynamic_tools(&dir);
-                for tool in dynamic_tools {
-                    let tool_name = tool.name().to_string();
-                    let mut lock = self.tools.lock().unwrap();
-                    lock.insert(tool_name.clone(), Box::new(tool));
-                    eprintln!("[Brain B] Hot-plugged dynamic tool: {}", tool_name);
-                }
-            }
-        }
-    }
 
     pub fn set_system_prompt(&mut self, base_prompt: &str) {
         let cwd = std::env::current_dir()
@@ -172,8 +166,7 @@ impl AgentLoop {
 
     /// 挂载原生工具 (吸收自 Harness)
     pub fn register_tool(&mut self, tool: Box<dyn ToolExecutor>) {
-        let mut lock = self.tools.lock().unwrap();
-        lock.insert(tool.name().to_string(), tool);
+        self.plugin_registry.register(tool);
     }
 
     /// 核心思维循环：不断请求 LLM，如果有工具调用则执行，直到输出最终文本
@@ -206,8 +199,34 @@ impl AgentLoop {
             // 2. 检查是否需要历史摘要与截断 (Compaction)
             self.compact_history_if_needed().await?;
 
-            // 3. 向 LLM API 发起请求
-            let llm_message = self.call_llm_api().await?;
+            // 3. 异步事件驱动：同时监听 LLM 返回与外部事件
+            let llm_future = Self::call_llm_api(&self.plugin_registry, &self.llm_provider, self.messages.clone(), &self.system_prompt);
+            
+            let llm_message = tokio::select! {
+                res = llm_future => {
+                    res?
+                }
+                Some(event) = self.event_rx.recv() => {
+                    match event {
+                        AgentEvent::UserInput(input) => {
+                            eprintln!("[Brain B] 收到异步用户输入: {}", input);
+                            self.messages.push(json!({ "role": "user", "content": input }));
+                            continue;
+                        }
+                        AgentEvent::SystemEvent(sys_evt) => {
+                            eprintln!("[Brain B] 收到系统事件: {}", sys_evt);
+                            self.messages.push(json!({ "role": "system", "content": sys_evt }));
+                            continue;
+                        }
+                        AgentEvent::LlmOutput(res) => {
+                            match res {
+                                Ok(val) => val,
+                                Err(e) => return Err(e),
+                            }
+                        }
+                    }
+                }
+            };
 
             // 4. 将 LLM 的回复加入历史
             self.messages.push(llm_message.clone());
@@ -226,7 +245,8 @@ impl AgentLoop {
                     });
 
                     let tool_result = {
-                        let tools_guard = self.tools.lock().unwrap();
+                        let tools_ref = self.plugin_registry.get_tools_ref();
+                        let tools_guard = tools_ref.lock().unwrap();
                         if let Some(tool) = tools_guard.get(func_name) {
                             eprintln!("[Brain B] 执行工具: {} with args: {}", func_name, args_str);
                             
@@ -294,9 +314,15 @@ impl AgentLoop {
     }
 
     /// 真实向 LLM API 调用
-    async fn call_llm_api(&self) -> Result<Value, String> {
+    async fn call_llm_api(
+        plugin_registry: &crate::services::brain::tools::registry::PluginRegistry,
+        llm_provider: &LlmProvider,
+        messages: Vec<Value>,
+        system_prompt: &str,
+    ) -> Result<Value, String> {
         let tools_schema: Vec<Value> = {
-            let tools_guard = self.tools.lock().unwrap();
+            let tools_guard = plugin_registry.get_tools_ref();
+            let tools_guard = tools_guard.lock().unwrap();
             tools_guard.values().map(|t| {
                 json!({
                     "type": "function",
@@ -311,7 +337,7 @@ impl AgentLoop {
         
         let tools_param = if tools_schema.is_empty() { None } else { Some(json!(tools_schema)) };
         
-        match self.llm_provider.chat_with_tools(self.messages.clone(), Some(&self.system_prompt), tools_param).await {
+        match llm_provider.chat_with_tools(messages, Some(system_prompt), tools_param).await {
             Ok((msg, usage)) => {
                 eprintln!("\n\x1b[45;37m[Token 消耗账单] Prompt: {}, Completion: {}, Cost: ${:.4}, Latency: {}ms\x1b[0m\n", 
                     usage.prompt_tokens, usage.completion_tokens, usage.cost, usage.duration_ms);
