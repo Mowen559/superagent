@@ -87,6 +87,7 @@ machine-uid = "0.6.0"
 windows-sys = { version = "0.61.2", features = ["Win32_Security_Credentials", "Win32_Foundation"] }
 webbrowser = "1.2.4"
 lazy_static = "1.5.0"
+fastembed = "6.0.0"
 
 [profile.release]
 opt-level = 3

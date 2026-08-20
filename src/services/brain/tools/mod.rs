@@ -14,3 +14,4 @@ pub mod reload_plugins;
 pub mod harness_acp;
 pub mod native_graph;
 pub mod native_memory;
+pub mod knowledge;

@@ -302,6 +302,7 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                         source_graph_path: "".to_string(),
                         source_label: "MCP".to_string(),
                         updated_at: chrono::Utc::now().to_rfc3339(),
+                        embedding: None,
                     };
                     store.write_memory(record);
                     

@@ -22,6 +22,8 @@ pub struct SupermemoryRecord {
     pub source_label: String,
     #[serde(default)]
     pub updated_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub embedding: Option<Vec<f32>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

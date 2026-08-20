@@ -36,6 +36,14 @@ impl ToolExecutor for NativeMemoryTool {
         })
     }
 
+    fn prompt_projection(&self) -> Option<String> {
+        Some(r#"
+[Tool Projection: super_memory]
+- Role: Memory System (海马体记忆)
+- Usage: Use `store`/`retrieve` to persist long-term core memory (e.g., design decisions, global state). Your subconscious will automatically load it.
+"#.trim().to_string())
+    }
+
     fn execute(&self, args: Value) -> Result<Value, String> {
         let action = args.get("action").and_then(|v| v.as_str()).unwrap_or("retrieve");
         let key = args.get("key").and_then(|v| v.as_str()).unwrap_or("").to_string();
@@ -58,6 +66,7 @@ impl ToolExecutor for NativeMemoryTool {
                     source_graph_path: "".to_string(),
                     source_label: "".to_string(),
                     updated_at: chrono::Utc::now().to_rfc3339(),
+                    embedding: None,
                 };
                 store.write_memory(record);
                 eprintln!("\x1b[35m[Native Memory] 🧠 Stored long-term memory: {}\x1b[0m", key);

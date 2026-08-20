@@ -34,6 +34,15 @@ impl ToolExecutor for NativeSearchGraphTool {
         })
     }
 
+    fn prompt_projection(&self) -> Option<String> {
+        Some(r#"
+[Tool Projection: search_graph]
+- Role: Sensory Organ (感知中枢)
+- Priority: CRITICAL (Highest Priority for codebase exploration)
+- Usage: When exploring a codebase, you MUST prioritize this native graph search over blind grep/find/cat.
+"#.trim().to_string())
+    }
+
     fn execute(&self, args: Value) -> Result<Value, String> {
         let query = args.get("query").and_then(|v| v.as_str()).ok_or("Missing query")?;
         let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20) as usize;

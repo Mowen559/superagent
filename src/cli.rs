@@ -89,6 +89,15 @@ pub enum AgentCommand {
     Update {
         agent: String,
     },
+    /// Ingest a document or book into the knowledge base
+    Ingest {
+        /// Path to the file or directory to ingest
+        path: String,
+        
+        /// Optional global context summary
+        #[arg(short, long)]
+        context: Option<String>,
+    },
 }
 
 #[derive(Subcommand, Debug)]

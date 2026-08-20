@@ -214,6 +214,7 @@ pub async fn execute(
             source_graph_path: String::new(),
             source_label: "reverse-engineering".into(),
             updated_at: chrono::Utc::now().to_rfc3339(),
+            embedding: None,
         });
         store.add_log("sync", Some(format!("Blueprint generated for: {}", title)), None);
     }

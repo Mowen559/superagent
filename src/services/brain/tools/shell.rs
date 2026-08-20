@@ -21,8 +21,19 @@ fn get_sanitized_env() -> HashMap<String, String> {
         .collect()
 }
 
-/// 终端命令执行工具 (Run Command)
-pub struct RunCommandTool;
+use std::sync::Arc;
+use crate::services::brain::capabilities::shell::ShellService;
+
+/// 终端命令执行工具 (Run Command) - 消费者 (Capability Seam: Consumer)
+pub struct RunCommandTool {
+    shell_service: Arc<dyn ShellService>,
+}
+
+impl RunCommandTool {
+    pub fn new(shell_service: Arc<dyn ShellService>) -> Self {
+        Self { shell_service }
+    }
+}
 
 impl ToolExecutor for RunCommandTool {
     fn name(&self) -> &'static str {
@@ -52,10 +63,30 @@ impl ToolExecutor for RunCommandTool {
                 "TimeoutSeconds": {
                     "type": "integer",
                     "description": "Optional timeout in seconds for foreground execution (default: 60)."
+                },
+                "rtk_hook": {
+                    "type": "boolean",
+                    "description": "If true, invokes the RTK token killer to compress massive shell outputs (like large git diffs or massive logs) into structured AST skeletons before returning them."
+                },
+                "ApprovalTicket": {
+                    "type": "string",
+                    "description": "If the command is highly destructive (like rm, del, drop), you MUST provide an approval ticket obtained via AskUserTool."
                 }
             },
             "required": ["CommandLine", "Cwd"]
         })
+    }
+
+    fn prompt_projection(&self) -> Option<String> {
+        Some(r#"
+[Tool Projection: run_command]
+- Role: Motor Organ (运动中枢)
+- Note: The underlying Rust neuron has a "Spinal Reflex" (脊髓反射) hardwired. When you execute this action, the system will automatically call `ShadowGit` at the bottom layer for an imperceptible snapshot backup.
+- Usage: For starting servers or long-blocking scripts, you MUST set `RunInBackground: true`.
+- Danger: Highly destructive commands (like rm, del, cargo clean) require an 'ApprovalTicket' from AskUserTool.
+- RTK Interceptor: If you expect a massive output (like a global codebase diff), set `rtk_hook: true` to transparently compress the output into a skeleton, saving tokens.
+- Circuit Breaker: Outputs exceeding 100,000 bytes will be aggressively truncated to protect your context window.
+"#.trim().to_string())
     }
 
     fn execute(&self, args: Value) -> Result<Value, String> {
@@ -69,159 +100,61 @@ impl ToolExecutor for RunCommandTool {
             .and_then(|v| v.as_str())
             .ok_or("Missing or invalid 'Cwd' argument")?;
 
+        let has_ticket = args.get("ApprovalTicket").and_then(|v| v.as_str()).is_some();
+        let cmd_lower = cmd_str.to_lowercase();
+        let is_dangerous = cmd_lower.contains("rm -rf") || cmd_lower.contains("del ") || cmd_lower.contains("cargo clean");
+        
+        if is_dangerous && !has_ticket {
+            return Err("ERROR: This command is highly destructive (Interaction Approval Required). You MUST first use AskUserTool to explain what you are deleting and request permission. Once the user approves, include the user's reply in the 'ApprovalTicket' parameter to proceed.".to_string());
+        }
+
         let timeout_secs = args
             .get("TimeoutSeconds")
             .and_then(|v| v.as_u64())
             .unwrap_or(60);
 
-        eprintln!("[Brain B Shell] Executing (sanitized env): {} in {} (timeout: {}s)", cmd_str, cwd_str, timeout_secs);
-
-        // 0. 自动快照：脊髓反射 (Spinal Reflex - Shadow Backup)
-        eprintln!("\x1b[36m[Spinal Reflex] 运动中枢触发防卫：自动备份 (Command: {})\x1b[0m", cmd_str);
-        let _ = crate::services::git_service::record_ai_snapshot(
-            cwd_str,
-            &format!("[Shadow Backup] Auto-backup before command: {}", cmd_str)
-        );
-
-        // 1. 设置命令与入口
-        #[cfg(target_os = "windows")]
-        let mut cmd = Command::new("powershell");
-        #[cfg(target_os = "windows")]
-        cmd.arg("-Command").arg(cmd_str);
-
-        #[cfg(not(target_os = "windows"))]
-        let mut cmd = Command::new("sh");
-        #[cfg(not(target_os = "windows"))]
-        cmd.arg("-c").arg(cmd_str);
-
-        cmd.current_dir(cwd_str);
-
-        // 2. 防御性模式：清理原环境变量，仅注入脱敏后的环境变量
-        cmd.env_clear();
-        for (k, v) in get_sanitized_env() {
-            cmd.env(k, v);
-        }
-
         let run_in_bg = args.get("RunInBackground").and_then(|v| v.as_bool()).unwrap_or(false);
+        let enable_rtk_hook = args.get("rtk_hook").and_then(|v| v.as_bool()).unwrap_or(false);
 
+        // Delegate to the actual capability seam provider
+        let mut result = self.shell_service.execute(cmd_str, cwd_str, run_in_bg, timeout_secs)?;
+
+        // If it's running in background, we don't intercept logs here
         if run_in_bg {
-            cmd.stdout(std::process::Stdio::piped());
-            cmd.stderr(std::process::Stdio::piped());
+            return Ok(result);
+        }
 
-            match cmd.spawn() {
-                Ok(child) => {
-                    use chrono::Local;
-                    let process_id = format!("pid-{}", Local::now().timestamp_millis());
+        // Post-execution Interceptor: Overload Circuit Breaker and RTK Hook
+        if let Some(stdout_val) = result.get_mut("stdout") {
+            if let Some(stdout_str) = stdout_val.as_str() {
+                let mut output_str = stdout_str.to_string();
+                let original_len = output_str.len();
 
-                    crate::services::brain::tools::process_manager::register_process(
-                        process_id.clone(),
-                        cmd_str.to_string(),
-                        child,
-                    );
-
-                    Ok(json!({
-                        "success": true,
-                        "process_id": process_id,
-                        "status": "running_in_background",
-                        "env_sanitized": true,
-                        "message": "Use ManageProcessTool to view logs or kill it."
-                    }))
+                // 1. RTK Hook compression requested by LLM
+                if enable_rtk_hook {
+                    use crate::services::token_filter::{compress, FilterLevel};
+                    eprintln!("\x1b[35m[Terminal Hook] RTK Intercepting and compressing shell output...\x1b[0m");
+                    // We assume shell output usually contains code or diffs. We trick the filter to compress it aggressively.
+                    let filter_result = compress(&output_str, "shell_output.txt", FilterLevel::Aggressive);
+                    output_str = filter_result.content;
+                    result["rtk_hook_engaged"] = json!(true);
+                    result["original_size_bytes"] = json!(original_len);
                 }
-                Err(e) => Err(format!("Failed to spawn background command: {}", e)),
-            }
-        } else {
-            cmd.stdout(std::process::Stdio::piped());
-            cmd.stderr(std::process::Stdio::piped());
 
-            let mut child = match cmd.spawn() {
-                Ok(c) => c,
-                Err(e) => return Err(format!("Failed to spawn command: {}", e)),
-            };
-
-            let start = Instant::now();
-            let timeout = Duration::from_secs(timeout_secs);
-            let mut timed_out = false;
-
-            // 轮询等待子进程退出或超时
-            loop {
-                match child.try_wait() {
-                    Ok(Some(_status)) => {
-                        // 正常结束，退出循环
-                        break;
-                    }
-                    Ok(None) => {
-                        if start.elapsed() >= timeout {
-                            timed_out = true;
-                            // 防御性模式：dispose 必须达到完全停稳
-                            let _ = child.kill();
-                            let _ = child.wait(); // 确保子进程句柄完全回收
-                            break;
-                        }
-                        std::thread::sleep(Duration::from_millis(50));
-                    }
-                    Err(e) => {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                        return Err(format!("Error waiting for command process: {}", e));
-                    }
+                // 2. 100,000 Bytes Hard Truncation Circuit Breaker (if still too large)
+                if output_str.len() > 100_000 {
+                    eprintln!("\x1b[31m[System Guard] Shell output exceeded 100,000 bytes circuit breaker. Truncating...\x1b[0m");
+                    let mut truncated = output_str[..100_000].to_string();
+                    truncated.push_str("\n\n... [TRUNCATED BY CIRCUIT BREAKER: Output exceeded 100,000 bytes. If you need the full logs, please use `> file.txt` to redirect the output to a file and read it with view_file pagination] ...");
+                    output_str = truncated;
+                    result["circuit_breaker"] = json!("triggered: >100,000 bytes");
                 }
-            }
 
-            // 读取已录制的 stdout / stderr
-            let mut stdout = String::new();
-            let mut stderr = String::new();
-            let mut rtk_stdout = false;
-            let mut rtk_stderr = false;
-
-            if let Some(mut out) = child.stdout.take() {
-                use std::io::Read;
-                let _ = out.read_to_string(&mut stdout);
-                if stdout.len() > 10000 {
-                    eprintln!("[Brain B] stdout too large ({} bytes). Engaging RTK Token Killer...", stdout.len());
-                    let result = crate::services::token_filter::compress(&stdout, "stdout", crate::services::token_filter::FilterLevel::Aggressive);
-                    stdout = result.content;
-                    rtk_stdout = true;
-                }
-            }
-            if let Some(mut err) = child.stderr.take() {
-                use std::io::Read;
-                let _ = err.read_to_string(&mut stderr);
-                if stderr.len() > 10000 {
-                    eprintln!("[Brain B] stderr too large ({} bytes). Engaging RTK Token Killer...", stderr.len());
-                    let result = crate::services::token_filter::compress(&stderr, "stderr", crate::services::token_filter::FilterLevel::Aggressive);
-                    stderr = result.content;
-                    rtk_stderr = true;
-                }
-            }
-
-            if timed_out {
-                // 正交结果独立上报
-                Ok(json!({
-                    "success": false,
-                    "timed_out": true,
-                    "exit_code": serde_json::Value::Null,
-                    "stdout": stdout,
-                    "stderr": stderr,
-                    "rtk_stdout": rtk_stdout,
-                    "rtk_stderr": rtk_stderr,
-                    "error": format!("Command execution timed out after {} seconds", timeout_secs)
-                }))
-            } else {
-                let status = child.wait().ok();
-                let exit_code = status.and_then(|s| s.code());
-                let success = status.map(|s| s.success()).unwrap_or(false);
-
-                // 正交结果独立上报
-                Ok(json!({
-                    "success": success,
-                    "timed_out": false,
-                    "exit_code": exit_code.map(|c| json!(c)).unwrap_or(Value::Null),
-                    "stdout": stdout,
-                    "stderr": stderr,
-                    "rtk_stdout": rtk_stdout,
-                    "rtk_stderr": rtk_stderr
-                }))
+                // Update the JSON with the finalized output string
+                result["stdout"] = json!(output_str);
             }
         }
+
+        Ok(result)
     }
 }

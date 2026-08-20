@@ -185,6 +185,7 @@ async fn generate_project_overview(
                 source_graph_path: db_path_str,
                 source_label: "understand/project".into(),
                 updated_at: chrono::Utc::now().to_rfc3339(),
+                embedding: None,
             });
             store.add_log("sync", Some("Auto-generated project overview after indexing".into()), None);
             task_manager.append_log(task_id, "[System] Project overview cached and synced to supermemory.");

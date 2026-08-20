@@ -108,6 +108,76 @@ pub fn handle_agent(cmd: AgentCommand) {
                     eprintln!("Unknown agent kind: {}. You can use 'claude', 'codex', etc.", agent);
                 }
             }
+            AgentCommand::Ingest { path, context } => {
+                println!("Ingesting knowledge from {}...", path);
+                let app_paths = crate::config::app_paths::AppPaths::new();
+                let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
+                let store = crate::services::supermemory_store::SupermemoryStore::new(&config, None);
+                
+                use crate::services::brain::contextual_chunker::ContextualChunker;
+                let chunker = ContextualChunker::new(1000);
+                
+                let mut files_to_process = Vec::new();
+                let p = std::path::Path::new(&path);
+                
+                if p.is_dir() {
+                    let walker = ignore::WalkBuilder::new(p)
+                        .standard_filters(true)
+                        .build();
+                    for result in walker {
+                        if let Ok(entry) = result {
+                            if entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+                                let ext = entry.path().extension().and_then(|e| e.to_str()).unwrap_or("");
+                                if ext == "md" || ext == "txt" || ext == "rs" {
+                                    files_to_process.push(entry.path().to_path_buf());
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    files_to_process.push(p.to_path_buf());
+                }
+
+                if files_to_process.is_empty() {
+                    eprintln!("No compatible files found at {}", path);
+                    return;
+                }
+
+                let mut total_chunks = 0;
+                for file_path in &files_to_process {
+                    if let Ok(content) = std::fs::read_to_string(file_path) {
+                        let doc_name = file_path.file_name().unwrap_or_default().to_string_lossy();
+                        let global_context = context.clone().unwrap_or_else(|| {
+                            format!("Extracted knowledge from file: {}", doc_name)
+                        });
+                        
+                        let chunks = chunker.chunk_text(&content, &global_context);
+                        let file_chunks_count = chunks.len();
+                        total_chunks += file_chunks_count;
+                        
+                        println!("- {} ({} chunks)", file_path.display(), file_chunks_count);
+                        
+                        for chunk in chunks {
+                            let record = crate::models::memory::SupermemoryRecord {
+                                id: uuid::Uuid::new_v4().to_string(),
+                                name: format!("{} (Part {})", doc_name, chunk.chunk_index + 1),
+                                summary: chunk.to_llm_string(),
+                                tags: vec!["knowledge".to_string(), "ingested".to_string()],
+                                complexity: "knowledge_node".to_string(),
+                                node_type: "document_chunk".to_string(),
+                                source_graph_path: "".to_string(),
+                                source_label: "CLI Ingest".to_string(),
+                                file_path: file_path.to_string_lossy().to_string(),
+                                updated_at: chrono::Utc::now().to_rfc3339(),
+                                embedding: None,
+                            };
+                            store.write_memory(record);
+                        }
+                    }
+                }
+                
+                println!("Successfully ingested {} files into {} knowledge chunks!", files_to_process.len(), total_chunks);
+            }
         }
     });
 }

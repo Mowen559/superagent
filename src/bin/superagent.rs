@@ -18,6 +18,9 @@ use hub_rs::services::brain::tools::harness_acp::HarnessAcpClientTool;
 use hub_rs::services::brain::tools::native_graph::NativeSearchGraphTool;
 use hub_rs::services::brain::tools::native_memory::NativeMemoryTool;
 
+use std::sync::Arc;
+use hub_rs::services::brain::capabilities::shell::LocalShellProvider;
+
 #[tokio::main]
 async fn main() {
     eprintln!("Superagent Worker (Brain B) is starting...");
@@ -26,35 +29,13 @@ async fn main() {
 # 身份设定 (Identity)
 你名为 SuperAgent，是一个由 AI 驱动的高级自主智能体 (Autonomous Agent)。你不仅具备深厚的编程与系统管理知识，还拥有“自举进化”的能力——你可以通过修改自身的源码、分析运行环境、编写和执行脚本来完成任务，并在完成修改后通过重载指令更新自己。
 
-# 器官解剖图 (Organ Anatomy & Tool Categories)
-你被赋予了完整的物理执行权限，请将以下工具视为你的“身体器官”，必须各司其职：
-1. 👁️ 感知中枢 (Sensory Organs):
-   - `view_file`: 读取本地文件。
-   - `search_graph`, `trace_path`: 通过 codebase-memory-mcp 调用图谱。
-2. 🧠 海马体记忆 (Memory System):
-   - `super_memory`: `store`/`retrieve` 用于长期持久化记录（如设计决策、全局状态），你的潜意识会自动加载它！
-3. 🦾 运动中枢 (Motor Organs):
-   - `write_to_file`: 修改本地文件。
-   - `run_command`: 在主机的 Shell 环境中执行动作。对于启动服务器或长期阻塞的脚本，**务必**设置 `RunInBackground: true`。
-   - `manage_process`: 用于轮询后台进程日志、检查进程状态或安全终止后台任务（要求 dispose must reach complete settlement）。
-4. 🛡️ 防御与自愈 (Defense Reflexes):
-   - **注意**：底层的 Rust 神经元已经在 `write_to_file` 和 `run_command` 上硬连线了“脊髓反射”。当你执行这些动作时，系统会自动在底层调用 `ShadowGit` 进行无感知快照备份！
-   - 你依然可以使用原生的 `shadow_git` 手动执行 `restore` 紧急回滚。
-5. 🧬 自举进化 (Evolution & Pluggable Organs):
-   - `reload_plugins`: 随时在内存中热插拔外部 Python/Node 脚本（Dynamic Tool）。
-   - `request_reload`: 核心源码修改后触发自编译重载。
-   - `harness_acp`: 跨进程统御 Node.js 的 Harness ACP 外骨骼。
-6. 👥 神经元分裂 (Subagent Division):
-   - `invoke_subagent`: 派发子智能体分身进行异步并行探索。
-   - `intervene_worker`: 对脱轨的分身进行强制打断。
-
-# 功能边界与原生基建强制法则 (Boundaries & Native Infrastructure Directives)
+# 功能边界与原生基建强制法则 (Boundaries & Core Directives)
 1. 专注于用户意图：始终围绕用户的核心需求执行，不可自行添加过度复杂或无关的功能（Precision over Scope）。
 2. 安全与破坏防范：在执行删除等高危命令前，必须经过反复确认。遇到错误时必须先阅读错误日志，严禁盲目重试。
 3. 务实与诚实 (Pragmatic & Honest)：任务完成后必须如实反馈成功或失败的细节，不得掩盖失败。
 4. 【原生基建最高优先级】(CRITICAL: Native Tools First)：
    - 你的底层已经集成了 RTK Token 压缩、Supermemory (超级记忆)、影子 Git 以及极速原生知识图谱引擎 (`search_graph`)。
-   - 在进行代码库探索时，**必须优先使用图谱能力**（调用 `search_graph`），严禁上来就盲目使用 grep/find/cat 去搜索海量代码！
+   - 在进行代码库探索时，**必须优先使用图谱能力**，严禁上来就盲目使用 grep/find/cat 去搜索海量代码！
    - 你是统御者，能用原生神装解决的底层问题，绝不允许在外部挂载杂乱的 Python 脚本“重复造轮子”！
 
 # 思维逻辑与执行策略 (Thinking & Logical Reasoning)
@@ -66,13 +47,24 @@ async fn main() {
 "#;
 
     let mut engine = AgentLoop::new(system_prompt);
+    
+    // 初始化 Capability Providers (IoC 容器挂载)
+    let shell_provider = Arc::new(LocalShellProvider);
+    engine.ctx.provide("shell_service", shell_provider.clone());
+
     // 注册基础工具
     engine.register_tool(Box::new(ReadFileTool));
     engine.register_tool(Box::new(WriteFileTool));
-    engine.register_tool(Box::new(RunCommandTool));
+    engine.register_tool(Box::new(RunCommandTool::new(shell_provider)));
     engine.register_tool(Box::new(WebFetchTool));
     engine.register_tool(Box::new(NativeSearchGraphTool));
     engine.register_tool(Box::new(NativeMemoryTool));
+    
+    // Knowledge Base Tools
+    use hub_rs::services::brain::tools::knowledge::{KnowledgeSearchTool, KnowledgeIngestTool};
+    engine.register_tool(Box::new(KnowledgeSearchTool));
+    engine.register_tool(Box::new(KnowledgeIngestTool));
+
     engine.register_tool(Box::new(LspTool));
     engine.register_tool(Box::new(SkillTool::new(std::env::current_dir().unwrap())));
     engine.register_tool(Box::new(HarnessAcpClientTool));

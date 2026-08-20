@@ -33,37 +33,69 @@ impl SupermemoryStore {
         }
     }
 
-    /// Search memories by keyword (token-based: any token hit counts)
+    /// Search memories using Hybrid Search (BM25 Keyword + Dense Vector Embedding)
     pub fn search(&self, query: &str, limit: usize) -> Vec<SupermemoryRecord> {
         let data = self.load();
+        
+        let mut query_embedding = None;
+        if let Ok(svc) = crate::services::brain::embedding_service::get_embedding_service() {
+            use crate::services::brain::embedding_service::EmbeddingService;
+            query_embedding = svc.embed_text(query).ok();
+        }
+
         let tokens: Vec<String> = query.to_lowercase()
             .split_whitespace()
             .map(String::from)
             .collect();
 
-        let results: Vec<SupermemoryRecord> = data.memories
+        let mut scored_memories: Vec<(f32, SupermemoryRecord)> = data.memories
             .into_iter()
-            .filter(|m| {
-                if tokens.is_empty() {
-                    return true;
+            .map(|m| {
+                let mut score = 0.0;
+                
+                // 1. BM25 / Keyword Score
+                if !tokens.is_empty() {
+                    let haystack = format!(
+                        "{} {} {} {}",
+                        m.name.to_lowercase(),
+                        m.summary.to_lowercase(),
+                        m.tags.join(" ").to_lowercase(),
+                        m.file_path.to_lowercase()
+                    );
+                    let matched_tokens = tokens.iter().filter(|t| haystack.contains(*t)).count();
+                    score += (matched_tokens as f32 / tokens.len() as f32) * 0.5;
                 }
-                let haystack = format!(
-                    "{} {} {} {}",
-                    m.name.to_lowercase(),
-                    m.summary.to_lowercase(),
-                    m.tags.join(" ").to_lowercase(),
-                    m.file_path.to_lowercase()
-                );
-                tokens.iter().any(|t| haystack.contains(t))
+
+                // 2. Vector Semantic Score
+                if let (Some(q_emb), Some(m_emb)) = (&query_embedding, &m.embedding) {
+                    let sim = crate::services::brain::embedding_service::cosine_similarity(q_emb, m_emb);
+                    if sim > 0.2 { // Threshold
+                        score += sim * 0.5;
+                    }
+                }
+
+                (score, m)
             })
-            .take(limit)
+            .filter(|(score, _)| *score > 0.05 || tokens.is_empty())
             .collect();
 
-        results
+        scored_memories.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+
+        scored_memories.into_iter().map(|(_, m)| m).take(limit).collect()
     }
 
     /// Write a new memory record
-    pub fn write_memory(&self, record: SupermemoryRecord) {
+    pub fn write_memory(&self, mut record: SupermemoryRecord) {
+        if record.embedding.is_none() {
+            if let Ok(svc) = crate::services::brain::embedding_service::get_embedding_service() {
+                use crate::services::brain::embedding_service::EmbeddingService;
+                let text_to_embed = format!("{} {} {}", record.name, record.summary, record.tags.join(" "));
+                if let Ok(emb) = svc.embed_text(&text_to_embed) {
+                    record.embedding = Some(emb);
+                }
+            }
+        }
+
         let mut data = self.load();
         // Replace if exists, otherwise push
         if let Some(existing) = data.memories.iter_mut().find(|m| m.id == record.id) {

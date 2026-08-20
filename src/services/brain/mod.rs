@@ -3,3 +3,8 @@ pub mod executor;
 pub mod ipc;
 pub mod supervisor;
 pub mod dynamic_tool;
+pub mod events;
+pub mod context;
+pub mod capabilities;
+pub mod embedding_service;
+pub mod contextual_chunker;

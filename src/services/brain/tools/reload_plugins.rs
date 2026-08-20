@@ -40,6 +40,14 @@ impl ToolExecutor for ReloadPluginsTool {
         })
     }
 
+    fn prompt_projection(&self) -> Option<String> {
+        Some(r#"
+[Tool Projection: reload_plugins]
+- Role: Evolution (自举进化)
+- Usage: Dynamically load external Python/Node scripts without recompiling.
+"#.trim().to_string())
+    }
+
     fn execute(&self, args: Value) -> Result<Value, String> {
         let mut dirs_to_scan = Vec::new();
 
