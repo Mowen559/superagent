@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 
 use crate::services::brain::context::Context;
-use crate::services::brain::events::SessionEvent;
+use crate::services::brain::events::{SessionEvent, EventBus, BeforePromptHook, BoxFuture};
 use crate::services::llm_provider::LlmProvider;
 use crate::services::brain::dynamic_tool::scan_dynamic_tools;
 
@@ -17,9 +17,60 @@ pub trait ToolExecutor: Send + Sync {
     // 执行工具并返回 JSON 结果
     fn execute(&self, args: Value) -> Result<Value, String>;
 
-    // 可选：该工具挂载时动态投影到系统潜意识的提示词
     fn prompt_projection(&self) -> Option<String> {
         None
+    }
+}
+
+/// RTK Hook for Circuit Breaker
+struct CircuitBreakerHook {
+    threshold: usize,
+}
+
+impl BeforePromptHook for CircuitBreakerHook {
+    fn on_before_prompt<'a>(&'a self, events: &'a mut Vec<SessionEvent>, llm: &'a LlmProvider) -> BoxFuture<'a, ()> {
+        Box::pin(async move {
+            let total_chars: usize = events.iter()
+                .map(|e| serde_json::to_string(&e.to_llm_message()).unwrap_or_default().len())
+                .sum();
+            
+            if total_chars > self.threshold && events.len() > 10 {
+                eprintln!("\x1b[31m[Circuit Breaker] Context limit reached ({} chars > {}), compacting memory...\x1b[0m", total_chars, self.threshold);
+                
+                let preserve_count = 3;
+                let compact_count = events.len() - preserve_count;
+                
+                let events_to_compact: Vec<_> = events.drain(0..compact_count).collect();
+                
+                let recent_events: Vec<serde_json::Value> = events_to_compact.iter().map(|e| e.to_llm_message()).collect();
+                
+                let prompt = "You are an AI memory compaction agent. Summarize the following past events into a highly dense and factual summary. Retain all key facts, constraints, decisions, and tool outputs.";
+                
+                let messages = vec![
+                    serde_json::json!({ "role": "system", "content": prompt }),
+                    serde_json::json!({ "role": "user", "content": format!("{:?}", recent_events) })
+                ];
+                
+                match llm.chat_with_tools(messages, None, None).await {
+                    Ok((msg, _)) => {
+                        if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
+                            let compacted_event = SessionEvent::ContextCompacted {
+                                summary: content.to_string(),
+                                original_event_count: compact_count,
+                            };
+                            events.insert(0, compacted_event);
+                            eprintln!("\x1b[32m[Circuit Breaker] Compaction successful. Context significantly reduced.\x1b[0m");
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("\x1b[31m[Circuit Breaker] Compaction failed: {}. Restoring events.\x1b[0m", e);
+                        for (i, e) in events_to_compact.into_iter().enumerate() {
+                            events.insert(i, e);
+                        }
+                    }
+                }
+            }
+        })
     }
 }
 
@@ -28,6 +79,7 @@ pub struct AgentLoop {
     pub ctx: Context,
     tools: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>,
     pub events: Vec<SessionEvent>, // 会话历史（强类型事件溯源）
+    pub event_bus: EventBus,
     system_prompt: String,
     llm_provider: LlmProvider,
     pub interventions: Arc<Mutex<Vec<String>>>,
@@ -90,12 +142,17 @@ impl AgentLoop {
                 eprintln!("[Brain B] Resuming from event sourcing log (Loaded {} events)", loaded.len());
                 events = loaded;
             }
+            }
         }
+
+        let mut event_bus = EventBus::new();
+        event_bus.register_before_prompt(Box::new(CircuitBreakerHook { threshold: 12000 }));
 
         Self {
             ctx: Context::new(),
             tools: Arc::new(Mutex::new(HashMap::new())),
             events,
+            event_bus,
             system_prompt,
             llm_provider: LlmProvider::new(client),
             interventions: Arc::new(Mutex::new(Vec::new())),
@@ -219,6 +276,9 @@ impl AgentLoop {
                 eprintln!("[Brain B] 收到监工最高优先级介入指令: {}", inst);
                 self.events.push(SessionEvent::SupervisorIntervention(inst.clone()));
             }
+
+            // 1.8 触发 RTK 钩子 (Circuit Breaker 等)
+            self.event_bus.emit_before_prompt(&mut self.events, &self.llm_provider).await;
 
             // 2. 将事件源投影为 LLM 可读消息
             let projected_messages = self.project_llm_messages();
