@@ -1,0 +1,1 @@
+{"type":"Prompt","payload":"请使用自举能力，测试你的底层 LLM 代理是否正常支持 Claude 以及 GPT 相关的模型。你需要编写一个简短的 Rust 脚本或 PowerShell 脚本，或者直接使用工具来测试，将模型名称（例如 claude-sonnet-4-6）发给本地的 hub 代理（http://127.0.0.1:3001/v1/chat/completions），验证能否正常得到回复。测试完毕后请将测试结果记录在 superagent_model_test.md 中。"}

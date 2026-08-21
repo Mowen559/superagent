@@ -1,0 +1,1 @@
+﻿{"type":"Prompt","payload":"这是一次原生神装验证试炼：请你立即调用底层的极速知识图谱工具 (search_graph)，在代码库中搜索 \u0027SupermemoryStoreData\u0027 相关的定义，并总结它的结构。同时调用你刚移植的超级记忆 (super_memory) 工具把这个总结给存储起来，使用 store 动作！"}
