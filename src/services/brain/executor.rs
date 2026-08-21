@@ -14,7 +14,7 @@ pub trait ToolExecutor: Send + Sync {
     fn description(&self) -> &'static str;
     fn parameters_schema(&self) -> Value;
     
-    // 执行工具并返回 JSON 结果
+    // 执行工具并返�?JSON 结果
     fn execute(&self, args: Value) -> Result<Value, String>;
 
     fn prompt_projection(&self) -> Option<String> {
@@ -74,11 +74,11 @@ impl BeforePromptHook for CircuitBreakerHook {
     }
 }
 
-/// DSH 范式的运行引擎：一切基于 Context 容器与 SessionEvent 事件流
+/// DSH 范式的运行引擎：一切基�?Context 容器�?SessionEvent 事件�?
 pub struct AgentLoop {
     pub ctx: Context,
-    tools: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>,
-    pub events: Vec<SessionEvent>, // 会话历史（强类型事件溯源）
+    pub plugin_registry: crate::services::brain::tools::registry::PluginRegistry,
+    pub events: Vec<SessionEvent>, // 会话历史（强类型事件溯源�?
     pub event_bus: EventBus,
     system_prompt: String,
     llm_provider: LlmProvider,
@@ -150,7 +150,7 @@ impl AgentLoop {
 
         Self {
             ctx: Context::new(),
-            tools: Arc::new(Mutex::new(HashMap::new())),
+            plugin_registry: crate::services::brain::tools::registry::PluginRegistry::new(),
             events,
             event_bus,
             system_prompt,
@@ -162,7 +162,7 @@ impl AgentLoop {
     }
 
     /// 多层记忆合成 (Multi-layered Synthesis)
-    /// 定期压缩最近的事件历史，生成记忆快照存入 SuperMemory，防止长线任务中断片。
+    /// 定期压缩最近的事件历史，生成记忆快照存�?SuperMemory，防止长线任务中断片�?
     pub async fn synthesize_memory(&mut self) {
         if self.events.len() < 10 { return; }
         eprintln!("\x1b[35m[Memory Checkpoint] Triggers Layer-1 Synthesis for recent actions...\x1b[0m");
@@ -220,7 +220,7 @@ impl AgentLoop {
                 let dynamic_tools = scan_dynamic_tools(&dir);
                 for tool in dynamic_tools {
                     let tool_name = tool.name().to_string();
-                    let mut lock = self.tools.lock().unwrap();
+                    let mut lock = self.plugin_registry.get_tools_ref().lock().unwrap();
                     lock.insert(tool_name.clone(), Box::new(tool));
                     eprintln!("[Brain B] Hot-plugged dynamic tool: {}", tool_name);
                 }
@@ -229,7 +229,7 @@ impl AgentLoop {
     }
 
     pub fn register_tool(&mut self, tool: Box<dyn ToolExecutor>) {
-        let mut lock = self.tools.lock().unwrap();
+        let mut lock = self.plugin_registry.get_tools_ref().lock().unwrap();
         lock.insert(tool.name().to_string(), tool);
     }
 
@@ -277,16 +277,16 @@ impl AgentLoop {
                 self.events.push(SessionEvent::SupervisorIntervention(inst.clone()));
             }
 
-            // 1.8 触发 RTK 钩子 (Circuit Breaker 等)
+            // 1.8 触发 RTK 钩子 (Circuit Breaker �?
             self.event_bus.emit_before_prompt(&mut self.events, &self.llm_provider).await;
 
-            // 2. 将事件源投影为 LLM 可读消息
+            // 2. 将事件源投影�?LLM 可读消息
             let projected_messages = self.project_llm_messages();
 
-            // 3. 向 LLM 发起请求
+            // 3. �?LLM 发起请求
             let llm_message = self.call_llm_api(projected_messages).await?;
 
-            // 4. 解析 LLM 回复，发射模型思考事件 / 工具调用事件
+            // 4. 解析 LLM 回复，发射模型思考事�?/ 工具调用事件
             if let Some(tool_calls) = llm_message.get("tool_calls").and_then(|v| v.as_array()) {
                 let mut guard_triggered = false;
                 for call in tool_calls {
@@ -321,9 +321,9 @@ impl AgentLoop {
                         break;
                     }
 
-                    // 执行工具 (此时工具可能会利用 Context 里面的 Capability)
+                    // 执行工具 (此时工具可能会利�?Context 里面�?Capability)
                     let tool_result = {
-                        let tools_guard = self.tools.lock().unwrap();
+                        let tools_guard = self.plugin_registry.get_tools_ref().lock().unwrap();
                         if let Some(tool) = tools_guard.get(&func_name) {
                             eprintln!("[Brain B] 执行工具: {} with args: {}", func_name, args_str);
                             let panic_guard = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -354,7 +354,7 @@ impl AgentLoop {
                 continue;
             }
 
-            // 7. 最终文本回复
+            // 7. 最终文本回�?
             if let Some(content) = llm_message.get("content").and_then(|v| v.as_str()) {
                 self.events.push(SessionEvent::ModelThought(content.to_string()));
                 self.save_session();
@@ -369,7 +369,7 @@ impl AgentLoop {
         let mut dynamic_prompt = self.system_prompt.clone();
         
         let tools_schema: Vec<Value> = {
-            let tools_guard = self.tools.lock().unwrap();
+            let tools_guard = self.plugin_registry.get_tools_ref().lock().unwrap();
             let mut projections = Vec::new();
             
             let schema = tools_guard.values().map(|t| {

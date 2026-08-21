@@ -15,3 +15,5 @@ pub mod harness_acp;
 pub mod native_graph;
 pub mod native_memory;
 pub mod knowledge;
+pub mod registry;
+pub mod dynamic_tool;

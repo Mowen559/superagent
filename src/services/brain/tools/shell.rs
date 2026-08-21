@@ -113,6 +113,7 @@ impl ToolExecutor for RunCommandTool {
             .and_then(|v| v.as_u64())
             .unwrap_or(60);
 
+
         let run_in_bg = args.get("RunInBackground").and_then(|v| v.as_bool()).unwrap_or(false);
         let enable_rtk_hook = args.get("rtk_hook").and_then(|v| v.as_bool()).unwrap_or(false);
 

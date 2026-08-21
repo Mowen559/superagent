@@ -61,10 +61,78 @@ pub struct LlmProvider {
 }
 
 impl LlmProvider {
+
+    async fn execute_with_refresh(&self, mut req: reqwest::RequestBuilder, body: &serde_json::Value) -> Result<reqwest::Response, String> {
+        let mut response = req.try_clone().ok_or("Cannot clone request")?.json(body).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
+        if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+            tracing::warn!("401 Unauthorized detected. Attempting to refresh token...");
+            let mut settings = crate::config::llm_settings::read_llm_settings();
+            let mut refresh_token = None;
+            if let Some(active_id) = &settings.active_account_id {
+                if let Some(account) = settings.accounts.iter_mut().find(|a| a.id == *active_id) {
+                    refresh_token = account.refresh_token.clone();
+                }
+            }
+            if let Some(rt) = refresh_token {
+                if let Some(new_token) = crate::services::subscription::refresh_gemini_token(&self.client, &rt).await {
+                    tracing::info!("Token refreshed successfully! Retrying request...");
+                    if let Some(active_id) = &settings.active_account_id {
+                        if let Some(account) = settings.accounts.iter_mut().find(|a| a.id == *active_id) {
+                            account.api_key = new_token.clone();
+                        }
+                    }
+                    settings.api_key = new_token.clone();
+                    crate::config::llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap());
+                    req = req.header("Authorization", format!("Bearer {}", new_token));
+                    response = req.try_clone().unwrap().json(body).send().await.map_err(|e| format!("LLM request failed on retry: {}", e))?;
+                }
+            }
+        }
+        Ok(response)
+    }
+
     pub fn new(client: reqwest::Client) -> Self {
         Self {
             settings: llm_settings::read_llm_settings(),
             client,
+        }
+    }
+
+    
+    pub fn max_context_chars(&self) -> usize {
+        let model = self.settings.model.to_lowercase();
+        
+        // 1. 尝试从 models_info 自动获取模型的上下文上限 (支持动态智能体配置)
+        if let Some(account_id) = &self.settings.active_account_id {
+            if let Some(account) = self.settings.accounts.iter().find(|a| &a.id == account_id) {
+                if let Some(info_map) = &account.models_info {
+                    // Try exact model name first, then lowercase
+                    let info = info_map.get(&self.settings.model).or_else(|| info_map.get(&model));
+                    if let Some(model_info) = info {
+                        // Gemini 原生格式: inputTokenLimit
+                        if let Some(limit) = model_info.get("inputTokenLimit").and_then(|v| v.as_u64()) {
+                            return (limit * 4) as usize; // 估算: 1 Token ≈ 4 字符
+                        }
+                        // 部分兼容格式可能提供 context_length / context_window / max_position_embeddings
+                        if let Some(limit) = model_info.get("context_window").or_else(|| model_info.get("max_position_embeddings")).and_then(|v| v.as_u64()) {
+                            return (limit * 4) as usize;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback: 静态已知模型推断
+        if model.contains("gemini-1.5-pro") {
+            8_000_000 // 2M tokens
+        } else if model.contains("gemini-1.5-flash") || model.contains("gemini") {
+            4_000_000 // 1M tokens
+        } else if model.contains("claude-3-5") || model.contains("claude-3.5") {
+            800_000   // 200k tokens
+        } else if model.contains("gpt-4o") || model.contains("gpt-4-turbo") {
+            500_000   // 128k tokens
+        } else {
+            100_000   // Default conservative
         }
     }
 
@@ -121,7 +189,7 @@ impl LlmProvider {
                 req = req.header(k, v);
             }
             
-            let response = req.json(&upstream_body).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
+            let response = self.execute_with_refresh(req, &upstream_body).await?;
             if !response.status().is_success() {
                 let status = response.status();
                 let text = response.text().await.unwrap_or_default();
@@ -170,7 +238,7 @@ impl LlmProvider {
             }
         }
 
-        let response = req.json(&body_obj).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
+        let response = self.execute_with_refresh(req, &body_obj).await?;
         if !response.status().is_success() {
             return Err(format!("LLM API error: {}", response.text().await.unwrap_or_default()));
         }
@@ -259,7 +327,7 @@ impl LlmProvider {
             
             tracing::info!("LLM Request: POST {} via GeminiInternalUpstreamAdapter", target_url);
 
-            let response = req.json(&upstream_body).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
+            let response = self.execute_with_refresh(req, &upstream_body).await?;
             
             if !response.status().is_success() {
                 let status = response.status();
