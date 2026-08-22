@@ -1,8 +1,12 @@
-use std::sync::Arc;
-use axum::{Router, routing::get, extract::{State, Query}, Json};
-use serde::Deserialize;
-use crate::AppState;
 use crate::models::api::{self, ApiResponse};
+use crate::AppState;
+use axum::{
+    extract::{Query, State},
+    routing::get,
+    Json, Router,
+};
+use serde::Deserialize;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct HealthQuery {
@@ -20,14 +24,28 @@ async fn health_check(
     let project_path = params.project.as_deref();
     let statuses = state.runtime_config.runtime_statuses(project_path);
 
-    let has_error = statuses.iter().any(|s| s.state == crate::config::runtime::HealthState::Error);
-    let has_warning = statuses.iter().any(|s| s.state == crate::config::runtime::HealthState::Warning);
+    let has_error = statuses
+        .iter()
+        .any(|s| s.state == crate::config::runtime::HealthState::Error);
+    let has_warning = statuses
+        .iter()
+        .any(|s| s.state == crate::config::runtime::HealthState::Warning);
+    let llm_settings = crate::config::llm_settings::read_llm_settings();
+    let gateway_eval = crate::services::brain::gateway_eval_runtime::GatewayEvalRuntime
+        .evaluate_global(&llm_settings);
 
-    let overall = if has_error { "error" } else if has_warning { "warning" } else { "ok" };
-
+    let overall = if has_error {
+        "error"
+    } else if has_warning || !gateway_eval.passed {
+        "warning"
+    } else {
+        "ok"
+    };
     let data = serde_json::json!({
         "overall": overall,
         "statuses": statuses,
+        "providerHealth": crate::services::brain::provider_health_runtime::ProviderHealthRuntime::global().snapshots(),
+        "gatewayEval": gateway_eval,
         "checkedAt": chrono::Utc::now().to_rfc3339(),
     });
 

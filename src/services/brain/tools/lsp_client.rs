@@ -1,6 +1,7 @@
 //! 极简 LSP 客户端 (Lightweight LSP Client)
 //! 用于与 rust-analyzer / tsserver 等基于 stdin/stdout 的 Language Server 通信
 
+use lazy_static::lazy_static;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -8,7 +9,6 @@ use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use lazy_static::lazy_static;
 
 lazy_static! {
     /// 全局 LSP 客户端单例，防止大模型每次调用都重启 Server
@@ -36,7 +36,7 @@ impl LspClient {
 
         let stdin = child.stdin.take().unwrap();
         let stdout = child.stdout.take().unwrap();
-        
+
         let responses = Arc::new(Mutex::new(HashMap::new()));
         let responses_clone = responses.clone();
 
@@ -100,10 +100,10 @@ impl LspClient {
                 }
             }
         });
-        
+
         // 阻塞等待 initialize 响应
         let _ = client.send_request_and_wait("initialize", init_params)?;
-        
+
         // 发送 initialized 通知 (无响应)
         client.send_notification("initialized", json!({}))?;
 
@@ -150,10 +150,14 @@ impl LspClient {
     fn write_payload(&mut self, payload: Value) -> Result<(), String> {
         let body = serde_json::to_string(&payload).unwrap();
         let msg = format!("Content-Length: {}\r\n\r\n{}", body.len(), body);
-        
-        self.stdin.write_all(msg.as_bytes()).map_err(|e| format!("Write error: {}", e))?;
-        self.stdin.flush().map_err(|e| format!("Flush error: {}", e))?;
-        
+
+        self.stdin
+            .write_all(msg.as_bytes())
+            .map_err(|e| format!("Write error: {}", e))?;
+        self.stdin
+            .flush()
+            .map_err(|e| format!("Flush error: {}", e))?;
+
         Ok(())
     }
 }

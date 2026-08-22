@@ -38,11 +38,18 @@ fn convert_standard_to_gemini(mut standard: Value, fallback_model: String) -> Va
                             let args_str = func.get("arguments").and_then(|a| a.as_str()).unwrap_or("{}");
                             let input: Value = serde_json::from_str(args_str).unwrap_or_else(|_| json!({}));
                             
+                            let mut function_call = json!({
+                                "name": name,
+                                "args": input
+                            });
+                            
+                            // Preserve thought_signature if it was stored in the function object
+                            if let Some(sig) = func.get("thought_signature") {
+                                function_call.as_object_mut().unwrap().insert("thought_signature".to_string(), sig.clone());
+                            }
+
                             parts.push(json!({
-                                "functionCall": {
-                                    "name": name,
-                                    "args": input
-                                }
+                                "functionCall": function_call
                             }));
                         }
                     }
@@ -118,13 +125,20 @@ fn convert_gemini_to_standard(gemini: Value) -> Result<Value, anyhow::Error> {
                         
                         let id = format!("call_{}", name);
                         
+                        let mut function_obj = json!({
+                            "name": name,
+                            "arguments": serde_json::to_string(args).unwrap_or_else(|_| "{}".to_string())
+                        });
+
+                        // Propagate thought_signature if present from Gemini response
+                        if let Some(sig) = func_call.get("thought_signature") {
+                            function_obj.as_object_mut().unwrap().insert("thought_signature".to_string(), sig.clone());
+                        }
+                        
                         tool_calls.push(json!({
                             "id": id,
                             "type": "function",
-                            "function": {
-                                "name": name,
-                                "arguments": serde_json::to_string(args).unwrap_or_else(|_| "{}".to_string())
-                            }
+                            "function": function_obj
                         }));
                     }
                 }

@@ -4,39 +4,43 @@
 //! 1. dispose 必须达到完全停稳 (dispose must reach complete settlement via kill + wait)
 //! 2. 正交状态上报 (running, exit_code, timed_out, command)
 
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
-use std::process::Child;
-use std::io::Read;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::io::Read;
+use std::process::Child;
+use std::sync::{Arc, Mutex, RwLock};
 
 pub struct ProcessState {
     pub command: String,
     pub child: Child,
+    pub stdin: Option<std::process::ChildStdin>,
     pub logs: Arc<Mutex<Vec<String>>>,
 }
 
 lazy_static! {
-    pub static ref PROCESS_REGISTRY: Arc<RwLock<HashMap<String, ProcessState>>> = 
+    pub static ref PROCESS_REGISTRY: Arc<RwLock<HashMap<String, ProcessState>>> =
         Arc::new(RwLock::new(HashMap::new()));
 }
 
 /// 注册一个新后台进程，自动拉起监听线程把 stdout/stderr 灌入 logs
 pub fn register_process(id: String, command: String, mut child: Child) {
     let logs = Arc::new(Mutex::new(Vec::new()));
-    
+
     // 提取 stdout 和 stderr
     let mut stdout = child.stdout.take();
     let mut stderr = child.stderr.take();
-    
+    let stdin = child.stdin.take();
+
     let logs_clone = logs.clone();
-    
+
     // 启动后台读取线程 (Stdout)
     std::thread::spawn(move || {
         if let Some(ref mut out) = stdout {
             let mut buf = [0; 1024];
             while let Ok(n) = out.read(&mut buf) {
-                if n == 0 { break; }
+                if n == 0 {
+                    break;
+                }
                 if let Ok(s) = String::from_utf8(buf[..n].to_vec()) {
                     if let Ok(mut l) = logs_clone.lock() {
                         l.push(s);
@@ -55,7 +59,9 @@ pub fn register_process(id: String, command: String, mut child: Child) {
         if let Some(ref mut err) = stderr {
             let mut buf = [0; 1024];
             while let Ok(n) = err.read(&mut buf) {
-                if n == 0 { break; }
+                if n == 0 {
+                    break;
+                }
                 if let Ok(s) = String::from_utf8(buf[..n].to_vec()) {
                     if let Ok(mut l) = logs_clone2.lock() {
                         l.push(format!("[STDERR] {}", s));
@@ -68,7 +74,12 @@ pub fn register_process(id: String, command: String, mut child: Child) {
         }
     });
 
-    let state = ProcessState { command, child, logs };
+    let state = ProcessState {
+        command,
+        child,
+        logs,
+        stdin,
+    };
     if let Ok(mut registry) = PROCESS_REGISTRY.write() {
         registry.insert(id, state);
     }
@@ -125,10 +136,35 @@ pub fn list_processes() -> Vec<serde_json::Value> {
 pub fn cleanup_all_processes() {
     if let Ok(mut registry) = PROCESS_REGISTRY.write() {
         for (id, state) in registry.iter_mut() {
-            eprintln!("[Brain B ProcessManager] Completely disposing orphan process: {} ({})", id, state.command);
+            eprintln!(
+                "[Brain B ProcessManager] Completely disposing orphan process: {} ({})",
+                id, state.command
+            );
             let _ = state.child.kill();
             let _ = state.child.wait();
         }
         registry.clear();
     }
+}
+
+use std::io::Write;
+
+/// 往后台进程的标准输入写入数据
+pub fn send_input(id: &str, input: &str) -> Result<(), String> {
+    if let Ok(mut registry) = PROCESS_REGISTRY.write() {
+        if let Some(state) = registry.get_mut(id) {
+            if let Some(ref mut stdin) = state.stdin {
+                if let Err(e) = stdin.write_all(input.as_bytes()) {
+                    return Err(format!("Failed to write to stdin: {}", e));
+                }
+                if let Err(e) = stdin.flush() {
+                    return Err(format!("Failed to flush stdin: {}", e));
+                }
+                return Ok(());
+            } else {
+                return Err("Process does not have a piped stdin.".to_string());
+            }
+        }
+    }
+    Err("Process not found.".to_string())
 }

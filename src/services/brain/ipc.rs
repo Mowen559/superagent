@@ -18,8 +18,15 @@ pub enum IpcMessage {
     },
     Intervene(String),
     ReloadRequest,
-    AskUser { question: String },
-    UserResponse(String),
+    AskUser {
+        request_id: String,
+        question: String,
+        choices: Vec<String>,
+    },
+    UserResponse {
+        request_id: String,
+        response: String,
+    },
     Result(String),
     Error(String),
     Event {
@@ -32,14 +39,14 @@ pub enum IpcMessage {
 
 /// 专属于大脑 A (Hub) 的 IPC 客户端
 pub struct IpcClient {
-    pub stdout_reader: Option<tokio::process::ChildStdout>,
+    pub stdout_reader: Option<BufReader<tokio::process::ChildStdout>>,
     pub stdin_writer: Option<tokio::process::ChildStdin>,
 }
 
 impl IpcClient {
     pub fn new(child: &mut tokio::process::Child) -> Self {
         Self {
-            stdout_reader: child.stdout.take(),
+            stdout_reader: child.stdout.take().map(BufReader::new),
             stdin_writer: child.stdin.take(),
         }
     }
@@ -48,7 +55,10 @@ impl IpcClient {
     pub async fn send_message(&mut self, msg: IpcMessage) -> Result<(), String> {
         if let Some(writer) = &mut self.stdin_writer {
             let json_str = serde_json::to_string(&msg).unwrap() + "\n";
-            writer.write_all(json_str.as_bytes()).await.map_err(|e| e.to_string())?;
+            writer
+                .write_all(json_str.as_bytes())
+                .await
+                .map_err(|e| e.to_string())?;
             writer.flush().await.map_err(|e| e.to_string())?;
             Ok(())
         } else {
@@ -59,10 +69,12 @@ impl IpcClient {
     /// 接收来自大脑 B 的回调
     pub async fn read_message(&mut self) -> Result<IpcMessage, String> {
         if let Some(reader) = &mut self.stdout_reader {
-            let mut buf_reader = BufReader::new(reader);
             let mut line = String::new();
-            let bytes_read = buf_reader.read_line(&mut line).await.map_err(|e| e.to_string())?;
-            
+            let bytes_read = reader
+                .read_line(&mut line)
+                .await
+                .map_err(|e| e.to_string())?;
+
             if bytes_read == 0 {
                 return Err("EOF from child process".into());
             }
@@ -79,7 +91,8 @@ impl IpcClient {
 
 /// 大脑 B 内部启动的独立进程事件循环
 pub async fn start_worker_loop(mut engine: super::executor::AgentLoop) {
-    let interventions_handle = engine.interventions.clone();
+    let steering_queue = engine.steering_queue.clone();
+    let interaction_runtime = engine.interaction_runtime.clone();
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<IpcMessage>();
 
@@ -89,16 +102,30 @@ pub async fn start_worker_loop(mut engine: super::executor::AgentLoop) {
         let mut reader = BufReader::new(stdin);
         let mut line = String::new();
         while let Ok(n) = reader.read_line(&mut line).await {
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
             if let Ok(msg) = serde_json::from_str::<IpcMessage>(&line) {
                 match &msg {
                     IpcMessage::Intervene(instruction) => {
-                        let mut guard = interventions_handle.lock().unwrap();
-                        guard.push(instruction.clone());
+                        let _ = steering_queue.enqueue(
+                            super::steering_queue::SteeringSource::Supervisor,
+                            instruction,
+                            None,
+                        );
                     }
                     IpcMessage::CrashReport(report) => {
-                        let mut guard = interventions_handle.lock().unwrap();
-                        guard.push(format!("[SYSTEM FAIL-SAFE] Your previous evolution caused a crash or compilation failure. We have rolled back your code to the Last Known Good (LKG) state. CRASH LOG:\n{}", report));
+                        let _ = steering_queue.enqueue(
+                            super::steering_queue::SteeringSource::Recovery,
+                            &format!("[SYSTEM FAIL-SAFE] Your previous evolution caused a crash or compilation failure. We have rolled back your code to the Last Known Good (LKG) state. CRASH LOG:\n{}", report),
+                            None,
+                        );
+                    }
+                    IpcMessage::UserResponse {
+                        request_id,
+                        response,
+                    } => {
+                        let _ = interaction_runtime.deliver_response(request_id, response);
                     }
                     _ => {
                         let _ = tx.send(msg);
@@ -119,7 +146,11 @@ pub async fn start_worker_loop(mut engine: super::executor::AgentLoop) {
 
     while let Some(msg) = rx.recv().await {
         match msg {
-            IpcMessage::Spawn { role, system_prompt, prompt } => {
+            IpcMessage::Spawn {
+                role,
+                system_prompt,
+                prompt,
+            } => {
                 if let Some(sys) = system_prompt {
                     engine.set_system_prompt(&sys);
                 }
@@ -129,12 +160,10 @@ pub async fn start_worker_loop(mut engine: super::executor::AgentLoop) {
                     Err(e) => send_to_hub(IpcMessage::Error(e)),
                 }
             }
-            IpcMessage::Prompt(prompt) => {
-                match engine.run(&prompt).await {
-                    Ok(res) => send_to_hub(IpcMessage::Result(res)),
-                    Err(e) => send_to_hub(IpcMessage::Error(e)),
-                }
-            }
+            IpcMessage::Prompt(prompt) => match engine.run(&prompt).await {
+                Ok(res) => send_to_hub(IpcMessage::Result(res)),
+                Err(e) => send_to_hub(IpcMessage::Error(e)),
+            },
             _ => {}
         }
     }

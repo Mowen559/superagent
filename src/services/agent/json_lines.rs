@@ -69,10 +69,15 @@ pub struct JsonSpec {
 }
 
 /// Run a json-family CLI to completion.
-pub async fn run(spec: JsonSpec, opts: ExecOptions, mut cancel_rx: tokio::sync::watch::Receiver<bool>) -> BackendResult<AgentSession> {
+pub async fn run(
+    spec: JsonSpec,
+    opts: ExecOptions,
+    mut cancel_rx: tokio::sync::watch::Receiver<bool>,
+    mut control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>,
+) -> BackendResult<AgentSession> {
     let mut cmd = agent_command(&spec.command);
     cmd.args(&spec.args)
-        .stdin(Stdio::null())
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if let Some(dir) = opts.cwd.as_deref().filter(|p| std::path::Path::new(p).is_dir()) {
@@ -87,6 +92,39 @@ pub async fn run(spec: JsonSpec, opts: ExecOptions, mut cancel_rx: tokio::sync::
     let mut child = cmd
         .spawn()
         .map_err(|e| BackendError::Launch(format!("{}: {e}", spec.command)))?;
+
+    if let (Some(mut rx), Some(mut stdin)) = (control_rx, child.stdin.take()) {
+        tokio::spawn(async move {
+            use tokio::io::AsyncWriteExt;
+            while let Some(control) = rx.recv().await {
+                // For superagent IPC, we serialize it as UserResponse or Intervene.
+                let msg = match control {
+                    crate::services::task_manager::TaskControl::UserResponse { request_id, response } => {
+                        serde_json::json!({
+                            "type": "UserResponse",
+                            "payload": {
+                                "request_id": request_id,
+                                "response": response
+                            }
+                        })
+                    }
+                    crate::services::task_manager::TaskControl::Intervene { instruction } => {
+                        serde_json::json!({
+                            "type": "Intervene",
+                            "payload": instruction
+                        })
+                    }
+                    _ => continue,
+                };
+                let mut s = msg.to_string();
+                s.push_str("\n");
+
+                if stdin.write_all(s.as_bytes()).await.is_err() {
+                    break;
+                }
+            }
+        });
+    }
 
     let (msg_tx, msg_rx) = mpsc::channel::<AgentMessage>(256);
     let (res_tx, res_rx) = oneshot::channel::<AgentResult>();
@@ -108,7 +146,7 @@ pub async fn run(spec: JsonSpec, opts: ExecOptions, mut cancel_rx: tokio::sync::
                 while let Ok(Some(line)) = lines.next_line().await {
                     let mut guard = tail.lock().await;
                     guard.push_str(&line);
-                    guard.push('\n');
+
                     if guard.len() > 4096 {
                         let cut = guard.len() - 4096;
                         *guard = guard[cut..].to_string();

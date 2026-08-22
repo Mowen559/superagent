@@ -8,7 +8,7 @@ pub struct QwenBackend;
 
 #[async_trait]
 impl AgentBackend for QwenBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>) -> BackendResult<AgentSession> {
+    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
         stream_json::run(
             StreamJsonSpec {
                 command: "qwen".to_string(),
@@ -42,7 +42,7 @@ impl AgentBackend for QwenBackend {
                 envs: None,
             },
             prompt,
-            opts, cancel_rx).await
+            opts, cancel_rx, _control_rx).await
     }
 
     async fn sync_config(

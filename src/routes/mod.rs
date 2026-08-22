@@ -1,4 +1,7 @@
 pub mod health;
+pub mod capabilities;
+pub mod tool_approvals;
+pub mod evolution;
 pub mod settings;
 pub mod claude;
 pub mod files;

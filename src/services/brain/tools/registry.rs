@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use std::path::PathBuf;
 use crate::services::brain::executor::ToolExecutor;
 use crate::services::brain::tools::dynamic_tool::scan_dynamic_tools;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 pub struct PluginRegistry {
     tools: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>,
@@ -39,7 +39,10 @@ impl PluginRegistry {
                 for tool in dynamic_tools {
                     let tool_name = tool.name().to_string();
                     self.register(Box::new(tool));
-                    eprintln!("[PluginRegistry] Hot-plugged dynamic tool (MCP): {}", tool_name);
+                    eprintln!(
+                        "[PluginRegistry] Hot-plugged dynamic tool (MCP): {}",
+                        tool_name
+                    );
                 }
             }
         }

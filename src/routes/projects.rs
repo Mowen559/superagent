@@ -1,11 +1,11 @@
-use std::sync::Arc;
-use axum::{Router, routing::post, extract::State, Json};
+use crate::services::analysis_service;
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{extract::State, routing::post, Json, Router};
 use serde::Deserialize;
 use serde_json::json;
-use crate::AppState;
-use crate::services::analysis_service;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct AnalyzeRequest {
@@ -16,8 +16,7 @@ pub struct AnalyzeRequest {
 }
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/api/projects/analyze", post(analyze_project))
+    Router::new().route("/api/projects/analyze", post(analyze_project))
 }
 
 async fn analyze_project(
@@ -26,10 +25,18 @@ async fn analyze_project(
 ) -> Response {
     let target_path = match body.path {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing path" })),
+            )
+                .into_response()
+        }
     };
 
-    let task_manager = Arc::new(crate::services::task_manager::TaskManager::new(&state.app_paths));
+    let task_manager = Arc::new(crate::services::task_manager::TaskManager::new(
+        &state.app_paths,
+    ));
 
     match analysis_service::start_analysis(
         &state.runtime_config,
@@ -38,12 +45,15 @@ async fn analyze_project(
         state.http_client.clone(),
         &target_path,
         body.project_id,
-    ).await {
+    )
+    .await
+    {
         Ok(task_id) => Json(json!({
             "taskId": task_id,
             "status": "pending",
             "message": "Analysis started"
-        })).into_response(),
+        }))
+        .into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))).into_response(),
     }
 }

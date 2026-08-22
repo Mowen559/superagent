@@ -1,12 +1,16 @@
-use std::sync::Arc;
-use axum::{Router, routing::{get, post}, extract::{State, Query}, Json};
+use crate::models::memory::SupermemoryRecord;
+use crate::services::supermemory_store::SupermemoryStore;
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{
+    extract::{Query, State},
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::json;
-use crate::AppState;
-use crate::services::supermemory_store::SupermemoryStore;
-use crate::models::memory::SupermemoryRecord;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct MemoryQuery {
@@ -52,7 +56,13 @@ async fn memory_write(
 ) -> Response {
     let record = match body.record {
         Some(r) => r,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing record" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing record" })),
+            )
+                .into_response()
+        }
     };
     let store = SupermemoryStore::new(&state.runtime_config, body.project.as_deref());
     store.write_memory(record.clone());
@@ -70,7 +80,9 @@ async fn supermemory_chat(
     let memories = store.search(&message, 5);
 
     // Hybrid recall from the code graph: FTS keywords + semantic vectors (RRF fused)
-    let db_path = state.runtime_config.codebase_memory_db_path(body.project.as_deref());
+    let db_path = state
+        .runtime_config
+        .codebase_memory_db_path(body.project.as_deref());
     let db_path_str = db_path.to_string_lossy().to_string();
     let msg_for_search = message.clone();
     let graph_hits = tokio::task::spawn_blocking(move || {
@@ -84,9 +96,21 @@ async fn supermemory_chat(
     // Try LLM
     let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
     let response = if llm.is_available() && !message.is_empty() {
-        let memory_ctx: Vec<String> = memories.iter().map(|m| format!("- {} ({})", m.summary, m.file_path)).collect();
-        let graph_ctx: Vec<String> = graph_hits.iter()
-            .map(|n| format!("- [{}] {} ({}) via {}", n.label, n.name, n.file_path, n.sources.join("+")))
+        let memory_ctx: Vec<String> = memories
+            .iter()
+            .map(|m| format!("- {} ({})", m.summary, m.file_path))
+            .collect();
+        let graph_ctx: Vec<String> = graph_hits
+            .iter()
+            .map(|n| {
+                format!(
+                    "- [{}] {} ({}) via {}",
+                    n.label,
+                    n.name,
+                    n.file_path,
+                    n.sources.join("+")
+                )
+            })
             .collect();
         let system = format!(
             "You are a codebase assistant. Use the following project context. Always answer in the same language the user's question is written in.\n\nProject memories:\n{}\n\nRelated code symbols (from indexed graph):\n{}",
@@ -94,7 +118,9 @@ async fn supermemory_chat(
             graph_ctx.join("\n")
         );
         let messages = vec![json!({ "role": "user", "content": message })];
-        llm.chat(messages, Some(&system)).await.unwrap_or_else(|e| (format!("LLM error: {}", e), Default::default()))
+        llm.chat(messages, Some(&system))
+            .await
+            .unwrap_or_else(|e| (format!("LLM error: {}", e), Default::default()))
     } else {
         (format!("LLM not configured. Memory search returned {} results, graph search returned {} symbols.", memories.len(), graph_hits.len()), Default::default())
     };
@@ -106,7 +132,8 @@ async fn supermemory_chat(
         "response": response_str,
         "memoriesUsed": memories.len(),
         "graphSymbolsUsed": graph_hits.len(),
-    })).into_response()
+    }))
+    .into_response()
 }
 
 async fn supermemory_logs(

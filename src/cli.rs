@@ -14,6 +14,15 @@ pub struct Cli {
 pub enum Commands {
     /// Install this application globally to the system PATH
     Install,
+    /// Headless worker for Superagent
+    SuperagentWorker {
+        /// Base prompt
+        #[arg(long)]
+        prompt: String,
+        /// Project workspace root
+        #[arg(long)]
+        project: Option<String>,
+    },
     /// Start the backend service
     Service {
         /// Port to listen on
@@ -193,6 +202,12 @@ pub fn dispatch() {
     };
 
     match cli.command {
+        Some(Commands::SuperagentWorker { prompt, project }) => {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                crate::services::brain::worker::run_worker(&prompt, project).await;
+            });
+        }
         Some(Commands::Install) => crate::cli_commands::handle_install(),
         Some(Commands::Service { port }) => run_service(port),
         Some(Commands::Chat) => crate::repl::run_chat(),

@@ -171,20 +171,39 @@ const GEMINI_OAUTH_CLIENT_ID: &str = "1071006060591-tmhssin2h21lcre235vtolojh4g4
 const GEMINI_OAUTH_CLIENT_SECRET: &str = "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";
 
 pub async fn refresh_gemini_token(client: &reqwest::Client, refresh_token: &str) -> Option<String> {
-    let resp = client
+    // Some proxies block or return 503 for oauth2.googleapis.com.
+    // Try with the provided client (proxy) first.
+    let form_data = [
+        ("client_id", GEMINI_OAUTH_CLIENT_ID),
+        ("client_secret", GEMINI_OAUTH_CLIENT_SECRET),
+        ("refresh_token", refresh_token),
+        ("grant_type", "refresh_token"),
+    ];
+
+    let mut resp_opt = client
         .post("https://oauth2.googleapis.com/token")
-        .form(&[
-            ("client_id", GEMINI_OAUTH_CLIENT_ID),
-            ("client_secret", GEMINI_OAUTH_CLIENT_SECRET),
-            ("refresh_token", refresh_token),
-            ("grant_type", "refresh_token"),
-        ])
+        .form(&form_data)
         .timeout(std::time::Duration::from_secs(10))
         .send()
-        .await
-        .ok()?;
+        .await;
+
+    // If it fails due to network/proxy issues, try again directly without proxy.
+    if resp_opt.is_err() || resp_opt.as_ref().map(|r| r.status() == reqwest::StatusCode::SERVICE_UNAVAILABLE).unwrap_or(false) {
+        tracing::warn!("Failed to reach oauth2.googleapis.com via proxy, attempting direct connection...");
+        if let Ok(direct_client) = reqwest::Client::builder().no_proxy().build() {
+            resp_opt = direct_client
+                .post("https://oauth2.googleapis.com/token")
+                .form(&form_data)
+                .timeout(std::time::Duration::from_secs(10))
+                .send()
+                .await;
+        }
+    }
+
+    let resp = resp_opt.ok()?;
 
     if !resp.status().is_success() {
+        tracing::error!("Failed to refresh token, status: {}", resp.status());
         return None;
     }
 

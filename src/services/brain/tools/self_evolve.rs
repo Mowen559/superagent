@@ -2,7 +2,7 @@
 //! 当大模型修改了自身代码后，调用此工具向守护进程 (Brain A) 发出重新编译并拉起新版本的请求。
 
 use crate::services::brain::executor::ToolExecutor;
-use crate::services::brain::ipc::{IpcMessage, send_to_hub};
+use crate::services::brain::ipc::{send_to_hub, IpcMessage};
 use serde_json::{json, Value};
 
 /// 进程重载工具 (Request Reload)
@@ -37,7 +37,7 @@ impl ToolExecutor for RequestReloadTool {
             .unwrap_or("No reason provided");
 
         eprintln!("[Brain B] Self-evolution triggered. Reason: {}", reason);
-        
+
         // 发送重载信令给大本营 (Brain A)
         send_to_hub(IpcMessage::ReloadRequest);
 

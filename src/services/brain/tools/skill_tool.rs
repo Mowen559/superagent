@@ -91,7 +91,11 @@ impl ToolExecutor for SkillTool {
             }
 
             let mut skills = Vec::new();
-            for entry in WalkDir::new(&skills_dir).max_depth(2).into_iter().filter_map(|e| e.ok()) {
+            for entry in WalkDir::new(&skills_dir)
+                .max_depth(2)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
                 if entry.file_name() == "SKILL.md" {
                     if let Ok(content) = fs::read_to_string(entry.path()) {
                         if let Some((name, desc)) = Self::extract_frontmatter(&content) {
@@ -103,7 +107,9 @@ impl ToolExecutor for SkillTool {
                         } else {
                             // Fallback if no frontmatter
                             if let Some(parent) = entry.path().parent() {
-                                if let Some(parent_name) = parent.file_name().and_then(|n| n.to_str()) {
+                                if let Some(parent_name) =
+                                    parent.file_name().and_then(|n| n.to_str())
+                                {
                                     skills.push(json!({
                                         "name": parent_name,
                                         "description": "No description available",
@@ -127,14 +133,23 @@ impl ToolExecutor for SkillTool {
             }
 
             // Look for the specific skill
-            for entry in WalkDir::new(&skills_dir).max_depth(2).into_iter().filter_map(|e| e.ok()) {
+            for entry in WalkDir::new(&skills_dir)
+                .max_depth(2)
+                .into_iter()
+                .filter_map(|e| e.ok())
+            {
                 if entry.file_name() == "SKILL.md" {
                     let is_match = if let Ok(content) = fs::read_to_string(entry.path()) {
                         if let Some((name, _)) = Self::extract_frontmatter(&content) {
                             name == skill_name
                         } else {
                             // Fallback folder name
-                            entry.path().parent().and_then(|p| p.file_name()).and_then(|n| n.to_str()) == Some(skill_name)
+                            entry
+                                .path()
+                                .parent()
+                                .and_then(|p| p.file_name())
+                                .and_then(|n| n.to_str())
+                                == Some(skill_name)
                         }
                     } else {
                         false

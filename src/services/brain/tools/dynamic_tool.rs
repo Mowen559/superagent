@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 /// 动态工具的 Schema 定义 (对应 `.tool.json`)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +22,14 @@ pub struct DynamicToolConfig {
     pub script_path: String,
     /// 额外参数
     pub extra_args: Option<Vec<String>>,
+    #[serde(default = "default_timeout_ms")]
+    pub timeout_ms: u64,
+    #[serde(default)]
+    pub allow_external_path: bool,
+}
+
+fn default_timeout_ms() -> u64 {
+    60_000
 }
 
 pub struct DynamicScriptTool {
@@ -37,11 +46,14 @@ impl DynamicScriptTool {
     pub fn load_from_file(json_path: &Path) -> Result<Self, String> {
         let content = fs::read_to_string(json_path)
             .map_err(|e| format!("Failed to read tool config at {:?}: {}", json_path, e))?;
-        
+
         let config: DynamicToolConfig = serde_json::from_str(&content)
             .map_err(|e| format!("Failed to parse tool config JSON at {:?}: {}", json_path, e))?;
 
-        let base_dir = json_path.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
+        let base_dir = json_path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf();
         Ok(Self::new(config, base_dir))
     }
 }
@@ -65,10 +77,22 @@ impl ToolExecutor for DynamicScriptTool {
             .map_err(|e| format!("Failed to serialize tool arguments: {}", e))?;
 
         let script_full_path = if Path::new(&self.config.script_path).is_absolute() {
+            if !self.config.allow_external_path {
+                return Err(
+                    "Dynamic tool path must be relative to its manifest directory".to_string(),
+                );
+            }
             PathBuf::from(&self.config.script_path)
         } else {
             self.base_dir.join(&self.config.script_path)
         };
+        let canonical_base = fs::canonicalize(&self.base_dir)
+            .map_err(|e| format!("Invalid dynamic tool directory: {}", e))?;
+        let canonical_script = fs::canonicalize(&script_full_path)
+            .map_err(|e| format!("Dynamic tool script not found: {}", e))?;
+        if !self.config.allow_external_path && !canonical_script.starts_with(&canonical_base) {
+            return Err("Dynamic tool script escapes its manifest directory".to_string());
+        }
 
         let mut cmd = if let Some(ref interp) = self.config.interpreter {
             let mut c = Command::new(interp);
@@ -89,13 +113,36 @@ impl ToolExecutor for DynamicScriptTool {
 
         // 设置工作目录为脚本所在的目录
         cmd.current_dir(&self.base_dir);
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-        let output = cmd.output().map_err(|e| {
+        let mut child = cmd.spawn().map_err(|e| {
             format!(
                 "Failed to execute dynamic script tool '{}' (cmd: {:?}): {}",
                 self.config.name, script_full_path, e
             )
         })?;
+        let deadline = Instant::now() + Duration::from_millis(self.config.timeout_ms.max(100));
+        let output = loop {
+            match child
+                .try_wait()
+                .map_err(|e| format!("Failed to poll dynamic tool: {}", e))?
+            {
+                Some(_) => {
+                    break child
+                        .wait_with_output()
+                        .map_err(|e| format!("Failed to collect dynamic tool output: {}", e))?
+                }
+                None if Instant::now() >= deadline => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "Dynamic tool '{}' exceeded {}ms timeout",
+                        self.config.name, self.config.timeout_ms
+                    ));
+                }
+                None => std::thread::sleep(Duration::from_millis(10)),
+            }
+        };
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -136,11 +183,17 @@ pub fn scan_dynamic_tools(dir: &Path) -> Vec<DynamicScriptTool> {
                     if name.ends_with(".tool.json") {
                         match DynamicScriptTool::load_from_file(&path) {
                             Ok(tool) => {
-                                eprintln!("[DynamicTool] Successfully loaded dynamic tool '{}' from {:?}", tool.config.name, path);
+                                eprintln!(
+                                    "[DynamicTool] Successfully loaded dynamic tool '{}' from {:?}",
+                                    tool.config.name, path
+                                );
                                 tools.push(tool);
                             }
                             Err(e) => {
-                                eprintln!("[DynamicTool Error] Failed to load tool from {:?}: {}", path, e);
+                                eprintln!(
+                                    "[DynamicTool Error] Failed to load tool from {:?}: {}",
+                                    path, e
+                                );
                             }
                         }
                     }
@@ -206,14 +259,42 @@ print(json.dumps({"received": args, "status": "ok"}))
         let cwd = std::env::current_dir().unwrap();
         let dynamic_dir = cwd.join("dynamic_tools");
         assert!(dynamic_dir.exists(), "dynamic_tools directory should exist");
-        
+
         let tools = scan_dynamic_tools(&dynamic_dir);
         let greet_tool = tools.iter().find(|t| t.name() == "dynamic_greet");
         assert!(greet_tool.is_some(), "dynamic_greet tool should be loaded");
-        
+
         let tool = greet_tool.unwrap();
         let res = tool.execute(json!({"name": "SuperAgent"})).unwrap();
         assert_eq!(res["status"], "success");
-        assert_eq!(res["message"], "Hello SuperAgent, this is a message from the newly created dynamic Python plugin!");
+        assert_eq!(
+            res["message"],
+            "Hello SuperAgent, this is a message from the newly created dynamic Python plugin!"
+        );
+    }
+
+    #[test]
+    fn dynamic_tool_timeout_kills_stuck_process() {
+        let dir = tempdir().unwrap();
+        let script_path = dir.path().join("slow.py");
+        fs::write(&script_path, "import time\ntime.sleep(1)\nprint('{}')\n").unwrap();
+        let config_path = dir.path().join("slow.tool.json");
+        fs::write(
+            &config_path,
+            json!({
+                "name": "slow_tool",
+                "description": "timeout fixture",
+                "parameters": { "type": "object", "properties": {} },
+                "interpreter": "python",
+                "script_path": "slow.py",
+                "timeout_ms": 100
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let tool = DynamicScriptTool::load_from_file(&config_path).unwrap();
+        let err = tool.execute(json!({})).unwrap_err();
+        assert!(err.contains("timeout"));
     }
 }

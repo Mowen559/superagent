@@ -24,7 +24,7 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result
     Ok(())
 }
 
-pub async fn run_superagent_with_evolution(prompt: &str) {
+pub async fn run_superagent_with_evolution(prompt: &str, project: Option<String>) {
     let mut current_prompt = prompt.to_string();
     let mut crash_report_to_send: Option<String> = None;
 
@@ -127,7 +127,7 @@ pub async fn run_superagent_with_evolution(prompt: &str) {
                     IpcMessage::Heartbeat => {
                         // 心跳正常，忽略
                     }
-                    IpcMessage::AskUser { question } => {
+                    IpcMessage::AskUser { question, .. } => {
                         println!("\n\x1b[35m[Brain B Asks]: {}\x1b[0m", question);
                         use std::io::{self, Write};
                         print!("> ");
@@ -135,7 +135,7 @@ pub async fn run_superagent_with_evolution(prompt: &str) {
                         let mut answer = String::new();
                         let _ = io::stdin().read_line(&mut answer);
                         
-                        if let Err(e) = ipc_client.send_message(IpcMessage::UserResponse(answer.trim().to_string())).await {
+                        if let Err(e) = ipc_client.send_message(IpcMessage::UserResponse { request_id: "".to_string(), response: answer.trim().to_string() }).await {
                             eprintln!("[Brain A] Failed to send user response: {}", e);
                             break;
                         }

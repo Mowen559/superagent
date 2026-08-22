@@ -2,16 +2,16 @@
 //! file to its structural skeleton (imports + signatures + types), cutting the
 //! tokens that downstream LLM calls would otherwise spend.
 
-use std::sync::Arc;
-use std::str::FromStr;
-use axum::{Router, routing::post, extract::State, Json};
+use crate::services::token_filter::FilterLevel;
+use crate::services::{file_service, token_filter};
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{extract::State, routing::post, Json, Router};
 use serde::Deserialize;
 use serde_json::json;
-use crate::AppState;
-use crate::services::{file_service, token_filter};
-use crate::services::token_filter::FilterLevel;
+use std::str::FromStr;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct CompressRequest {
@@ -36,7 +36,9 @@ async fn compress(
     let level = match body.level.as_deref() {
         Some(s) => match FilterLevel::from_str(s) {
             Ok(l) => l,
-            Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))).into_response(),
+            Err(e) => {
+                return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))).into_response()
+            }
         },
         None => FilterLevel::Aggressive,
     };
@@ -48,11 +50,23 @@ async fn compress(
     } else {
         let project = match body.project {
             Some(p) => p,
-            None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Provide either `content`, or `project`+`path`" }))).into_response(),
+            None => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "error": "Provide either `content`, or `project`+`path`" })),
+                )
+                    .into_response()
+            }
         };
         let path = match body.path {
             Some(p) => p,
-            None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path" }))).into_response(),
+            None => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "error": "Missing path" })),
+                )
+                    .into_response()
+            }
         };
         match file_service::read_file_content(&project, &path) {
             Ok(c) => (c, path),

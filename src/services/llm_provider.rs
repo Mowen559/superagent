@@ -1,5 +1,22 @@
+use std::time::{Duration, Instant};
+
 use serde_json::{json, Value};
-use crate::config::llm_settings::{self, LLMSettings};
+
+use crate::{
+    config::llm_settings::{self, LLMAccount, LLMSettings},
+    services::{
+        brain::{
+            context_budget::ContextBudget,
+            model_attempt_router::ModelErrorClass,
+            model_route_runtime::{
+                ModelRequirements, ModelRouteRuntime, ProviderAttemptOutcome,
+                ProviderAttemptReceipt, ProviderCandidate,
+            },
+            provider_health_runtime::{ProviderAdmission, ProviderHealthRuntime},
+        },
+        protocol_converter::upstream::{adapter_for_provider, UpstreamAdapter},
+    },
+};
 
 /// Map a BCP-47 locale (e.g. `zh-CN` / `en-US`) to an output-language
 /// instruction for prompts. Defaults to Simplified Chinese.
@@ -30,67 +47,108 @@ pub fn strip_code_fences(response: &str) -> String {
     trimmed.to_string()
 }
 
-/// Some OpenAI-compatible proxies (e.g. the antigravity Gemini bridge) inject
-/// their own agent tools into every request; summary-style prompts then lure
-/// the model into emitting `tool_calls` / `MALFORMED_FUNCTION_CALL` with an
-/// empty `content`, and the proxy may hang for minutes retrying. This
-/// directive is appended to the system prompt to keep the model in plain-text
-/// mode.
-const NO_TOOLS_DIRECTIVE: &str = "\u{4f60}\u{6ca1}\u{6709}\u{4efb}\u{4f55}\u{53ef}\u{7528}\u{5de5}\u{5177}\u{ff0c}\u{7981}\u{6b62}\u{8c03}\u{7528}\u{4efb}\u{4f55}\u{5de5}\u{5177}\u{6216}\u{51fd}\u{6570}\u{ff0c}\u{76f4}\u{63a5}\u{4ee5}\u{7eaf}\u{6587}\u{672c}\u{8f93}\u{51fa}\u{6700}\u{7ec8}\u{7b54}\u{6848}\u{3002} You have no tools available; never call any tool or function, output the final answer as plain text.";
-
-const ENGINEERING_SYSTEM_PROMPT: &str = r#"
-# Engineering & Orchestration Principles
-1. Precision over Scope: Do not add features, refactor code, or make improvements beyond what was asked. A simple feature does not need extra configurability. Do not add docstrings or type annotations for code you are not modifying.
-2. Pragmatic Engineering: Do not design abstractions for hypothetical future needs. Do not write fallback logic for scenarios that cannot happen. Solve the immediate core problem only.
-3. Diagnose Before Acting: If a method fails, you must diagnose the cause before switching tactics—read the error, check your assumptions. Do not blindly retry the exact same operation.
-4. Honest Reporting: Report results accurately. If tests fail, state it clearly. If you did not execute validation steps, say so instead of implying success. Do not gloss over errors to manufacture a green result.
-"#;
-
 #[derive(Debug, Default, Clone)]
 pub struct TokenUsage {
     pub prompt_tokens: u32,
     pub completion_tokens: u32,
     pub cost: f64,
     pub duration_ms: u64,
+    pub account_id: Option<String>,
+    pub provider: Option<String>,
+    pub attempts: u8,
+    pub attempt_receipts: Vec<ProviderAttemptReceipt>,
 }
 
-/// LLM Provider - handles communication with OpenAI-compatible or Anthropic APIs
+/// Canonical LLM Gateway facade used by the agent runtime.
 pub struct LlmProvider {
     settings: LLMSettings,
     client: reqwest::Client,
 }
 
-impl LlmProvider {
-
-    async fn execute_with_refresh(&self, mut req: reqwest::RequestBuilder, body: &serde_json::Value) -> Result<reqwest::Response, String> {
-        let mut response = req.try_clone().ok_or("Cannot clone request")?.json(body).send().await.map_err(|e| format!("LLM request failed: {}", e))?;
-        if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-            tracing::warn!("401 Unauthorized detected. Attempting to refresh token...");
-            let mut settings = crate::config::llm_settings::read_llm_settings();
-            let mut refresh_token = None;
-            if let Some(active_id) = &settings.active_account_id {
-                if let Some(account) = settings.accounts.iter_mut().find(|a| a.id == *active_id) {
-                    refresh_token = account.refresh_token.clone();
-                }
-            }
-            if let Some(rt) = refresh_token {
-                if let Some(new_token) = crate::services::subscription::refresh_gemini_token(&self.client, &rt).await {
-                    tracing::info!("Token refreshed successfully! Retrying request...");
-                    if let Some(active_id) = &settings.active_account_id {
-                        if let Some(account) = settings.accounts.iter_mut().find(|a| a.id == *active_id) {
-                            account.api_key = new_token.clone();
-                        }
-                    }
-                    settings.api_key = new_token.clone();
-                    crate::config::llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap());
-                    req = req.header("Authorization", format!("Bearer {}", new_token));
-                    response = req.try_clone().unwrap().json(body).send().await.map_err(|e| format!("LLM request failed on retry: {}", e))?;
-                }
+fn max_context_chars_for(account: Option<&LLMAccount>, model: &str) -> usize {
+    let normalized = model.to_ascii_lowercase();
+    if let Some(info_map) = account.and_then(|account| account.models_info.as_ref()) {
+        if let Some(info) = info_map.get(model).or_else(|| info_map.get(&normalized)) {
+            let configured_limit = info
+                .get("inputTokenLimit")
+                .or_else(|| info.get("context_length"))
+                .or_else(|| info.get("context_window"))
+                .or_else(|| info.get("max_position_embeddings"))
+                .and_then(Value::as_u64);
+            if let Some(limit) = configured_limit {
+                return limit.saturating_mul(4).min(usize::MAX as u64) as usize;
             }
         }
-        Ok(response)
     }
 
+    if normalized.contains("gemini-1.5-pro") {
+        8_000_000
+    } else if normalized.contains("gemini") {
+        4_000_000
+    } else if normalized.contains("claude") {
+        800_000
+    } else if normalized.contains("gpt-4o")
+        || normalized.contains("gpt-4-turbo")
+        || normalized.contains("gpt-5")
+    {
+        500_000
+    } else {
+        100_000
+    }
+}
+
+fn failure_receipt(
+    candidate: &ProviderCandidate,
+    attempt: usize,
+    started: Instant,
+    class: ModelErrorClass,
+    status_code: Option<u16>,
+) -> ProviderAttemptReceipt {
+    ProviderAttemptReceipt::new(
+        candidate,
+        attempt,
+        elapsed_ms(started),
+        class.into(),
+        status_code,
+    )
+}
+
+fn elapsed_ms(started: Instant) -> u64 {
+    started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
+}
+
+fn usage_from_standard(response: &Value) -> TokenUsage {
+    let usage = response.get("usage").unwrap_or(&Value::Null);
+    TokenUsage {
+        prompt_tokens: usage
+            .get("prompt_tokens")
+            .or_else(|| usage.get("input_tokens"))
+            .and_then(Value::as_u64)
+            .unwrap_or(0)
+            .min(u64::from(u32::MAX)) as u32,
+        completion_tokens: usage
+            .get("completion_tokens")
+            .or_else(|| usage.get("output_tokens"))
+            .and_then(Value::as_u64)
+            .unwrap_or(0)
+            .min(u64::from(u32::MAX)) as u32,
+        ..TokenUsage::default()
+    }
+}
+
+fn render_receipts(receipts: &[ProviderAttemptReceipt]) -> String {
+    serde_json::to_string(receipts).unwrap_or_else(|_| "[]".to_string())
+}
+
+fn failed_route_message(receipts: &[ProviderAttemptReceipt]) -> String {
+    format!(
+        "model request failed after {} Provider Route attempt(s); receipts={}",
+        receipts.len(),
+        render_receipts(receipts)
+    )
+}
+
+impl LlmProvider {
     pub fn new(client: reqwest::Client) -> Self {
         Self {
             settings: llm_settings::read_llm_settings(),
@@ -98,391 +156,378 @@ impl LlmProvider {
         }
     }
 
-    
     pub fn max_context_chars(&self) -> usize {
-        let model = self.settings.model.to_lowercase();
-        
-        // 1. 尝试从 models_info 自动获取模型的上下文上限 (支持动态智能体配置)
-        if let Some(account_id) = &self.settings.active_account_id {
-            if let Some(account) = self.settings.accounts.iter().find(|a| &a.id == account_id) {
-                if let Some(info_map) = &account.models_info {
-                    // Try exact model name first, then lowercase
-                    let info = info_map.get(&self.settings.model).or_else(|| info_map.get(&model));
-                    if let Some(model_info) = info {
-                        // Gemini 原生格式: inputTokenLimit
-                        if let Some(limit) = model_info.get("inputTokenLimit").and_then(|v| v.as_u64()) {
-                            return (limit * 4) as usize; // 估算: 1 Token ≈ 4 字符
-                        }
-                        // 部分兼容格式可能提供 context_length / context_window / max_position_embeddings
-                        if let Some(limit) = model_info.get("context_window").or_else(|| model_info.get("max_position_embeddings")).and_then(|v| v.as_u64()) {
-                            return (limit * 4) as usize;
-                        }
-                    }
-                }
-            }
-        }
+        let account = self.settings.active_account_id.as_deref().and_then(|id| {
+            self.settings
+                .accounts
+                .iter()
+                .find(|account| account.id == id)
+        });
+        max_context_chars_for(account, &self.settings.model)
+    }
 
-        // 2. Fallback: 静态已知模型推断
-        if model.contains("gemini-1.5-pro") {
-            8_000_000 // 2M tokens
-        } else if model.contains("gemini-1.5-flash") || model.contains("gemini") {
-            4_000_000 // 1M tokens
-        } else if model.contains("claude-3-5") || model.contains("claude-3.5") {
-            800_000   // 200k tokens
-        } else if model.contains("gpt-4o") || model.contains("gpt-4-turbo") {
-            500_000   // 128k tokens
-        } else {
-            100_000   // Default conservative
-        }
+    pub fn max_context_tokens(&self) -> usize {
+        self.max_context_chars() / 4
     }
 
     pub fn is_available(&self) -> bool {
-        llm_settings::has_usable_settings(&self.settings)
+        !ModelRouteRuntime::default()
+            .plan(&self.settings, &self.settings.model, &[])
+            .is_empty()
     }
 
     /// Send a chat completion request with Tool schemas
-    pub async fn chat_with_tools(&self, messages: Vec<Value>, system: Option<&str>, tools: Option<Value>) -> Result<(Value, TokenUsage), String> {
-        if !self.is_available() {
-            return Err("LLM is not configured".into());
-        }
-
-        // Drop the NO_TOOLS_DIRECTIVE if tools are actually provided
+    pub async fn chat_with_tools(
+        &self,
+        messages: Vec<Value>,
+        system: Option<&str>,
+        tools: Option<Value>,
+    ) -> Result<(Value, TokenUsage), String> {
+        // Reload on every autonomous step so account switching does not require
+        // restarting a long-running agent session.
+        let settings = llm_settings::read_llm_settings();
         let mut combined_system = system.unwrap_or("").to_string();
         if tools.is_none() {
-            combined_system.push_str(&format!("\n{}\n{}", ENGINEERING_SYSTEM_PROMPT, NO_TOOLS_DIRECTIVE));
+            combined_system.push_str(&format!(
+                "\n{}\n{}",
+                crate::services::i18n::localized_system_prompt(),
+                crate::services::i18n::no_tools_directive()
+            ));
         } else {
-            combined_system.push_str(&format!("\n{}", ENGINEERING_SYSTEM_PROMPT));
+            combined_system.push_str(&format!(
+                "\n{}",
+                crate::services::i18n::localized_system_prompt()
+            ));
         }
-
-        let actual_model = {
-            let mapping = self.settings.active_account_id.as_ref()
-                .and_then(|id| self.settings.accounts.iter().find(|a| a.id == *id))
-                .map(|account| &account.model_mapping);
-            mapping.and_then(|m| m.get(&self.settings.model)).unwrap_or(&self.settings.model).clone()
-        };
-
-        let start_time = std::time::Instant::now();
         let mut msgs = Vec::new();
         msgs.push(json!({ "role": "system", "content": combined_system }));
-        msgs.extend(messages.iter().cloned());
+        msgs.extend(messages);
 
-        let mut body_obj = json!({
-            "model": actual_model,
-            "max_tokens": self.settings.max_tokens,
-            "temperature": self.settings.temperature,
+        let mut request_shape = json!({
             "messages": msgs,
+            "stream": false,
         });
-
-        if let Some(t) = tools {
-            body_obj["tools"] = t;
+        if let Some(tools) = tools.as_ref() {
+            request_shape["tools"] = tools.clone();
+        }
+        let requirements = ModelRequirements::from_canonical_body(&request_shape);
+        let runtime = ModelRouteRuntime::default();
+        let route = runtime.plan_with_requirements(&settings, &settings.model, &[], requirements);
+        if route.is_empty() {
+            return Err(
+                "LLM is not configured or no Provider Route satisfies Model Requirements".into(),
+            );
         }
 
-        if self.settings.provider == "gemini_native" {
-            use crate::services::protocol_converter::upstream::UpstreamAdapter;
-            use crate::services::protocol_converter::gemini_internal_upstream::GeminiInternalUpstreamAdapter;
-            
-            let adapter = GeminiInternalUpstreamAdapter;
-            let (target_url, headers_map, upstream_body) = adapter.prepare_request(&self.settings, body_obj).map_err(|e| format!("Adapter error: {}", e))?;
-            
-            let mut req = self.client.post(&target_url).timeout(std::time::Duration::from_secs(180));
-            for (k, v) in headers_map.iter() {
-                req = req.header(k, v);
-            }
-            
-            let response = self.execute_with_refresh(req, &upstream_body).await?;
-            if !response.status().is_success() {
-                let status = response.status();
-                let text = response.text().await.unwrap_or_default();
-                return Err(format!("LLM API error ({}): {}", status, text));
-            }
-            
-            let result: Value = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
-            let standard_res = adapter.response_to_standard(result).map_err(|e| format!("Adapter response error: {}", e))?;
-            
-            let msg = standard_res["choices"][0]["message"].clone();
-            let mut usage = TokenUsage::default();
-            if let Some(u) = standard_res.get("usage") {
-                usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-                usage.completion_tokens = u.get("completion_tokens").or_else(|| u.get("output_tokens")).and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-            }
-            usage.duration_ms = start_time.elapsed().as_millis() as u64;
-            return Ok((msg, usage));
-        }
-
-        let base = self.settings.base_url.trim_end_matches('/');
-        let url = if self.settings.provider.contains("gemini") || self.settings.provider.contains("google") || base.contains("generativelanguage.googleapis.com") {
-            if base.ends_with("/v1beta") {
-                format!("{}/openai/chat/completions", base)
-            } else if base.ends_with("/v1beta/openai") {
-                format!("{}/chat/completions", base)
-            } else if !base.contains("/v1beta") {
-                format!("{}/v1beta/openai/chat/completions", base)
-            } else {
-                format!("{}/chat/completions", base)
-            }
-        } else {
-            if base.ends_with("/v1") {
-                format!("{}/chat/completions", base)
-            } else {
-                format!("{}/v1/chat/completions", base)
-            }
-        };
-
-        let api_key = self.settings.api_key.clone();
-        
-        let mut req = self.client.post(&url).timeout(std::time::Duration::from_secs(180)).header("Content-Type", "application/json");
-        req = req.header("Authorization", format!("Bearer {}", api_key));
-        if self.settings.api_key.starts_with("ya29.") {
-            if let Some(pid) = &self.settings.project_id {
-                req = req.header("x-goog-user-project", pid);
-            }
-        }
-
-        let response = self.execute_with_refresh(req, &body_obj).await?;
-        if !response.status().is_success() {
-            return Err(format!("LLM API error: {}", response.text().await.unwrap_or_default()));
-        }
-
-        let result: Value = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
-        
-        let msg = result["choices"][0]["message"].clone();
-        
-        // Extract usage
-        let mut usage = TokenUsage::default();
-        if let Some(u) = result.get("usage") {
-            usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-            usage.completion_tokens = u.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        }
-
-        usage.duration_ms = start_time.elapsed().as_millis() as u64;
-        Ok((msg, usage))
+        self.execute_route(&settings, route.candidates, msgs, tools)
+            .await
     }
 
     /// Send a chat completion request
-    pub async fn chat(&self, messages: Vec<Value>, system: Option<&str>) -> Result<(String, TokenUsage), String> {
-        if !self.is_available() {
-            return Err("LLM is not configured".into());
-        }
-
-        // Empty-content responses (proxy tool-call quirks, see NO_TOOLS_DIRECTIVE)
-        // are transient: retry once before giving up.
+    pub async fn chat(
+        &self,
+        messages: Vec<Value>,
+        system: Option<&str>,
+    ) -> Result<(String, TokenUsage), String> {
         let mut last_err = String::new();
-        for _attempt in 0..2 {
+        for _ in 0..2 {
             match self.chat_once(&messages, system).await {
                 Ok((content, usage)) if !content.trim().is_empty() => return Ok((content, usage)),
-                Ok(_) => last_err = "LLM returned empty content (likely hijacked into a tool call by the proxy)".to_string(),
-                Err(e) => last_err = e,
+                Ok(_) => {
+                    last_err = "LLM returned empty content after a no-tools request".to_string()
+                }
+                Err(error) => return Err(error),
             }
         }
         Err(last_err)
     }
 
-    async fn chat_once(&self, messages: &[Value], system: Option<&str>) -> Result<(String, TokenUsage), String> {
-        let start_time = std::time::Instant::now();
+    async fn chat_once(
+        &self,
+        messages: &[Value],
+        system: Option<&str>,
+    ) -> Result<(String, TokenUsage), String> {
+        let (message, usage) = self
+            .chat_with_tools(messages.to_vec(), system, None)
+            .await?;
+        Ok((
+            message
+                .get("content")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            usage,
+        ))
+    }
 
-        // Always pin the model to plain-text output; proxy-injected tools
-        // otherwise derail summary-style prompts (empty content / long hangs).
-        let combined_system = match system {
-            Some(sys) => format!("{}\n{}\n{}", sys, ENGINEERING_SYSTEM_PROMPT, NO_TOOLS_DIRECTIVE),
-            None => format!("{}\n{}", ENGINEERING_SYSTEM_PROMPT, NO_TOOLS_DIRECTIVE),
-        };
+    async fn execute_route(
+        &self,
+        settings: &LLMSettings,
+        candidates: Vec<ProviderCandidate>,
+        messages: Vec<Value>,
+        tools: Option<Value>,
+    ) -> Result<(Value, TokenUsage), String> {
+        let runtime = ModelRouteRuntime::default();
+        let health = ProviderHealthRuntime::global();
+        let started = Instant::now();
+        let candidate_count = candidates.len();
+        let mut receipts = Vec::with_capacity(candidate_count);
 
-        let base = self.settings.base_url.trim_end_matches('/');
-
-        let actual_model = {
-            let mapping = self.settings.active_account_id.as_ref()
-                .and_then(|id| self.settings.accounts.iter().find(|a| a.id == *id))
-                .map(|account| &account.model_mapping);
-            
-            mapping
-                .and_then(|m| m.get(&self.settings.model))
-                .unwrap_or(&self.settings.model)
-                .clone()
-        };
-
-        if self.settings.provider == "gemini_native" {
-            use crate::services::protocol_converter::upstream::UpstreamAdapter;
-            use crate::services::protocol_converter::gemini_internal_upstream::GeminiInternalUpstreamAdapter;
-            
-            let adapter = GeminiInternalUpstreamAdapter;
-            
-            // Build standard body
-            let mut msgs = Vec::new();
-            msgs.push(json!({ "role": "system", "content": combined_system }));
-            msgs.extend(messages.iter().cloned());
-            
-            let standard_body = json!({
-                "model": actual_model,
-                "max_tokens": self.settings.max_tokens,
-                "temperature": self.settings.temperature,
-                "messages": msgs,
-            });
-
-            let (target_url, headers_map, upstream_body) = adapter.prepare_request(&self.settings, standard_body).map_err(|e| format!("Adapter error: {}", e))?;
-            
-            let mut req = self.client.post(&target_url).timeout(std::time::Duration::from_secs(180));
-            for (k, v) in headers_map.iter() {
-                req = req.header(k, v);
+        for (index, mut candidate) in candidates.into_iter().enumerate() {
+            let attempt = index + 1;
+            let mut attempt_started = Instant::now();
+            let context_window =
+                max_context_chars_for(Some(&candidate.account), &candidate.resolved_model) / 4;
+            let request_budget = ContextBudget {
+                context_window_tokens: context_window,
+                requested_completion_tokens: settings.max_tokens as usize,
             }
-            
-            tracing::info!("LLM Request: POST {} via GeminiInternalUpstreamAdapter", target_url);
+            .plan(&messages, tools.as_ref());
 
-            let response = self.execute_with_refresh(req, &upstream_body).await?;
-            
-            if !response.status().is_success() {
+            if request_budget.requires_compaction() {
+                receipts.push(ProviderAttemptReceipt::new(
+                    &candidate,
+                    attempt,
+                    elapsed_ms(attempt_started),
+                    ProviderAttemptOutcome::ContextOverflow,
+                    None,
+                ));
+                return Err(format!(
+                    "context budget exceeded before request: estimated prompt {} tokens, overflow {} tokens; compact the session and retry; receipts={}",
+                    request_budget.estimated_prompt_tokens,
+                    request_budget.overflow_tokens,
+                    render_receipts(&receipts)
+                ));
+            }
+
+            let mut refresh_attempted = false;
+
+            loop {
+                let mut standard_body = json!({
+                    "model": candidate.resolved_model,
+                    "max_tokens": request_budget.completion_tokens,
+                    "temperature": settings.temperature,
+                    "messages": messages,
+                });
+                if let Some(tools) = tools.as_ref() {
+                    standard_body["tools"] = tools.clone();
+                }
+
+                let attempt_settings = candidate.attempt_settings(settings);
+                let adapter = adapter_for_provider(&attempt_settings.provider);
+                let (target_url, headers, upstream_body) =
+                    match adapter.prepare_request(&attempt_settings, standard_body) {
+                        Ok(prepared) => prepared,
+                        Err(error) => {
+                            let class = runtime.classify_failure(&error.to_string());
+                            receipts.push(failure_receipt(
+                                &candidate,
+                                attempt,
+                                attempt_started,
+                                class,
+                                None,
+                            ));
+                            if runtime.should_try_next(class, attempt < candidate_count) {
+                                break;
+                            }
+                            return Err(failed_route_message(&receipts));
+                        }
+                    };
+
+                let health_key = candidate.health_key();
+                if let ProviderAdmission::Rejected { retry_after_ms } =
+                    health.begin_attempt(&health_key)
+                {
+                    tracing::warn!(
+                        account_id = %candidate.account.id,
+                        provider = %candidate.account.provider,
+                        retry_after_ms,
+                        "Provider Circuit is open; skipping candidate"
+                    );
+                    receipts.push(ProviderAttemptReceipt::new(
+                        &candidate,
+                        attempt,
+                        elapsed_ms(attempt_started),
+                        ProviderAttemptOutcome::CircuitOpen,
+                        None,
+                    ));
+                    if attempt < candidate_count {
+                        break;
+                    }
+                    return Err(failed_route_message(&receipts));
+                }
+
+                tracing::info!(
+                    account_id = %candidate.account.id,
+                    provider = %candidate.account.provider,
+                    model = %candidate.resolved_model,
+                    attempt,
+                    "executing Provider Route candidate"
+                );
+                let mut request = self
+                    .client
+                    .post(target_url)
+                    .timeout(Duration::from_secs(180));
+                for (name, value) in &headers {
+                    request = request.header(name, value);
+                }
+
+                let response = match request.json(&upstream_body).send().await {
+                    Ok(response) => response,
+                    Err(error) => {
+                        let class = runtime.classify_failure(&format!("request failed: {error}"));
+                        health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
+                        receipts.push(failure_receipt(
+                            &candidate,
+                            attempt,
+                            attempt_started,
+                            class,
+                            None,
+                        ));
+                        if runtime.should_try_next(class, attempt < candidate_count) {
+                            break;
+                        }
+                        return Err(failed_route_message(&receipts));
+                    }
+                };
+
                 let status = response.status();
-                let text = response.text().await.unwrap_or_default();
-                return Err(format!("LLM API error ({}): {}", status, text));
+                if !status.is_success() {
+                    let provider_error = response.text().await.unwrap_or_default();
+                    let class = runtime.classify_http_failure(status.as_u16(), &provider_error);
+                    health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
+
+                    if (status.as_u16() == 401 || status.as_u16() == 403) && !refresh_attempted {
+                        if let Some(ref rt) = candidate.account.refresh_token {
+                            tracing::info!(
+                                account_id = %candidate.account.id,
+                                "Token is unauthorized (HTTP {}), attempting auto-refresh",
+                                status.as_u16()
+                            );
+                            eprintln!("Auto-refreshing token for account {}", candidate.account.id);
+                            if let Some(new_token) = crate::services::subscription::refresh_gemini_token(&self.client, rt).await {
+                                eprintln!("Auto-refresh SUCCESS for {}", candidate.account.id);
+                                // Save to config
+                                let new_token_clone = new_token.clone();
+                                let account_id = candidate.account.id.clone();
+                                if let Err(e) = crate::config::llm_settings::update_llm_settings(move |settings| {
+                                    for a in &mut settings.accounts {
+                                        if a.id == account_id {
+                                            a.api_key = new_token_clone.clone();
+                                            break;
+                                        }
+                                    }
+                                    Ok(())
+                                }) {
+                                    tracing::error!("Failed to save refreshed token to llm.json: {}", e);
+                                }
+                                
+                                candidate.account.api_key = new_token;
+                                refresh_attempted = true;
+                                attempt_started = std::time::Instant::now(); // Reset timer for the retry
+                                continue;
+                            } else {
+                                eprintln!("Auto-refresh failed for account {}", candidate.account.id);
+                                tracing::error!("Auto-refresh failed for account {}", candidate.account.id);
+                            }
+                        }
+                    }
+
+                    receipts.push(failure_receipt(
+                        &candidate,
+                        attempt,
+                        attempt_started,
+                        class,
+                        Some(status.as_u16()),
+                    ));
+                    if runtime.should_try_next(class, attempt < candidate_count) {
+                        break;
+                    }
+                    return Err(failed_route_message(&receipts));
+                }
+
+                let provider_body: Value = match response.json().await {
+                    Ok(body) => body,
+                    Err(_) => {
+                        health.finish_attempt(
+                            &health_key,
+                            ProviderAttemptOutcome::Permanent,
+                            elapsed_ms(attempt_started),
+                        );
+                        receipts.push(failure_receipt(
+                            &candidate,
+                            attempt,
+                            attempt_started,
+                            ModelErrorClass::Permanent,
+                            Some(status.as_u16()),
+                        ));
+                        return Err(failed_route_message(&receipts));
+                    }
+                };
+                let standard_response = match adapter.response_to_standard(provider_body) {
+                    Ok(response) => response,
+                    Err(error) => {
+                        let class = runtime.classify_failure(&error.to_string());
+                        health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
+                        receipts.push(failure_receipt(
+                            &candidate,
+                            attempt,
+                            attempt_started,
+                            class,
+                            Some(status.as_u16()),
+                        ));
+                        if runtime.should_try_next(class, attempt < candidate_count) {
+                            break;
+                        }
+                        return Err(failed_route_message(&receipts));
+                    }
+                };
+                let Some(message) = standard_response.pointer("/choices/0/message") else {
+                    health.finish_attempt(
+                        &health_key,
+                        ProviderAttemptOutcome::Permanent,
+                        elapsed_ms(attempt_started),
+                    );
+                    receipts.push(failure_receipt(
+                        &candidate,
+                        attempt,
+                        attempt_started,
+                        ModelErrorClass::Permanent,
+                        Some(status.as_u16()),
+                    ));
+                    return Err(failed_route_message(&receipts));
+                };
+
+                let attempt_duration_ms = elapsed_ms(attempt_started);
+                health.finish_attempt(
+                    &health_key,
+                    ProviderAttemptOutcome::Succeeded,
+                    attempt_duration_ms,
+                );
+                receipts.push(ProviderAttemptReceipt::new(
+                    &candidate,
+                    attempt,
+                    attempt_duration_ms,
+                    ProviderAttemptOutcome::Succeeded,
+                    Some(status.as_u16()),
+                ));
+                let mut usage = usage_from_standard(&standard_response);
+                usage.duration_ms = elapsed_ms(started);
+                usage.account_id = Some(candidate.account.id.clone());
+                usage.provider = Some(candidate.account.provider.clone());
+                usage.attempts = receipts.len().min(u8::MAX as usize) as u8;
+                usage.cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
+                    &candidate.resolved_model,
+                    usage.prompt_tokens,
+                    usage.completion_tokens,
+                    0,
+                    0,
+                );
+                usage.attempt_receipts = receipts;
+                return Ok((message.clone(), usage));
             }
-            
-            let result: Value = response.json().await.map_err(|e| format!("Failed to parse LLM response: {}", e))?;
-            let standard_res = adapter.response_to_standard(result).map_err(|e| format!("Adapter response error: {}", e))?;
-            
-            let content = standard_res["choices"][0]["message"]["content"].as_str().unwrap_or_default().to_string();
-            
-            let mut usage = TokenUsage::default();
-            if let Some(u) = standard_res.get("usage") {
-                usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-                let comp = u.get("completion_tokens")
-                    .or_else(|| u.get("output_tokens"))
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0) as u32;
-                usage.completion_tokens = comp;
-            }
-            usage.duration_ms = start_time.elapsed().as_millis() as u64;
-            usage.cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
-                &actual_model,
-                usage.prompt_tokens,
-                usage.completion_tokens,
-                0,
-                0,
-            );
-            
-            return Ok((content, usage));
         }
-
-        let url = if self.settings.provider == "anthropic" || base.contains("api.anthropic.com") {
-            if base.ends_with("/v1") {
-                format!("{}/messages", base)
-            } else {
-                format!("{}/v1/messages", base)
-            }
-        } else if self.settings.provider.contains("gemini") || self.settings.provider.contains("google") || base.contains("generativelanguage.googleapis.com") {
-            if base.ends_with("/v1beta") {
-                format!("{}/openai/chat/completions", base)
-            } else if base.ends_with("/v1beta/openai") {
-                format!("{}/chat/completions", base)
-            } else {
-                format!("{}/chat/completions", base)
-            }
-        } else {
-            if base.ends_with("/v1") {
-                format!("{}/chat/completions", base)
-            } else {
-                format!("{}/v1/chat/completions", base)
-            }
-        };
-
-        let body = if self.settings.provider == "anthropic" {
-            let mut b = json!({
-                "model": actual_model,
-                "max_tokens": self.settings.max_tokens,
-                "temperature": self.settings.temperature,
-                "messages": messages,
-            });
-            b["system"] = json!(combined_system);
-            b
-        } else {
-            let mut msgs = Vec::new();
-            msgs.push(json!({ "role": "system", "content": combined_system }));
-            msgs.extend(messages.iter().cloned());
-            json!({
-                "model": actual_model,
-                "max_tokens": self.settings.max_tokens,
-                "temperature": self.settings.temperature,
-                "messages": msgs,
-            })
-        };
-
-        let mut req = self.client
-            .post(&url)
-            .timeout(std::time::Duration::from_secs(180))
-            .header("Content-Type", "application/json");
-
-        req = req.header("Authorization", format!("Bearer {}", self.settings.api_key));
-        if self.settings.api_key.starts_with("ya29.") {
-            if let Some(pid) = &self.settings.project_id {
-                req = req.header("x-goog-user-project", pid);
-            }
-        }
-
-        tracing::info!("LLM Request: POST {} with Auth len {}", url, self.settings.api_key.len());
-
-        let response = req
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| format!("LLM request failed: {}", e))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(format!("LLM API error ({}): {}", status, text));
-        }
-
-        let result: Value = response.json().await.map_err(|e| format!("Failed to parse LLM response: {}", e))?;
-
-        // Extract content based on provider
-        let content = if self.settings.provider == "anthropic" {
-            // Thinking-capable models (e.g. Gemini via the antigravity proxy) may emit
-            // `thinking` blocks before the answer, so collect every `text` block instead
-            // of assuming content[0] is the reply.
-            let blocks = result["content"].as_array().cloned().unwrap_or_default();
-            let text: String = blocks
-                .iter()
-                .filter(|b| b["type"] == "text")
-                .filter_map(|b| b["text"].as_str())
-                .collect::<Vec<_>>()
-                .join("");
-            if !text.is_empty() {
-                text
-            } else {
-                // Degenerate case: the model stopped after thinking only.
-                blocks
-                    .iter()
-                    .filter_map(|b| b["thinking"].as_str())
-                    .collect::<Vec<_>>()
-                    .join("")
-            }
-        } else {
-            result["choices"][0]["message"]["content"].as_str().unwrap_or_default().to_string()
-        };
-
-        // Extract usage
-        let mut usage = TokenUsage::default();
-        if let Some(u) = result.get("usageMetadata") {
-            usage.prompt_tokens = u.get("promptTokenCount").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-            usage.completion_tokens = u.get("candidatesTokenCount").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        } else if let Some(u) = result.get("usage") {
-            usage.prompt_tokens = u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-            // Anthropic uses output_tokens, OpenAI uses completion_tokens
-            let comp = u.get("completion_tokens")
-                .or_else(|| u.get("output_tokens"))
-                .and_then(|v| v.as_u64())
-                .unwrap_or(0) as u32;
-            usage.completion_tokens = comp;
-        }
-
-        usage.duration_ms = start_time.elapsed().as_millis() as u64;
-        usage.cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
-            &actual_model,
-            usage.prompt_tokens,
-            usage.completion_tokens,
-            0,
-            0,
-        );
-
-        Ok((content, usage))
+        Err(failed_route_message(&receipts))
     }
 
     /// Analyze a single file with LLM
@@ -501,27 +546,42 @@ impl LlmProvider {
             )
         })];
 
-        let (response, _) = self.chat(messages, Some("You are a code analysis assistant. Respond only with valid JSON.")).await?;
+        let (response, _) = self
+            .chat(
+                messages,
+                Some("You are a code analysis assistant. Respond only with valid JSON."),
+            )
+            .await?;
         let cleaned = strip_code_fences(&response);
 
-        serde_json::from_str(&cleaned).map_err(|_| {
-            // If not valid JSON, wrap in a basic structure
-            json!({
-                "fileSummary": response,
-                "tags": [],
-                "complexity": "moderate"
+        serde_json::from_str(&cleaned)
+            .map_err(|_| {
+                // If not valid JSON, wrap in a basic structure
+                json!({
+                    "fileSummary": response,
+                    "tags": [],
+                    "complexity": "moderate"
+                })
             })
-        }).or_else(|_| Ok(json!({
-            "fileSummary": response,
-            "tags": [],
-            "complexity": "moderate"
-        })))
+            .or_else(|_| {
+                Ok(json!({
+                    "fileSummary": response,
+                    "tags": [],
+                    "complexity": "moderate"
+                }))
+            })
     }
 
     /// Produce a natural-language comprehension of a single file from its
     /// compressed structural skeleton plus graph-derived structure facts.
     /// Returns Markdown in the requested output language.
-    pub async fn explain_file(&self, file_path: &str, skeleton: &str, structure: &str, lang: &str) -> Result<String, String> {
+    pub async fn explain_file(
+        &self,
+        file_path: &str,
+        skeleton: &str,
+        structure: &str,
+        lang: &str,
+    ) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let skeleton_block = if skeleton.trim().is_empty() {
             String::from("(源码不可用，仅依据代码图谱结构信息分析)")
@@ -540,7 +600,12 @@ impl LlmProvider {
 
     /// Produce a project-level architecture overview from graph statistics.
     /// Returns Markdown in the requested output language.
-    pub async fn explain_project(&self, structure: &str, lang: &str, project_language: &str) -> Result<String, String> {
+    pub async fn explain_project(
+        &self,
+        structure: &str,
+        lang: &str,
+        project_language: &str,
+    ) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let messages = vec![json!({
             "role": "user",
@@ -553,7 +618,12 @@ impl LlmProvider {
     }
 
     /// 解释修改带来的爆炸半径 (Impact Analyzer)
-    pub async fn explain_impact(&self, changed_files: &str, impacted_nodes: &str, lang: &str) -> Result<String, String> {
+    pub async fn explain_impact(
+        &self,
+        changed_files: &str,
+        impacted_nodes: &str,
+        lang: &str,
+    ) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let messages = vec![json!({
             "role": "user",
@@ -562,11 +632,20 @@ impl LlmProvider {
                 directive, changed_files, impacted_nodes
             )
         })];
-        self.chat(messages, Some("你是资深安全与质量工程师，擅长评估代码修改带来的级联风险。")).await.map(|(c, _)| c)
+        self.chat(
+            messages,
+            Some("你是资深安全与质量工程师，擅长评估代码修改带来的级联风险。"),
+        )
+        .await
+        .map(|(c, _)| c)
     }
 
     /// 根据节点特征预测架构分层 (Architecture Analyzer)
-    pub async fn explain_architecture(&self, file_nodes: &str, lang: &str) -> Result<String, String> {
+    pub async fn explain_architecture(
+        &self,
+        file_nodes: &str,
+        lang: &str,
+    ) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let messages = vec![json!({
             "role": "user",
@@ -575,11 +654,22 @@ impl LlmProvider {
                 directive, file_nodes
             )
         })];
-        self.chat(messages, Some("你是资深架构师，擅长从文件命名和路径推断其在架构设计中的层级位置。")).await.map(|(c, _)| c)
+        self.chat(
+            messages,
+            Some("你是资深架构师，擅长从文件命名和路径推断其在架构设计中的层级位置。"),
+        )
+        .await
+        .map(|(c, _)| c)
     }
 
     /// 逆向推演需求：找出拟修改的入口文件
-    pub async fn predict_requirement_entry(&self, requirement: &str, file_context: &str, lang: &str, project_language: &str) -> Result<String, String> {
+    pub async fn predict_requirement_entry(
+        &self,
+        requirement: &str,
+        file_context: &str,
+        lang: &str,
+        project_language: &str,
+    ) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let messages = vec![serde_json::json!({
             "role": "user",
@@ -593,7 +683,12 @@ impl LlmProvider {
     }
 
     /// 解释业务骨架和调用链路 (Domain Analyzer)
-    pub async fn explain_domain_flow(&self, entry_point: &str, downstream_nodes: &str, lang: &str) -> Result<String, String> {
+    pub async fn explain_domain_flow(
+        &self,
+        entry_point: &str,
+        downstream_nodes: &str,
+        lang: &str,
+    ) -> Result<String, String> {
         let (directive, _) = lang_directive(lang);
         let messages = vec![json!({
             "role": "user",
@@ -602,51 +697,177 @@ impl LlmProvider {
                 directive, entry_point, downstream_nodes
             )
         })];
-        self.chat(messages, Some("你是资深业务架构师，擅长将底层的方法调用图翻译为清晰的业务处理流程。")).await.map(|(c, _)| c)
+        self.chat(
+            messages,
+            Some("你是资深业务架构师，擅长将底层的方法调用图翻译为清晰的业务处理流程。"),
+        )
+        .await
+        .map(|(c, _)| c)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{http::StatusCode, routing::post, Json, Router};
+
+    use super::*;
+
+    fn candidate(id: &str, base_url: String) -> ProviderCandidate {
+        ProviderCandidate {
+            account: LLMAccount {
+                id: id.to_string(),
+                name: id.to_string(),
+                provider: "openai".to_string(),
+                models: vec!["test-model".to_string()],
+                base_url,
+                api_key: "test-key".to_string(),
+                ..LLMAccount::default()
+            },
+            resolved_model: "test-model".to_string(),
+        }
     }
 
-    pub async fn fetch_models_with_info(&self) -> Result<(Vec<String>, std::collections::HashMap<String, Value>), String> {
-        let base = self.settings.base_url.trim_end_matches('/');
-        let url = if (self.settings.provider.contains("gemini") || self.settings.provider.contains("google") || base.contains("generativelanguage.googleapis.com")) && base.ends_with("/v1beta") {
-            format!("{}/openai/models", base)
-        } else if base.ends_with("/v1") {
-            format!("{}/models", base)
-        } else {
-            format!("{}/v1/models", base)
+    async fn test_server() -> String {
+        let app = Router::new()
+            .route(
+                "/rate-limited/v1/chat/completions",
+                post(|| async {
+                    (
+                        StatusCode::TOO_MANY_REQUESTS,
+                        Json(json!({"error": {"message": "quota"}})),
+                    )
+                }),
+            )
+            .route(
+                "/invalid/v1/chat/completions",
+                post(|| async {
+                    (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({"error": {"message": "invalid schema"}})),
+                    )
+                }),
+            )
+            .route(
+                "/healthy/v1/chat/completions",
+                post(|| async {
+                    Json(json!({
+                        "id": "chatcmpl-test",
+                        "choices": [{"index": 0, "message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}],
+                        "usage": {"prompt_tokens": 11, "completion_tokens": 3}
+                    }))
+                }),
+            );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        format!("http://{address}")
+    }
+
+    #[tokio::test]
+    async fn gateway_fails_over_and_returns_safe_attempt_receipts() {
+        let base = test_server().await;
+        let provider = LlmProvider::new(reqwest::Client::new());
+        let settings = LLMSettings {
+            model: "test-model".to_string(),
+            max_tokens: 128,
+            ..LLMSettings::default()
         };
-        
-        let response = self.client.get(&url)
-            .header("Authorization", format!("Bearer {}", self.settings.api_key))
-            .send()
+
+        let (message, usage) = provider
+            .execute_route(
+                &settings,
+                vec![
+                    candidate("limited", format!("{base}/rate-limited")),
+                    candidate("healthy", format!("{base}/healthy")),
+                ],
+                vec![json!({"role": "user", "content": "hello"})],
+                None,
+            )
             .await
-            .map_err(|e| format!("Failed to fetch models: {}", e))?;
-            
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(format!("Failed to fetch models ({}): {}", status, text));
-        }
-        
-        let result: Value = response.json().await.map_err(|e| format!("Failed to parse models JSON: {}", e))?;
-        
-        let mut models = vec![];
-        let mut models_info = std::collections::HashMap::new();
-        
-        if let Some(data) = result.get("data").and_then(|d| d.as_array()) {
-            for item in data {
-                if let Some(id) = item.get("id").and_then(|id| id.as_str()) {
-                    models.push(id.to_string());
-                    models_info.insert(id.to_string(), item.clone());
-                }
-            }
-        }
-        
-        models.sort();
-        Ok((models, models_info))
+            .unwrap();
+
+        assert_eq!(message["content"], "ok");
+        assert_eq!(usage.account_id.as_deref(), Some("healthy"));
+        assert_eq!(usage.attempts, 2);
+        assert_eq!(
+            usage.attempt_receipts[0].outcome,
+            ProviderAttemptOutcome::RateLimited
+        );
+        assert_eq!(
+            usage.attempt_receipts[1].outcome,
+            ProviderAttemptOutcome::Succeeded
+        );
+        let receipts = serde_json::to_string(&usage.attempt_receipts).unwrap();
+        assert!(!receipts.contains("test-key"));
+        assert!(!receipts.contains("hello"));
     }
 
-    /// Fetch available models from the provider (OpenAI compatible /v1/models endpoint)
-    pub async fn fetch_models(&self) -> Result<Vec<String>, String> {
-        self.fetch_models_with_info().await.map(|(models, _)| models)
+    #[tokio::test]
+    async fn gateway_stops_on_permanent_request_failure() {
+        let base = test_server().await;
+        let provider = LlmProvider::new(reqwest::Client::new());
+        let settings = LLMSettings {
+            model: "test-model".to_string(),
+            max_tokens: 128,
+            ..LLMSettings::default()
+        };
+
+        let error = provider
+            .execute_route(
+                &settings,
+                vec![
+                    candidate("invalid", format!("{base}/invalid")),
+                    candidate("healthy", format!("{base}/healthy")),
+                ],
+                vec![json!({"role": "user", "content": "hello"})],
+                None,
+            )
+            .await
+            .unwrap_err();
+
+        assert!(error.contains("after 1 Provider Route attempt"));
+        assert!(error.contains("permanent"));
+        assert!(!error.contains("invalid schema"));
+    }
+
+    #[tokio::test]
+    async fn gateway_skips_open_circuit_without_contacting_provider() {
+        let base = test_server().await;
+        let provider = LlmProvider::new(reqwest::Client::new());
+        let settings = LLMSettings {
+            model: "test-model".to_string(),
+            max_tokens: 128,
+            ..LLMSettings::default()
+        };
+        let blocked = candidate("circuit-blocked", format!("{base}/invalid"));
+        let blocked_key = blocked.health_key();
+        let health = ProviderHealthRuntime::global();
+        health.reset(&blocked_key);
+        for _ in 0..3 {
+            health.finish_attempt(&blocked_key, ProviderAttemptOutcome::Transient, 1);
+        }
+
+        let (message, usage) = provider
+            .execute_route(
+                &settings,
+                vec![
+                    blocked,
+                    candidate("circuit-fallback", format!("{base}/healthy")),
+                ],
+                vec![json!({"role": "user", "content": "hello"})],
+                None,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(message["content"], "ok");
+        assert_eq!(
+            usage.attempt_receipts[0].outcome,
+            ProviderAttemptOutcome::CircuitOpen
+        );
+        assert_eq!(usage.attempts, 2);
+        health.reset(&blocked_key);
     }
 }

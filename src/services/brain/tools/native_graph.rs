@@ -2,7 +2,8 @@ use crate::services::brain::executor::ToolExecutor;
 use serde_json::{json, Value};
 
 /// 原生图谱搜索中枢 (Native Graph Search Organ)
-pub struct NativeSearchGraphTool;
+pub struct NativeSearchGraphTool { pub workspace_root: std::path::PathBuf }
+impl NativeSearchGraphTool { pub fn new(w: std::path::PathBuf) -> Self { Self { workspace_root: w } } }
 
 impl ToolExecutor for NativeSearchGraphTool {
     fn name(&self) -> &'static str {
@@ -17,9 +18,14 @@ impl ToolExecutor for NativeSearchGraphTool {
         json!({
             "type": "object",
             "properties": {
+                "Action": {
+                    "type": "string",
+                    "enum": ["search", "get_callers", "get_callees", "get_impact", "query_openclaw_state"],
+                    "description": "The graph traversal action. Use search to find a node ID, then use get_callers/get_callees with that ID."
+                },
                 "query": {
                     "type": "string",
-                    "description": "The term or symbol to search for in the codebase graph."
+                    "description": "The term to search for (for search), or the Node ID (for get_callers and get_callees)."
                 },
                 "limit": {
                     "type": "integer",
@@ -27,10 +33,10 @@ impl ToolExecutor for NativeSearchGraphTool {
                 },
                 "project_path": {
                     "type": "string",
-                    "description": "Optional project root directory path to search graph for."
+                    "description": "Optional project root directory path."
                 }
             },
-            "required": ["query"]
+            "required": ["Action", "query"]
         })
     }
 
@@ -44,21 +50,27 @@ impl ToolExecutor for NativeSearchGraphTool {
     }
 
     fn execute(&self, args: Value) -> Result<Value, String> {
-        let query = args.get("query").and_then(|v| v.as_str()).ok_or("Missing query")?;
+        let action = args
+            .get("Action")
+            .and_then(|v| v.as_str())
+            .unwrap_or("search");
+        let query = args
+            .get("query")
+            .and_then(|v| v.as_str())
+            .ok_or("Missing query")?;
         let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20) as usize;
 
-        let path_input = args.get("project_path")
+        let path_input = args
+            .get("project_path")
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
-        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let cwd = self.workspace_root.clone();
         let target_path = if path_input.is_empty() {
             cwd.to_string_lossy().to_string()
         } else {
             path_input.to_string()
         };
-
-        eprintln!("\x1b[32m[Native Sensory] 👁️ Querying Knowledge Graph for: {} in {}\x1b[0m", query, target_path);
 
         let db_path_str = if target_path.ends_with(".db") {
             target_path.clone()
@@ -69,19 +81,32 @@ impl ToolExecutor for NativeSearchGraphTool {
             db_path.to_string_lossy().to_string()
         };
 
-        match crate::services::graph_service::search_nodes(&db_path_str, query, limit) {
+        let nodes_result = match action {
+            "get_callers" => {
+                crate::services::graph_service::get_callers(&db_path_str, query, limit)
+            }
+            "get_callees" => {
+                crate::services::graph_service::get_callees(&db_path_str, query, limit)
+            }
+            _ => crate::services::graph_service::search_nodes(&db_path_str, query, limit),
+        };
+
+        match nodes_result {
             Ok(nodes) => {
-                let nodes_json: Vec<Value> = nodes.into_iter().map(|n| {
-                    json!({
-                        "id": n.id,
-                        "label": n.label,
-                        "node_type": n.node_type,
-                        "file_path": n.file_path,
-                        "language": n.language
+                let nodes_json: Vec<Value> = nodes
+                    .into_iter()
+                    .map(|n| {
+                        json!({
+                            "id": n.id,
+                            "label": n.label,
+                            "node_type": n.node_type,
+                            "file_path": n.file_path,
+                            "language": n.language
+                        })
                     })
-                }).collect();
+                    .collect();
                 Ok(json!({ "status": "success", "nodes": nodes_json }))
-            },
+            }
             Err(e) => Err(format!("Native graph search failed: {}", e)),
         }
     }

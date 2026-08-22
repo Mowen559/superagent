@@ -39,6 +39,8 @@ pub enum AgentKind {
     Grok,
     // app-server (skeleton)
     Codex,
+    // Native Brain
+    SuperAgent,
 }
 
 /// The protocol family a kind belongs to. Surfaced in detection output so the
@@ -104,6 +106,7 @@ pub const KINDS: &[KindInfo] = &[
     KindInfo { kind: AgentKind::Traecli, slug: "traecli", command: "traecli", min_version: None, protocol: Protocol::Acp, launch_header: "traecli acp serve", install_strategy: InstallStrategy::Unsupported },
     KindInfo { kind: AgentKind::Grok, slug: "grok", command: "grok", min_version: Some("0.2.89"), protocol: Protocol::Acp, launch_header: "grok agent stdio", install_strategy: InstallStrategy::Unsupported },
     KindInfo { kind: AgentKind::Codex, slug: "codex", command: "codex", min_version: Some("0.100.0"), protocol: Protocol::AppServer, launch_header: "codex app-server", install_strategy: InstallStrategy::Unsupported },
+    KindInfo { kind: AgentKind::SuperAgent, slug: "superagent", command: "hub", min_version: None, protocol: Protocol::Json, launch_header: "hub superagent-worker", install_strategy: InstallStrategy::Unsupported },
 ];
 
 impl AgentKind {
@@ -138,6 +141,7 @@ pub fn new(kind: AgentKind) -> Box<dyn AgentBackend> {
         AgentKind::Pi => Box::new(backends::pi::PiBackend),
         AgentKind::Antigravity => Box::new(backends::antigravity::AntigravityBackend),
         AgentKind::Codex => Box::new(AppServerBackend),
+        AgentKind::SuperAgent => Box::new(backends::superagent::SuperAgentBackend),
         // ACP family
         AgentKind::Hermes => Box::new(backends::hermes::HermesBackend),
         AgentKind::Kimi => Box::new(backends::kimi::KimiBackend),

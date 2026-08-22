@@ -51,6 +51,64 @@ pub struct SupermemoryStoreData {
     pub memories: Vec<SupermemoryRecord>,
     pub logs: Vec<SupermemoryLogEntry>,
     pub stats: SupermemoryStats,
+    #[serde(default)]
+    pub corpus: KnowledgeCorpusState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KnowledgeCorpusState {
+    #[serde(default = "default_corpus_schema_version")]
+    pub schema_version: u32,
+    #[serde(default)]
+    pub documents: Vec<KnowledgeDocumentRecord>,
+}
+
+impl Default for KnowledgeCorpusState {
+    fn default() -> Self {
+        Self {
+            schema_version: default_corpus_schema_version(),
+            documents: Vec::new(),
+        }
+    }
+}
+
+fn default_corpus_schema_version() -> u32 {
+    1
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KnowledgeDocumentRecord {
+    pub document_id: String,
+    pub source_path: String,
+    pub display_name: String,
+    pub content_hash: String,
+    pub revision: u64,
+    pub format: String,
+    pub byte_size: u64,
+    pub global_context: String,
+    pub updated_at: String,
+    #[serde(default)]
+    pub chunks: Vec<KnowledgeChunkRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KnowledgeChunkRecord {
+    pub record_id: String,
+    pub chunk_index: usize,
+    pub start_line: usize,
+    pub end_line: usize,
+    pub start_paragraph: usize,
+    pub end_paragraph: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_page: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_page: Option<usize>,
+    #[serde(default)]
+    pub heading_path: Vec<String>,
+    pub citation: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +126,7 @@ impl Default for SupermemoryStoreData {
             version: 1,
             memories: Vec::new(),
             logs: Vec::new(),
+            corpus: KnowledgeCorpusState::default(),
             stats: SupermemoryStats {
                 total_queries: 0,
                 active_agents: 0,

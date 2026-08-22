@@ -1,9 +1,9 @@
-use std::sync::Arc;
-use axum::{Router, routing::post, extract::State, Json};
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{extract::State, routing::post, Json, Router};
 use serde_json::json;
-use crate::AppState;
+use std::sync::Arc;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -19,10 +19,19 @@ pub struct AnalyzeRequest {
     lang: Option<String>,
 }
 
-async fn get_db_path_and_project(state: &Arc<AppState>, body: &AnalyzeRequest) -> Result<(String, String), Response> {
+async fn get_db_path_and_project(
+    state: &Arc<AppState>,
+    body: &AnalyzeRequest,
+) -> Result<(String, String), Response> {
     let project = match &body.project {
         Some(p) => p.clone(),
-        None => return Err((StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response()),
+        None => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response())
+        }
     };
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
     let db_path_str = db_path.to_string_lossy().to_string();
@@ -42,9 +51,16 @@ async fn analyze_architecture(
     let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::architecture_analyzer::ArchitectureAnalyzer::new(llm);
 
-    match analyzer.analyze_layers(&db_path_str, body.lang.as_deref()).await {
+    match analyzer
+        .analyze_layers(&db_path_str, body.lang.as_deref())
+        .await
+    {
         Ok(report) => Json(json!({ "success": true, "report": report })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }
 
@@ -61,9 +77,16 @@ async fn analyze_domain(
     let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::domain_analyzer::DomainAnalyzer::new(llm);
 
-    match analyzer.analyze_domain_flows(&db_path_str, body.lang.as_deref()).await {
+    match analyzer
+        .analyze_domain_flows(&db_path_str, body.lang.as_deref())
+        .await
+    {
         Ok(report) => Json(json!({ "success": true, "report": report })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }
 
@@ -80,9 +103,20 @@ async fn analyze_impact(
     let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::impact_analyzer::ImpactAnalyzer::new(llm);
 
-    match analyzer.analyze_impact(std::path::Path::new(&project), &db_path_str, body.lang.as_deref()).await {
+    match analyzer
+        .analyze_impact(
+            std::path::Path::new(&project),
+            &db_path_str,
+            body.lang.as_deref(),
+        )
+        .await
+    {
         Ok(report) => Json(json!({ "success": true, "report": report })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }
 
@@ -100,6 +134,10 @@ async fn analyze_tour(
 
     match builder.build_tour(&db_path_str) {
         Ok(report) => Json(json!({ "success": true, "report": report })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }

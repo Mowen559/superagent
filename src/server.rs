@@ -14,6 +14,9 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::app_paths::AppPaths;
 use crate::config::runtime::RuntimeConfig;
+use crate::services::brain::capabilities::certification::CertificationGatekeeper;
+use crate::services::brain::evolution_memory::EvolutionMemory;
+use crate::services::brain::tool_approval_store::ToolApprovalStore;
 use crate::services::task_manager::TaskManager;
 
 use std::sync::atomic::AtomicUsize;
@@ -25,6 +28,9 @@ pub struct AppState {
     pub task_manager: TaskManager,
     pub http_client: reqwest::Client,
     pub request_counter: AtomicUsize,
+    pub certification: Arc<CertificationGatekeeper>,
+    pub approval_store: Arc<ToolApprovalStore>,
+    pub evolution_memory: Arc<EvolutionMemory>,
 }
 
 /// Default listen port when `hub service` is invoked without an explicit port.
@@ -76,6 +82,12 @@ fn build_state() -> Arc<AppState> {
 
     let runtime_config = RuntimeConfig::from_env(&app_paths);
     let task_manager = TaskManager::new(&app_paths);
+    let approval_store = Arc::new(ToolApprovalStore::new(
+        app_paths.data_path(&["tool-approvals"]),
+    ));
+    let evolution_memory = Arc::new(EvolutionMemory::new(
+        app_paths.data_path(&["evolution", "strategies.json"]),
+    ));
 
     Arc::new(AppState {
         runtime_config,
@@ -86,7 +98,15 @@ fn build_state() -> Arc<AppState> {
             .build()
             .unwrap_or_else(|_| reqwest::Client::new()),
         request_counter: std::sync::atomic::AtomicUsize::new(0),
+        certification: Arc::new(CertificationGatekeeper::with_builtins()),
+        approval_store,
+        evolution_memory,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn test_state() -> Arc<AppState> {
+    build_state()
 }
 
 /// Compose every feature router plus shared middleware.
@@ -97,8 +117,10 @@ fn build_router(state: Arc<AppState>) -> Router {
         .allow_origin(tower_http::cors::AllowOrigin::predicate(
             |origin: &axum::http::HeaderValue, _request_parts: &axum::http::request::Parts| {
                 if let Ok(origin_str) = origin.to_str() {
-                    origin_str == "http://localhost" || origin_str.starts_with("http://localhost:") ||
-                    origin_str == "http://127.0.0.1" || origin_str.starts_with("http://127.0.0.1:")
+                    origin_str == "http://localhost"
+                        || origin_str.starts_with("http://localhost:")
+                        || origin_str == "http://127.0.0.1"
+                        || origin_str.starts_with("http://127.0.0.1:")
                 } else {
                     false
                 }
@@ -109,6 +131,9 @@ fn build_router(state: Arc<AppState>) -> Router {
 
     Router::new()
         .merge(routes::health::router())
+        .merge(routes::capabilities::router())
+        .merge(routes::tool_approvals::router())
+        .merge(routes::evolution::router())
         .merge(routes::settings::router())
         .merge(routes::claude::router())
         .merge(routes::files::router())
@@ -154,6 +179,44 @@ mod tests {
             .await
             .unwrap();
 
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert!(body.pointer("/providerHealth").is_some());
+        assert!(body.pointer("/gatewayEval/profiles").is_some());
+    }
+
+    #[tokio::test]
+    async fn test_capabilities_discovery() {
+        let state = build_state();
+        let app = build_router(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/capabilities")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_evolution_strategy_discovery() {
+        let state = build_state();
+        let app = build_router(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/evolution/strategies")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
     }
 }

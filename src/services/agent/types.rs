@@ -48,6 +48,13 @@ pub enum AgentMessage {
     Error { content: String },
     /// Diagnostic log line with a severity level (info / warn / error).
     Log { level: String, content: String },
+    /// A correlated request that pauses a managed Agent until the user answers.
+    InteractionRequest {
+        request_id: String,
+        question: String,
+        #[serde(default)]
+        choices: Vec<String>,
+    },
 }
 
 /// Per-model token accounting, mirrors multica `agent.TokenUsage`.

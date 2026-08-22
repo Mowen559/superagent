@@ -1,13 +1,13 @@
-use fastembed::{TextEmbedding, InitOptions, EmbeddingModel};
+use anyhow::{Context, Result};
+use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use anyhow::{Result, Context};
 
 /// 混合检索引擎所需的文本特征抽象接口
 pub trait EmbeddingService: Send + Sync {
     /// 计算单段文本的语义向量
     fn embed_text(&self, text: &str) -> Result<Vec<f32>>;
-    
+
     /// 批量计算多段文本的语义向量（可大幅优化速度）
     fn embed_batch(&self, texts: Vec<&str>) -> Result<Vec<Vec<f32>>>;
 }
@@ -23,7 +23,8 @@ impl FastEmbedService {
         // 使用轻量级的多语言或代码专用模型，例如 BGE 或是 AllMiniLML6V2
         let mut options = InitOptions::new(EmbeddingModel::AllMiniLML6V2);
         options.show_download_progress = true;
-        let model = TextEmbedding::try_new(options).context("Failed to initialize FastEmbed model")?;
+        let model =
+            TextEmbedding::try_new(options).context("Failed to initialize FastEmbed model")?;
 
         Ok(Self {
             model: Arc::new(Mutex::new(model)),
@@ -38,8 +39,10 @@ impl EmbeddingService for FastEmbedService {
         // For our AI Agent CLI, a blocking call inside a tokio thread is acceptable for brief tasks.
         let mut model_lock = self.model.blocking_lock();
         let documents = vec![text];
-        let embeddings = model_lock.embed(documents, None).context("Failed to generate embedding")?;
-        
+        let embeddings = model_lock
+            .embed(documents, None)
+            .context("Failed to generate embedding")?;
+
         if let Some(first) = embeddings.into_iter().next() {
             Ok(first)
         } else {
@@ -49,7 +52,9 @@ impl EmbeddingService for FastEmbedService {
 
     fn embed_batch(&self, texts: Vec<&str>) -> Result<Vec<Vec<f32>>> {
         let mut model_lock = self.model.blocking_lock();
-        let embeddings = model_lock.embed(texts, None).context("Failed to generate batch embeddings")?;
+        let embeddings = model_lock
+            .embed(texts, None)
+            .context("Failed to generate batch embeddings")?;
         Ok(embeddings)
     }
 }
@@ -64,11 +69,11 @@ pub fn get_embedding_service() -> Result<Arc<FastEmbedService>> {
     if let Some(svc) = lock.as_ref() {
         return Ok(Arc::clone(svc));
     }
-    
+
     // 如果没有初始化，则在此处初始化（可能耗时，例如下载模型）
     let svc = Arc::new(FastEmbedService::new()?);
     *lock = Some(Arc::clone(&svc));
-    
+
     Ok(svc)
 }
 
@@ -80,16 +85,16 @@ pub fn cosine_similarity(v1: &[f32], v2: &[f32]) -> f32 {
     let mut dot_product = 0.0;
     let mut norm_v1 = 0.0;
     let mut norm_v2 = 0.0;
-    
+
     for i in 0..v1.len() {
         dot_product += v1[i] * v2[i];
         norm_v1 += v1[i] * v1[i];
         norm_v2 += v2[i] * v2[i];
     }
-    
+
     if norm_v1 == 0.0 || norm_v2 == 0.0 {
         return 0.0;
     }
-    
+
     dot_product / (norm_v1.sqrt() * norm_v2.sqrt())
 }

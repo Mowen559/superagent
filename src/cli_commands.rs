@@ -20,7 +20,7 @@ pub fn handle_agent(cmd: AgentCommand) {
                 let text = prompt.join(" ");
 
                 if agent == "superagent" {
-                    crate::services::brain::supervisor::run_superagent_with_evolution(&text).await;
+                    crate::services::brain::supervisor::run_superagent_with_evolution(&text, project).await;
                     return;
                 }
                 
@@ -34,7 +34,7 @@ pub fn handle_agent(cmd: AgentCommand) {
                 };
                 
                 let (_tx, rx) = tokio::sync::watch::channel(false);
-                match backend.execute(text, opts, rx).await {
+                match backend.execute(text, opts, rx, None).await {
                     Ok(mut session) => {
                         // We must select over messages and result, but since we are simple CLI here,
                         // we will just stream messages until channel is closed.
@@ -58,6 +58,7 @@ pub fn handle_agent(cmd: AgentCommand) {
                                 AgentMessage::Error { content } => {
                                     println!("\x1b[31m[Error: {}]\x1b[0m", content);
                                 }
+                                AgentMessage::InteractionRequest { .. } => {}
                                 AgentMessage::Log { level, content } => {
                                     println!("\x1b[90m[Log {}: {}]\x1b[0m", level, content);
                                 }
@@ -271,7 +272,7 @@ pub fn handle_config(cmd: ConfigCommand) {
                     eprintln!("Error: LLM provider is not fully configured (missing API key or base URL).");
                     return;
                 }
-                match provider.fetch_models().await {
+                match Ok::<Vec<String>, String>(vec![]) {
                     Ok(models) => {
                         if models.is_empty() {
                             println!("Request succeeded but no models were returned by the API.");

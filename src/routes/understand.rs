@@ -11,17 +11,21 @@
 //! not burn tokens. `refresh=true` bypasses the cache; `cacheOnly=true` never
 //! calls the LLM (used by the frontend to probe for a pre-generated overview).
 
-use std::sync::Arc;
-use axum::{Router, routing::get, extract::{State, Query}, Json};
+use crate::services::llm_provider::{self, LlmProvider};
+use crate::services::token_filter::FilterLevel;
+use crate::services::understanding_cache::UnderstandingCache;
+use crate::services::{claude_cli, file_service, token_filter, understand_service};
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{
+    extract::{Query, State},
+    routing::get,
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::AppState;
-use crate::services::{understand_service, file_service, token_filter, claude_cli};
-use crate::services::token_filter::FilterLevel;
-use crate::services::llm_provider::{self, LlmProvider};
-use crate::services::understanding_cache::UnderstandingCache;
+use std::sync::Arc;
 
 /// Timeout for a synchronous Claude understanding run. Prompts are
 /// self-contained (graph structure text) and instruct the model not to use
@@ -81,11 +85,23 @@ async fn understand_file(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let path = match params.path {
         Some(p) if !p.trim().is_empty() => p,
-        _ => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path param" }))).into_response(),
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing path param" })),
+            )
+                .into_response()
+        }
     };
 
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
@@ -93,7 +109,13 @@ async fn understand_file(
 
     let mut result = match understand_service::understand_file(&db_path_str, &path) {
         Ok(result) => result,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e })),
+            )
+                .into_response()
+        }
     };
 
     // Optional LLM comprehension layer (closes the "理解分析" loop).
@@ -103,7 +125,11 @@ async fn understand_file(
         let cache_only = params.cache_only.unwrap_or(false);
         let use_claude = is_claude_engine(&params.engine);
         // Scope cache keys per engine so Claude and LLM outputs never collide.
-        let cache_lang = if use_claude { format!("claude:{}", lang) } else { lang.clone() };
+        let cache_lang = if use_claude {
+            format!("claude:{}", lang)
+        } else {
+            lang.clone()
+        };
         let structure = understand_service::summarize_file_structure(&result);
         let source = file_service::read_file_content(&project, &path).ok();
 
@@ -211,7 +237,13 @@ async fn understand_project(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
 
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
@@ -219,7 +251,13 @@ async fn understand_project(
 
     let mut result = match understand_service::understand_project(&db_path_str) {
         Ok(result) => result,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e })),
+            )
+                .into_response()
+        }
     };
 
     if params.explain.unwrap_or(false) {
@@ -228,7 +266,11 @@ async fn understand_project(
         let cache_only = params.cache_only.unwrap_or(false);
         let use_claude = is_claude_engine(&params.engine);
         // Scope cache keys per engine so Claude and LLM outputs never collide.
-        let cache_lang = if use_claude { format!("claude:{}", lang) } else { lang.clone() };
+        let cache_lang = if use_claude {
+            format!("claude:{}", lang)
+        } else {
+            lang.clone()
+        };
 
         if result.get("indexed").and_then(|v| v.as_bool()) != Some(true) {
             result["understanding"] = Value::Null;
@@ -259,7 +301,8 @@ async fn understand_project(
         }
 
         let structure = understand_service::summarize_project_structure(&result);
-        let project_language = understand_service::detect_primary_language(&db_path_str).unwrap_or_else(|_| "unknown".to_string());
+        let project_language = understand_service::detect_primary_language(&db_path_str)
+            .unwrap_or_else(|_| "unknown".to_string());
         let explanation = if use_claude {
             if claude_cli::detect_version().await.is_none() {
                 Err("Claude CLI not installed".to_string())
@@ -278,7 +321,8 @@ async fn understand_project(
             if !llm.is_available() {
                 Err("LLM not configured".to_string())
             } else {
-                llm.explain_project(&structure, &lang, &project_language).await
+                llm.explain_project(&structure, &lang, &project_language)
+                    .await
             }
         };
         match explanation {
@@ -316,7 +360,10 @@ fn build_file_prompt(file_path: &str, skeleton: &str, structure: &str, lang: &st
     let skeleton_block = if skeleton.trim().is_empty() {
         String::from("(\u{6e90}\u{7801}\u{4e0d}\u{53ef}\u{7528}\u{ff0c}\u{4ec5}\u{4f9d}\u{636e}\u{4ee3}\u{7801}\u{56fe}\u{8c31}\u{7ed3}\u{6784}\u{4fe1}\u{606f}\u{5206}\u{6790})")
     } else {
-        format!("\u{4ee3}\u{7801}\u{9aa8}\u{67b6}\u{ff1a}\n```\n{}\n```", skeleton)
+        format!(
+            "\u{4ee3}\u{7801}\u{9aa8}\u{67b6}\u{ff1a}\n```\n{}\n```",
+            skeleton
+        )
     };
     format!(
         "\u{4f60}\u{662f}\u{8d44}\u{6df1}\u{4ee3}\u{7801}\u{5206}\u{6790}\u{52a9}\u{624b}\u{3002}\u{8bf7}\u{76f4}\u{63a5}\u{57fa}\u{4e8e}\u{4e0b}\u{9762}\u{63d0}\u{4f9b}\u{7684}\u{4fe1}\u{606f}\u{56de}\u{7b54}\u{ff0c}\u{4e0d}\u{8981}\u{8bfb}\u{53d6}\u{5176}\u{4ed6}\u{6587}\u{4ef6}\u{6216}\u{8c03}\u{7528}\u{4efb}\u{4f55}\u{5de5}\u{5177}\u{3002}\u{8f93}\u{51fa}\u{7b80}\u{6d01}\u{7684} Markdown\u{ff0c}\u{5305}\u{542b}\u{4e09}\u{90e8}\u{5206}\u{ff1a}\n1) \u{6587}\u{4ef6}\u{804c}\u{8d23}\u{ff1b}\n2) \u{5173}\u{952e}\u{7b26}\u{53f7}\u{ff1b}\n3) \u{4f9d}\u{8d56}\u{5173}\u{7cfb}\u{3002}\n{}\n\n\u{6587}\u{4ef6}\u{ff1a}{}\n\n\u{7ed3}\u{6784}\u{4fe1}\u{606f}(\u{6765}\u{81ea}\u{4ee3}\u{7801}\u{56fe}\u{8c31})\u{ff1a}\n{}\n\n{}",

@@ -2,6 +2,7 @@
 //! 用于在 Rust 中拉起并控制 Node.js/TS 编写的 DeepSeek Harness ACP 服务器
 
 use crate::services::brain::executor::ToolExecutor;
+use lazy_static::lazy_static;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
@@ -10,7 +11,6 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use lazy_static::lazy_static;
 
 lazy_static! {
     /// 全局 DeepSeek Harness ACP 客户端单例
@@ -33,7 +33,7 @@ impl HarnessAcpClient {
     pub fn start(harness_dir_override: Option<&str>) -> Result<Self, String> {
         let harness_dir = harness_dir_override.unwrap_or(r"D:\DeepSeek\deepseek-harness");
         let harness_path = Path::new(harness_dir);
-        
+
         if !harness_path.exists() {
             return Err(format!("Harness directory not found at: {}", harness_dir));
         }
@@ -41,8 +41,8 @@ impl HarnessAcpClient {
         let script_rel_path = r"packages\examples\acp-demo\src\bin.ts";
         let config_rel_path = r"examples\acp-agent\cordis.yml";
 
-        let api_key = std::env::var("DEEPSEEK_API_KEY")
-            .unwrap_or_else(|_| "sk-dummy-test-key".to_string());
+        let api_key =
+            std::env::var("DEEPSEEK_API_KEY").unwrap_or_else(|_| "sk-dummy-test-key".to_string());
 
         let mut child = Command::new("node")
             .args(&[
@@ -92,7 +92,7 @@ impl HarnessAcpClient {
                             if val.get("method").is_some() && val.get("id").is_some() {
                                 let method = val["method"].as_str().unwrap_or("");
                                 let req_id = &val["id"];
-                                
+
                                 if method == "session/request_permission" {
                                     let resp_payload = json!({
                                         "jsonrpc": "2.0",
@@ -184,7 +184,12 @@ impl HarnessAcpClient {
             .get("result")
             .and_then(|r| r.get("sessionId"))
             .and_then(|s| s.as_str())
-            .ok_or_else(|| format!("Failed to obtain sessionId from response: {:?}", session_resp))?
+            .ok_or_else(|| {
+                format!(
+                    "Failed to obtain sessionId from response: {:?}",
+                    session_resp
+                )
+            })?
             .to_string();
 
         client.session_id = session_id;
@@ -207,7 +212,12 @@ impl HarnessAcpClient {
     }
 
     /// 发送 JSON-RPC 请求并阻塞等待指定超时秒数
-    pub fn send_request_and_wait(&mut self, method: &str, params: Value, timeout_secs: u64) -> Result<Value, String> {
+    pub fn send_request_and_wait(
+        &mut self,
+        method: &str,
+        params: Value,
+        timeout_secs: u64,
+    ) -> Result<Value, String> {
         let id = self.request_counter;
         self.request_counter += 1;
 
@@ -220,7 +230,8 @@ impl HarnessAcpClient {
 
         {
             let mut writer = self.stdin.lock().map_err(|e| e.to_string())?;
-            writeln!(writer, "{}", payload.to_string()).map_err(|e| format!("Write error: {}", e))?;
+            writeln!(writer, "{}", payload.to_string())
+                .map_err(|e| format!("Write error: {}", e))?;
             writer.flush().map_err(|e| format!("Flush error: {}", e))?;
         }
 
@@ -237,7 +248,10 @@ impl HarnessAcpClient {
             }
         }
 
-        Err(format!("ACP Request '{}' (id={}) timed out after {} seconds", method, id, timeout_secs))
+        Err(format!(
+            "ACP Request '{}' (id={}) timed out after {} seconds",
+            method, id, timeout_secs
+        ))
     }
 
     /// 获取当前的 Session ID
@@ -300,7 +314,10 @@ Actions:
     }
 
     fn execute(&self, args: Value) -> Result<Value, String> {
-        let action = args.get("Action").and_then(|v| v.as_str()).ok_or("Missing Action")?;
+        let action = args
+            .get("Action")
+            .and_then(|v| v.as_str())
+            .ok_or("Missing Action")?;
         let harness_path = args.get("HarnessPath").and_then(|v| v.as_str());
 
         match action {
@@ -334,11 +351,15 @@ Actions:
                 }
             }
             "prompt" => {
-                let prompt_text = args.get("Prompt").and_then(|v| v.as_str()).ok_or("Missing Prompt parameter for 'prompt' action")?;
-                
+                let prompt_text = args
+                    .get("Prompt")
+                    .and_then(|v| v.as_str())
+                    .ok_or("Missing Prompt parameter for 'prompt' action")?;
+
                 // Ensure client is started
                 {
-                    let mut client_lock = GLOBAL_HARNESS_CLIENT.lock().map_err(|e| e.to_string())?;
+                    let mut client_lock =
+                        GLOBAL_HARNESS_CLIENT.lock().map_err(|e| e.to_string())?;
                     if client_lock.is_none() {
                         let client = HarnessAcpClient::start(harness_path)?;
                         *client_lock = Some(client);
@@ -346,8 +367,10 @@ Actions:
                 }
 
                 let mut client_lock = GLOBAL_HARNESS_CLIENT.lock().map_err(|e| e.to_string())?;
-                let client = client_lock.as_mut().ok_or("Failed to access Harness ACP client")?;
-                
+                let client = client_lock
+                    .as_mut()
+                    .ok_or("Failed to access Harness ACP client")?;
+
                 let session_id = client.session_id().to_string();
 
                 let prompt_params = json!({
@@ -373,7 +396,9 @@ Actions:
             }
             "cancel" => {
                 let mut client_lock = GLOBAL_HARNESS_CLIENT.lock().map_err(|e| e.to_string())?;
-                let client = client_lock.as_mut().ok_or("Harness ACP process is not running.")?;
+                let client = client_lock
+                    .as_mut()
+                    .ok_or("Harness ACP process is not running.")?;
                 let session_id = client.session_id().to_string();
 
                 client.send_notification("session/cancel", json!({ "sessionId": session_id }))?;

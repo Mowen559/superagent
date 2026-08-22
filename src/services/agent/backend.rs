@@ -29,7 +29,7 @@ pub enum BackendError {
 pub trait AgentBackend: Send + Sync {
     /// Start a run. The prompt is delivered per the backend's protocol (stdin
     /// for stream-json, argv for json). Returns a session to stream from.
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>) -> BackendResult<AgentSession>;
+    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession>;
 
     /// Returns the models supported by the given agent provider.
     async fn list_models(&self, executable_path: Option<&str>) -> BackendResult<Vec<Model>> {

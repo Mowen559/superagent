@@ -58,34 +58,54 @@ NOTE: Line and Character are 0-indexed. You MUST use ReadFileTool to read the fi
     }
 
     fn execute(&self, args: Value) -> Result<Value, String> {
-        let action = args.get("Action").and_then(|v| v.as_str()).ok_or("Missing Action")?;
+        let action = args
+            .get("Action")
+            .and_then(|v| v.as_str())
+            .ok_or("Missing Action")?;
 
         if action == "start" {
-            let cmd = args.get("Command").and_then(|v| v.as_str()).unwrap_or("rust-analyzer");
+            let cmd = args
+                .get("Command")
+                .and_then(|v| v.as_str())
+                .unwrap_or("rust-analyzer");
             let root_uri = args.get("RootUri").and_then(|v| v.as_str()).unwrap_or("");
             if root_uri.is_empty() {
                 return Err("Missing RootUri for start".to_string());
             }
 
             eprintln!("[Brain B] Starting LSP Server '{}' at '{}'", cmd, root_uri);
-            let client = crate::services::brain::tools::lsp_client::LspClient::start(cmd, &[], root_uri)?;
-            
-            if let Ok(mut global) = crate::services::brain::tools::lsp_client::GLOBAL_LSP_CLIENT.lock() {
+            let client =
+                crate::services::brain::tools::lsp_client::LspClient::start(cmd, &[], root_uri)?;
+
+            if let Ok(mut global) =
+                crate::services::brain::tools::lsp_client::GLOBAL_LSP_CLIENT.lock()
+            {
                 *global = Some(client);
             }
             return Ok(json!({ "success": true, "message": "LSP Server started." }));
         }
 
         // For queries, we need an active client
-        let mut client_lock = crate::services::brain::tools::lsp_client::GLOBAL_LSP_CLIENT.lock().unwrap();
+        let mut client_lock = crate::services::brain::tools::lsp_client::GLOBAL_LSP_CLIENT
+            .lock()
+            .unwrap();
         if client_lock.is_none() {
             return Err("LSP Server is not started. Please call 'start' Action first.".to_string());
         }
         let client = client_lock.as_mut().unwrap();
 
-        let file_path = args.get("File").and_then(|v| v.as_str()).ok_or("Missing File")?;
-        let line = args.get("Line").and_then(|v| v.as_u64()).ok_or("Missing Line")?;
-        let character = args.get("Character").and_then(|v| v.as_u64()).ok_or("Missing Character")?;
+        let file_path = args
+            .get("File")
+            .and_then(|v| v.as_str())
+            .ok_or("Missing File")?;
+        let line = args
+            .get("Line")
+            .and_then(|v| v.as_u64())
+            .ok_or("Missing Line")?;
+        let character = args
+            .get("Character")
+            .and_then(|v| v.as_u64())
+            .ok_or("Missing Character")?;
 
         let uri = if file_path.starts_with("file://") {
             file_path.to_string()
@@ -109,7 +129,8 @@ NOTE: Line and Character are 0-indexed. You MUST use ReadFileTool to read the fi
                 Ok(resp)
             }
             "definition" => {
-                let resp = client.send_request_and_wait("textDocument/definition", position_params)?;
+                let resp =
+                    client.send_request_and_wait("textDocument/definition", position_params)?;
                 Ok(resp)
             }
             "references" => {
@@ -118,7 +139,7 @@ NOTE: Line and Character are 0-indexed. You MUST use ReadFileTool to read the fi
                 let resp = client.send_request_and_wait("textDocument/references", params)?;
                 Ok(resp)
             }
-            _ => Err(format!("Unknown action: {}", action))
+            _ => Err(format!("Unknown action: {}", action)),
         }
     }
 }

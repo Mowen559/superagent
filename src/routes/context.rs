@@ -1,11 +1,15 @@
-use std::sync::Arc;
-use axum::{Router, routing::get, extract::{State, Query}, Json};
+use crate::services::{graph_service, vector_service};
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{
+    extract::{Query, State},
+    routing::get,
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::json;
-use crate::AppState;
-use crate::services::{graph_service, vector_service};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct ContextSearchQuery {
@@ -34,7 +38,13 @@ async fn context_search(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let query = params.q.unwrap_or_default();
     let limit = params.limit.unwrap_or(30);
@@ -44,7 +54,11 @@ async fn context_search(
 
     match graph_service::search_nodes(&db_path_str, &query, limit) {
         Ok(results) => Json(json!({ "query": query, "results": results })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -55,7 +69,13 @@ async fn context_semantic(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let query = params.q.unwrap_or_default();
     let limit = params.limit.unwrap_or(20);
@@ -73,7 +93,11 @@ async fn context_semantic(
 
     match result {
         Ok(results) => Json(json!({ "query": query, "results": results })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -84,7 +108,13 @@ async fn context_hybrid(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let query = params.q.unwrap_or_default();
     let limit = params.limit.unwrap_or(20);
@@ -93,15 +123,18 @@ async fn context_hybrid(
     let db_path_str = db_path.to_string_lossy().to_string();
 
     let q = query.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        vector_service::hybrid_search(&db_path_str, &q, limit)
-    })
-    .await
-    .unwrap_or_else(|e| Err(format!("hybrid search task failed: {}", e)));
+    let result =
+        tokio::task::spawn_blocking(move || vector_service::hybrid_search(&db_path_str, &q, limit))
+            .await
+            .unwrap_or_else(|e| Err(format!("hybrid search task failed: {}", e)));
 
     match result {
         Ok(results) => Json(json!({ "query": query, "results": results })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -112,7 +145,13 @@ async fn context_project(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
 
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
@@ -125,5 +164,6 @@ async fn context_project(
         "project": project,
         "indexed": indexed,
         "summary": summary,
-    })).into_response()
+    }))
+    .into_response()
 }

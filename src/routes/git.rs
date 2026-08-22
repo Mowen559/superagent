@@ -1,14 +1,18 @@
-use std::sync::Arc;
-use axum::{Router, routing::{get, post}, extract::{State, Query}, Json};
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use serde::Deserialize;
-use serde_json::json;
-use crate::AppState;
 use crate::models::task::TaskStatus;
+use crate::services::destructive_ops::DestructiveOps;
 use crate::services::git_service::{self, RepoKind};
 use crate::services::workspace_guard::WorkspaceGuard;
-use crate::services::destructive_ops::DestructiveOps;
+use crate::AppState;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::{
+    extract::{Query, State},
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Deserialize;
+use serde_json::json;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct GitQuery {
@@ -74,26 +78,45 @@ async fn git_status(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
 
     match git_service::get_status(&project) {
         Ok(status) => Json(json!(status)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
-async fn git_diff(
-    State(_state): State<Arc<AppState>>,
-    Query(params): Query<GitQuery>,
-) -> Response {
+async fn git_diff(State(_state): State<Arc<AppState>>, Query(params): Query<GitQuery>) -> Response {
     let project = match params.project.clone() {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let file_path = match params.effective_path() {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing path param" })),
+            )
+                .into_response()
+        }
     };
     let kind = RepoKind::parse(params.repo.as_deref());
 
@@ -105,7 +128,11 @@ async fn git_diff(
         kind,
     ) {
         Ok(diff) => Json(json!(diff)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -115,23 +142,45 @@ async fn git_restore(
 ) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project" })),
+            )
+                .into_response()
+        }
     };
     let file_path = match body.path.or(body.file_path) {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing path" })),
+            )
+                .into_response()
+        }
     };
     let kind = RepoKind::parse(body.repo.as_deref());
 
     let guard = match WorkspaceGuard::new(&project) {
         Ok(g) => g,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
     };
     let ops = DestructiveOps::new(&guard);
 
     match ops.git_restore(&project, &file_path, body.hash.as_deref(), kind) {
         Ok(()) => Json(json!({ "success": true, "path": file_path })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -141,17 +190,35 @@ async fn file_git_history(
 ) -> Response {
     let project = match params.project.clone() {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let file_path = match params.effective_path() {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing path param" })),
+            )
+                .into_response()
+        }
     };
     let limit = params.limit.unwrap_or(20);
 
     let local = match git_service::get_file_history(&project, &file_path, limit, RepoKind::Local) {
         Ok(commits) => commits,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e })),
+            )
+                .into_response()
+        }
     };
     // Shadow history is best-effort: missing/empty shadow repo just yields [].
     let shadow = git_service::get_file_history(&project, &file_path, limit, RepoKind::Shadow)
@@ -166,12 +233,22 @@ async fn shadow_git(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
 
     match git_service::shadow_changed_files(&project) {
         Ok(files) => Json(json!({ "files": files, "project": project })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -187,13 +264,25 @@ async fn shadow_snapshot(
 ) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
-    let message = body.message.unwrap_or_else(|| "AI Edit Snapshot".to_string());
+    let message = body
+        .message
+        .unwrap_or_else(|| "AI Edit Snapshot".to_string());
 
     match git_service::record_ai_snapshot(&project, &message) {
         Ok(hash) => Json(json!({ "success": true, "hash": hash })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -203,13 +292,23 @@ async fn shadow_history(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let limit = params.limit.unwrap_or(50);
 
     match git_service::get_ai_history(&project, limit) {
         Ok(history) => Json(json!({ "history": history })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -225,22 +324,44 @@ async fn shadow_rollback(
 ) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let hash = match body.hash {
         Some(h) => h,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing hash param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing hash param" })),
+            )
+                .into_response()
+        }
     };
 
     let guard = match WorkspaceGuard::new(&project) {
         Ok(g) => g,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
     };
     let ops = DestructiveOps::new(&guard);
 
     match ops.shadow_rollback(&project, &hash) {
         Ok(_) => Json(json!({ "success": true, "hash": hash })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -250,22 +371,44 @@ async fn apply_patch(
 ) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project" })),
+            )
+                .into_response()
+        }
     };
     let patch = match body.patch_content {
         Some(p) if !p.trim().is_empty() => p,
-        _ => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing patchContent" }))).into_response(),
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing patchContent" })),
+            )
+                .into_response()
+        }
     };
 
     let guard = match WorkspaceGuard::new(&project) {
         Ok(g) => g,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
     };
     let ops = DestructiveOps::new(&guard);
 
     match ops.apply_patch(&project, &patch) {
         Ok(()) => Json(json!({ "success": true })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }
 
@@ -275,35 +418,62 @@ async fn git_clone(
 ) -> Response {
     let url = match body.url {
         Some(u) => u,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing url" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing url" })),
+            )
+                .into_response()
+        }
     };
 
     let target = body.target.unwrap_or_else(|| {
-        let name = url.split('/').next_back().unwrap_or("repo").trim_end_matches(".git");
-        state.runtime_config.projects_root.join(name).to_string_lossy().to_string()
+        let name = url
+            .split('/')
+            .next_back()
+            .unwrap_or("repo")
+            .trim_end_matches(".git");
+        state
+            .runtime_config
+            .projects_root
+            .join(name)
+            .to_string_lossy()
+            .to_string()
     });
 
     // Clone in a background task so large repos don't block the request.
     let tm = state.clone();
-    let (task, _) = state.task_manager.create_task("git-clone", &target, Some(json!({ "url": url })));
+    let (task, _) =
+        state
+            .task_manager
+            .create_task("git-clone", &target, Some(json!({ "url": url })));
     let task_id = task.id.clone();
     let target_owned = target.clone();
     let url_owned = url.clone();
-    
+
     tokio::task::spawn_blocking(move || {
-        tm.task_manager.update_status(&task_id, TaskStatus::Running, None);
-        tm.task_manager.append_log(&task_id, &format!("[Git] Cloning {} into {}", url_owned, target_owned));
+        tm.task_manager
+            .update_status(&task_id, TaskStatus::Running, None);
+        tm.task_manager.append_log(
+            &task_id,
+            &format!("[Git] Cloning {} into {}", url_owned, target_owned),
+        );
         match git_service::clone_repo(&url_owned, &target_owned) {
             Ok(path) => {
-                tm.task_manager.append_log(&task_id, &format!("[Git] Clone completed: {}", path));
-                tm.task_manager.update_status(&task_id, TaskStatus::Completed, None);
+                tm.task_manager
+                    .append_log(&task_id, &format!("[Git] Clone completed: {}", path));
+                tm.task_manager
+                    .update_status(&task_id, TaskStatus::Completed, None);
             }
             Err(e) => {
-                tm.task_manager.append_log(&task_id, &format!("[Git] Clone failed: {}", e));
-                tm.task_manager.update_status(&task_id, TaskStatus::Failed, Some(e));
+                tm.task_manager
+                    .append_log(&task_id, &format!("[Git] Clone failed: {}", e));
+                tm.task_manager
+                    .update_status(&task_id, TaskStatus::Failed, Some(e));
             }
         }
     });
 
-    Json(json!({ "success": true, "taskId": task.id, "path": target, "status": "pending" })).into_response()
+    Json(json!({ "success": true, "taskId": task.id, "path": target, "status": "pending" }))
+        .into_response()
 }

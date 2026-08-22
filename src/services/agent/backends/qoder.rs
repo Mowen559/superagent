@@ -13,7 +13,7 @@ pub struct QoderBackend;
 
 #[async_trait]
 impl AgentBackend for QoderBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>) -> BackendResult<AgentSession> {
+    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
         acp::run(
             AcpSpec {
                 command: "qoder-agent".to_string(),
@@ -37,7 +37,7 @@ impl AgentBackend for QoderBackend {
                 }),
             },
             prompt,
-            opts, cancel_rx).await
+            opts, cancel_rx, _control_rx).await
     }
 
     async fn list_models(&self, executable_path: Option<&str>) -> BackendResult<Vec<Model>> {

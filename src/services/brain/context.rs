@@ -1,6 +1,6 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::any::Any;
 
 /// 插件接口 (Everything is a plugin)
 pub trait Plugin: Send + Sync {

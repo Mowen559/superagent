@@ -16,3 +16,5 @@ pub mod qwen;
 pub mod traecli;
 
 
+
+pub mod superagent;

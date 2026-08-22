@@ -68,6 +68,7 @@ dotenvy = "0.15"
 anyhow = "1"
 thiserror = "2"
 tempfile = "3.27.0"
+fd-lock = "4.0.4"
 toml_edit = "0.25.13"
 dirs = "6.0.0"
 toml = "0.8"
@@ -77,6 +78,9 @@ bytes = "1.12.1"
 clap = { version = "4", features = ["derive"] }
 rustyline = "14"
 sha2 = "0.11.0"
+pdf-extract = "0.12.0"
+quick-xml = "0.37.5"
+zip = { version = "3.0.0", default-features = false, features = ["deflate"] }
 base64 = "0.23.1"
 rand = "0.10.2"
 open = "5.4.1"
@@ -88,6 +92,7 @@ windows-sys = { version = "0.61.2", features = ["Win32_Security_Credentials", "W
 webbrowser = "1.2.4"
 lazy_static = "1.5.0"
 fastembed = "6.0.0"
+sys-locale = "0.3.2"
 
 [profile.release]
 opt-level = 3
@@ -96,4 +101,3 @@ strip = true
 
 [workspace]
 # members = ["rtk"]
-

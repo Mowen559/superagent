@@ -21,12 +21,16 @@ impl ToolExecutor for ManageProcessTool {
             "properties": {
                 "Action": {
                     "type": "string",
-                    "enum": ["list", "logs", "kill"],
-                    "description": "The action to perform: 'list' (all background processes), 'logs' (get stdout/stderr), 'kill' (terminate process)."
+                    "enum": ["list", "logs", "kill", "send_input"],
+                    "description": "The action to perform: 'list', 'logs', 'kill', or 'send_input' (send string to stdin)."
                 },
                 "ProcessId": {
                     "type": "string",
-                    "description": "The target process ID (required for 'logs' and 'kill')."
+                    "description": "The target process ID (required for logs, kill, send_input)."
+                },
+                "Input": {
+                    "type": "string",
+                    "description": "The input text to send to stdin (required for send_input). MUST INCLUDE newline (\\n) if you want to simulate pressing Enter."
                 }
             },
             "required": ["Action"]
@@ -45,20 +49,48 @@ impl ToolExecutor for ManageProcessTool {
                 Ok(json!({ "processes": processes }))
             }
             "logs" => {
-                let process_id = args.get("ProcessId").and_then(|v| v.as_str()).ok_or("Missing ProcessId")?;
-                if let Some(logs) = crate::services::brain::tools::process_manager::get_process_logs(process_id) {
+                let process_id = args
+                    .get("ProcessId")
+                    .and_then(|v| v.as_str())
+                    .ok_or("Missing ProcessId")?;
+                if let Some(logs) =
+                    crate::services::brain::tools::process_manager::get_process_logs(process_id)
+                {
                     Ok(json!({ "process_id": process_id, "logs": logs }))
                 } else {
                     Err(format!("Process {} not found.", process_id))
                 }
             }
             "kill" => {
-                let process_id = args.get("ProcessId").and_then(|v| v.as_str()).ok_or("Missing ProcessId")?;
-                let success = crate::services::brain::tools::process_manager::kill_process(process_id);
+                let process_id = args
+                    .get("ProcessId")
+                    .and_then(|v| v.as_str())
+                    .ok_or("Missing ProcessId")?;
+                let success =
+                    crate::services::brain::tools::process_manager::kill_process(process_id);
                 if success {
-                    Ok(json!({ "success": true, "message": format!("Process {} killed.", process_id) }))
+                    Ok(
+                        json!({ "success": true, "message": format!("Process {} killed.", process_id) }),
+                    )
                 } else {
                     Err(format!("Process {} not found or already dead.", process_id))
+                }
+            }
+            "send_input" => {
+                let process_id = args
+                    .get("ProcessId")
+                    .and_then(|v| v.as_str())
+                    .ok_or("Missing ProcessId")?;
+                let input = args
+                    .get("Input")
+                    .and_then(|v| v.as_str())
+                    .ok_or("Missing Input")?;
+                match crate::services::brain::tools::process_manager::send_input(process_id, input)
+                {
+                    Ok(_) => Ok(
+                        json!({ "success": true, "message": format!("Sent {} bytes to process {}", input.len(), process_id) }),
+                    ),
+                    Err(e) => Err(e),
                 }
             }
             _ => Err(format!("Unknown Action: {}", action)),

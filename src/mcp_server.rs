@@ -79,7 +79,8 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
             Ok(json!({
                 "protocolVersion": "2024-11-05",
                 "capabilities": {
-                    "tools": {}
+                    "tools": {},
+                    "experimental": { "capability_catalog": true }
                 },
                 "serverInfo": {
                     "name": "deepcloud-hub",
@@ -167,6 +168,11 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                             },
                             "required": ["project_path", "name", "summary"]
                         }
+                    },
+                    {
+                        "name": "capability_catalog",
+                        "description": "List certified and experimental hub-rs capabilities with evidence",
+                        "inputSchema": { "type": "object", "properties": {} }
                     }
                 ]
             }))
@@ -307,6 +313,10 @@ async fn handle_request(method: &str, params: &Value, config: &RuntimeConfig) ->
                     store.write_memory(record);
                     
                     json!({ "content": [{ "type": "text", "text": "Successfully written to supermemory." }] })
+                },
+                "capability_catalog" => {
+                    let gatekeeper = crate::services::brain::capabilities::certification::CertificationGatekeeper::with_builtins();
+                    json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&gatekeeper.list_capabilities()).unwrap_or_default() }] })
                 },
                 _ => json!({ "isError": true, "content": [{ "type": "text", "text": "Unknown tool" }] })
             };

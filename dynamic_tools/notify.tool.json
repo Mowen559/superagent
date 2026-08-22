@@ -1,0 +1,22 @@
+{
+  "name": "desktop_notify",
+  "description": "Show a native desktop notification popup to the user.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "The title of the notification"
+      },
+      "message": {
+        "type": "string",
+        "description": "The message body of the notification"
+      }
+    },
+    "required": [
+      "message"
+    ]
+  },
+  "interpreter": "python",
+  "script_path": "notify.py"
+}

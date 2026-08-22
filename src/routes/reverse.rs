@@ -1,15 +1,18 @@
-use std::sync::Arc;
-use axum::{Router, routing::post, extract::State, Json};
+use crate::models::reverse::ReverseEngineeringRequest;
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{extract::State, routing::post, Json, Router};
 use serde_json::json;
-use crate::AppState;
-use crate::models::reverse::ReverseEngineeringRequest;
+use std::sync::Arc;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/reverse-engineering", post(reverse_engineering))
-        .route("/api/reverse/analyze-requirement", post(analyze_requirement))
+        .route(
+            "/api/reverse/analyze-requirement",
+            post(analyze_requirement),
+        )
         .route("/api/reverse/plan-requirement", post(plan_requirement))
 }
 
@@ -21,7 +24,11 @@ async fn reverse_engineering(
     let requirement = body.requirement.clone().unwrap_or_default();
 
     if requirement.is_empty() && body.extracted_schema.is_none() {
-        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing requirement or extracted_schema" }))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "Missing requirement or extracted_schema" })),
+        )
+            .into_response();
     }
 
     let reporter = std::sync::Arc::new(crate::services::progress::ConsoleReporter::new());
@@ -36,11 +43,16 @@ async fn reverse_engineering(
         &state.runtime_config,
         &state.http_client,
         Some(reporter),
-    ).await;
+    )
+    .await;
 
     match result {
         Ok(result) => Json(serde_json::to_value(result).unwrap_or_default()).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e, "traceId": trace_id }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e, "traceId": trace_id })),
+        )
+            .into_response(),
     }
 }
 
@@ -57,11 +69,23 @@ async fn analyze_requirement(
 ) -> impl IntoResponse {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let requirement = match body.requirement {
         Some(r) if !r.is_empty() => r,
-        _ => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing requirement param" }))).into_response(),
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing requirement param" })),
+            )
+                .into_response()
+        }
     };
 
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
@@ -72,9 +96,23 @@ async fn analyze_requirement(
 
     let reporter = std::sync::Arc::new(crate::services::progress::ConsoleReporter::new());
 
-    match analyzer.analyze_requirement(std::path::Path::new(&project), &db_path_str, &requirement, Some(reporter)).await {
-        Ok(_) => Json(json!({ "success": true, "message": "Impact report generated" })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    match analyzer
+        .analyze_requirement(
+            std::path::Path::new(&project),
+            &db_path_str,
+            &requirement,
+            Some(reporter),
+        )
+        .await
+    {
+        Ok(_) => {
+            Json(json!({ "success": true, "message": "Impact report generated" })).into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }
 
@@ -85,11 +123,23 @@ async fn plan_requirement(
 ) -> impl IntoResponse {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let requirement = match body.requirement {
         Some(r) if !r.is_empty() => r,
-        _ => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing requirement param" }))).into_response(),
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing requirement param" })),
+            )
+                .into_response()
+        }
     };
 
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
@@ -100,8 +150,22 @@ async fn plan_requirement(
 
     let reporter = std::sync::Arc::new(crate::services::progress::ConsoleReporter::new());
 
-    match analyzer.plan_requirement(std::path::Path::new(&project), &db_path_str, &requirement, Some(reporter)).await {
-        Ok(_) => Json(json!({ "success": true, "message": "Execution plan generated" })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    match analyzer
+        .plan_requirement(
+            std::path::Path::new(&project),
+            &db_path_str,
+            &requirement,
+            Some(reporter),
+        )
+        .await
+    {
+        Ok(_) => {
+            Json(json!({ "success": true, "message": "Execution plan generated" })).into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
     }
 }

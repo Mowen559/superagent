@@ -12,7 +12,7 @@ pub struct CursorBackend;
 
 #[async_trait]
 impl AgentBackend for CursorBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>) -> BackendResult<AgentSession> {
+    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
         stream_json::run(
             StreamJsonSpec {
                 command: "cursor-agent".to_string(),
@@ -46,7 +46,7 @@ impl AgentBackend for CursorBackend {
                 envs: None,
             },
             prompt,
-            opts, cancel_rx).await
+            opts, cancel_rx, _control_rx).await
     }
 
     async fn list_models(&self, executable_path: Option<&str>) -> BackendResult<Vec<Model>> {

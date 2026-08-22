@@ -1,9 +1,23 @@
-use crate::services::brain::executor::ToolExecutor;
-use serde_json::{json, Value};
-use std::io::{self, Write};
+use std::sync::Arc;
+use std::time::Duration;
 
-/// 人工介入提问工具
-pub struct AskUserTool;
+use serde_json::{json, Value};
+
+use crate::services::brain::executor::ToolExecutor;
+use crate::services::brain::interaction_runtime::{
+    InteractionRuntime, DEFAULT_TIMEOUT_SECONDS, MAX_CHOICES, MAX_TIMEOUT_SECONDS,
+};
+
+/// Model-facing Adapter for the correlated user-interaction runtime.
+pub struct AskUserTool {
+    runtime: Arc<InteractionRuntime>,
+}
+
+impl AskUserTool {
+    pub fn new(runtime: Arc<InteractionRuntime>) -> Self {
+        Self { runtime }
+    }
+}
 
 impl ToolExecutor for AskUserTool {
     fn name(&self) -> &'static str {
@@ -11,16 +25,24 @@ impl ToolExecutor for AskUserTool {
     }
 
     fn description(&self) -> &'static str {
-        "Ask the user a question and wait for their response. Use this when you are unsure, need permission for a destructive action, or require information you cannot find."
+        "Request correlated user input when a material choice cannot be resolved from available evidence. Supports optional choices and a finite timeout."
     }
 
     fn parameters_schema(&self) -> Value {
         json!({
             "type": "object",
             "properties": {
-                "Question": {
-                    "type": "string",
-                    "description": "The exact question to display to the user."
+                "Question": { "type": "string" },
+                "Choices": {
+                    "type": "array",
+                    "maxItems": MAX_CHOICES,
+                    "items": { "type": "string" }
+                },
+                "TimeoutSeconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": MAX_TIMEOUT_SECONDS,
+                    "default": DEFAULT_TIMEOUT_SECONDS
                 }
             },
             "required": ["Question"]
@@ -30,23 +52,26 @@ impl ToolExecutor for AskUserTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let question = args
             .get("Question")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Waiting for user input...");
-
-        println!("\n\x1b[33m[Agent Asks]: {}\x1b[0m", question);
-        print!("\x1b[33m[Your Answer]: \x1b[0m");
-        let _ = io::stdout().flush();
-
-        let mut buffer = String::new();
-        match io::stdin().read_line(&mut buffer) {
-            Ok(_) => {
-                let answer = buffer.trim().to_string();
-                Ok(json!({
-                    "status": "success",
-                    "response": answer
-                }))
-            }
-            Err(e) => Err(format!("Failed to read stdin: {}", e)),
-        }
+            .and_then(Value::as_str)
+            .ok_or_else(|| "Question is required".to_string())?;
+        let choices = args
+            .get("Choices")
+            .and_then(Value::as_array)
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_string)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let timeout = args
+            .get("TimeoutSeconds")
+            .and_then(Value::as_u64)
+            .unwrap_or(DEFAULT_TIMEOUT_SECONDS);
+        let receipt = self
+            .runtime
+            .ask(question, choices, Duration::from_secs(timeout))?;
+        serde_json::to_value(receipt).map_err(|error| error.to_string())
     }
 }

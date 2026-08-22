@@ -5,7 +5,8 @@ use crate::services::brain::executor::ToolExecutor;
 use serde_json::{json, Value};
 use std::fs;
 
-pub struct ManageTaskTool;
+pub struct ManageTaskTool { pub workspace_root: std::path::PathBuf }
+impl ManageTaskTool { pub fn new(w: std::path::PathBuf) -> Self { Self { workspace_root: w } } }
 
 impl ToolExecutor for ManageTaskTool {
     fn name(&self) -> &'static str {
@@ -35,16 +36,20 @@ impl ToolExecutor for ManageTaskTool {
     }
 
     fn execute(&self, args: Value) -> Result<Value, String> {
-        let action = args.get("Action").and_then(|v| v.as_str()).unwrap_or("read");
+        let action = args
+            .get("Action")
+            .and_then(|v| v.as_str())
+            .unwrap_or("read");
         let content = args.get("Content").and_then(|v| v.as_str()).unwrap_or("");
-        
+
         let file_path = std::env::current_dir()
             .unwrap_or_default()
             .join(".superagent_todo.md");
 
         match action {
             "read" => {
-                let current = fs::read_to_string(&file_path).unwrap_or_else(|_| "No todo list found. Start by writing one.".to_string());
+                let current = fs::read_to_string(&file_path)
+                    .unwrap_or_else(|_| "No todo list found. Start by writing one.".to_string());
                 Ok(json!({ "status": "success", "content": current }))
             }
             "write" => {
@@ -59,10 +64,10 @@ impl ToolExecutor for ManageTaskTool {
                     .append(true)
                     .open(&file_path)
                     .map_err(|e| format!("Failed to open todo list: {}", e))?;
-                
+
                 writeln!(file, "{}", content)
                     .map_err(|e| format!("Failed to append to todo list: {}", e))?;
-                    
+
                 Ok(json!({ "status": "success", "message": "Content appended to todo list." }))
             }
             _ => Err(format!("Unknown action: {}", action)),

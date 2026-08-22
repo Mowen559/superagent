@@ -1,11 +1,15 @@
-use std::sync::Arc;
-use axum::{Router, routing::{get, post}, extract::{State, Query}, Json};
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{
+    extract::{Query, State},
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::json;
+use std::sync::Arc;
 use tokio::process::Command;
-use crate::AppState;
 
 #[derive(Deserialize)]
 pub struct QaQuery {
@@ -32,7 +36,13 @@ async fn playwright_list(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project" })),
+            )
+                .into_response()
+        }
     };
 
     let tests_dir = std::path::Path::new(&project).join("tests").join("e2e");
@@ -58,7 +68,13 @@ async fn playwright_run(
 ) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project" })),
+            )
+                .into_response()
+        }
     };
 
     let mut cmd = Command::new("npx");
@@ -77,9 +93,14 @@ async fn playwright_run(
                 "stdout": stdout,
                 "stderr": stderr,
                 "exitCode": output.status.code(),
-            })).into_response()
+            }))
+            .into_response()
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("Failed to run playwright: {}", e) }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("Failed to run playwright: {}", e) })),
+        )
+            .into_response(),
     }
 }
 
@@ -89,7 +110,13 @@ async fn playwright_record(
 ) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project" })),
+            )
+                .into_response()
+        }
     };
 
     let url = body.spec.unwrap_or_else(|| "http://localhost:3000".into());
@@ -99,29 +126,44 @@ async fn playwright_record(
     cmd.current_dir(&project);
 
     match cmd.spawn() {
-        Ok(_) => Json(json!({ "success": true, "message": "Playwright codegen started" })).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("Failed to start codegen: {}", e) }))).into_response(),
+        Ok(_) => Json(json!({ "success": true, "message": "Playwright codegen started" }))
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("Failed to start codegen: {}", e) })),
+        )
+            .into_response(),
     }
 }
 
-async fn k6_run(
-    State(_state): State<Arc<AppState>>,
-    Json(body): Json<QaRunRequest>,
-) -> Response {
+async fn k6_run(State(_state): State<Arc<AppState>>, Json(body): Json<QaRunRequest>) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project" })),
+            )
+                .into_response()
+        }
     };
 
-    let script = body.spec.unwrap_or_else(|| "tests/k6/analyze-project.js".into());
+    let script = body
+        .spec
+        .unwrap_or_else(|| "tests/k6/analyze-project.js".into());
     let script_path = std::path::Path::new(&project).join(&script);
 
     if !script_path.exists() {
-        return (StatusCode::NOT_FOUND, Json(json!({ "error": format!("Script not found: {}", script) }))).into_response();
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": format!("Script not found: {}", script) })),
+        )
+            .into_response();
     }
 
     let mut cmd = Command::new("k6");
-    cmd.arg("run").arg(script_path.to_string_lossy().to_string());
+    cmd.arg("run")
+        .arg(script_path.to_string_lossy().to_string());
     cmd.current_dir(&project);
 
     match cmd.output().await {
@@ -132,8 +174,13 @@ async fn k6_run(
                 "success": output.status.success(),
                 "stdout": stdout,
                 "stderr": stderr,
-            })).into_response()
+            }))
+            .into_response()
         }
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("Failed to run k6: {}", e) }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("Failed to run k6: {}", e) })),
+        )
+            .into_response(),
     }
 }

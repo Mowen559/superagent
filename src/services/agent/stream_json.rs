@@ -50,7 +50,7 @@ pub async fn run(
     spec: StreamJsonSpec,
     prompt: String,
     opts: ExecOptions,
-    mut cancel_rx: tokio::sync::watch::Receiver<bool>,
+    mut cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>,
 ) -> BackendResult<AgentSession> {
     let mut _mcp_guard = None;
     let mcp_path = if crate::services::agent::mcp::has_managed_mcp_config(opts.mcp_config.as_ref()) {

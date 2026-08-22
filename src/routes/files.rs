@@ -1,13 +1,17 @@
-use std::sync::Arc;
-use axum::{Router, routing::{get, post}, extract::{State, Query}, Json};
+use crate::services::token_filter::{self, FilterLevel};
+use crate::services::{file_service, graph_service};
+use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{
+    extract::{Query, State},
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Deserialize;
 use serde_json::json;
-use crate::AppState;
-use crate::services::{file_service, graph_service};
-use crate::services::token_filter::{self, FilterLevel};
 use std::str::FromStr;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct FilesQuery {
@@ -47,16 +51,36 @@ async fn list_files(
 ) -> Response {
     let project_path = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&state.runtime_config.projects_root) {
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
+        &state.runtime_config.projects_root,
+    ) {
         Ok(g) => g,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Invalid projects root" }))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Invalid projects root" })),
+            )
+                .into_response()
+        }
     };
     let safe_project_path = match guard.resolve_safe(&project_path, "") {
         Ok(p) => p.to_string_lossy().to_string(),
-        Err(_) => return (StatusCode::FORBIDDEN, Json(json!({ "error": "Invalid project path" }))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": "Invalid project path" })),
+            )
+                .into_response()
+        }
     };
 
     let tree = file_service::build_file_tree(&safe_project_path, params.depth);
@@ -69,23 +93,53 @@ async fn get_file_content(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
     let file_path = match params.path.or(params.file_path) {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing path param" })),
+            )
+                .into_response()
+        }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&state.runtime_config.projects_root) {
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
+        &state.runtime_config.projects_root,
+    ) {
         Ok(g) => g,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Invalid projects root" }))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Invalid projects root" })),
+            )
+                .into_response()
+        }
     };
     let safe_project = match guard.resolve_safe(&project, "") {
         Ok(p) => p.to_string_lossy().to_string(),
-        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": format!("Invalid project path: {}", e) }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": format!("Invalid project path: {}", e) })),
+            )
+                .into_response()
+        }
     };
     if let Err(e) = guard.resolve_safe(&project, &file_path) {
-        return (StatusCode::FORBIDDEN, Json(json!({ "error": format!("Path traversal detected: {}", e) }))).into_response();
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({ "error": format!("Path traversal detected: {}", e) })),
+        )
+            .into_response();
     }
 
     match file_service::read_file_content(&safe_project, &file_path) {
@@ -104,9 +158,12 @@ async fn get_file_content(
                         "originalBytes": r.original_bytes,
                         "compressedBytes": r.compressed_bytes,
                         "reductionPercent": r.reduction_percent,
-                    })).into_response()
+                    }))
+                    .into_response()
                 }
-                Some(Err(e)) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))).into_response(),
+                Some(Err(e)) => {
+                    (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))).into_response()
+                }
                 _ => Json(json!({ "content": content, "path": file_path })).into_response(),
             }
         }
@@ -120,34 +177,64 @@ async fn analyze_file(
 ) -> Response {
     let project = match body.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project" })),
+            )
+                .into_response()
+        }
     };
     let file_path = match body.path {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing path" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing path" })),
+            )
+                .into_response()
+        }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&state.runtime_config.projects_root) {
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
+        &state.runtime_config.projects_root,
+    ) {
         Ok(g) => g,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("Invalid projects root: {}", e) }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("Invalid projects root: {}", e) })),
+            )
+                .into_response()
+        }
     };
 
     let safe_project = match guard.resolve_safe(&project, "") {
         Ok(p) => p.to_string_lossy().to_string(),
-        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": format!("Invalid project path: {}", e) }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": format!("Invalid project path: {}", e) })),
+            )
+                .into_response()
+        }
     };
 
     let safe_file_path = match guard.resolve_safe(&project, &file_path) {
         Ok(_) => file_path.clone(), // keeping the original string for graph/LLM calls
-        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": format!("Path traversal detected: {}", e) }))).into_response(),
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": format!("Path traversal detected: {}", e) })),
+            )
+                .into_response()
+        }
     };
 
     let content = match file_service::read_file_content(&safe_project, &safe_file_path) {
         Ok(c) => c,
         Err(e) => return (StatusCode::NOT_FOUND, Json(json!({ "error": e }))).into_response(),
     };
-
-
 
     // Token-killer: compress the file to its structural skeleton before spending
     // LLM tokens on it. Falls back to raw content if compression would not help.
@@ -161,11 +248,13 @@ async fn analyze_file(
     // Try LLM analysis (on the compressed content to save tokens)
     let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
     let analysis = if llm.is_available() {
-        llm.analyze_file(&file_path, &compressed.content).await.unwrap_or(json!({
-            "fileSummary": "LLM analysis unavailable",
-            "tags": [],
-            "complexity": "moderate"
-        }))
+        llm.analyze_file(&file_path, &compressed.content)
+            .await
+            .unwrap_or(json!({
+                "fileSummary": "LLM analysis unavailable",
+                "tags": [],
+                "complexity": "moderate"
+            }))
     } else {
         json!({
             "fileSummary": "LLM not configured",
@@ -188,7 +277,8 @@ async fn analyze_file(
             "originalTokensEst": compressed.original_tokens_est,
             "compressedTokensEst": compressed.compressed_tokens_est,
         },
-    })).into_response()
+    }))
+    .into_response()
 }
 
 async fn get_project_graph(
@@ -197,28 +287,57 @@ async fn get_project_graph(
 ) -> Response {
     let project = match params.project {
         Some(p) => p,
-        None => return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing project param" }))).into_response(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&state.runtime_config.projects_root) {
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
+        &state.runtime_config.projects_root,
+    ) {
         Ok(g) => g,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Invalid projects root" }))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Invalid projects root" })),
+            )
+                .into_response()
+        }
     };
     let safe_project = match guard.resolve_safe(&project, "") {
         Ok(p) => p.to_string_lossy().to_string(),
-        Err(_) => return (StatusCode::FORBIDDEN, Json(json!({ "error": "Invalid project path" }))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": "Invalid project path" })),
+            )
+                .into_response()
+        }
     };
 
-    let db_path = state.runtime_config.codebase_memory_db_path(Some(&safe_project));
+    let db_path = state
+        .runtime_config
+        .codebase_memory_db_path(Some(&safe_project));
     let db_path_str = db_path.to_string_lossy().to_string();
     let max_nodes = params.depth.unwrap_or(10000);
     // Optional comma-separated node kind filter, e.g. labels=Function,Class
     let labels: Option<Vec<String>> = params.labels.map(|s| {
-        s.split(',').map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect()
+        s.split(',')
+            .map(|l| l.trim().to_string())
+            .filter(|l| !l.is_empty())
+            .collect()
     });
 
     match graph_service::get_project_graph(&db_path_str, max_nodes, labels.as_deref()) {
         Ok(graph) => Json(json!(graph)).into_response(),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
     }
 }

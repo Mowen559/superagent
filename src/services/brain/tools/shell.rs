@@ -21,17 +21,18 @@ fn get_sanitized_env() -> HashMap<String, String> {
         .collect()
 }
 
-use std::sync::Arc;
 use crate::services::brain::capabilities::shell::ShellService;
+use std::sync::Arc;
 
 /// 终端命令执行工具 (Run Command) - 消费者 (Capability Seam: Consumer)
 pub struct RunCommandTool {
     shell_service: Arc<dyn ShellService>,
+    workspace_root: std::path::PathBuf,
 }
 
 impl RunCommandTool {
-    pub fn new(shell_service: Arc<dyn ShellService>) -> Self {
-        Self { shell_service }
+    pub fn new(shell_service: Arc<dyn ShellService>, workspace_root: std::path::PathBuf) -> Self {
+        Self { shell_service, workspace_root }
     }
 }
 
@@ -100,25 +101,50 @@ impl ToolExecutor for RunCommandTool {
             .and_then(|v| v.as_str())
             .ok_or("Missing or invalid 'Cwd' argument")?;
 
-        let has_ticket = args.get("ApprovalTicket").and_then(|v| v.as_str()).is_some();
+        let has_ticket = args
+            .get("ApprovalTicket")
+            .and_then(|v| v.as_str())
+            .is_some();
         let cmd_lower = cmd_str.to_lowercase();
-        let is_dangerous = cmd_lower.contains("rm -rf") || cmd_lower.contains("del ") || cmd_lower.contains("cargo clean");
-        
+        let is_dangerous = cmd_lower.contains("rm -rf")
+            || cmd_lower.contains("del ")
+            || cmd_lower.contains("cargo clean");
+
         if is_dangerous && !has_ticket {
             return Err("ERROR: This command is highly destructive (Interaction Approval Required). You MUST first use AskUserTool to explain what you are deleting and request permission. Once the user approves, include the user's reply in the 'ApprovalTicket' parameter to proceed.".to_string());
         }
 
+                let absolute_cwd = if std::path::Path::new(cwd_str).is_absolute() {
+            std::path::PathBuf::from(cwd_str)
+        } else {
+            self.workspace_root.join(cwd_str)
+        };
+        
+        let canonical_cwd = std::fs::canonicalize(&absolute_cwd).unwrap_or_else(|_| absolute_cwd.clone());
+        let canonical_root = std::fs::canonicalize(&self.workspace_root).unwrap_or_else(|_| self.workspace_root.clone());
+        
+        if !canonical_cwd.starts_with(&canonical_root) {
+            return Err(format!("ERROR: The specified Cwd '{}' resolves outside the workspace root.", cwd_str));
+        }
+        
         let timeout_secs = args
             .get("TimeoutSeconds")
             .and_then(|v| v.as_u64())
             .unwrap_or(60);
 
-
-        let run_in_bg = args.get("RunInBackground").and_then(|v| v.as_bool()).unwrap_or(false);
-        let enable_rtk_hook = args.get("rtk_hook").and_then(|v| v.as_bool()).unwrap_or(false);
+        let run_in_bg = args
+            .get("RunInBackground")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let enable_rtk_hook = args
+            .get("rtk_hook")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
 
         // Delegate to the actual capability seam provider
-        let mut result = self.shell_service.execute(cmd_str, cwd_str, run_in_bg, timeout_secs)?;
+        let mut result = self
+            .shell_service
+            .execute(cmd_str, cwd_str, run_in_bg, timeout_secs)?;
 
         // If it's running in background, we don't intercept logs here
         if run_in_bg {
@@ -136,7 +162,8 @@ impl ToolExecutor for RunCommandTool {
                     use crate::services::token_filter::{compress, FilterLevel};
                     eprintln!("\x1b[35m[Terminal Hook] RTK Intercepting and compressing shell output...\x1b[0m");
                     // We assume shell output usually contains code or diffs. We trick the filter to compress it aggressively.
-                    let filter_result = compress(&output_str, "shell_output.txt", FilterLevel::Aggressive);
+                    let filter_result =
+                        compress(&output_str, "shell_output.txt", FilterLevel::Aggressive);
                     output_str = filter_result.content;
                     result["rtk_hook_engaged"] = json!(true);
                     result["original_size_bytes"] = json!(original_len);
