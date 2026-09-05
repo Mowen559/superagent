@@ -1,0 +1,7 @@
+{
+  "model": "gpt-5.6-sol",
+  "provider": "openai",
+  "baseUrl": "https://chatgpt.com/backend-api/codex/responses",
+  "prompt": "你好！",
+  "apiKey": "dummy"
+}

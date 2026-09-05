@@ -1,0 +1,111 @@
+366 |             } else if key == 'Y' as usize && (GetAsyncKeyState(VK_CONTROL.0 as i32) as u16 & 0x8000) != 0 {
+367 |                 if let Some(state) = state_mut(hwnd) {
+368 |                     if let Some(el) = state.redo_stack.pop() {
+369 |                         state.elements.push(el);
+370 |                         let _ = InvalidateRect(Some(hwnd), None, false);
+371 |                     }
+372 |                 }
+373 |             }
+374 |             LRESULT(0)
+375 |         },
+376 |         WM_LBUTTONDOWN => unsafe {
+377 |             if let Some(state) = state_mut(hwnd) {
+378 |                 let mut pt_screen = POINT::default();
+379 |                 let _ = GetCursorPos(&mut pt_screen);
+380 |                 let mut pt = pt_screen;
+381 |                 let _ = ScreenToClient(hwnd, &mut pt);
+382 | 
+383 |                 // 1. 褰曞睆鎺у埗鏉＄偣鍑诲垽瀹?                if state.mode == AppMode::Recording {
+384 |                     for btn in &state.record_buttons {
+385 |                         if pt_in_rect(&btn.rect, pt) {
+386 |                             handle_action(hwnd, btn.action);
+387 |                             return LRESULT(0);
+388 |                         }
+389 |                     }
+390 |                     return LRESULT(0);
+391 |                 }
+392 | 
+393 |                 // 2. 涓诲伐鍏锋爮涓庝簩绾ц彍鍗曠偣鍑诲垽瀹?                if state.mode == AppMode::ToolbarActive || is_annotation_mode(state.mode) {
+394 |                     let mut clicked = false;
+395 | 
+396 |                     // 璋冭壊鐩?                    for btn in &state.color_buttons {
+397 |                         if pt_in_rect(&btn.rect, pt) {
+398 |                             clicked = true;
+399 |                             if let Action::ColorPick(c) = btn.action {
+400 |                                 state.current_color = c;
+401 |                                 state.is_eraser = false;
+402 |                                 setup_toolbar(state);
+403 |                                 let _ = InvalidateRect(Some(hwnd), None, false);
+404 |                             }
+405 |                             break;
+406 |                         }
+407 |                     }
+408 | 
+409 |                     // 绮楃粏
+410 |                     if !clicked {
+411 |                         for btn in &state.sub_tool_buttons {
+412 |                             if pt_in_rect(&btn.rect, pt) {
+413 |                                 clicked = true;
+414 |                                 if let Action::Thickness(t) = btn.action {
+415 |                                     state.current_thickness = t;
+416 |                                     setup_toolbar(state);
+417 |                                     let _ = InvalidateRect(Some(hwnd), None, false);
+418 |                                 }
+419 |                                 break;
+420 |                             }
+421 |                         }
+422 |                     }
+423 | 
+424 |                     // 涓诲姛鑳芥寜鎵?                    if !clicked {
+425 |                         for btn in &state.buttons {
+426 |                             if pt_in_rect(&btn.rect, pt) {
+427 |                                 clicked = true;
+428 |                                 handle_action(hwnd, btn.action);
+429 |                                 break;
+430 |                             }
+431 |                         }
+432 |                     }
+433 | 
+434 |                     if clicked {
+435 |                         return LRESULT(0);
+436 |                     }
+437 |                 }
+438 | 
+439 |                 // 3. 鐢诲竷浜や簰锛堟爣娉ㄣ€佹秱楦︽垨鍒掗€夛級
+440 |                 if is_annotation_mode(state.mode) {
+441 |                     state.is_dragging = true;
+442 |                     state.start_pt = pt;
+443 |                     state.current_pt = pt;
+444 |                     if state.mode == AppMode::DrawingPen {
+445 |                         state.current_stroke = Some(vec![pt]);
+446 |                     }
+447 |                     let _ = InvalidateRect(Some(hwnd), None, false);
+448 |                 } else if state.mode == AppMode::SelectingText {
+449 |                     state.is_selecting_text = true;
+450 |                     state.text_selection_start = pt;
+451 |                     state.text_selection_current = pt;
+452 |                     let _ = InvalidateRect(Some(hwnd), None, false);
+453 |                 } else {
+454 |                     // 寮€濮嬫嫋閫夋埅灞忛€夊尯
+455 |                     state.is_dragging = true;
+456 |                     state.start_pt = pt;
+457 |                     state.current_pt = pt;
+458 |                     state.mode = AppMode::Selecting;
+459 |                     if let Some(rect_screen) = state.hovered_rect {
+460 |                         let mut top_left = POINT { x: rect_screen.left, y: rect_screen.top };
+461 |                         let mut bottom_right = POINT { x: rect_screen.right, y: rect_screen.bottom };
+462 |                         let _ = ScreenToClient(hwnd, &mut top_left);
+463 |                         let _ = ScreenToClient(hwnd, &mut bottom_right);
+464 |                         state.crop_rect = Some(RECT { left: top_left.x, top: top_left.y, right: bottom_right.x, bottom: bottom_right.y });
+465 |                     } else {
+466 |                         state.crop_rect = None;
+467 |                     }
+468 |                 }
+469 |             }
+470 |             LRESULT(0)
+471 |         },
+472 |         WM_MOUSEMOVE => unsafe {
+473 |             if let Some(state) = state_mut(hwnd) {
+474 |                 let mut pt_screen = POINT::default();
+475 |                 let _ = GetCursorPos(&mut pt_screen);
+476 |                 let mut pt = pt_screen;

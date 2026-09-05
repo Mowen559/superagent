@@ -1,0 +1,16 @@
+{
+  "name": "run_workflow",
+  "description": "Execute a DAG-based multi-agent workflow. Provide a JSON payload with tasks and dependencies.",
+  "command": "python",
+  "args": ["{plugin_dir}/run_workflow.py", "{payload}"],
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "payload": {
+        "type": "string",
+        "description": "The JSON string containing the workflow definition (name, tasks, depends_on)."
+      }
+    },
+    "required": ["payload"]
+  }
+}

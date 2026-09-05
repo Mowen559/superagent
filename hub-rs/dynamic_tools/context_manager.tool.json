@@ -1,0 +1,21 @@
+﻿{
+  "name": "context_manager",
+  "description": "Manage a persistent working set of files (Context) to prevent token overflow and memory loss.",
+  "interpreter": "python",
+  "script_path": "{plugin_dir}/context_manager.py",
+  "extra_args": ["{action}", "{file_path}"],
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["add", "remove", "list", "read"]
+      },
+      "file_path": {
+        "type": "string",
+        "default": ""
+      }
+    },
+    "required": ["action"]
+  }
+}

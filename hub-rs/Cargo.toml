@@ -1,0 +1,137 @@
+[package]
+name = "hub-rs"
+version = "0.1.0"
+edition = "2024"
+description = "AIndex Hub - Code Intelligence Platform Backend"
+[[bin]]
+name = "hub"
+path = "src/bin/hub.rs"
+
+[[bin]]
+name = "superagent"
+path = "src/bin/superagent.rs"
+
+[[bin]]
+name = "test_cropper"
+path = "src/bin/test_cropper.rs"
+
+[dependencies]
+snow-ui-selector = { path = "snow-crates/crates/snow-ui-selector" }
+snow-stitch-images = { path = "snow-crates/crates/snow-stitch-images" }
+
+# HTTP framework
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace", "fs"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# SQLite (read codebase-memory-mcp graph DB)
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Git operations
+git2 = "0.20"
+
+# HTTP client (LLM API calls)
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# File traversal
+walkdir = "2"
+ignore = "0.4"
+
+# Regex (token-killer source compression, ported from rtk)
+regex = "1"
+rtk = { git = "https://github.com/Mowen559/rtk.git" }
+
+# rtk (Rust Token Killer) - source-compression engine linked as a library.
+# The rtk binary is also invoked as a subprocess for command filtering + hooks.
+# rtk = { path = "rtk" }
+
+# Hashing (must match codebase-memory-mcp XXH3 sparse random indexing)
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+# Utilities
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Async agent backends: trait objects + concurrent detection + SSE streaming.
+async-trait = "0.1"
+futures = "0.3"
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+# API documentation
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+
+# Environment
+dotenvy = "0.15"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+tempfile = "3.27.0"
+fd-lock = "4.0.4"
+toml_edit = "0.25.13"
+dirs = "6.0.0"
+toml = "0.8"
+petgraph = "0.8.3"
+async-stream = "0.3.6"
+bytes = "1.12.1"
+clap = { version = "4", features = ["derive"] }
+rustyline = "14"
+sha2 = "0.11.0"
+pdf-extract = "0.12.0"
+quick-xml = "0.37.5"
+zip = { version = "3.0.0", default-features = false, features = ["deflate"] }
+base64 = "0.23.1"
+rand = "0.10.2"
+open = "5.4.1"
+urlencoding = "2.1.3"
+dialoguer = "0.12.0"
+keyring = "4.1.6"
+machine-uid = "0.6.0"
+windows-sys = { version = "0.61.2", features = ["Win32_Security_Credentials", "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Dwm"] }
+webbrowser = "1.2.4"
+lazy_static = "1.5.0"
+fastembed = "6.0.0"
+sys-locale = "0.3.2"
+
+# Pluggable local visual pipeline. Native SDKs are feature-gated so bundled
+# builds can replace them with external providers without changing the API.
+image = { version = "0.25.9", optional = true, features = ["png"] }
+xcap = { version = "0.9.8", optional = true, features = ["wgc"] }
+    # Pinned local patch of 0.2.7: builds one rlib and correctly gates optional EPs.
+    paddleocr_rs_onnx = { path = "vendor/paddleocr_rs_onnx", optional = true }
+    libloading = "0.9.0"
+    windows = { version = "0.62.2", features = ["Win32_UI_Accessibility", "Win32_UI_HiDpi", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_System_Ole", "Win32_System_Variant", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_UI_Input_KeyboardAndMouse", "Win32_Foundation", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_UI_Controls_Dialogs", "Win32_System_LibraryLoader"] }
+    rstar = "0.12"
+    crossbeam-channel = "0.5.16"
+    snow-capture = { path = "snow-crates/crates/snow-capture", optional = true }
+    rapid-ocr-rs = { path = "snow-crates/crates/rapid-ocr-rs", optional = true, default-features = false }
+imageproc = "0.27.0"
+tts = "0.26.3"
+once_cell = "1.21.4"
+
+[features]
+default = ["vision-xcap", "vision-paddleocr", "vision-snowcapture", "vision-rapidocr", "win_native_cropper"]
+win_native_cropper = []
+
+vision-xcap = ["dep:xcap"]
+vision-paddleocr = ["dep:image", "dep:paddleocr_rs_onnx"]
+vision-snowcapture = ["dep:snow-capture", "dep:image"]
+vision-rapidocr = ["dep:rapid-ocr-rs", "dep:image"]
+
+[profile.release]
+opt-level = 3
+lto = false
+strip = true
+
+[workspace]
+# members = ["rtk"]
+exclude = ["snow-crates"]
+

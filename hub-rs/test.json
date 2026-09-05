@@ -1,0 +1,1 @@
+{"schemaVersion":1,"screenshotProvider":"snow-capture","ocrProvider":"rapid-ocr","translationProvider":"hub-llm","paddleOcr":{"detectionModelPath":"","recognitionModelPath":"","keysPath":""},"defaultTargetLanguage":"zh-CN","defaultTranslationModel":"gemini-3.6-flash-low"}
