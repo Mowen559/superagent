@@ -34,6 +34,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/settings/accounts/{id}/toggle", post(toggle_account))
         .route("/api/settings/accounts/{id}", delete(remove_account))
         .route("/api/settings/routing", put(update_routing))
+        .route("/api/settings/oauth/start", post(start_oauth_flow))
+        .route("/api/settings/llm/test", post(test_connection))
 }
 
 async fn get_recertification_plan(
@@ -351,6 +353,134 @@ async fn update_routing(Json(body): Json<RoutingBody>) -> axum::response::Respon
     let updated =
         llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
     Json(json!({"success": true, "settings": redacted_settings_value(updated)})).into_response()
+}
+
+#[derive(Deserialize)]
+struct OauthStartBody {
+    provider: String,
+    #[serde(rename = "accountName")]
+    account_name: String,
+}
+
+async fn start_oauth_flow(Json(body): Json<OauthStartBody>) -> axum::response::Response {
+    match crate::services::cli_auth::handle_oauth_from_api(&body.provider, body.account_name).await
+    {
+        Ok(account) => {
+            // Do NOT save it to settings here. Just return the generated account so frontend can save it when the user clicks 'Save'.
+            Json(json!({"success": true, "account": account})).into_response()
+        }
+        Err(e) => (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(json!({"error": e})),
+        )
+            .into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct TestConnectionReq {
+    provider: Option<String>,
+    base_url: Option<String>,
+    api_key: String,
+    model: Option<String>,
+}
+
+async fn test_connection(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<TestConnectionReq>,
+) -> axum::response::Response {
+    use crate::config::llm_settings::LLMSettings;
+    use crate::services::protocol_converter::upstream::adapter_for_provider;
+
+    let model = req.model.unwrap_or_else(|| "gpt-3.5-turbo".to_string());
+    let provider = req.provider.unwrap_or_else(|| "openai".to_string());
+
+    let mut mock_settings = LLMSettings {
+        enabled: true,
+        active_account_id: None,
+        accounts: vec![],
+        provider: provider.clone(),
+        base_url: req.base_url.unwrap_or_default(),
+        api_key: req.api_key,
+        project_id: None,
+        model: model.clone(),
+        temperature: 0.7,
+        max_tokens: 1000,
+        ua_file_limit: 10,
+        ua_sample_file_limit: 10,
+        ua_max_file_chars: 10000,
+        updated_at: "".to_string(),
+        routing_strategy: "priority".to_string(),
+    };
+
+    // Auto-resolve empty base_url for certain providers to match proxy behavior
+    if mock_settings.base_url.is_empty() {
+        match provider.as_str() {
+            "openai_native" | "openai" => {
+                mock_settings.base_url = "https://api.openai.com/v1".to_string()
+            }
+            "claude_desktop_official" | "claude_official" | "anthropic" => {
+                mock_settings.base_url = "https://api.anthropic.com".to_string()
+            }
+            _ => {}
+        }
+    }
+
+    let standard_body = json!({
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": "Hello"
+            }
+        ],
+        "stream": false
+    });
+
+    let adapter = adapter_for_provider(&provider);
+    let prepared = adapter.prepare_request(&mock_settings, standard_body);
+
+    match prepared {
+        Ok((url, headers, body)) => {
+            let res = state
+                .http_client
+                .post(&url)
+                .headers(headers)
+                .json(&body)
+                .send()
+                .await;
+
+            match res {
+                Ok(response) => {
+                    let status = response.status();
+                    if status.is_success() {
+                        Json(json!({
+                            "success": true,
+                            "message": format!("连接成功！状态码: {}", status)
+                        }))
+                        .into_response()
+                    } else {
+                        let error_text = response.text().await.unwrap_or_default();
+                        Json(json!({
+                            "success": false,
+                            "error": format!("测试失败: 状态码 {} - {}", status, error_text)
+                        }))
+                        .into_response()
+                    }
+                }
+                Err(e) => Json(json!({
+                    "success": false,
+                    "error": format!("请求发送失败: {}", e)
+                }))
+                .into_response(),
+            }
+        }
+        Err(e) => Json(json!({
+            "success": false,
+            "error": format!("构造请求失败 (通常是配置不正确): {}", e)
+        }))
+        .into_response(),
+    }
 }
 
 #[cfg(test)]

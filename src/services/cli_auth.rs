@@ -173,11 +173,11 @@ pub async fn ensure_logged_in(force: bool) -> Result<(), String> {
             if auth_selection == 0 {
                 // Route to specific OAuth flow based on provider name
                 if provider.name == "OpenAI Native" {
-                    handle_openai_pkce_flow().await?
+                    handle_openai_pkce_flow(None).await?
                 } else if provider.name == "Gemini Native" {
-                    handle_gemini_oauth_flow().await?
+                    handle_gemini_oauth_flow(None).await?
                 } else if provider.name == "GitHub Copilot" {
-                    handle_github_copilot_flow().await?
+                    handle_github_copilot_flow(None).await?
                 } else {
                     // Fallback to API Key if no local OAuth implementation exists yet for others
                     println!("[Auth] Note: Native OAuth for {} is not yet implemented in hub-rs. Falling back to API Key.", provider.name);
@@ -202,7 +202,7 @@ pub async fn ensure_logged_in(force: bool) -> Result<(), String> {
     Ok(())
 }
 
-async fn handle_openai_pkce_flow() -> Result<LLMAccount, String> {
+async fn handle_openai_pkce_flow(provided_name: Option<String>) -> Result<LLMAccount, String> {
     println!("[Auth] Starting PKCE flow for OpenAI...");
     
     let client_id = "app_EMoamEEZ73f0CkXaXp7hrann"; // Codex / OpenAI Native client id
@@ -256,11 +256,14 @@ async fn handle_openai_pkce_flow() -> Result<LLMAccount, String> {
         }
     }
 
-    let name: String = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt("Account Name")
-        .default("OpenAI Native".into())
-        .interact_text()
-        .map_err(|e| e.to_string())?;
+    let name: String = match provided_name {
+        Some(n) => n,
+        None => Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("Account Name")
+            .default("OpenAI Native".into())
+            .interact_text()
+            .map_err(|e| e.to_string())?
+    };
 
     Ok(LLMAccount {
         id: Uuid::new_v4().to_string(),
@@ -279,7 +282,7 @@ async fn handle_openai_pkce_flow() -> Result<LLMAccount, String> {
     })
 }
 
-async fn handle_github_copilot_flow() -> Result<LLMAccount, String> {
+async fn handle_github_copilot_flow(provided_name: Option<String>) -> Result<LLMAccount, String> {
     println!("[Auth] Starting Device Code flow for GitHub Copilot...");
     let client = Client::new();
     let client_id = "01ab8ac9400c4e429b23"; // Standard GitHub Copilot Plugin Client ID
@@ -340,11 +343,14 @@ async fn handle_github_copilot_flow() -> Result<LLMAccount, String> {
         }
         
         if let Some(access_token) = token_res.access_token {
-            let name: String = Input::with_theme(&ColorfulTheme::default())
-                .with_prompt("Account Name")
-                .default("GitHub Copilot".into())
-                .interact_text()
-                .map_err(|e| e.to_string())?;
+            let name: String = match provided_name.clone() {
+                Some(n) => n,
+                None => Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Account Name")
+                    .default("GitHub Copilot".into())
+                    .interact_text()
+                    .map_err(|e| e.to_string())?
+            };
 
             // Fetch the initial Copilot session token
             println!("[Auth] Authenticated with GitHub. Fetching Copilot session token...");
@@ -410,7 +416,7 @@ async fn fetch_cloudaicompanion_project(access_token: &str) -> Result<String, St
     Err("Could not find cloudaicompanionProject in response".to_string())
 }
 
-async fn handle_gemini_oauth_flow() -> Result<LLMAccount, String> {
+async fn handle_gemini_oauth_flow(provided_name: Option<String>) -> Result<LLMAccount, String> {
     println!("[Auth] Starting web login flow to authenticate with Google (Gemini Native)...");
     let client_id = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
     let client_secret = "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";
@@ -470,11 +476,14 @@ async fn handle_gemini_oauth_flow() -> Result<LLMAccount, String> {
         }
     }
 
-    let name: String = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt("Account Name")
-        .default("Gemini Native (Copilot)".into())
-        .interact_text()
-        .map_err(|e| e.to_string())?;
+    let name: String = match provided_name {
+        Some(n) => n,
+        None => Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("Account Name")
+            .default("Gemini Native (Copilot)".into())
+            .interact_text()
+            .map_err(|e| e.to_string())?
+    };
                 
     Ok(LLMAccount {
         id: Uuid::new_v4().to_string(),
@@ -607,6 +616,7 @@ async fn execute_pkce_flow(
 
     // Start Local Server to receive callback
     let (tx, rx) = oneshot::channel();
+    let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
     let app_state = std::sync::Arc::new(AppState {
         expected_state: state.clone(),
         tx: std::sync::Mutex::new(Some(tx)),
@@ -621,7 +631,11 @@ async fn execute_pkce_flow(
     
     // Spawn server task
     tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async {
+                shutdown_rx.await.ok();
+            })
+            .await.unwrap();
     });
 
     // Open Browser
@@ -634,9 +648,17 @@ async fn execute_pkce_flow(
     // Wait for Callback
     let code = match rx.await {
         Ok(Ok(c)) => c,
-        Ok(Err(e)) => return Err(format!("Login failed: {}", e)),
-        Err(_) => return Err("Server channel closed unexpectedly".to_string()),
+        Ok(Err(e)) => {
+            let _ = shutdown_tx.send(());
+            return Err(format!("Login failed: {}", e))
+        },
+        Err(_) => {
+            let _ = shutdown_tx.send(());
+            return Err("Server channel closed unexpectedly".to_string())
+        },
     };
+    
+    let _ = shutdown_tx.send(());
 
     println!("[Auth] Received callback. Exchanging code for token...");
 
@@ -728,6 +750,7 @@ pub async fn handle_deepcloud_flow() -> Result<(), String> {
     }
 
     let (tx, rx) = oneshot::channel();
+    let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
     let state = std::sync::Arc::new(AppState {
         expected_state: "".to_string(), // not strictly needed for this simplified flow
         tx: std::sync::Mutex::new(Some(tx)),
@@ -740,13 +763,18 @@ pub async fn handle_deepcloud_flow() -> Result<(), String> {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| e.to_string())?;
 
-    let server = axum::serve(listener, app);
+    let server = axum::serve(listener, app)
+        .with_graceful_shutdown(async {
+            shutdown_rx.await.ok();
+        });
 
     tokio::select! {
         _ = server => {
             Err("Server stopped unexpectedly".into())
         }
         res = rx => {
+            let _ = shutdown_tx.send(());
+
             let token = res.map_err(|_| "Failed to receive token".to_string())??;
             
             // Save to keyring
@@ -800,3 +828,13 @@ pub fn clear_deepcloud_token() -> Result<(), String> {
     entry.delete_credential()
         .map_err(|e| format!("Failed to delete token from keyring: {}", e))
 }
+
+pub async fn handle_oauth_from_api(provider: &str, account_name: String) -> Result<LLMAccount, String> {
+    match provider {
+        "OpenAI Native" => handle_openai_pkce_flow(Some(account_name)).await,
+        "Gemini Native" => handle_gemini_oauth_flow(Some(account_name)).await,
+        "GitHub Copilot" => handle_github_copilot_flow(Some(account_name)).await,
+        _ => Err(format!("Native OAuth is not supported for provider: {}", provider)),
+    }
+}
+

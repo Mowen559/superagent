@@ -19,3 +19,4 @@ pub mod analyze;
 pub mod proxy;
 pub mod skills;
 pub mod mcp;
+pub mod stats;

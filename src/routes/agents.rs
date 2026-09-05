@@ -8,8 +8,8 @@
 //! - `GET  /api/agents/tasks/:id/events`    — SSE stream: replay persisted
 //!   events, then follow the live broadcast until the run finishes.
 
-use std::convert::Infallible;
 use std::collections::VecDeque;
+use std::convert::Infallible;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -35,9 +35,15 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/agents", get(list_agents))
         .route("/api/agents/run", post(run_agent))
         .route("/api/agents/tasks/{task_id}/events", get(stream_events))
-        .route("/api/agents/tasks/{task_id}/interact", post(interact_with_task))
+        .route(
+            "/api/agents/tasks/{task_id}/interact",
+            post(interact_with_task),
+        )
         .route("/api/agents/tasks/{task_id}/diff", get(get_task_diff))
-        .route("/api/agents/tasks/{task_id}/apply", post(apply_task_changes))
+        .route(
+            "/api/agents/tasks/{task_id}/apply",
+            post(apply_task_changes),
+        )
         .route("/api/agents/{kind}/config/sync", post(sync_agent_config))
         .route("/api/agents/{kind}/skills", get(list_agent_skills))
         .route(
@@ -189,16 +195,20 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
 
     // Phase 2: Create a Workspace Baseline for Two-Phase Commit isolation.
     let workspace_baseline = if !project.is_empty() {
-        let run_dir = state.runtime_config.projects_root.join(format!(".deepcloud/runs/{}", task_id));
-        let _ = crate::services::git_service::record_ai_snapshot(&project, "Creating Baseline Snapshot");
+        let run_dir = state
+            .runtime_config
+            .projects_root
+            .join(format!(".deepcloud/runs/{}", task_id));
+        let _ = crate::services::git_service::record_ai_snapshot(
+            &project,
+            "Creating Baseline Snapshot",
+        );
         // Deep copy the project to isolate changes for Two-Phase commit diffing.
         // We use ignore::WalkBuilder to skip .gitignore files (e.g. node_modules, target)
         // and we manually skip the .deepcloud folder to prevent recursive copying.
         let walker = ignore::WalkBuilder::new(&project)
             .hidden(false) // we might want to copy some hidden files like .env, but usually ignore is enough
-            .filter_entry(|e| {
-                e.file_name() != ".deepcloud" && e.file_name() != ".git"
-            })
+            .filter_entry(|e| e.file_name() != ".deepcloud" && e.file_name() != ".git")
             .build();
 
         for result in walker {
@@ -218,7 +228,6 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
     } else {
         "".to_string()
     };
-
 
     state
         .task_manager
@@ -243,16 +252,23 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
     let task_bg = task_id.clone();
     let prompt = body.prompt.clone();
     let agent_name = body.agent.clone();
-    
+
     tokio::spawn(async move {
         if let Ok(kind) = AgentKind::from_str(&agent_name) {
             drive_run(state_bg, task_bg, kind, prompt, opts, cancel_rx).await;
         } else {
-            state_bg.task_manager.update_status(&task_bg, TaskStatus::Failed, Some(format!("Unknown agent kind: {}", agent_name)));
+            state_bg.task_manager.update_status(
+                &task_bg,
+                TaskStatus::Failed,
+                Some(format!("Unknown agent kind: {}", agent_name)),
+            );
         }
     });
 
-    Json(json!({ "taskId": task_id, "status": "running", "workspace_baseline": workspace_baseline })).into_response()
+    Json(
+        json!({ "taskId": task_id, "status": "running", "workspace_baseline": workspace_baseline }),
+    )
+    .into_response()
 }
 
 #[cfg(test)]
@@ -288,12 +304,14 @@ async fn drive_run(
     opts: ExecOptions,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
 ) {
-
     let (control_tx, control_rx) = tokio::sync::mpsc::unbounded_channel();
     state.task_manager.register_control(&task_id, control_tx);
 
     let backend = agent::new(kind);
-    let mut session = match backend.execute(prompt, opts, cancel_rx, Some(control_rx)).await {
+    let mut session = match backend
+        .execute(prompt, opts, cancel_rx, Some(control_rx))
+        .await
+    {
         Ok(s) => s,
         Err(e) => {
             let msg = e.to_string();
@@ -357,8 +375,9 @@ async fn stream_events(
         .snapshot_and_subscribe(&task_id, last_event_id);
     let last_backlog_id = backlog.last().map(|(id, _)| *id).unwrap_or(0);
     let backlog_stream = stream::iter(
-        backlog.into_iter()
-            .map(|(id, msg)| to_sse_event(msg).map(|e| e.id(id.to_string())))
+        backlog
+            .into_iter()
+            .map(|(id, msg)| to_sse_event(msg).map(|e| e.id(id.to_string()))),
     );
 
     let boxed_stream: std::pin::Pin<Box<dyn Stream<Item = Result<Event, Infallible>> + Send>> =
@@ -379,8 +398,8 @@ async fn stream_events(
                                 continue;
                             }
                             last_seen = sequence;
-                            let event = to_sse_event(message)
-                                .map(|event| event.id(sequence.to_string()));
+                            let event =
+                                to_sse_event(message).map(|event| event.id(sequence.to_string()));
                             return Some((event, (receiver, state, task_id, last_seen, pending)));
                         }
                         match receiver.recv().await {
@@ -388,13 +407,15 @@ async fn stream_events(
                                 last_seen = sequence;
                                 let event = to_sse_event(message)
                                     .map(|event| event.id(sequence.to_string()));
-                                return Some((event, (receiver, state, task_id, last_seen, pending)));
+                                return Some((
+                                    event,
+                                    (receiver, state, task_id, last_seen, pending),
+                                ));
                             }
                             Ok(_) => continue,
                             Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
-                                pending.extend(
-                                    state.task_manager.events_after(&task_id, last_seen),
-                                );
+                                pending
+                                    .extend(state.task_manager.events_after(&task_id, last_seen));
                             }
                             Err(tokio::sync::broadcast::error::RecvError::Closed) => return None,
                         }
@@ -431,9 +452,13 @@ async fn interact_with_task(
     // Look up the task to ensure it's still running
     let task = state.task_manager.get_task(&task_id);
     if task.map_or(true, |t| t.status.is_terminal()) {
-        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Task is not running or waiting for interaction." }))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "Task is not running or waiting for interaction." })),
+        )
+            .into_response();
     }
-    
+
     let control = match body.action.as_deref().unwrap_or("respond") {
         "respond" => {
             let Some(request_id) = body.request_id.filter(|value| !value.trim().is_empty()) else {
@@ -702,11 +727,18 @@ async fn get_task_diff(
 ) -> Response {
     let task = state.task_manager.get_task(&task_id);
     if task.is_none() {
-        return (StatusCode::NOT_FOUND, Json(json!({ "error": "Task not found" }))).into_response();
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Task not found" })),
+        )
+            .into_response();
     }
     let task = task.unwrap();
     let project = task.project_path.clone();
-    let run_dir = state.runtime_config.projects_root.join(format!(".deepcloud/runs/{}", task_id));
+    let run_dir = state
+        .runtime_config
+        .projects_root
+        .join(format!(".deepcloud/runs/{}", task_id));
 
     if !project.is_empty() && run_dir.exists() {
         // Use `git diff --no-index` to compare the two directories.
@@ -723,7 +755,11 @@ async fn get_task_diff(
             // git diff --no-index returns exit code 1 if differences were found
             let diff_text = String::from_utf8_lossy(&out.stdout).to_string();
             let change_set = parse_change_set_from_diff(&diff_text);
-            state.task_manager.update_development_run(&task_id, Some(change_set), Some("pending".to_string()));
+            state.task_manager.update_development_run(
+                &task_id,
+                Some(change_set),
+                Some("pending".to_string()),
+            );
             return Json(json!({ "diff": diff_text })).into_response();
         }
     }
@@ -744,21 +780,30 @@ async fn apply_task_changes(
 ) -> Response {
     let task = state.task_manager.get_task(&task_id);
     if task.is_none() {
-        return (StatusCode::NOT_FOUND, Json(json!({ "error": "Task not found" }))).into_response();
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Task not found" })),
+        )
+            .into_response();
     }
     let task = task.unwrap();
     let project = task.project_path.clone();
-    let run_dir = state.runtime_config.projects_root.join(format!(".deepcloud/runs/{}", task_id));
+    let run_dir = state
+        .runtime_config
+        .projects_root
+        .join(format!(".deepcloud/runs/{}", task_id));
 
     if project.is_empty() || !run_dir.exists() {
-        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Workspace baseline not found or empty project." }))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "Workspace baseline not found or empty project." })),
+        )
+            .into_response();
     }
 
     // We can use the same ignore::WalkBuilder trick to copy files back,
     // overwriting the original files.
-    let walker = ignore::WalkBuilder::new(&run_dir)
-        .hidden(false)
-        .build();
+    let walker = ignore::WalkBuilder::new(&run_dir).hidden(false).build();
 
     let mut applied_count = 0;
     for result in walker {
@@ -779,7 +824,10 @@ async fn apply_task_changes(
     }
 
     // Optionally mark the task as approved
-    let _ = crate::services::git_service::record_ai_snapshot(&project, &format!("AI Changes Applied: {}", task_id));
+    let _ = crate::services::git_service::record_ai_snapshot(
+        &project,
+        &format!("AI Changes Applied: {}", task_id),
+    );
 
     Json(json!({ "status": "success", "files_applied": applied_count })).into_response()
 }

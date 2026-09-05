@@ -23,11 +23,15 @@ use crate::{
             openai_responses::OpenAiResponsesConverter, upstream::adapter_for_provider,
             ProtocolConverter,
         },
+        usage_tracker::ApiUsageRecord,
     },
     AppState,
 };
 
-use std::{sync::Arc, time::Instant};
+use std::{
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -43,8 +47,10 @@ async fn handle_request(
     state: State<Arc<AppState>>,
     headers: HeaderMap,
     converter: &dyn ProtocolConverter,
+    audit_path: &'static str,
     body: Value,
 ) -> Result<Response, (StatusCode, String)> {
+    let inbound_body_text = pretty_json(&body);
     let mut settings = llm_settings::read_llm_settings();
 
     let requested_model = body
@@ -363,6 +369,22 @@ async fn handle_request(
         if !is_stream {
             let response_text = res.text().await.unwrap_or_default();
             if !status.is_success() {
+                record_proxy_audit(ApiUsageRecord {
+                    account_id: account.id.clone(),
+                    model: requested_model.clone(),
+                    protocol: protocol_label(&account.provider),
+                    method: "POST".to_string(),
+                    path: audit_path.to_string(),
+                    status: status.as_u16(),
+                    duration_ms: elapsed_ms(attempt_started),
+                    prompt_tokens: 0,
+                    completion_tokens: 0,
+                    cached_tokens: 0,
+                    cache_write_tokens: 0,
+                    total_cost: 0.0,
+                    request_body: Some(inbound_body_text.clone()),
+                    response_body: Some(response_text.clone()),
+                });
                 let class = route_runtime.classify_http_failure(status.as_u16(), &response_text);
                 health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
                 if route_runtime.should_try_next(class, attempt < candidate_count) {
@@ -412,43 +434,54 @@ async fn handle_request(
                 elapsed_ms(attempt_started),
             );
 
-            // Intercept standard_res to extract usage
-            if let Some(usage) = standard_res.get("usage") {
-                let prompt_tokens = usage
-                    .get("prompt_tokens")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0) as u32;
-                let comp = usage
-                    .get("completion_tokens")
-                    .or_else(|| usage.get("output_tokens"))
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0) as u32;
-                if prompt_tokens > 0 || comp > 0 {
-                    let cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
-                        &requested_model,
-                        prompt_tokens,
-                        comp,
-                        0,
-                        0,
-                    );
-                    crate::services::usage_tracker::record_usage(
-                        account.id.clone(),
-                        requested_model.clone(),
-                        prompt_tokens,
-                        comp,
-                        cost,
-                    );
-                }
-            }
-
+            let usage = usage_from_value(standard_res.get("usage"));
             let converted_res = converter
                 .standard_to_response(standard_res)
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+            let cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
+                &requested_model,
+                usage.prompt_tokens,
+                usage.completion_tokens,
+                usage.cached_tokens,
+                usage.cache_write_tokens,
+            );
+            record_proxy_audit(ApiUsageRecord {
+                account_id: account.id.clone(),
+                model: requested_model.clone(),
+                protocol: protocol_label(&account.provider),
+                method: "POST".to_string(),
+                path: audit_path.to_string(),
+                status: status.as_u16(),
+                duration_ms: elapsed_ms(attempt_started),
+                prompt_tokens: usage.prompt_tokens,
+                completion_tokens: usage.completion_tokens,
+                cached_tokens: usage.cached_tokens,
+                cache_write_tokens: usage.cache_write_tokens,
+                total_cost: cost,
+                request_body: Some(inbound_body_text.clone()),
+                response_body: Some(pretty_json(&converted_res)),
+            });
 
             return Ok(Json(converted_res).into_response());
         } else {
             if !status.is_success() {
                 let err_text = res.text().await.unwrap_or_default();
+                record_proxy_audit(ApiUsageRecord {
+                    account_id: account.id.clone(),
+                    model: requested_model.clone(),
+                    protocol: protocol_label(&account.provider),
+                    method: "POST".to_string(),
+                    path: audit_path.to_string(),
+                    status: status.as_u16(),
+                    duration_ms: elapsed_ms(attempt_started),
+                    prompt_tokens: 0,
+                    completion_tokens: 0,
+                    cached_tokens: 0,
+                    cache_write_tokens: 0,
+                    total_cost: 0.0,
+                    request_body: Some(inbound_body_text.clone()),
+                    response_body: Some(err_text.clone()),
+                });
                 let class = route_runtime.classify_http_failure(status.as_u16(), &err_text);
                 health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
                 if route_runtime.should_try_next(class, attempt < candidate_count) {
@@ -483,13 +516,22 @@ async fn handle_request(
                 track_provider_stream(standard_stream, health_key.clone(), attempt_started);
 
             // Intercept standard_stream for SSE usage extraction
-            let account_id = account.id.clone();
-            let req_model = requested_model.clone();
-            let intercepted_stream = futures::stream::StreamExt::map(
-                standard_stream,
-                move |chunk_res| {
+            let stream_audit = Arc::new(Mutex::new(StreamAuditState::new(
+                account.id.clone(),
+                requested_model.clone(),
+                protocol_label(&account.provider),
+                audit_path.to_string(),
+                status.as_u16(),
+                attempt_started,
+                inbound_body_text.clone(),
+            )));
+            let intercepted_stream =
+                futures::stream::StreamExt::map(standard_stream, move |chunk_res| {
                     if let Ok(chunk) = &chunk_res {
                         if let Ok(text) = std::str::from_utf8(chunk) {
+                            if let Ok(mut audit) = stream_audit.lock() {
+                                audit.push_response(text);
+                            }
                             // Quick and dirty SSE parse for usage
                             for line in text.lines() {
                                 if line.starts_with("data: ") && line != "data: [DONE]" {
@@ -497,36 +539,36 @@ async fn handle_request(
                                         serde_json::from_str::<serde_json::Value>(&line[6..])
                                     {
                                         if let Some(usage) = json.get("usage") {
-                                            let prompt_tokens = usage
-                                                .get("prompt_tokens")
-                                                .and_then(|v| v.as_u64())
-                                                .unwrap_or(0)
-                                                as u32;
-                                            let comp = usage
-                                                .get("completion_tokens")
-                                                .or_else(|| usage.get("output_tokens"))
-                                                .and_then(|v| v.as_u64())
-                                                .unwrap_or(0)
-                                                as u32;
-                                            if prompt_tokens > 0 || comp > 0 {
-                                                let cost = crate::services::cost_calculator::CostCalculator::calculate_cost(&req_model, prompt_tokens, comp, 0, 0);
-                                                crate::services::usage_tracker::record_usage(
-                                                    account_id.clone(),
-                                                    req_model.clone(),
-                                                    prompt_tokens,
-                                                    comp,
-                                                    cost,
-                                                );
+                                            if let Ok(mut audit) = stream_audit.lock() {
+                                                audit.apply_usage(usage_from_value(Some(usage)));
                                             }
                                         }
+                                        let finished = json
+                                            .get("choices")
+                                            .and_then(Value::as_array)
+                                            .is_some_and(|choices| {
+                                                choices.iter().any(|choice| {
+                                                    choice
+                                                        .get("finish_reason")
+                                                        .is_some_and(|reason| !reason.is_null())
+                                                })
+                                            });
+                                        if finished {
+                                            if let Ok(mut audit) = stream_audit.lock() {
+                                                audit.record_once();
+                                            }
+                                        }
+                                    }
+                                } else if line == "data: [DONE]" {
+                                    if let Ok(mut audit) = stream_audit.lock() {
+                                        audit.record_once();
                                     }
                                 }
                             }
                         }
                     }
                     chunk_res
-                },
-            );
+                });
 
             let mapped_stream = converter.standard_to_response_stream(Box::pin(intercepted_stream));
 
@@ -550,7 +592,14 @@ async fn handle_anthropic(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Response, (StatusCode, String)> {
-    handle_request(State(state), headers, &AnthropicConverter, body).await
+    handle_request(
+        State(state),
+        headers,
+        &AnthropicConverter,
+        "/v1/messages",
+        body,
+    )
+    .await
 }
 
 async fn handle_openai_chat(
@@ -558,7 +607,14 @@ async fn handle_openai_chat(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Response, (StatusCode, String)> {
-    handle_request(State(state), headers, &OpenAiConverter, body).await
+    handle_request(
+        State(state),
+        headers,
+        &OpenAiConverter,
+        "/v1/chat/completions",
+        body,
+    )
+    .await
 }
 
 async fn handle_openai_completions(
@@ -566,7 +622,14 @@ async fn handle_openai_completions(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Response, (StatusCode, String)> {
-    handle_request(State(state), headers, &OpenAiConverter, body).await
+    handle_request(
+        State(state),
+        headers,
+        &OpenAiConverter,
+        "/v1/completions",
+        body,
+    )
+    .await
 }
 
 async fn handle_openai_responses(
@@ -574,7 +637,14 @@ async fn handle_openai_responses(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Response, (StatusCode, String)> {
-    handle_request(State(state), headers, &OpenAiResponsesConverter, body).await
+    handle_request(
+        State(state),
+        headers,
+        &OpenAiResponsesConverter,
+        "/v1/responses",
+        body,
+    )
+    .await
 }
 
 async fn handle_gemini(
@@ -582,7 +652,14 @@ async fn handle_gemini(
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> Result<Response, (StatusCode, String)> {
-    handle_request(State(state), headers, &GeminiConverter, body).await
+    handle_request(
+        State(state),
+        headers,
+        &GeminiConverter,
+        "/v1beta/models/*",
+        body,
+    )
+    .await
 }
 
 async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
@@ -810,6 +887,152 @@ fn json_error_body(raw: &str) -> Value {
 
 fn elapsed_ms(started: Instant) -> u64 {
     started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct ExtractedUsage {
+    prompt_tokens: u32,
+    completion_tokens: u32,
+    cached_tokens: u32,
+    cache_write_tokens: u32,
+}
+
+fn usage_from_value(usage: Option<&Value>) -> ExtractedUsage {
+    let Some(usage) = usage else {
+        return ExtractedUsage::default();
+    };
+    ExtractedUsage {
+        prompt_tokens: token_field(usage, &["prompt_tokens", "input_tokens"]),
+        completion_tokens: token_field(usage, &["completion_tokens", "output_tokens"]),
+        cached_tokens: token_field(
+            usage,
+            &[
+                "cached_tokens",
+                "cache_read_input_tokens",
+                "cached_content_token_count",
+                "prompt_tokens_details.cached_tokens",
+                "input_tokens_details.cached_tokens",
+                "input_token_details.cache_read",
+            ],
+        ),
+        cache_write_tokens: token_field(
+            usage,
+            &[
+                "cache_write_tokens",
+                "cache_creation_input_tokens",
+                "input_token_details.cache_creation",
+            ],
+        ),
+    }
+}
+
+fn token_field(value: &Value, paths: &[&str]) -> u32 {
+    paths
+        .iter()
+        .find_map(|path| {
+            path.split('.')
+                .try_fold(value, |current, segment| current.get(segment))
+                .and_then(Value::as_u64)
+        })
+        .unwrap_or(0)
+        .min(u64::from(u32::MAX)) as u32
+}
+
+fn protocol_label(provider: &str) -> String {
+    match provider {
+        "anthropic" | "claude" => "ANTHROPIC",
+        "gemini" | "gemini_native" => "GEMINI",
+        _ => "OpenAI",
+    }
+    .to_string()
+}
+
+fn pretty_json(value: &Value) -> String {
+    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
+}
+
+fn record_proxy_audit(record: ApiUsageRecord) {
+    crate::services::usage_tracker::record_api_call(record);
+}
+
+struct StreamAuditState {
+    account_id: String,
+    model: String,
+    protocol: String,
+    path: String,
+    status: u16,
+    started: Instant,
+    request_body: String,
+    response_body: String,
+    usage: ExtractedUsage,
+    recorded: bool,
+}
+
+impl StreamAuditState {
+    fn new(
+        account_id: String,
+        model: String,
+        protocol: String,
+        path: String,
+        status: u16,
+        started: Instant,
+        request_body: String,
+    ) -> Self {
+        Self {
+            account_id,
+            model,
+            protocol,
+            path,
+            status,
+            started,
+            request_body,
+            response_body: String::new(),
+            usage: ExtractedUsage::default(),
+            recorded: false,
+        }
+    }
+
+    fn push_response(&mut self, text: &str) {
+        const MAX_RESPONSE_CHARS: usize = 200_000;
+        let remaining = MAX_RESPONSE_CHARS.saturating_sub(self.response_body.chars().count());
+        if remaining > 0 {
+            self.response_body.extend(text.chars().take(remaining));
+        }
+    }
+
+    fn apply_usage(&mut self, usage: ExtractedUsage) {
+        self.usage = usage;
+    }
+
+    fn record_once(&mut self) {
+        if self.recorded {
+            return;
+        }
+        self.recorded = true;
+        let cost = crate::services::cost_calculator::CostCalculator::calculate_cost(
+            &self.model,
+            self.usage.prompt_tokens,
+            self.usage.completion_tokens,
+            self.usage.cached_tokens,
+            self.usage.cache_write_tokens,
+        );
+        record_proxy_audit(ApiUsageRecord {
+            account_id: self.account_id.clone(),
+            model: self.model.clone(),
+            protocol: self.protocol.clone(),
+            method: "POST".to_string(),
+            path: self.path.clone(),
+            status: self.status,
+            duration_ms: elapsed_ms(self.started),
+            prompt_tokens: self.usage.prompt_tokens,
+            completion_tokens: self.usage.completion_tokens,
+            cached_tokens: self.usage.cached_tokens,
+            cache_write_tokens: self.usage.cache_write_tokens,
+            total_cost: cost,
+            request_body: Some(self.request_body.clone()),
+            response_body: Some(self.response_body.clone()),
+        });
+    }
 }
 
 #[cfg(test)]
