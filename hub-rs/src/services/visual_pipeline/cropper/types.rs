@@ -14,6 +14,7 @@ pub enum Action {
     Translate,
     TTS,
     Record,
+    ToggleMute,
     RecordPause,
     RecordResume,
     RecordStop,
@@ -155,6 +156,7 @@ pub struct RecordingState {
 }
 
 pub struct AppState {
+    pub is_record_muted: bool,
     pub analysis_job: Option<super::analysis::AnalysisJob>,
     pub record_job: Option<std::sync::mpsc::Receiver<Result<super::actions::RecordOutcome, String>>>,
     pub text_lines: Vec<super::text_selection::TextLine>,

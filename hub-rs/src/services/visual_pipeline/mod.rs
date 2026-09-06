@@ -578,6 +578,10 @@ fn normalize_settings(settings: &mut VisualSettings) -> Result<(), String> {
     settings.ocr_provider = settings.ocr_provider.trim().to_string();
     settings.translation_provider = settings.translation_provider.trim().to_string();
     settings.default_target_language = settings.default_target_language.trim().to_string();
+    settings.default_record_audio = settings.default_record_audio.trim().to_lowercase();
+    if !["none", "mic", "system", "both"].contains(&settings.default_record_audio.as_str()) {
+        settings.default_record_audio = "system".to_string();
+    }
     if settings.default_target_language.is_empty() || settings.default_target_language.len() > 32 {
         return Err("defaultTargetLanguage must contain 1..32 characters".to_string());
     }

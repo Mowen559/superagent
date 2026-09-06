@@ -89,6 +89,10 @@ fn default_system_prompt() -> String {
     "".to_string()
 }
 
+fn default_record_audio() -> String {
+    "system".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VisualSettings {
@@ -108,6 +112,8 @@ pub struct VisualSettings {
     pub default_translation_model: String,
     #[serde(default = "default_system_prompt")]
     pub default_system_prompt: String,
+    #[serde(default = "default_record_audio")]
+    pub default_record_audio: String,
 }
 
 impl Default for VisualSettings {
@@ -121,6 +127,7 @@ impl Default for VisualSettings {
             default_target_language: default_target_language(),
             default_translation_model: default_translation_model(),
             default_system_prompt: default_system_prompt(),
+            default_record_audio: default_record_audio(),
         }
     }
 }

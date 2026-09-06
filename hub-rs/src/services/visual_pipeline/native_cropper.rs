@@ -125,6 +125,7 @@ pub fn run_interactive_capture(
 
     tracing::info!("[NativeCropper] Step 5: Preparing AppState and toolbar");
     let mut state = Box::new(AppState {
+        is_record_muted: false,
         analysis_job: None, record_job: None, text_lines: Vec::new(), selected_spans: Vec::new(),
         status_text: String::new(), last_saved_path: None, input_window: None,
         frame_width: width,

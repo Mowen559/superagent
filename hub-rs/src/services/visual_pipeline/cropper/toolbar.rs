@@ -88,6 +88,7 @@ pub fn setup_toolbar(state: &mut AppState) {
         (Action::Ocr, "T", "提取文字 (OCR)"),
         (Action::Translate, "\u{E775}", "就地翻译"),
         (Action::Record, "\u{E714}", "区域录屏"),
+        (Action::ToggleMute, if state.is_record_muted { "\u{E74F}" } else { "\u{E767}" }, if state.is_record_muted { "已静音 (点击开启)" } else { "录音中 (点击静音)" }),
         (Action::Pin, "\u{E718}", "贴在桌面"),
         (Action::Copy, "\u{E8C8}", "复制到剪贴板"),
         (Action::Accept, "\u{E73E}", "确认完成"),

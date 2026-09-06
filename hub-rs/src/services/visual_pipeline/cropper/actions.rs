@@ -140,6 +140,17 @@ unsafe fn recording_region(hwnd: HWND, state: &AppState, enabled: bool) -> Resul
 unsafe fn start_record_job(hwnd: HWND, state: &mut AppState, action: Action) -> Result<(), String> {
     let rect = state.crop_rect.ok_or("请先选择范围")?;
     let dir = state.vp.as_ref().ok_or("视觉引擎不可用")?.artifact_dir().to_path_buf();
+    let audio_config = if state.is_record_muted {
+        AudioConfig::None
+    } else {
+        let default_audio = state.vp.as_ref().map(|vp| vp.settings().default_record_audio).unwrap_or_else(|| "system".to_string());
+        match default_audio.as_str() {
+            "mic" => AudioConfig::Mic("".to_string()),
+            "system" => AudioConfig::System("".to_string()),
+            "both" => AudioConfig::Both { mic: "".to_string(), sys: "".to_string() },
+            _ => AudioConfig::None,
+        }
+    };
     if action == Action::Record {
         state.mode = AppMode::Recording;
         setup_toolbar(state);
@@ -149,7 +160,7 @@ unsafe fn start_record_job(hwnd: HWND, state: &mut AppState, action: Action) -> 
     let (sender, receiver) = mpsc::channel();
     std::thread::Builder::new().name("CropperRecording".into()).spawn(move || {
         let result = match action {
-            Action::Record => record_manager::start_recording(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,dir,AudioConfig::None).map(|_| RecordOutcome::Started),
+            Action::Record => record_manager::start_recording(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,dir,audio_config).map(|_| RecordOutcome::Started),
             Action::RecordPause => record_manager::pause_recording().map(|_| RecordOutcome::Paused),
             Action::RecordResume => record_manager::resume_recording().map(|_| RecordOutcome::Resumed),
             Action::RecordDiscard => record_manager::discard_recording().map(|_| RecordOutcome::Discarded),
@@ -204,6 +215,11 @@ pub unsafe fn handle(hwnd: HWND, state: &mut AppState, action: Action) {
                     Err(e)=>status(hwnd,state,format!("复制失败：{e}")),
                 }
             }
+        }
+        Action::ToggleMute => {
+            state.is_record_muted = !state.is_record_muted;
+            setup_toolbar(state);
+            let _ = InvalidateRect(Some(hwnd), None, false);
         }
         Action::Save => { if let Err(e)=save_png(hwnd,state) { status(hwnd,state,format!("保存失败：{e}")); } }
         Action::Record | Action::RecordPause | Action::RecordResume | Action::RecordStop | Action::RecordDiscard => {
