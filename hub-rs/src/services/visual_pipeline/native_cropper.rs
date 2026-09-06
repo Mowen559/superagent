@@ -637,9 +637,8 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                 // Native capture interaction.
                 draw_translated_lines(hdc_mem, state);
                 draw_ocr_blocks(hdc_mem,state);
-                RestoreDC(hdc_mem,saved_dc);
-
-                // Native capture interaction.
+                let _ = RestoreDC(hdc_mem,saved_dc);
+                let _ = DeleteDC(hdc_mem);
                 if state.mode == AppMode::Selecting && state.crop_rect.is_none() {
                     draw_magnifier(hdc_mem, state.current_pt, state);
                 }

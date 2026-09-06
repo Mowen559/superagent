@@ -1,3 +1,4 @@
+#![allow(unsafe_op_in_unsafe_fn)]
 #![allow(
     dead_code,
     unused_variables,

@@ -107,7 +107,7 @@ unsafe fn draw_stroke(dc: HDC, s: &StrokeData, state: &AppState, bmi: &BITMAPINF
     let old_pen = SelectObject(dc, stroke_pen.into());
 
     if s.is_eraser {
-        BeginPath(dc);
+        let _ = BeginPath(dc);
         let _ = MoveToEx(dc, s.points[0].x, s.points[0].y, None);
         for pt in s.points.iter().skip(1) {
             let _ = LineTo(dc, pt.x, pt.y);
