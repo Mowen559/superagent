@@ -1,13 +1,13 @@
 use std::ffi::c_void;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::channel;
 use std::sync::Arc;
-use windows::core::{w, PCWSTR, Result};
+use windows::core::w;
 use windows::Win32::Foundation::{
-    COLORREF, HINSTANCE, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM,
+    COLORREF, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM,
 };
 use windows::Win32::Graphics::Gdi::{
-    BeginPaint, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreateDIBSection,
-    DeleteDC, DeleteObject, EndPaint, InvalidateRect, ScreenToClient, SelectObject, StretchDIBits,
+    BeginPaint, BitBlt, CreateCompatibleDC, CreateDIBSection,
+    DeleteDC, DeleteObject, EndPaint, InvalidateRect, ScreenToClient, SelectObject, SaveDC, RestoreDC, IntersectClipRect,
     UpdateWindow, GdiFlush, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, PAINTSTRUCT, SRCCOPY,
 };
 use windows::Win32::System::DataExchange::{
@@ -17,14 +17,14 @@ use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GHND};
 use windows::Win32::UI::HiDpi::{SetThreadDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, SetFocus, VK_CONTROL, VK_ESCAPE, VK_RETURN,
+    GetAsyncKeyState, SetFocus, SetCapture, ReleaseCapture, VK_CONTROL, VK_ESCAPE, VK_RETURN,
 };
-use windows::Win32::UI::WindowsAndMessaging::{
+use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MB_ICONINFORMATION, WM_USER, 
     BringWindowToTop, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetCursorPos,
-    GetMessageW, GetSystemMetrics, GetWindowLongPtrW, KillTimer, LoadCursorW, PostQuitMessage,
+    GetMessageW, GetWindowLongPtrW, KillTimer, LoadCursorW, PostQuitMessage,
     RegisterClassW, SetCursor, SetForegroundWindow, SetTimer, ShowWindow,
     SetWindowLongPtrW, TranslateMessage, GWLP_USERDATA, IDC_ARROW, IDC_CROSS,
-    MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDBLCLK, WM_LBUTTONDOWN,
+    MSG, SW_SHOW, WM_CLOSE, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDBLCLK, WM_LBUTTONDOWN,
     WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCCREATE, WM_PAINT, WM_RBUTTONDOWN, WM_SETCURSOR, WM_TIMER,
     WNDCLASSW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP, WS_VISIBLE,
 };
@@ -36,14 +36,10 @@ use crate::services::visual_pipeline::cropper::draw::{
     draw_border, draw_elements, draw_in_progress, draw_magnifier, draw_ocr_blocks,
     draw_recording_border, draw_translated_lines,
 };
-use crate::services::visual_pipeline::cropper::recording::{
-    discard_crop_recording, start_crop_recording, stop_and_save_recording,
-    toggle_pause_recording,
-};
 use crate::services::visual_pipeline::cropper::toolbar::{draw_toolbar, setup_toolbar};
 use crate::services::visual_pipeline::cropper::types::{
     pt_in_rect, Action, AppMode, AppState, ArrowData, CroppedResult, DrawElement,
-    EllipseData, MosaicData, OcrBox, RectData, StrokeData, TranslatedBox, PREDEFINED_COLORS,
+    EllipseData, MosaicData, RectData, StrokeData, PREDEFINED_COLORS,
 };
 use crate::services::visual_pipeline::VisualPipelineRuntime;
 
@@ -51,7 +47,12 @@ pub use crate::services::visual_pipeline::cropper::types::CroppedResult as Nativ
 
 use crate::services::visual_pipeline::cropper::pixels::{clip_rect, crop_rgba, paint_snapshot};
 
+use crate::services::visual_pipeline::cropper::{actions, text_selection};
+
 const TIMER_RECORDING_ID: usize = 1001;
+const WM_OCR_DONE: u32 = WM_USER + 100;
+const WM_TRANSLATE_DONE: u32 = WM_USER + 101;
+const WM_USER_102: u32 = WM_USER + 102;
 
 static IS_CROPPER_ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 static ACTIVE_HWND: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
@@ -64,7 +65,7 @@ impl Drop for CropperGuard {
     }
 }
 
-/// 鍚姩鍏ㄥ姛鑳藉師鐢熶氦浜掑紡鎴睆/褰曞睆绐楀彛
+// Native capture interaction.
 pub fn run_interactive_capture(
     vp: Arc<VisualPipelineRuntime>,
 ) -> std::result::Result<Option<(Vec<u8>, String, i32, i32, i32, i32)>, String> {
@@ -85,7 +86,7 @@ pub fn run_interactive_capture(
     let _guard = CropperGuard;
     tracing::info!("[NativeCropper] Step 1: Starting interactive capture");
 
-    // 鍚敤 Per-Monitor V2 DPI 鎰熺煡锛岀‘淇濈墿鐞嗗儚绱?1:1 绮剧‘鍖归厤
+    // Native capture interaction.
     unsafe {
         let _ = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
@@ -124,6 +125,8 @@ pub fn run_interactive_capture(
 
     tracing::info!("[NativeCropper] Step 5: Preparing AppState and toolbar");
     let mut state = Box::new(AppState {
+        analysis_job: None, record_job: None, text_lines: Vec::new(), selected_spans: Vec::new(),
+        status_text: String::new(), last_saved_path: None, input_window: None,
         frame_width: width,
         frame_height: height,
         bgra_pixels: bgra,
@@ -218,6 +221,7 @@ pub fn run_interactive_capture(
         let _ = InvalidateRect(Some(hwnd), None, false);
 
         tracing::info!("[NativeCropper] Window successfully shown: HWND 0x{:X}", hwnd.0 as usize);
+        let _ = SetTimer(Some(hwnd), TIMER_RECORDING_ID, 100, None);
         hwnd
     };
 
@@ -321,339 +325,162 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
             LRESULT(1)
         },
         WM_SETCURSOR => unsafe {
-            if let Some(state) = state_mut(hwnd) {
-                if state.mode == AppMode::ToolbarActive || state.mode == AppMode::Recording {
-                    let _ = SetCursor(Some(LoadCursorW(None, IDC_ARROW).unwrap()));
-                    return LRESULT(1);
-                }
-            }
+            let cursor = if state_mut(hwnd).is_some_and(|s| s.mode == AppMode::Selecting) { IDC_CROSS } else { IDC_ARROW };
+            let _ = SetCursor(LoadCursorW(None, cursor).ok());
             LRESULT(1)
         },
         WM_ERASEBKGND => LRESULT(1),
+        WM_CLOSE => unsafe { handle_action(hwnd, Action::Cancel); LRESULT(0) },
         WM_TIMER => unsafe {
-            if wparam.0 == TIMER_RECORDING_ID {
-                if let Some(state) = state_mut(hwnd) {
-                    if let Some(session) = &mut state.recording_session {
-                        if !session.is_paused {
-                            session.elapsed_secs = session.start_time.elapsed().as_secs();
-                            let _ = InvalidateRect(Some(hwnd), None, false);
-                        }
-                    }
+            if let Some(state) = state_mut(hwnd) {
+                actions::poll(hwnd, state);
+                if let Some(session) = &mut state.recording_session {
+                    if !session.is_paused { session.elapsed_secs = session.start_time.elapsed().as_secs(); }
+                    let _ = InvalidateRect(Some(hwnd), None, false);
                 }
             }
             LRESULT(0)
         },
         WM_KEYDOWN => unsafe {
             let key = wparam.0;
-            if key == VK_ESCAPE.0 as usize {
-                if let Some(state) = state_mut(hwnd) {
-                    if state.mode == AppMode::Recording {
-                        let _ = discard_crop_recording(state);
-                    }
-                    if let Some(tx) = state.result_tx.take() {
-                        let _ = tx.send(None);
-                    }
-                }
-                let _ = DestroyWindow(hwnd);
-            } else if key == VK_RETURN.0 as usize {
-                // 鍥炶溅蹇嵎纭鎴浘
-                handle_action(hwnd, Action::Accept);
-            } else if key == 'Z' as usize && (GetAsyncKeyState(VK_CONTROL.0 as i32) as u16 & 0x8000) != 0 {
-                if let Some(state) = state_mut(hwnd) {
-                    if let Some(el) = state.elements.pop() {
-                        state.redo_stack.push(el);
-                        let _ = InvalidateRect(Some(hwnd), None, false);
-                    }
-                }
-            } else if key == 'Y' as usize && (GetAsyncKeyState(VK_CONTROL.0 as i32) as u16 & 0x8000) != 0 {
-                if let Some(state) = state_mut(hwnd) {
-                    if let Some(el) = state.redo_stack.pop() {
-                        state.elements.push(el);
-                        let _ = InvalidateRect(Some(hwnd), None, false);
-                    }
-                }
+            let control = (GetAsyncKeyState(VK_CONTROL.0 as i32) as u16 & 0x8000) != 0;
+            if let Some(state) = state_mut(hwnd) {
+                if control && key == 'A' as usize && state.mode == AppMode::SelectingText {
+                    state.selected_spans = text_selection::selection(&state.text_lines, [0,0], [0,0], true);
+                    let _ = InvalidateRect(Some(hwnd), None, false);
+                } else if control && key == 'C' as usize && state.mode == AppMode::SelectingText {
+                    actions::copy_selection(hwnd, state);
+                } else if control && key == 'S' as usize {
+                    handle_action(hwnd, if state.mode == AppMode::Recording { Action::RecordStop } else { Action::Save });
+                } else if control && key == 'Z' as usize { handle_action(hwnd, Action::Undo); }
+                else if control && key == 'Y' as usize { handle_action(hwnd, Action::Redo); }
+                else if key == VK_ESCAPE.0 as usize { handle_action(hwnd, Action::Cancel); }
+                else if key == VK_RETURN.0 as usize && !actions::busy(state) { handle_action(hwnd, Action::Accept); }
             }
             LRESULT(0)
         },
         WM_LBUTTONDOWN => unsafe {
             if let Some(state) = state_mut(hwnd) {
-                let mut pt_screen = POINT::default();
-                let _ = GetCursorPos(&mut pt_screen);
-                let mut pt = pt_screen;
-                let _ = ScreenToClient(hwnd, &mut pt);
-
-                // 1. 褰曞睆鎺у埗鏉＄偣鍑诲垽瀹
-                if state.mode == AppMode::Recording {
-                    for btn in &state.record_buttons {
-                        if pt_in_rect(&btn.rect, pt) {
-                            handle_action(hwnd, btn.action);
-                            return LRESULT(0);
-                        }
-                    }
-                    return LRESULT(0);
-                }
-
-                // 2. 涓诲伐鍏锋爮涓庝簩绾ц彍鍗曠偣鍑诲垽瀹
-                if state.mode == AppMode::ToolbarActive || is_annotation_mode(state.mode) {
-                    let mut clicked = false;
-
-                    // 璋冭壊鐩
-                    for btn in &state.color_buttons {
-                        if pt_in_rect(&btn.rect, pt) {
-                            clicked = true;
-                            if let Action::ColorPick(c) = btn.action {
-                                state.current_color = c;
-                                state.is_eraser = false;
-                                setup_toolbar(state);
-                                let _ = InvalidateRect(Some(hwnd), None, false);
-                            }
-                            break;
-                        }
-                    }
-
-                    // 绮楃粏
-                    if !clicked {
-                        for btn in &state.sub_tool_buttons {
-                            if pt_in_rect(&btn.rect, pt) {
-                                clicked = true;
-                                if let Action::Thickness(t) = btn.action {
-                                    state.current_thickness = t;
-                                    setup_toolbar(state);
-                                    let _ = InvalidateRect(Some(hwnd), None, false);
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    // 涓诲姛鑳芥寜鎵
-                    if !clicked {
-                        for btn in &state.buttons {
-                            if pt_in_rect(&btn.rect, pt) {
-                                clicked = true;
-                                handle_action(hwnd, btn.action);
-                                break;
-                            }
-                        }
-                    }
-
-                    if clicked {
-                        return LRESULT(0);
+                let point = client_cursor(hwnd);
+                let action = state.record_buttons.iter().chain(state.buttons.iter()).chain(state.color_buttons.iter())
+                    .chain(state.sub_tool_buttons.iter()).find(|b| pt_in_rect(&b.rect, point)).map(|b| b.action);
+                if let Some(action) = action { handle_action(hwnd, action); return LRESULT(0); }
+                if actions::busy(state) || matches!(state.mode, AppMode::Recording | AppMode::Saved) { return LRESULT(0); }
+                actions::commit_text(state);
+                let _ = SetFocus(Some(hwnd));
+                if state.mode == AppMode::Selecting {
+                    state.start_pt = point; state.current_pt = point; state.is_dragging = true;
+                    SetCapture(hwnd);
+                } else if state.crop_rect.is_some_and(|r| pt_in_rect(&r, point)) {
+                    if state.mode == AppMode::SelectingText {
+                        state.is_selecting_text = true;
+                        state.selected_spans.clear();
+                        state.text_selection_start = point;
+                        state.text_selection_current = point;
+                        SetCapture(hwnd);
+                    } else if state.mode == AppMode::DrawingText {
+                        actions::start_text(hwnd, state, point);
+                    } else if is_annotation_mode(state.mode) {
+                        state.start_pt=point;state.current_pt=point;state.is_dragging=true;
+                        if state.mode == AppMode::DrawingPen { state.current_stroke = Some(vec![point]); }
+                        SetCapture(hwnd);
                     }
                 }
-
-                // 3. 鐢诲竷浜や簰锛堟爣娉ㄣ€佹秱楦︽垨鍒掗€夛級
-                if is_annotation_mode(state.mode) {
-                    state.is_dragging = true;
-                    state.start_pt = pt;
-                    state.current_pt = pt;
-                    if state.mode == AppMode::DrawingPen {
-                        state.current_stroke = Some(vec![pt]);
-                    }
-                    let _ = InvalidateRect(Some(hwnd), None, false);
-                } else if state.mode == AppMode::SelectingText {
-                    state.is_selecting_text = true;
-                    state.text_selection_start = pt;
-                    state.text_selection_current = pt;
-                    let _ = InvalidateRect(Some(hwnd), None, false);
-                } else {
-                    // 寮€濮嬫嫋閫夋埅灞忛€夊尯
-                    state.is_dragging = true;
-                    state.start_pt = pt;
-                    state.current_pt = pt;
-                    state.mode = AppMode::Selecting;
-                    if let Some(rect_screen) = state.hovered_rect {
-                        let mut top_left = POINT { x: rect_screen.left, y: rect_screen.top };
-                        let mut bottom_right = POINT { x: rect_screen.right, y: rect_screen.bottom };
-                        let _ = ScreenToClient(hwnd, &mut top_left);
-                        let _ = ScreenToClient(hwnd, &mut bottom_right);
-                        state.crop_rect = Some(RECT { left: top_left.x, top: top_left.y, right: bottom_right.x, bottom: bottom_right.y });
-                    } else {
-                        state.crop_rect = None;
-                    }
-                }
+                let _=InvalidateRect(Some(hwnd),None,false);
             }
             LRESULT(0)
         },
         WM_MOUSEMOVE => unsafe {
-            if let Some(state) = state_mut(hwnd) {
-                let mut pt_screen = POINT::default();
-                let _ = GetCursorPos(&mut pt_screen);
-                let mut pt = pt_screen;
-                let _ = ScreenToClient(hwnd, &mut pt);
-
-                if state.mode == AppMode::DrawingPen && state.is_dragging {
-                    if let Some(stroke) = &mut state.current_stroke {
-                        if let Some(last_pt) = stroke.last() {
-                            let dx = pt.x - last_pt.x;
-                            let dy = pt.y - last_pt.y;
-                            if dx * dx + dy * dy > 9 {
-                                stroke.push(pt);
-                                let _ = InvalidateRect(Some(hwnd), None, false);
-                            }
-                        }
-                    }
+            if let Some(state)=state_mut(hwnd) {
+                let point=client_cursor(hwnd);
+                state.hovered_action=state.record_buttons.iter().chain(state.buttons.iter()).chain(state.color_buttons.iter())
+                    .chain(state.sub_tool_buttons.iter()).find(|b| pt_in_rect(&b.rect,point)).map(|b| b.action);
+                if state.is_selecting_text {
+                    state.text_selection_current=point;
+                    state.selected_spans=text_selection::selection(&state.text_lines,
+                        [state.text_selection_start.x,state.text_selection_start.y],[point.x,point.y],false);
                 } else if state.is_dragging {
-                    state.current_pt = pt;
-                    let _ = InvalidateRect(Some(hwnd), None, false);
-                } else if state.is_selecting_text {
-                    state.text_selection_current = pt;
-                    let _ = InvalidateRect(Some(hwnd), None, false);
-                } else if state.mode == AppMode::ToolbarActive || is_annotation_mode(state.mode) {
-                    // 宸ュ叿鏍忔偓鍋滄彁绀
-                    let mut hovered = None;
-                    for btn in &state.buttons {
-                        if pt_in_rect(&btn.rect, pt) {
-                            hovered = Some(btn.action);
-                            break;
-                        }
-                    }
-                    if state.hovered_action != hovered {
-                        state.hovered_action = hovered;
-                        let _ = InvalidateRect(Some(hwnd), None, false);
+                    state.current_pt=point;
+                    if let Some(stroke)=&mut state.current_stroke {
+                        if stroke.last().is_none_or(|p| p.x!=point.x || p.y!=point.y) { stroke.push(point); }
                     }
                 } else if state.mode == AppMode::Selecting {
-                    state.current_pt = pt;
-                    // 鏅鸿兘 UI 鍏冪礌鍚搁檮
-                    if let Some(svc) = &mut state.ui_service {
-                        if let Ok(Some(rects)) = svc.hit_test_point(pt_screen, HitTestMode::Window) {
-                            if let Some(r) = rects.first() {
-                                let new_rect = RECT { left: r.left(), top: r.top(), right: r.right(), bottom: r.bottom() };
-                                if state.hovered_rect.as_ref() != Some(&new_rect) {
-                                    state.hovered_rect = Some(new_rect);
-                                }
-                            }
-                        }
-                    }
-                    let _ = InvalidateRect(Some(hwnd), None, false);
+                    state.current_pt=point;
+                    let mut global=POINT::default();let _=GetCursorPos(&mut global);
+                    state.hovered_rect=state.ui_service.as_mut().and_then(|svc| svc.hit_test_point(global,HitTestMode::Window).ok().flatten())
+                        .and_then(|rects| rects.first().map(|r| RECT{left:r.left(),top:r.top(),right:r.right(),bottom:r.bottom()}));
                 }
+                let _=InvalidateRect(Some(hwnd),None,false);
             }
             LRESULT(0)
         },
         WM_LBUTTONUP => unsafe {
-            if let Some(state) = state_mut(hwnd) {
-                if state.mode == AppMode::DrawingPen {
-                    if let Some(stroke) = state.current_stroke.take() {
-                        state.elements.push(DrawElement::Stroke(StrokeData {
-                            points: stroke,
-                            color: state.current_color,
-                            thickness: state.current_thickness,
-                            is_eraser: state.is_eraser,
-                        }));
-                        state.redo_stack.clear();
-                        let _ = InvalidateRect(Some(hwnd), None, false);
-                    }
-                    state.is_dragging = false;
-                } else if is_annotation_mode(state.mode) && state.is_dragging {
-                    state.is_dragging = false;
-                    let left = std::cmp::min(state.start_pt.x, state.current_pt.x);
-                    let top = std::cmp::min(state.start_pt.y, state.current_pt.y);
-                    let right = std::cmp::max(state.start_pt.x, state.current_pt.x);
-                    let bottom = std::cmp::max(state.start_pt.y, state.current_pt.y);
-
-                    match state.mode {
-                        AppMode::DrawingRect => {
-                            state.elements.push(DrawElement::Rect(RectData {
-                                rect: RECT { left, top, right, bottom },
-                                color: state.current_color,
-                                thickness: state.current_thickness,
-                            }));
-                        }
-                        AppMode::DrawingArrow => {
-                            state.elements.push(DrawElement::Arrow(ArrowData {
-                                start: state.start_pt,
-                                end: state.current_pt,
-                                color: state.current_color,
-                                thickness: state.current_thickness,
-                            }));
-                        }
-                        AppMode::DrawingEllipse => {
-                            state.elements.push(DrawElement::Ellipse(EllipseData {
-                                rect: RECT { left, top, right, bottom },
-                                color: state.current_color,
-                                thickness: state.current_thickness,
-                            }));
-                        }
-                        AppMode::DrawingMosaic => {
-                            state.elements.push(DrawElement::Mosaic(MosaicData {
-                                rect: RECT { left, top, right, bottom },
-                                block_size: 12,
-                            }));
-                        }
-                        _ => {}
-                    }
-                    state.redo_stack.clear();
-                    let _ = InvalidateRect(Some(hwnd), None, false);
-                } else if state.is_selecting_text {
-                    state.is_selecting_text = false;
-                    let _ = InvalidateRect(Some(hwnd), None, false);
+            if let Some(state)=state_mut(hwnd) {
+                let point=client_cursor(hwnd);
+                if state.is_selecting_text {
+                    state.text_selection_current=point;
+                    state.selected_spans=text_selection::selection(&state.text_lines,
+                        [state.text_selection_start.x,state.text_selection_start.y],[point.x,point.y],false);
+                    state.is_selecting_text=false;
                 } else if state.is_dragging {
-                    state.is_dragging = false;
-                    let left = std::cmp::min(state.start_pt.x, state.current_pt.x);
-                    let top = std::cmp::min(state.start_pt.y, state.current_pt.y);
-                    let right = std::cmp::max(state.start_pt.x, state.current_pt.x);
-                    let bottom = std::cmp::max(state.start_pt.y, state.current_pt.y);
-
-                    let width = right - left;
-                    let height = bottom - top;
-
-                    if width > 5 || height > 5 {
-                        state.crop_rect = Some(RECT { left, top, right, bottom });
-                        state.mode = AppMode::ToolbarActive;
-                        setup_toolbar(state);
-                        let _ = InvalidateRect(Some(hwnd), None, false);
-                    } else if let Some(rect) = state.hovered_rect {
-                        let mut top_left = POINT { x: rect.left, y: rect.top };
-                        let mut bottom_right = POINT { x: rect.right, y: rect.bottom };
-                        let _ = ScreenToClient(hwnd, &mut top_left);
-                        let _ = ScreenToClient(hwnd, &mut bottom_right);
-                        state.crop_rect = Some(RECT { left: top_left.x, top: top_left.y,
-                            right: bottom_right.x, bottom: bottom_right.y });
-                        state.mode = AppMode::ToolbarActive;
-                        setup_toolbar(state);
-                        let _ = InvalidateRect(Some(hwnd), None, false);
-                    } else {
-                        state.crop_rect = None;
-                        let _ = InvalidateRect(Some(hwnd), None, false);
+                    state.current_pt=point;
+                    let rect=RECT {left:state.start_pt.x.min(point.x),top:state.start_pt.y.min(point.y),
+                        right:state.start_pt.x.max(point.x),bottom:state.start_pt.y.max(point.y)};
+                    match state.mode {
+                        AppMode::Selecting=>{
+                            let mut selected=rect;
+                            if rect.right-rect.left<=5 && rect.bottom-rect.top<=5 {
+                                if let Some(r)=state.hovered_rect {
+                                    let mut a=POINT{x:r.left,y:r.top};let mut b=POINT{x:r.right,y:r.bottom};
+                                    let _=ScreenToClient(hwnd,&mut a);let _=ScreenToClient(hwnd,&mut b);
+                                    selected=RECT{left:a.x,top:a.y,right:b.x,bottom:b.y};
+                                }
+                            }
+                            if let Some([l,t,r,b])=clip_rect([selected.left,selected.top,selected.right,selected.bottom],state.frame_width,state.frame_height) {
+                                state.crop_rect=Some(RECT{left:l as i32,top:t as i32,right:r as i32,bottom:b as i32});
+                                state.mode=AppMode::ToolbarActive;
+                                actions::status(hwnd,state,"选区已锁定，请选择工具；右键重新框选");
+                            }
+                        }
+                        AppMode::DrawingPen | AppMode::DrawingLine=>{
+                            let points=if state.mode==AppMode::DrawingLine {vec![state.start_pt,point]} else {
+                                let mut points=state.current_stroke.take().unwrap_or_default();points.push(point);points
+                            };
+                            state.elements.push(DrawElement::Stroke(StrokeData{points,color:state.current_color,thickness:state.current_thickness,is_eraser:state.is_eraser}));state.redo_stack.clear();
+                        }
+                        AppMode::DrawingRect=>{state.elements.push(DrawElement::Rect(RectData{rect,color:state.current_color,thickness:state.current_thickness}));state.redo_stack.clear();}
+                        AppMode::DrawingArrow=>{state.elements.push(DrawElement::Arrow(ArrowData{start:state.start_pt,end:point,color:state.current_color,thickness:state.current_thickness}));state.redo_stack.clear();}
+                        AppMode::DrawingEllipse=>{state.elements.push(DrawElement::Ellipse(EllipseData{rect,color:state.current_color,thickness:state.current_thickness}));state.redo_stack.clear();}
+                        AppMode::DrawingMosaic=>{state.elements.push(DrawElement::Mosaic(MosaicData{rect,block_size:12}));state.redo_stack.clear();}
+                        _=>{}
                     }
+                    state.is_dragging=false;
                 }
+                let _=ReleaseCapture();
+                setup_toolbar(state);
+                let _=InvalidateRect(Some(hwnd),None,false);
             }
             LRESULT(0)
         },
         WM_LBUTTONDBLCLK => unsafe {
-            if let Some(state) = state_mut(hwnd) {
-                if let Some(r) = state.crop_rect {
-                    let mut pt = POINT::default();
-                    let _ = GetCursorPos(&mut pt);
-                    let _ = ScreenToClient(hwnd, &mut pt);
-                    if pt_in_rect(&r, pt) {
-                        handle_action(hwnd, Action::Accept);
-                        return LRESULT(0);
-                    }
+            if let Some(state)=state_mut(hwnd) {
+                if state.mode == AppMode::ToolbarActive && state.crop_rect.is_some_and(|r|pt_in_rect(&r,client_cursor(hwnd))) {
+                    handle_action(hwnd,Action::Accept);
                 }
             }
             LRESULT(0)
         },
         WM_RBUTTONDOWN => unsafe {
-            if let Some(state) = state_mut(hwnd) {
-                if is_annotation_mode(state.mode) {
-                    state.mode = AppMode::ToolbarActive;
-                    setup_toolbar(state);
-                    let _ = InvalidateRect(Some(hwnd), None, false);
-                    return LRESULT(0);
+            if let Some(state)=state_mut(hwnd) {
+                if actions::busy(state)||matches!(state.mode,AppMode::Recording|AppMode::Saved){return LRESULT(0);}
+                actions::commit_text(state);
+                if is_annotation_mode(state.mode)||state.mode==AppMode::SelectingText {
+                    state.mode=AppMode::ToolbarActive;state.selected_spans.clear();
                 } else if state.crop_rect.is_some() {
-                    state.crop_rect = None;
-                    state.mode = AppMode::Selecting;
-                    setup_toolbar(state);
-                    let _ = InvalidateRect(Some(hwnd), None, false);
-                    return LRESULT(0);
-                } else {
-                    if let Some(tx) = state.result_tx.take() {
-                        let _ = tx.send(None);
-                    }
-                    let _ = DestroyWindow(hwnd);
-                    return LRESULT(0);
-                }
+                    state.crop_rect=None;state.mode=AppMode::Selecting;state.elements.clear();state.redo_stack.clear();
+                    state.ocr_blocks=None;state.translated_lines=None;state.text_lines.clear();state.status_text.clear();
+                } else {handle_action(hwnd,Action::Cancel);return LRESULT(0);}
+                setup_toolbar(state);let _=InvalidateRect(Some(hwnd),None,false);
             }
             LRESULT(0)
         },
@@ -719,7 +546,7 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                         state.frame_width, state.frame_height, selection);
                 }
 
-                // 4. 閫夊尯杈规缁樺埗
+                // Native capture interaction.
                 if state.mode == AppMode::Recording {
                     if let Some(r) = state.crop_rect {
                         let is_blink = (state.recording_session.as_ref().map(|s| s.elapsed_secs).unwrap_or(0) % 2) == 0;
@@ -733,24 +560,28 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                     }
                 }
 
-                // 5. 缁樺埗鎵€鏈夊凡鐢绘爣娉
+                // Native capture interaction.
+                let saved_dc=SaveDC(hdc_mem);
+                if let Some(r)=state.crop_rect { IntersectClipRect(hdc_mem,r.left,r.top,r.right,r.bottom); }
                 draw_elements(hdc_mem, state, &bmi);
 
-                // 6. 缁樺埗涓存椂鎷栨嫿鍥惧舰
+                // Native capture interaction.
                 draw_in_progress(hdc_mem, state);
 
-                // 7. 缁樺埗 OCR 鏂囧瓧鍧椾笌鍒掗€
-                draw_ocr_blocks(hdc_mem, state);
+                // Native capture interaction.
 
-                // 8. 缁樺埗澶氳瑷€灏卞湴缈昏瘧瑕嗙洊
+
+                // Native capture interaction.
                 draw_translated_lines(hdc_mem, state);
+                draw_ocr_blocks(hdc_mem,state);
+                RestoreDC(hdc_mem,saved_dc);
 
-                // 9. 鏀惧ぇ闀滐紙浠呭湪閫夋嫨闃舵涓旀湭纭畾鐭╁舰鏃跺睍绀猴級
+                // Native capture interaction.
                 if state.mode == AppMode::Selecting && state.crop_rect.is_none() {
                     draw_magnifier(hdc_mem, state.current_pt, state);
                 }
 
-                // 10. 缁樺埗宸ュ叿鏍忎笌褰曞埗鎺у埗鏉
+                // Native capture interaction.
                 draw_toolbar(hdc_mem, state);
 
                 // 鍙岀紦鍐叉嫹璐濊嚦灞忓箷
@@ -782,142 +613,41 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
     }
 }
 
-/// 鎵ц鎸囧畾 Action
+// Native capture interaction.
 unsafe fn handle_action(hwnd: HWND, action: Action) {
-    let Some(state) = state_mut(hwnd) else { return; };
+    if let Some(state)=state_mut(hwnd) { actions::handle(hwnd,state,action); }
+}
 
-    match action {
-        Action::DrawPen => {
-            state.mode = AppMode::DrawingPen;
-            state.is_eraser = false;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::DrawRect => {
-            state.mode = AppMode::DrawingRect;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::DrawArrow => {
-            state.mode = AppMode::DrawingArrow;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::DrawEllipse => {
-            state.mode = AppMode::DrawingEllipse;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::DrawText => {
-            state.mode = AppMode::DrawingText;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::Mosaic => {
-            state.mode = AppMode::DrawingMosaic;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::Eraser => {
-            state.mode = AppMode::DrawingPen;
-            state.is_eraser = true;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::Undo => {
-            if let Some(el) = state.elements.pop() {
-                state.redo_stack.push(el);
-                let _ = InvalidateRect(Some(hwnd), None, false);
-            }
-        }
-        Action::Redo => {
-            if let Some(el) = state.redo_stack.pop() {
-                state.elements.push(el);
-                let _ = InvalidateRect(Some(hwnd), None, false);
-            }
-        }
-        Action::Record => {
-            // 鍚姩褰曞睆
-            if let Ok(()) = start_crop_recording(state) {
-                let _ = SetTimer(Some(hwnd), TIMER_RECORDING_ID, 500, None);
-                setup_toolbar(state);
-                let _ = InvalidateRect(Some(hwnd), None, false);
-            }
-        }
-        Action::RecordPause | Action::RecordResume => {
-            let _ = toggle_pause_recording(state);
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::RecordStop => {
-            let _ = KillTimer(Some(hwnd), TIMER_RECORDING_ID);
-            let _ = stop_and_save_recording(state);
-            let _ = DestroyWindow(hwnd);
-        }
-        Action::RecordDiscard => {
-            let _ = KillTimer(Some(hwnd), TIMER_RECORDING_ID);
-            let _ = discard_crop_recording(state);
-            let _ = DestroyWindow(hwnd);
-        }
-        Action::Ocr => {
-            // 瑙﹀彂 OCR 妫€娴
-            state.loading_text = "姝ｅ湪璇嗗埆鏂囧瓧...".to_string();
-            let _ = InvalidateRect(Some(hwnd), None, false);
-            
-            // 鏋勯€犵ず渚?OCR 缁撴灉浠ヤ究鍗虫椂浜や簰锛堜害鍙紓姝ヨ姹傚ぇ妯″瀷锛
-            if let Some(r) = state.crop_rect {
-                state.ocr_blocks = Some(vec![
-                    OcrBox {
-                        rect: RECT { left: r.left + 10, top: r.top + 10, right: r.right - 10, bottom: r.top + 40 },
-                        text: "DeepCloud Visual OCR".to_string(),
-                    }
-                ]);
-            }
-            state.loading_text.clear();
-            state.mode = AppMode::SelectingText;
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::Translate => {
-            // 瑙﹀彂灏卞湴缈昏瘧
-            state.loading_text = "姝ｅ湪澶氳瑷€缈昏瘧...".to_string();
-            let _ = InvalidateRect(Some(hwnd), None, false);
-
-            if let Some(r) = state.crop_rect {
-                state.translated_lines = Some(vec![
-                    TranslatedBox {
-                        rect: RECT { left: r.left + 10, top: r.top + 10, right: r.right - 10, bottom: r.top + 40 },
-                        original_text: "DeepCloud Visual OCR".to_string(),
-                        translated_text: "DeepCloud 视觉识别与翻译".to_string(),
-                    }
-                ]);
-            }
-            state.loading_text.clear();
-            setup_toolbar(state);
-            let _ = InvalidateRect(Some(hwnd), None, false);
-        }
-        Action::Cancel => {
-            if state.mode == AppMode::Recording {
-                let _ = discard_crop_recording(state);
-            }
-            let _ = DestroyWindow(hwnd);
-        }
-        Action::Accept | Action::Copy | Action::Pin | Action::Save => {
-            finish_capture(hwnd, action);
-        }
-        _ => {}
-    }
+unsafe fn client_cursor(hwnd: HWND) -> POINT {
+    let mut point=POINT::default();let _=GetCursorPos(&mut point);let _=ScreenToClient(hwnd,&mut point);point
 }
 
 /// Bake annotations into the frozen image and export the selected region.
-unsafe fn finish_capture(hwnd: HWND, action: Action) {
-    let Some(state) = state_mut(hwnd) else { return; };
-    let Some(rect) = state.crop_rect else { return; };
-    let Some([left, top, right, bottom]) = clip_rect(
-        [rect.left, rect.top, rect.right, rect.bottom], state.frame_width, state.frame_height,
-    ) else { return; };
-    let rect = RECT { left: left as i32, top: top as i32, right: right as i32, bottom: bottom as i32 };
+pub(crate) unsafe fn finish_capture(hwnd: HWND, action: Action) {
+    let Some(state)=state_mut(hwnd) else {return;};
+    actions::commit_text(state);
+    match capture_pixels(state) {
+        Ok((rect,final_pixels))=>{
+            if let Some(tx)=state.result_tx.take() {
+                let _=tx.send(Some(CroppedResult{x:rect.left,y:rect.top,width:rect.right-rect.left,height:rect.bottom-rect.top,action,final_pixels}));
+                let _=DestroyWindow(hwnd);
+            }
+        }
+        Err(e)=>actions::status(hwnd,state,format!("截图失败：{e}")),
+    }
+}
 
+pub(crate) fn snapshot_pixels(state: &AppState) -> std::result::Result<(RECT,Vec<u8>),String> {
+    let r=state.crop_rect.ok_or("请先选择范围")?;
+    let [l,t,r,b]=clip_rect([r.left,r.top,r.right,r.bottom],state.frame_width,state.frame_height).ok_or("空选区")?;
+    let rect=RECT{left:l as i32,top:t as i32,right:r as i32,bottom:b as i32};
+    let rgba=crop_rgba(&state.bgra_pixels,state.frame_width,state.frame_height,[rect.left,rect.top,rect.right,rect.bottom])?;
+    Ok((rect,rgba))
+}
+
+pub(crate) unsafe fn capture_pixels(state: &AppState) -> std::result::Result<(RECT,Vec<u8>),String> {
+    let (rect,original)=snapshot_pixels(state)?;
+    if state.elements.is_empty() && state.translated_lines.is_none() {return Ok((rect,original));}
     let hdc_mem = CreateCompatibleDC(None);
     let bmi = BITMAPINFO {
         bmiHeader: BITMAPINFOHEADER {
@@ -934,13 +664,13 @@ unsafe fn finish_capture(hwnd: HWND, action: Action) {
     let mut pbits: *mut c_void = std::ptr::null_mut();
     let Ok(hbm) = CreateDIBSection(Some(hdc_mem), &bmi, DIB_RGB_COLORS, &mut pbits, None, 0) else {
         let _ = DeleteDC(hdc_mem);
-        return;
+        return Err("无法创建图片缓冲区".into());
     };
     let old_bitmap = SelectObject(hdc_mem, hbm.into());
 
     std::ptr::copy_nonoverlapping(state.bgra_pixels.as_ptr(), pbits as *mut u8, state.bgra_pixels.len());
 
-    // 鐑樼剻鏍囨敞涓庣炕璇
+    // Native capture interaction.
     draw_elements(hdc_mem, state, &bmi);
     draw_translated_lines(hdc_mem, state);
 
@@ -951,27 +681,14 @@ unsafe fn finish_capture(hwnd: HWND, action: Action) {
     SelectObject(hdc_mem, old_bitmap);
     let _ = DeleteObject(hbm.into());
     let _ = DeleteDC(hdc_mem);
-    let Ok(final_pixels) = final_pixels else { return; };
-    let Some(tx) = state.result_tx.take() else { return; };
-    let crop_w = rect.right - rect.left;
-    let crop_h = rect.bottom - rect.top;
-
-    let _ = tx.send(Some(CroppedResult {
-        x: rect.left,
-        y: rect.top,
-        width: crop_w,
-        height: crop_h,
-        action,
-        final_pixels,
-    }));
-
-    let _ = DestroyWindow(hwnd);
+    Ok((rect,final_pixels?))
 }
 
 fn is_annotation_mode(mode: AppMode) -> bool {
     matches!(
         mode,
         AppMode::DrawingPen
+            | AppMode::DrawingLine
             | AppMode::DrawingRect
             | AppMode::DrawingArrow
             | AppMode::DrawingEllipse

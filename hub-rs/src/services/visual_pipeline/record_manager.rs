@@ -10,7 +10,10 @@ pub struct RecordingSession {
     pub session_id: String,
     pub audio_config: AudioConfig,
     pub region: (i32, i32, i32, i32),
+    pub failure: Option<String>,
 }
+
+static LAST_EXPORT: Lazy<Mutex<Option<PathBuf>>> = Lazy::new(|| Mutex::new(None));
 
 static ACTIVE_SESSION: Lazy<Mutex<Option<RecordingSession>>> = Lazy::new(|| Mutex::new(None));
 
@@ -29,15 +32,17 @@ pub fn start_recording(x: i32, y: i32, width: i32, height: i32, output_dir: Path
         session_id,
         audio_config,
         region: (x, y, width, height),
+        failure: None,
     };
     
     start_chunk(&mut session)?;
-    
+    if let Ok(mut last)=LAST_EXPORT.lock(){*last=None;}
     *session_lock = Some(session);
     Ok(())
 }
 
 fn start_chunk(session: &mut RecordingSession) -> Result<(), String> {
+    if let Some(error)=&session.failure { return Err(error.clone()); }
     if session.engine.is_some() {
         return Err("Engine is already running".into());
     }
@@ -59,96 +64,94 @@ fn start_chunk(session: &mut RecordingSession) -> Result<(), String> {
     Ok(())
 }
 
-pub fn pause_recording() -> Result<(), String> {
-    let mut session_lock = ACTIVE_SESSION.lock().map_err(|e| e.to_string())?;
-    let session = session_lock.as_mut().ok_or_else(|| "No active recording found.".to_string())?;
-    
-    if let Some(mut engine) = session.engine.take() {
-        let _ = engine.stop();
+pub fn has_session() -> bool {
+    ACTIVE_SESSION.try_lock().map(|session|session.is_some()).unwrap_or(true)
+}
+
+pub fn completed_path() -> Option<PathBuf> {
+    if has_session() {return None;}
+    LAST_EXPORT.try_lock().ok().and_then(|path|path.clone())
+}
+
+fn stop_chunk(session: &mut RecordingSession) -> Result<(), String> {
+    if let Some(error)=&session.failure { return Err(error.clone()); }
+    if let Some(mut engine)=session.engine.take() {
+        if let Err(error)=engine.stop() {
+            let error=format!("{error}. 原始片段保留在 {}",session.output_dir.display());
+            session.failure=Some(error.clone());
+            return Err(error);
+        }
     }
     Ok(())
+}
+
+pub fn pause_recording() -> Result<(), String> {
+    let mut guard=ACTIVE_SESSION.lock().map_err(|e|e.to_string())?;
+    let session=guard.as_mut().ok_or("No active recording found")?;
+    stop_chunk(session)
 }
 
 pub fn resume_recording() -> Result<(), String> {
-    let mut session_lock = ACTIVE_SESSION.lock().map_err(|e| e.to_string())?;
-    let session = session_lock.as_mut().ok_or_else(|| "No active recording found.".to_string())?;
-    
-    start_chunk(session)?;
-    Ok(())
+    let mut guard=ACTIVE_SESSION.lock().map_err(|e|e.to_string())?;
+    let session=guard.as_mut().ok_or("No active recording found")?;
+    start_chunk(session)
 }
 
 pub fn discard_recording() -> Result<(), String> {
-    let mut session_lock = ACTIVE_SESSION.lock().map_err(|e| e.to_string())?;
-    let mut session = session_lock.take().ok_or_else(|| "No active recording found.".to_string())?;
-    
-    if let Some(mut engine) = session.engine.take() {
-        let _ = engine.stop();
-    }
-    
-    for chunk in &session.chunks {
-        let _ = std::fs::remove_file(chunk);
-    }
+    let mut guard=ACTIVE_SESSION.lock().map_err(|e|e.to_string())?;
+    let mut session=guard.take().ok_or("No active recording found")?;
+    if let Some(mut engine)=session.engine.take(){let _=engine.stop();}
+    for chunk in &session.chunks {let _=std::fs::remove_file(chunk);}
     Ok(())
 }
 
-pub fn stop_and_export(export_path: PathBuf) -> Result<String, String> {
-    let mut session_lock = ACTIVE_SESSION.lock().map_err(|e| e.to_string())?;
-    let mut session = session_lock.take().ok_or_else(|| "No active recording found.".to_string())?;
-    
-    if let Some(mut engine) = session.engine.take() {
-        let _ = engine.stop(); // Stop current chunk
+fn export_chunks(session: &RecordingSession, export_path: &std::path::Path) -> Result<(),String> {
+    if session.chunks.is_empty(){return Err("No video chunks generated".into());}
+    for chunk in &session.chunks {
+        if !std::fs::metadata(chunk).is_ok_and(|m|m.len()>0) {return Err(format!("无效录像片段：{}",chunk.display()));}
     }
-    
-    if session.chunks.is_empty() {
-        return Err("No video chunks generated.".into());
-    }
-
-    if session.chunks.len() == 1 {
-        // Just rename the single chunk
-        let actual_output = &session.chunks[0];
-        if let Err(e) = std::fs::rename(actual_output, &export_path) {
-            if let Err(copy_err) = std::fs::copy(actual_output, &export_path) {
-                return Err(format!("Failed to export output file: {}, {}. Recording retained at {}", e, copy_err, actual_output.display()));
-            }
-            let _ = std::fs::remove_file(actual_output);
+    if let Some(parent)=export_path.parent(){std::fs::create_dir_all(parent).map_err(|e|e.to_string())?;}
+    if session.chunks.len()==1 {
+        std::fs::copy(&session.chunks[0],export_path).map_err(|e|format!("视频保存失败：{e}，原片段保留在 {}",session.output_dir.display()))?;
+    } else {
+        let list_path=session.output_dir.join(format!("{}_concat.txt",session.session_id));
+        let mut content=String::new();
+        for chunk in &session.chunks {
+            let escaped=chunk.to_string_lossy().replace('\\',"/").replace('\'',"'\\''");
+            content.push_str(&format!("file '{escaped}'\n"));
         }
-        return Ok(export_path.to_string_lossy().to_string());
+        std::fs::write(&list_path,content).map_err(|e|e.to_string())?;
+        let mut cmd=std::process::Command::new(resolve_ffmpeg_binary());
+        #[cfg(windows)] {use std::os::windows::process::CommandExt;cmd.creation_flags(0x08000000);}
+        let child=cmd.args(["-hide_banner","-loglevel","error","-y","-f","concat","-safe","0","-i"])
+            .arg(&list_path).args(["-c","copy"]).arg(export_path).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn();
+        let result=(|| {
+            let mut child=child.map_err(|e|e.to_string())?;
+            let deadline=std::time::Instant::now()+std::time::Duration::from_secs(60);
+            loop {
+                if let Some(status)=child.try_wait().map_err(|e|e.to_string())? {
+                    if status.success(){return Ok(());}
+                    return Err("录像合并失败，原始片段已保留，可重试保存".to_string());
+                }
+                if std::time::Instant::now()>deadline {let _=child.kill();let _=child.wait();return Err("录像合并超时，原始片段已保留".into());}
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+        })();
+        let _=std::fs::remove_file(list_path);
+        result?;
     }
-    
-    // Concatenate multiple chunks
-    let list_file_path = session.output_dir.join(format!("{}_concat.txt", session.session_id));
-    let mut list_content = String::new();
-    for chunk in &session.chunks {
-        // FFmpeg concat demuxer expects forward slashes and escaped single quotes
-        let path_str = chunk.to_string_lossy().replace("\\", "/");
-        list_content.push_str(&format!("file '{}'\n", path_str));
-    }
-    
-    std::fs::write(&list_file_path, list_content).map_err(|e| format!("Failed to write concat list: {}", e))?;
-    
-    let mut cmd = std::process::Command::new(resolve_ffmpeg_binary());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x08000000);
-    }
-    cmd.args(["-y", "-f", "concat", "-safe", "0", "-i"]);
-    cmd.arg(&list_file_path);
-    cmd.args(["-c", "copy"]);
-    cmd.arg(&export_path);
-    
-    let status = cmd.status().map_err(|e| format!("Failed to run concat command: {}", e))?;
-    
-    // Cleanup temporary files
-    let _ = std::fs::remove_file(&list_file_path);
-    for chunk in &session.chunks {
-        let _ = std::fs::remove_file(chunk);
-    }
-    
-    if !status.success() {
-        return Err("Failed to concatenate video chunks.".into());
-    }
+    if !std::fs::metadata(export_path).is_ok_and(|m|m.len()>0){return Err("编码器没有生成有效视频".into());}
+    Ok(())
+}
 
+pub fn stop_and_export(export_path:PathBuf)->Result<String,String>{
+    let mut guard=ACTIVE_SESSION.lock().map_err(|e|e.to_string())?;
+    let session=guard.as_mut().ok_or("No active recording found")?;
+    stop_chunk(session)?;
+    export_chunks(session,&export_path)?;
+    for chunk in &session.chunks {let _=std::fs::remove_file(chunk);}
+    *guard=None;
+    if let Ok(mut last)=LAST_EXPORT.lock(){*last=Some(export_path.clone());}
     Ok(export_path.to_string_lossy().to_string())
 }
 

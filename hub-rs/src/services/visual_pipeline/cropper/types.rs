@@ -21,6 +21,10 @@ pub enum Action {
     Accept,
     Cancel,
     DrawPen,
+    DrawLine,
+    CopyText,
+    CopyPath,
+    OpenFolder,
     DrawRect,
     DrawArrow,
     DrawEllipse,
@@ -56,6 +60,8 @@ pub enum AppMode {
     Selecting,
     ToolbarActive,
     DrawingPen,
+    DrawingLine,
+    Saved,
     DrawingRect,
     DrawingArrow,
     DrawingEllipse,
@@ -149,6 +155,13 @@ pub struct RecordingState {
 }
 
 pub struct AppState {
+    pub analysis_job: Option<super::analysis::AnalysisJob>,
+    pub record_job: Option<std::sync::mpsc::Receiver<Result<super::actions::RecordOutcome, String>>>,
+    pub text_lines: Vec<super::text_selection::TextLine>,
+    pub selected_spans: Vec<super::text_selection::SelectedSpan>,
+    pub status_text: String,
+    pub last_saved_path: Option<std::path::PathBuf>,
+    pub input_window: Option<isize>,
     pub frame_width: u32,
     pub frame_height: u32,
     pub bgra_pixels: Vec<u8>,

@@ -367,33 +367,37 @@ pub async fn record_start(
 }
 
 pub async fn record_pause() -> Result<Json<Value>, ApiError> {
-    crate::services::visual_pipeline::record_manager::pause_recording()
+    tokio::task::spawn_blocking(crate::services::visual_pipeline::record_manager::pause_recording)
+        .await.map_err(|e| internal(e.to_string()))?
         .map(|_| Json(json!({ "status": "paused" })))
         .map_err(internal)
 }
 
 pub async fn record_resume() -> Result<Json<Value>, ApiError> {
-    crate::services::visual_pipeline::record_manager::resume_recording()
+    tokio::task::spawn_blocking(crate::services::visual_pipeline::record_manager::resume_recording)
+        .await.map_err(|e| internal(e.to_string()))?
         .map(|_| Json(json!({ "status": "resumed" })))
         .map_err(internal)
 }
 
 pub async fn record_stop(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Value>, ApiError> {
+) -> axum::response::Response {
     let id = uuid::Uuid::new_v4().to_string();
     let export_path = state.visual_pipeline.artifact_dir().join(format!("{id}.mp4"));
     let result = tokio::task::spawn_blocking(move || {
         crate::services::visual_pipeline::record_manager::stop_and_export(export_path)
-    }).await.map_err(|e| internal(format!("Recording worker failed: {e}")))?;
+    }).await.unwrap_or_else(|e| Err(format!("Recording worker failed: {e}")));
 
     match result {
-        Ok(path) => Ok(Json(json!({
+        Ok(path) => Json(json!({
             "success": true,
-            "videoPath": path,
-            "url": format!("/api/vision/artifacts/{id}.mp4")
-        }))),
-        Err(e) => Err(internal(format!("Failed to stop recording: {e}"))),
+            "video_path": path,
+        })).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+            "error": format!("Failed to stop recording: {e}"),
+            "active": crate::services::visual_pipeline::record_manager::has_session(),
+        }))).into_response(),
     }
 }
 

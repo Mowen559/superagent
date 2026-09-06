@@ -4,7 +4,7 @@ use windows::Win32::Graphics::Gdi::HDC;
 use windows::Win32::Graphics::Gdi::{
     CreateFontW, CreateSolidBrush, DeleteObject, DrawTextW, FillRect, SelectObject,
     SetBkMode, SetTextColor, CLEARTYPE_QUALITY, CLIP_DEFAULT_PRECIS, DEFAULT_CHARSET,
-    DT_CENTER, DT_SINGLELINE, DT_VCENTER, OUT_DEFAULT_PRECIS, TRANSPARENT,
+    DT_CENTER, DT_SINGLELINE, DT_VCENTER, DT_LEFT, DT_TOP, DT_WORDBREAK, OUT_DEFAULT_PRECIS, TRANSPARENT,
 };
 use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CYVIRTUALSCREEN};
 
@@ -23,7 +23,7 @@ pub fn setup_toolbar(state: &mut AppState) {
         return;
     };
 
-    let screen_height = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
+    let screen_height = state.frame_height as i32;
     let btn_w = 36;
     let btn_h = 30;
     let pad = 4;
@@ -74,7 +74,8 @@ pub fn setup_toolbar(state: &mut AppState) {
     }
 
     // 2. 正常截图工具栏
-    let main_actions = [
+    state.record_buttons.clear();
+    let mut main_actions = vec![
         (Action::DrawPen, "\u{E76D}", "自由画笔"),
         (Action::DrawRect, "\u{E75B}", "矩形标注"),
         (Action::DrawArrow, "\u{E74A}", "箭头标注"),
@@ -91,24 +92,36 @@ pub fn setup_toolbar(state: &mut AppState) {
         (Action::Copy, "\u{E8C8}", "复制到剪贴板"),
         (Action::Accept, "\u{E73E}", "确认完成"),
         (Action::Cancel, "\u{E711}", "关闭退出 (Esc)"),
+        (Action::DrawLine, "\u{E738}", "直线"),
+        (Action::CopyText, "文", "复制选中文字 (Ctrl+C)"),
+        (Action::Save, "\u{E74E}", "保存图片 (Ctrl+S)"),
     ];
 
-    let total_w = (btn_w * main_actions.len() as i32) + (pad * (main_actions.len() as i32 + 1));
+    if state.last_saved_path.is_some() {
+        main_actions.push((Action::OpenFolder,"\u{E8B7}","打开保存位置"));
+        main_actions.push((Action::CopyPath,"路径","复制保存路径"));
+    }
+    if state.mode == AppMode::Saved {
+        main_actions.retain(|(action,_,_)| matches!(action,Action::OpenFolder|Action::CopyPath|Action::Cancel));
+    }
+    let columns=((state.frame_width as i32-16)/(btn_w+pad)).max(1).min(main_actions.len() as i32);
+    let rows=(main_actions.len() as i32+columns-1)/columns;
+    let total_w = (btn_w * columns) + (pad * (columns + 1));
     let mut bar_y = rect.bottom + 8;
-    if bar_y + bar_h > screen_height {
-        bar_y = rect.top - bar_h - 8;
-    }
-
-    let mut start_x = rect.right - total_w;
-    if start_x < rect.left {
-        start_x = rect.left;
-    }
+    if bar_y + bar_h*rows > screen_height { bar_y = rect.top - bar_h*rows - 8; }
+    bar_y=bar_y.clamp(4,(screen_height-bar_h*rows-4).max(4));
+    let start_x=(rect.right-total_w).clamp(8,(state.frame_width as i32-total_w-8).max(8));
 
     state.buttons.clear();
     let mut curr_x = start_x + pad;
-    for (act, icon, tip) in main_actions.iter() {
+    for (index,(act, icon, tip)) in main_actions.iter().enumerate() {
+        let row=index as i32/columns;
+        curr_x=start_x+pad+(index as i32%columns)*(btn_w+pad);
         let is_act = match (act, state.mode) {
-            (Action::DrawPen, AppMode::DrawingPen) => true,
+            (Action::DrawPen, AppMode::DrawingPen) => !state.is_eraser,
+            (Action::DrawLine, AppMode::DrawingLine) => true,
+            (Action::Ocr, AppMode::SelectingText) => state.translated_lines.is_none(),
+            (Action::Translate, AppMode::SelectingText) => state.translated_lines.is_some(),
             (Action::DrawRect, AppMode::DrawingRect) => true,
             (Action::DrawArrow, AppMode::DrawingArrow) => true,
             (Action::DrawEllipse, AppMode::DrawingEllipse) => true,
@@ -121,9 +134,9 @@ pub fn setup_toolbar(state: &mut AppState) {
         state.buttons.push(ToolbarButton {
             rect: RECT {
                 left: curr_x,
-                top: bar_y + (bar_h - btn_h) / 2,
+                top: bar_y + row*bar_h + (bar_h - btn_h) / 2,
                 right: curr_x + btn_w,
-                bottom: bar_y + (bar_h + btn_h) / 2,
+                bottom: bar_y + row*bar_h + (bar_h + btn_h) / 2,
             },
             text: to_wstring(icon),
             action: *act,
@@ -137,6 +150,7 @@ pub fn setup_toolbar(state: &mut AppState) {
     let is_drawing_mode = matches!(
         state.mode,
         AppMode::DrawingPen
+            | AppMode::DrawingLine
             | AppMode::DrawingRect
             | AppMode::DrawingArrow
             | AppMode::DrawingEllipse
@@ -147,7 +161,7 @@ pub fn setup_toolbar(state: &mut AppState) {
     state.sub_tool_buttons.clear();
 
     if is_drawing_mode && !state.is_eraser {
-        let color_y = bar_y + bar_h + 4;
+        let color_y = if bar_y+bar_h*rows+32<screen_height {bar_y+bar_h*rows+4} else {(bar_y-32).max(0)};
         let csize = 20;
         let cpad = 4;
         let mut cx = start_x + pad;
@@ -298,30 +312,78 @@ pub unsafe fn draw_toolbar(dc: HDC, state: &AppState) {
         }
     }
 
-    // 4. 如果处于 Loading 状态 (例如 OCR 或翻译正在请求大模型)，在截取选区中心绘制 Loading 遮罩
-    if !state.loading_text.is_empty() {
-        if let Some(r) = state.crop_rect {
-            let mut wtext = to_wstring(&state.loading_text);
-            let cx = (r.left + r.right) / 2;
-            let cy = (r.top + r.bottom) / 2;
-            let tip_rect = RECT {
-                left: cx - 100,
-                top: cy - 20,
-                right: cx + 100,
-                bottom: cy + 20,
-            };
-            let bg = CreateSolidBrush(COLORREF(0x00111111));
-            FillRect(dc, &tip_rect, bg);
-            let _ = DeleteObject(bg.into());
-            draw_border(dc, tip_rect, COLORREF(0x00555555), 1);
-
-            let old_bk = SetBkMode(dc, TRANSPARENT);
-            let old_color = SetTextColor(dc, COLORREF(0x00FFFFFF));
-            let _ = DrawTextW(dc, &mut wtext, &mut tip_rect.clone(), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-            SetTextColor(dc, old_color);
-            SetBkMode(dc, windows::Win32::Graphics::Gdi::BACKGROUND_MODE(old_bk as u32));
+    if state.mode != AppMode::Recording {
+        let mut hovered_btn_rect = None;
+        let tooltip = state.hovered_action.and_then(|action| state.buttons.iter().chain(state.color_buttons.iter()).chain(state.sub_tool_buttons.iter())
+            .find(|b| b.action==action)).map(|b| { hovered_btn_rect = Some(b.rect); b.tooltip.as_str() });
+        
+        let mut message = String::new();
+        if let Some(t) = tooltip { message.push_str(t); }
+        if !state.status_text.is_empty() && (state.analysis_job.is_some() || state.record_job.is_some() || tooltip.is_none()) {
+            if !message.is_empty() { message.push_str(" | "); }
+            message.push_str(&state.status_text);
         }
+        if message.is_empty() { return; }
+        let message = message.as_str();
+
+        let font = windows::Win32::Graphics::Gdi::CreateFontW(
+            15,0,0,0,400,0,0,0,
+            windows::Win32::Graphics::Gdi::DEFAULT_CHARSET,
+            windows::Win32::Graphics::Gdi::OUT_DEFAULT_PRECIS,
+            windows::Win32::Graphics::Gdi::CLIP_DEFAULT_PRECIS,
+            windows::Win32::Graphics::Gdi::CLEARTYPE_QUALITY,
+            0,windows::core::w!("Microsoft YaHei")
+        );
+        let old_font = windows::Win32::Graphics::Gdi::SelectObject(dc,font.into());
+        
+        let mut text = to_wstring(message);
+        let max_width = 400;
+        let mut text_rect = RECT { left: 0, top: 0, right: max_width, bottom: 0 };
+        let _ = windows::Win32::Graphics::Gdi::DrawTextW(
+            dc, &mut text, &mut text_rect,
+            windows::Win32::Graphics::Gdi::DT_CALCRECT | windows::Win32::Graphics::Gdi::DT_LEFT | windows::Win32::Graphics::Gdi::DT_TOP | windows::Win32::Graphics::Gdi::DT_WORDBREAK
+        );
+        
+        let padding_x = 12;
+        let padding_y = 8;
+        let box_width = text_rect.right - text_rect.left + padding_x * 2;
+        let box_height = text_rect.bottom - text_rect.top + padding_y * 2;
+        
+        let (mut left, mut top) = if let Some(r) = hovered_btn_rect {
+            (r.left - padding_x / 2, r.bottom + 10)
+        } else {
+            let controls_bottom = state.buttons.iter().chain(state.color_buttons.iter()).chain(state.sub_tool_buttons.iter()).map(|b|b.rect.bottom).max().unwrap_or(40);
+            let fallback_left = state.buttons.first().map(|b|b.rect.left).unwrap_or(8);
+            (fallback_left, controls_bottom + 12)
+        };
+        
+        left = left.clamp(8, (state.frame_width as i32 - box_width - 8).max(8));
+        top = top.clamp(4, (state.frame_height as i32 - box_height - 8).max(4));
+        
+        let rect = RECT { left, top, right: left + box_width, bottom: top + box_height };
+        
+        let bg = windows::Win32::Graphics::Gdi::CreateSolidBrush(COLORREF(0x002B2B2B));
+        let pen = windows::Win32::Graphics::Gdi::CreatePen(windows::Win32::Graphics::Gdi::PS_SOLID, 1, COLORREF(0x00444444));
+        let old_bg = windows::Win32::Graphics::Gdi::SelectObject(dc, bg.into());
+        let old_pen = windows::Win32::Graphics::Gdi::SelectObject(dc, pen.into());
+        let _ = windows::Win32::Graphics::Gdi::RoundRect(dc, rect.left, rect.top, rect.right, rect.bottom, 8, 8);
+        windows::Win32::Graphics::Gdi::SelectObject(dc, old_bg);
+        windows::Win32::Graphics::Gdi::SelectObject(dc, old_pen);
+        let _ = windows::Win32::Graphics::Gdi::DeleteObject(bg.into());
+        let _ = windows::Win32::Graphics::Gdi::DeleteObject(pen.into());
+        
+        let old_bk = windows::Win32::Graphics::Gdi::SetBkMode(dc, windows::Win32::Graphics::Gdi::TRANSPARENT);
+        let old_color = windows::Win32::Graphics::Gdi::SetTextColor(dc, COLORREF(0x00FFFFFF));
+        
+        let mut draw_rect = RECT { left: left + padding_x, top: top + padding_y, right: rect.right - padding_x, bottom: rect.bottom - padding_y };
+        let _ = windows::Win32::Graphics::Gdi::DrawTextW(dc, &mut text, &mut draw_rect, windows::Win32::Graphics::Gdi::DT_LEFT | windows::Win32::Graphics::Gdi::DT_TOP | windows::Win32::Graphics::Gdi::DT_WORDBREAK);
+        
+        windows::Win32::Graphics::Gdi::SetTextColor(dc, old_color);
+        windows::Win32::Graphics::Gdi::SetBkMode(dc, windows::Win32::Graphics::Gdi::BACKGROUND_MODE(old_bk as u32));
+        windows::Win32::Graphics::Gdi::SelectObject(dc, old_font);
+        let _ = windows::Win32::Graphics::Gdi::DeleteObject(font.into());
     }
+
 }
 
 /// 绘制单个按扭
@@ -337,7 +399,7 @@ unsafe fn draw_single_button(dc: HDC, btn: &ToolbarButton, state: &AppState) {
     FillRect(dc, &btn.rect, btn_brush);
     let _ = DeleteObject(btn_brush.into());
 
-    let mut font_name = to_wstring("Segoe MDL2 Assets");
+    let mut font_name = to_wstring(if matches!(btn.action,Action::Ocr|Action::CopyText|Action::CopyPath) {"Microsoft YaHei"} else {"Segoe MDL2 Assets"});
     font_name.push(0);
     let hfont = CreateFontW(
         18, 0, 0, 0, 400, 0, 0, 0, DEFAULT_CHARSET,

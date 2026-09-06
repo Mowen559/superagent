@@ -7,7 +7,7 @@ use windows::Win32::Graphics::Gdi::{
     PathToRegion, Rectangle, SelectClipRgn, SelectObject, SetBkMode, SetPolyFillMode,
     SetTextColor, StretchDIBits, BITMAPINFO, BS_SOLID, CLEARTYPE_QUALITY, CLIP_DEFAULT_PRECIS,
     DEFAULT_CHARSET, DIB_RGB_COLORS, DT_CENTER, DT_LEFT, DT_SINGLELINE, DT_TOP, DT_VCENTER,
-    DT_WORDBREAK, HOLLOW_BRUSH, LOGBRUSH, OUT_DEFAULT_PRECIS, PEN_STYLE, PS_ENDCAP_ROUND,
+    DT_WORDBREAK, DT_CALCRECT, HOLLOW_BRUSH, LOGBRUSH, OUT_DEFAULT_PRECIS, PEN_STYLE, PS_ENDCAP_ROUND,
     PS_GEOMETRIC, PS_JOIN_ROUND, PS_SOLID, SRCCOPY, TRANSPARENT, WidenPath, WINDING,
 };
 
@@ -55,6 +55,10 @@ pub unsafe fn draw_in_progress(dc: HDC, state: &AppState) {
     let bottom = std::cmp::max(state.start_pt.y, state.current_pt.y);
 
     match state.mode {
+        super::types::AppMode::DrawingLine => {
+            draw_stroke(dc, &StrokeData { points:vec![state.start_pt,state.current_pt],
+                color:state.current_color,thickness:state.current_thickness,is_eraser:false },state,&BITMAPINFO::default());
+        }
         super::types::AppMode::DrawingRect => {
             draw_rect_element(dc, &RectData {
                 rect: RECT { left, top, right, bottom },
@@ -115,7 +119,8 @@ unsafe fn draw_stroke(dc: HDC, s: &StrokeData, state: &AppState, bmi: &BITMAPINF
         let _ = DeleteObject(stroke_pen.into());
 
         if !hrgn.is_invalid() {
-            let _ = SelectClipRgn(dc, Some(hrgn));
+            let saved=windows::Win32::Graphics::Gdi::SaveDC(dc);
+            let _ = windows::Win32::Graphics::Gdi::ExtSelectClipRgn(dc,Some(hrgn),windows::Win32::Graphics::Gdi::RGN_AND);
             let _ = StretchDIBits(
                 dc,
                 0, 0, state.frame_width as i32, state.frame_height as i32,
@@ -125,7 +130,7 @@ unsafe fn draw_stroke(dc: HDC, s: &StrokeData, state: &AppState, bmi: &BITMAPINF
                 DIB_RGB_COLORS,
                 SRCCOPY,
             );
-            let _ = SelectClipRgn(dc, None);
+            let _ = windows::Win32::Graphics::Gdi::RestoreDC(dc,saved);
             let _ = DeleteObject(hrgn.into());
         }
     } else {
@@ -277,76 +282,51 @@ pub unsafe fn draw_mosaic_element(dc: HDC, m: &MosaicData, state: &AppState, _bm
     }
 }
 
-/// 绘制就地 OCR 检测框与文字划选
+/// Draw the complete recognized text at its original bounding boxes.
 pub unsafe fn draw_ocr_blocks(dc: HDC, state: &AppState) {
-    if let Some(blocks) = &state.ocr_blocks {
-        let border_pen = CreatePen(PS_SOLID, 1, COLORREF(0x00FF9900)); // 橙色半透明框
-        let old_pen = SelectObject(dc, border_pen.into());
-        let old_brush = SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
-
-        for b in blocks {
-            let _ = Rectangle(dc, b.rect.left, b.rect.top, b.rect.right, b.rect.bottom);
+    if state.mode != super::types::AppMode::SelectingText { return; }
+    if state.translated_lines.is_none() {
+        for line in &state.text_lines {
+            let [left,top,right,bottom]=line.rect;
+            draw_fitted_text(dc,RECT{left,top,right,bottom},&line.text);
         }
-
-        SelectObject(dc, old_brush);
-        SelectObject(dc, old_pen);
-        let _ = DeleteObject(border_pen.into());
     }
-
-    // 如果正在划选文本，绘制浅蓝色高亮遮罩
-    if state.is_selecting_text {
-        let left = std::cmp::min(state.text_selection_start.x, state.text_selection_current.x);
-        let top = std::cmp::min(state.text_selection_start.y, state.text_selection_current.y);
-        let right = std::cmp::max(state.text_selection_start.x, state.text_selection_current.x);
-        let bottom = std::cmp::max(state.text_selection_start.y, state.text_selection_current.y);
-
-        let sel_rect = RECT { left, top, right, bottom };
-        let sel_brush = CreateSolidBrush(COLORREF(0x00FFCC99)); // 选词半透明淡蓝
-        FillRect(dc, &sel_rect, sel_brush);
-        let _ = DeleteObject(sel_brush.into());
+    for span in &state.selected_spans {
+        if let Some(line)=state.text_lines.get(span.line) {
+            let count=line.text.chars().count().max(1) as i32;
+            let [left,top,right,bottom]=line.rect;
+            let width=right-left;
+            let rect=RECT{left:left+width*span.start as i32/count,top,
+                right:left+width*span.end as i32/count,bottom};
+            draw_border(dc,rect,COLORREF(0x00EE9900),2);
+        }
     }
 }
 
-/// 绘制就地原位多语言翻译覆盖
 pub unsafe fn draw_translated_lines(dc: HDC, state: &AppState) {
-    if let Some(lines) = &state.translated_lines {
-        let mut font_name: Vec<u16> = "Microsoft YaHei".encode_utf16().collect();
-        font_name.push(0);
-
-        for line in lines {
-            // 用纯白或柔和底色覆盖原文字
-            let bg_brush = CreateSolidBrush(COLORREF(0x00FFFFFF));
-            FillRect(dc, &line.rect, bg_brush);
-            let _ = DeleteObject(bg_brush.into());
-
-            // 边框微调
-            draw_border(dc, line.rect, COLORREF(0x00D0D0D0), 1);
-
-            let font_h = ((line.rect.bottom - line.rect.top) - 4).max(12).min(28);
-            let hfont = CreateFontW(
-                font_h, 0, 0, 0, 600, 0, 0, 0, DEFAULT_CHARSET,
-                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 0,
-                PCWSTR(font_name.as_ptr()),
-            );
-            let old_font = SelectObject(dc, hfont.into());
-            let old_bk = SetBkMode(dc, TRANSPARENT);
-            let old_color = SetTextColor(dc, COLORREF(0x00222222));
-
-            let mut wtext: Vec<u16> = line.translated_text.encode_utf16().collect();
-            let mut text_rect = RECT {
-                left: line.rect.left + 2,
-                top: line.rect.top + 2,
-                right: line.rect.right - 2,
-                bottom: line.rect.bottom - 2,
-            };
-            let _ = DrawTextW(dc, &mut wtext, &mut text_rect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-
-            SetTextColor(dc, old_color);
-            SetBkMode(dc, windows::Win32::Graphics::Gdi::BACKGROUND_MODE(old_bk as u32));
-            SelectObject(dc, old_font);
-            let _ = DeleteObject(hfont.into());
-        }
+    if let Some(lines)=&state.translated_lines {
+        for line in lines { draw_fitted_text(dc,line.rect,&line.translated_text); }
     }
+}
+
+unsafe fn draw_fitted_text(dc:HDC, rect:RECT, text:&str) {
+    if rect.right<=rect.left || rect.bottom<=rect.top {return;}
+    let background=CreateSolidBrush(COLORREF(0x00FFFFFF));FillRect(dc,&rect,background);let _=DeleteObject(background.into());
+    let old_bk=SetBkMode(dc,TRANSPARENT);let old_color=SetTextColor(dc,COLORREF(0x00202020));
+    // Measure the whole string, including wrapped translations; never use SINGLELINE.
+    for size in (1..=(rect.bottom-rect.top).min(28).max(1)).rev() {
+        let font=CreateFontW(size,0,0,0,400,0,0,0,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,0,windows::core::w!("Microsoft YaHei"));
+        let old_font=SelectObject(dc,font.into());
+        let mut wide:Vec<u16>=text.encode_utf16().collect();
+        let mut measured=RECT{left:0,top:0,right:rect.right-rect.left,bottom:0};
+        let _=DrawTextW(dc,&mut wide,&mut measured,DT_LEFT|DT_TOP|DT_WORDBREAK|DT_CALCRECT);
+        let fits=measured.bottom<=rect.bottom-rect.top && measured.right<=rect.right-rect.left;
+        if fits||size==1 { let mut target=rect;let _=DrawTextW(dc,&mut wide,&mut target,DT_LEFT|DT_TOP|DT_WORDBREAK); }
+        SelectObject(dc,old_font);let _=DeleteObject(font.into());
+        if fits {break;}
+    }
+    SetTextColor(dc,old_color);SetBkMode(dc,windows::Win32::Graphics::Gdi::BACKGROUND_MODE(old_bk as u32));
 }
 
 /// 绘制边框工具函数
