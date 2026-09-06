@@ -189,13 +189,29 @@ pub unsafe fn handle(hwnd: HWND, state: &mut AppState, action: Action) {
     if state.mode == AppMode::Recording && !matches!(action, Action::RecordPause | Action::RecordResume | Action::RecordStop | Action::RecordDiscard) { return; }
     match action {
         Action::Ocr | Action::Translate => {
+            let is_ocr = action == Action::Ocr;
+            if state.mode == AppMode::SelectingText {
+                if (is_ocr && state.translated_lines.is_none()) || (!is_ocr && state.translated_lines.is_some()) {
+                    // Toggle off
+                    state.mode = AppMode::ToolbarActive;
+                    state.ocr_blocks = None;
+                    state.translated_lines = None;
+                    state.text_lines.clear();
+                    state.selected_spans.clear();
+                    status(hwnd, state, format!("已退出{}", if is_ocr { "提取文字" } else { "就地翻译" }));
+                    let _ = InvalidateRect(Some(hwnd), None, false);
+                    super::toolbar::setup_toolbar(state);
+                    return;
+                }
+            }
+
             if let Some(vp) = state.vp.clone() {
                 match native_cropper::snapshot_pixels(state).and_then(|(rect,pixels)| {
-                    let existing = if action==Action::Translate { state.ocr_blocks.as_ref().map(|blocks| blocks.iter().map(|b| TextLine {
+                    let existing = if !is_ocr { state.ocr_blocks.as_ref().map(|blocks| blocks.iter().map(|b| super::text_selection::TextLine {
                         rect:[b.rect.left,b.rect.top,b.rect.right,b.rect.bottom],text:b.text.clone() }).collect()).unwrap_or_default() } else { vec![] };
-                    super::analysis::start(vp,pixels,[rect.left,rect.top,rect.right,rect.bottom],action==Action::Translate,existing)
+                    super::analysis::start(vp,pixels,[rect.left,rect.top,rect.right,rect.bottom],!is_ocr,existing)
                 }) {
-                    Ok(job) => { state.analysis_job=Some(job); status(hwnd,state,if action==Action::Ocr { "正在识别完整选区…" } else { "正在逐块翻译…" }); },
+                    Ok(job) => { state.analysis_job=Some(job); status(hwnd,state,if is_ocr { "正在识别完整选区..." } else { "正在逐块翻译..." }.to_string()); },
                     Err(e) => status(hwnd,state,format!("识别/翻译失败：{e}")),
                 }
             }

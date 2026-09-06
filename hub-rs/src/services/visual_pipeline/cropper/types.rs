@@ -155,6 +155,19 @@ pub struct RecordingState {
     pub elapsed_secs: u64,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DragMode {
+    Move,
+    ResizeLeft,
+    ResizeRight,
+    ResizeTop,
+    ResizeBottom,
+    ResizeTopLeft,
+    ResizeTopRight,
+    ResizeBottomLeft,
+    ResizeBottomRight,
+}
+
 pub struct AppState {
     pub is_record_muted: bool,
     pub analysis_job: Option<super::analysis::AnalysisJob>,
@@ -170,6 +183,7 @@ pub struct AppState {
     pub dimmed_bgra_pixels: Vec<u8>,
     pub mode: AppMode,
     pub is_dragging: bool,
+    pub drag_mode: Option<DragMode>,
     pub start_pt: POINT,
     pub current_pt: POINT,
     pub crop_rect: Option<RECT>,
@@ -213,6 +227,29 @@ pub const PREDEFINED_COLORS: [u32; 14] = [
 
 pub fn pt_in_rect(rect: &RECT, pt: POINT) -> bool {
     pt.x >= rect.left && pt.x < rect.right && pt.y >= rect.top && pt.y < rect.bottom
+}
+
+pub fn hit_test_resize(rect: &RECT, pt: POINT, threshold: i32) -> Option<DragMode> {
+    let in_rect = pt_in_rect(rect, pt);
+    let on_left = (pt.x - rect.left).abs() <= threshold;
+    let on_right = (pt.x - rect.right).abs() <= threshold;
+    let on_top = (pt.y - rect.top).abs() <= threshold;
+    let on_bottom = (pt.y - rect.bottom).abs() <= threshold;
+    
+    // Check corners first
+    if on_top && on_left { return Some(DragMode::ResizeTopLeft); }
+    if on_top && on_right { return Some(DragMode::ResizeTopRight); }
+    if on_bottom && on_left { return Some(DragMode::ResizeBottomLeft); }
+    if on_bottom && on_right { return Some(DragMode::ResizeBottomRight); }
+    
+    // Check edges
+    if on_left && pt.y >= rect.top && pt.y <= rect.bottom { return Some(DragMode::ResizeLeft); }
+    if on_right && pt.y >= rect.top && pt.y <= rect.bottom { return Some(DragMode::ResizeRight); }
+    if on_top && pt.x >= rect.left && pt.x <= rect.right { return Some(DragMode::ResizeTop); }
+    if on_bottom && pt.x >= rect.left && pt.x <= rect.right { return Some(DragMode::ResizeBottom); }
+    
+    if in_rect { return Some(DragMode::Move); }
+    None
 }
 
 pub fn to_wstring(s: &str) -> Vec<u16> {

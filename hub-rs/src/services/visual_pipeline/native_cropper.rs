@@ -23,7 +23,7 @@ use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MB_ICONINFORMA
     BringWindowToTop, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetCursorPos,
     GetMessageW, GetWindowLongPtrW, KillTimer, LoadCursorW, PostQuitMessage,
     RegisterClassW, SetCursor, SetForegroundWindow, SetTimer, ShowWindow,
-    SetWindowLongPtrW, TranslateMessage, GWLP_USERDATA, IDC_ARROW, IDC_CROSS,
+    SetWindowLongPtrW, TranslateMessage, GWLP_USERDATA, IDC_ARROW, IDC_CROSS, IDC_SIZENWSE, IDC_SIZENESW, IDC_SIZENS, IDC_SIZEWE, IDC_SIZEALL,
     MSG, SW_SHOW, WM_CLOSE, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDBLCLK, WM_LBUTTONDOWN,
     WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCCREATE, WM_PAINT, WM_RBUTTONDOWN, WM_SETCURSOR, WM_TIMER,
     WNDCLASSW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP, WS_VISIBLE,
@@ -38,7 +38,7 @@ use crate::services::visual_pipeline::cropper::draw::{
 };
 use crate::services::visual_pipeline::cropper::toolbar::{draw_toolbar, setup_toolbar};
 use crate::services::visual_pipeline::cropper::types::{
-    pt_in_rect, Action, AppMode, AppState, ArrowData, CroppedResult, DrawElement,
+    pt_in_rect, hit_test_resize, DragMode, Action, AppMode, AppState, ArrowData, CroppedResult, DrawElement,
     EllipseData, MosaicData, RectData, StrokeData, PREDEFINED_COLORS,
 };
 use crate::services::visual_pipeline::VisualPipelineRuntime;
@@ -134,6 +134,7 @@ pub fn run_interactive_capture(
         dimmed_bgra_pixels: dimmed_bgra,
         mode: AppMode::Selecting,
         is_dragging: false,
+        drag_mode: None,
         start_pt: POINT { x: 0, y: 0 },
         current_pt: POINT { x: 0, y: 0 },
         crop_rect: None,
@@ -326,7 +327,22 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
             LRESULT(1)
         },
         WM_SETCURSOR => unsafe {
-            let cursor = if state_mut(hwnd).is_some_and(|s| s.mode == AppMode::Selecting) { IDC_CROSS } else { IDC_ARROW };
+            let mut cursor = IDC_ARROW;
+            if let Some(state) = state_mut(hwnd) {
+                if state.mode == AppMode::Selecting {
+                    cursor = IDC_CROSS;
+                } else if matches!(state.mode, AppMode::ToolbarActive | AppMode::Saved) {
+                    if let Some(drag) = state.drag_mode {
+                        cursor = match drag {
+                            DragMode::Move => IDC_SIZEALL,
+                            DragMode::ResizeLeft | DragMode::ResizeRight => IDC_SIZEWE,
+                            DragMode::ResizeTop | DragMode::ResizeBottom => IDC_SIZENS,
+                            DragMode::ResizeTopLeft | DragMode::ResizeBottomRight => IDC_SIZENWSE,
+                            DragMode::ResizeTopRight | DragMode::ResizeBottomLeft => IDC_SIZENESW,
+                        };
+                    }
+                }
+            }
             let _ = SetCursor(LoadCursorW(None, cursor).ok());
             LRESULT(1)
         },
@@ -372,6 +388,9 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                 if state.mode == AppMode::Selecting {
                     state.start_pt = point; state.current_pt = point; state.is_dragging = true;
                     SetCapture(hwnd);
+                } else if state.mode == AppMode::ToolbarActive && state.drag_mode.is_some() {
+                    state.start_pt = point; state.current_pt = point; state.is_dragging = true;
+                    SetCapture(hwnd);
                 } else if state.crop_rect.is_some_and(|r| pt_in_rect(&r, point)) {
                     if state.mode == AppMode::SelectingText {
                         state.is_selecting_text = true;
@@ -401,15 +420,53 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                     state.selected_spans=text_selection::selection(&state.text_lines,
                         [state.text_selection_start.x,state.text_selection_start.y],[point.x,point.y],false);
                 } else if state.is_dragging {
-                    state.current_pt=point;
-                    if let Some(stroke)=&mut state.current_stroke {
-                        if stroke.last().is_none_or(|p| p.x!=point.x || p.y!=point.y) { stroke.push(point); }
+                    if state.mode == AppMode::ToolbarActive {
+                        if let Some(drag) = state.drag_mode {
+                            if let Some(rect) = &mut state.crop_rect {
+                                let dx = point.x - state.current_pt.x;
+                                let dy = point.y - state.current_pt.y;
+                                let mut l = rect.left; let mut r = rect.right;
+                                let mut t = rect.top; let mut b = rect.bottom;
+                                match drag {
+                                    DragMode::Move => { l+=dx; r+=dx; t+=dy; b+=dy; }
+                                    DragMode::ResizeLeft => { l+=dx; }
+                                    DragMode::ResizeRight => { r+=dx; }
+                                    DragMode::ResizeTop => { t+=dy; }
+                                    DragMode::ResizeBottom => { b+=dy; }
+                                    DragMode::ResizeTopLeft => { l+=dx; t+=dy; }
+                                    DragMode::ResizeTopRight => { r+=dx; t+=dy; }
+                                    DragMode::ResizeBottomLeft => { l+=dx; b+=dy; }
+                                    DragMode::ResizeBottomRight => { r+=dx; b+=dy; }
+                                }
+                                if r - l < 10 { if dx > 0 { r = l + 10; } else { l = r - 10; } }
+                                if b - t < 10 { if dy > 0 { b = t + 10; } else { t = b - 10; } }
+                                // clamp to screen
+                                let w = state.frame_width as i32; let h = state.frame_height as i32;
+                                if l < 0 { let d = -l; l+=d; if drag == DragMode::Move { r+=d; } }
+                                if t < 0 { let d = -t; t+=d; if drag == DragMode::Move { b+=d; } }
+                                if r > w { let d = r-w; r-=d; if drag == DragMode::Move { l-=d; } }
+                                if b > h { let d = b-h; b-=d; if drag == DragMode::Move { t-=d; } }
+                                
+                                rect.left = l; rect.right = r; rect.top = t; rect.bottom = b;
+                                state.current_pt = point;
+                                setup_toolbar(state);
+                            }
+                        }
+                    } else {
+                        state.current_pt=point;
+                        if let Some(stroke)=&mut state.current_stroke {
+                            if stroke.last().is_none_or(|p| p.x!=point.x || p.y!=point.y) { stroke.push(point); }
+                        }
                     }
                 } else if state.mode == AppMode::Selecting {
                     state.current_pt=point;
                     let mut global=POINT::default();let _=GetCursorPos(&mut global);
                     state.hovered_rect=state.ui_service.as_mut().and_then(|svc| svc.hit_test_point(global,HitTestMode::Window).ok().flatten())
                         .and_then(|rects| rects.first().map(|r| RECT{left:r.left(),top:r.top(),right:r.right(),bottom:r.bottom()}));
+                } else if state.mode == AppMode::ToolbarActive {
+                    if let Some(rect) = &state.crop_rect {
+                        state.drag_mode = hit_test_resize(rect, point, 8);
+                    }
                 }
                 let _=InvalidateRect(Some(hwnd),None,false);
             }
@@ -441,6 +498,11 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                                 state.crop_rect=Some(RECT{left:l as i32,top:t as i32,right:r as i32,bottom:b as i32});
                                 state.mode=AppMode::ToolbarActive;
                                 actions::status(hwnd,state,"选区已锁定，请选择工具；右键重新框选");
+                            }
+                        }
+                        AppMode::ToolbarActive=>{
+                            if let Some(rect) = &state.crop_rect {
+                                state.drag_mode = hit_test_resize(rect, point, 8);
                             }
                         }
                         AppMode::DrawingPen | AppMode::DrawingLine=>{
