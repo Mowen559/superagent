@@ -203,6 +203,7 @@ impl TranslationProvider for ExternalTranslationProvider {
     async fn translate(
         &self,
         input: &TranslationInput,
+        _settings: &VisualSettings,
     ) -> Result<TranslationProviderOutput, String> {
         let value = self
             .0

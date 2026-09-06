@@ -201,6 +201,30 @@ pub unsafe fn handle(hwnd: HWND, state: &mut AppState, action: Action) {
             }
         }
         Action::CopyText => copy_selection(hwnd,state),
+        Action::TTS => {
+            let mut text_to_read = String::new();
+            if let Some(lines) = &state.translated_lines {
+                for l in lines {
+                    text_to_read.push_str(&l.translated_text);
+                    text_to_read.push('\n');
+                }
+            } else if let Some(blocks) = &state.ocr_blocks {
+                for b in blocks {
+                    text_to_read.push_str(&b.text);
+                    text_to_read.push('\n');
+                }
+            }
+            if !text_to_read.is_empty() {
+                // Read text asynchronously or just call the TTS service
+                if let Err(e) = crate::services::visual_pipeline::tts::speak_text(&text_to_read) {
+                    status(hwnd, state, format!("朗读失败：{}", e));
+                } else {
+                    status(hwnd, state, "正在朗读...".to_string());
+                }
+            } else {
+                status(hwnd, state, "没有检测到文字".to_string());
+            }
+        }
         Action::OpenFolder => {
             if let Some(path)=&state.last_saved_path {
                 let mut command=std::process::Command::new("explorer.exe");

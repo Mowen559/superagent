@@ -695,6 +695,7 @@ impl TranslationProvider for HubLlmTranslationProvider {
     async fn translate(
         &self,
         input: &TranslationInput,
+        _settings: &VisualSettings,
     ) -> Result<TranslationProviderOutput, String> {
         let source = input
             .source_language
@@ -776,18 +777,16 @@ impl DeepLTranslationProvider {
 
 #[async_trait]
 impl TranslationProvider for DeepLTranslationProvider {
-    fn descriptor(&self, _settings: &VisualSettings) -> ProviderDescriptor {
-        let ready = std::env::var("DEEPL_API_KEY")
-            .ok()
-            .is_some_and(|value| !value.trim().is_empty());
+    fn descriptor(&self, settings: &VisualSettings) -> ProviderDescriptor {
+        let ready = !settings.deepl.api_key.is_empty();
         descriptor(
             "deepl",
             ProviderKind::Translation,
             "DeepL API",
             "v2",
             ready,
-            (!ready).then(|| "缺少环境变量 DEEPL_API_KEY".to_string()),
-            vec!["DEEPL_API_KEY".to_string()],
+            (!ready).then(|| "未配置 DeepL 密钥 (deepl.apiKey)".to_string()),
+            vec!["settings.deepl.apiKey".to_string()],
             json!({ "network": true, "sourceLanguageAutoDetect": true }),
         )
     }
@@ -795,15 +794,18 @@ impl TranslationProvider for DeepLTranslationProvider {
     async fn translate(
         &self,
         input: &TranslationInput,
+        settings: &VisualSettings,
     ) -> Result<TranslationProviderOutput, String> {
-        let key = std::env::var("DEEPL_API_KEY")
-            .map_err(|_| "DEEPL_API_KEY is not configured".to_string())?;
-        let default_url = if key.ends_with(":fx") {
-            "https://api-free.deepl.com/v2/translate"
+        let key = &settings.deepl.api_key;
+        if key.is_empty() { return Err("未配置 DeepL 密钥".into()); }
+        
+        let endpoint = if !settings.deepl.custom_url.is_empty() {
+            settings.deepl.custom_url.clone()
+        } else if key.ends_with(":fx") {
+            "https://api-free.deepl.com/v2/translate".into()
         } else {
-            "https://api.deepl.com/v2/translate"
+            "https://api.deepl.com/v2/translate".into()
         };
-        let endpoint = std::env::var("DEEPL_TRANSLATE_URL").unwrap_or_else(|_| default_url.into());
         let mut body = json!({
             "text": [input.text],
             "target_lang": normalize_language(&input.target_language, true)
@@ -882,6 +884,7 @@ impl TranslationProvider for GoogleTranslationProvider {
     async fn translate(
         &self,
         input: &TranslationInput,
+        _settings: &VisualSettings,
     ) -> Result<TranslationProviderOutput, String> {
         let key = std::env::var("GOOGLE_TRANSLATE_API_KEY")
             .map_err(|_| "GOOGLE_TRANSLATE_API_KEY is not configured".to_string())?;

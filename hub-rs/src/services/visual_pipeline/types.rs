@@ -85,6 +85,24 @@ fn default_translation_model() -> String {
     "".to_string()
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeepLSettings {
+    #[serde(default)]
+    pub api_key: String,
+    #[serde(default)]
+    pub custom_url: String,
+}
+
+impl Default for DeepLSettings {
+    fn default() -> Self {
+        Self {
+            api_key: std::env::var("DEEPL_API_KEY").unwrap_or_default(),
+            custom_url: std::env::var("DEEPL_TRANSLATE_URL").unwrap_or_default(),
+        }
+    }
+}
+
 fn default_system_prompt() -> String {
     "".to_string()
 }
@@ -106,6 +124,8 @@ pub struct VisualSettings {
     pub translation_provider: String,
     #[serde(default)]
     pub paddle_ocr: PaddleOcrSettings,
+    #[serde(default)]
+    pub deepl: DeepLSettings,
     #[serde(default = "default_target_language")]
     pub default_target_language: String,
     #[serde(default = "default_translation_model")]
@@ -124,6 +144,7 @@ impl Default for VisualSettings {
             ocr_provider: default_ocr_provider(),
             translation_provider: default_translation_provider(),
             paddle_ocr: PaddleOcrSettings::default(),
+            deepl: DeepLSettings::default(),
             default_target_language: default_target_language(),
             default_translation_model: default_translation_model(),
             default_system_prompt: default_system_prompt(),
@@ -306,5 +327,6 @@ pub trait TranslationProvider: Send + Sync {
     async fn translate(
         &self,
         input: &TranslationInput,
+        settings: &VisualSettings,
     ) -> Result<TranslationProviderOutput, String>;
 }

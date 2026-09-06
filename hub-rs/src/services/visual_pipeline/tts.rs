@@ -25,11 +25,32 @@ static TTS_ENGINE: Lazy<Mutex<Option<Tts>>> = Lazy::new(|| {
 });
 
 pub fn speak_text(text: &str) -> Result<(), String> {
-    let mut engine_guard = TTS_ENGINE.lock().unwrap();
-    if let Some(engine) = engine_guard.as_mut() {
-        engine.speak(text, true).map_err(|e| format!("TTS Speak Error: {}", e))?;
+    #[cfg(windows)]
+    {
+        let safe_text = text.replace("'", "''");
+        let script = format!(
+            "Add-Type -AssemblyName System.Speech; $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; $synth.Speak('{}');",
+            safe_text
+        );
+        std::thread::spawn(move || {
+            use std::os::windows::process::CommandExt;
+            let _ = std::process::Command::new("powershell")
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                .arg("-NoProfile")
+                .arg("-Command")
+                .arg(&script)
+                .output();
+        });
         Ok(())
-    } else {
-        Err("TTS Engine not initialized".to_string())
+    }
+    #[cfg(not(windows))]
+    {
+        let mut engine_guard = TTS_ENGINE.lock().unwrap();
+        if let Some(engine) = engine_guard.as_mut() {
+            engine.speak(text, true).map_err(|e| format!("TTS Speak Error: {}", e))?;
+            Ok(())
+        } else {
+            Err("TTS Engine not initialized".to_string())
+        }
     }
 }

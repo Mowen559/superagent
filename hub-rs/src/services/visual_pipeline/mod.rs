@@ -374,7 +374,7 @@ impl VisualPipelineRuntime {
             }),
         };
         let started = Instant::now();
-        let output = provider.translate(&input).await?;
+        let output = provider.translate(&input, &settings).await?;
         Ok(TranslationReceipt {
             provider_id,
             translated_text: output.translated_text,
@@ -595,6 +595,8 @@ fn normalize_settings(settings: &mut VisualSettings) -> Result<(), String> {
             &mut settings.paddle_ocr.recognition_model_path,
         ),
         ("keysPath", &mut settings.paddle_ocr.keys_path),
+        ("deepl.apiKey", &mut settings.deepl.api_key),
+        ("deepl.customUrl", &mut settings.deepl.custom_url),
     ] {
         *path = path.trim().to_string();
         if path.len() > 2048 {
