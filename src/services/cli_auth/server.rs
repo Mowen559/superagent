@@ -104,18 +104,24 @@ pub(crate) async fn execute_pkce_flow(
     }
 
     // Wait for Callback
-    let code = match rx.await {
-        Ok(Ok(c)) => {
-            let _ = shutdown_tx.send(());
-            c
-        }
-        Ok(Err(e)) => {
-            let _ = shutdown_tx.send(());
-            return Err(format!("Login failed: {}", e));
-        }
+    let code = match tokio::time::timeout(std::time::Duration::from_secs(300), rx).await {
         Err(_) => {
             let _ = shutdown_tx.send(());
-            return Err("Server channel closed unexpectedly".to_string());
+            return Err("Login timed out after 5 minutes".to_string());
+        }
+        Ok(res) => match res {
+            Ok(Ok(c)) => {
+                let _ = shutdown_tx.send(());
+                c
+            }
+            Ok(Err(e)) => {
+                let _ = shutdown_tx.send(());
+                return Err(format!("Login failed: {}", e));
+            }
+            Err(_) => {
+                let _ = shutdown_tx.send(());
+                return Err("Server channel closed unexpectedly".to_string());
+            }
         }
     };
 

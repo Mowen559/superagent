@@ -39,6 +39,8 @@ pub struct TaskManager {
     /// Serializes persisted task state transitions. Process/event locks stay
     /// separate so cancellation never waits on SSE consumers.
     status_lock: Mutex<()>,
+    run_handles: Mutex<HashMap<String, tokio::task::JoinHandle<()>>>,
+    shutting_down: std::sync::atomic::AtomicBool,
 }
 
 impl TaskManager {
@@ -51,6 +53,8 @@ impl TaskManager {
             control_bus: Mutex::new(HashMap::new()),
             cancel_bus: Mutex::new(HashMap::new()),
             status_lock: Mutex::new(()),
+            run_handles: Mutex::new(HashMap::new()),
+            shutting_down: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -201,6 +205,7 @@ impl TaskManager {
         self.event_bus.lock().unwrap().remove(task_id);
         self.cancel_bus.lock().unwrap().remove(task_id);
         self.remove_control(task_id);
+                self.remove_handle(task_id);
         true
     }
 
@@ -245,6 +250,7 @@ impl TaskManager {
                 // Drop the cancel token as it's no longer needed
                 self.cancel_bus.lock().unwrap().remove(task_id);
                 self.remove_control(task_id);
+                self.remove_handle(task_id);
             }
             return true;
         }
@@ -404,22 +410,46 @@ impl TaskManager {
     }
 
     /// Cancel all non-terminal tasks gracefully during server shutdown.
-    pub fn cancel_all_active_tasks(&self, reason: &str) {
-        let active_tasks: Vec<String> = self
-            .list_tasks()
-            .into_iter()
-            .filter(|t| !t.status.is_terminal())
-            .map(|t| t.id)
-            .collect();
+    pub fn is_shutting_down(&self) -> bool {
+        self.shutting_down.load(std::sync::atomic::Ordering::SeqCst)
+    }
 
-        for id in active_tasks {
-            tracing::warn!(task_id = %id, reason, "Cancelling in-flight task on server shutdown");
-            self.append_log(
-                &id,
-                &format!("[System] Task cancelled due to server shutdown: {}", reason),
-            );
-            self.cancel_task(&id);
+    pub fn register_handle(&self, task_id: &str, handle: tokio::task::JoinHandle<()>) {
+        self.run_handles.lock().unwrap().insert(task_id.to_string(), handle);
+    }
+
+    pub fn remove_handle(&self, task_id: &str) {
+        self.run_handles.lock().unwrap().remove(task_id);
+    }
+
+    pub async fn drain_active_tasks(&self, reason: &str, deadline: std::time::Duration) -> Result<(), String> {
+        self.shutting_down.store(true, std::sync::atomic::Ordering::SeqCst);
+        let active_tasks: Vec<String> = self.list_tasks().into_iter().filter(|t| !t.status.is_terminal()).map(|t| t.id).collect();
+        let mut handles_to_wait = Vec::new();
+        {
+            let mut handles = self.run_handles.lock().unwrap();
+            for id in &active_tasks {
+                tracing::warn!(task_id = %id, reason, "Cancelling in-flight task on server shutdown");
+                self.append_log(id, &format!("[System] Task cancelled due to server shutdown: {}", reason));
+                self.cancel_task(id);
+                if let Some(h) = handles.remove(id) {
+                    handles_to_wait.push((id.clone(), h));
+                }
+            }
         }
+        
+        let wait_all = async {
+            for (id, handle) in handles_to_wait {
+                if let Err(e) = handle.await {
+                    tracing::error!(task_id = %id, "Task panicked or failed during shutdown: {}", e);
+                }
+            }
+        };
+
+        if tokio::time::timeout(deadline, wait_all).await.is_err() {
+            return Err("Timeout waiting for tasks to drain".to_string());
+        }
+        Ok(())
     }
 
     pub fn list_tasks(&self) -> Vec<Task> {
@@ -517,6 +547,8 @@ mod tests {
             control_bus: Mutex::new(HashMap::new()),
             cancel_bus: Mutex::new(HashMap::new()),
             status_lock: Mutex::new(()),
+            run_handles: Mutex::new(HashMap::new()),
+            shutting_down: std::sync::atomic::AtomicBool::new(false),
         };
         (directory, manager)
     }

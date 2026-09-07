@@ -136,23 +136,26 @@ pub(crate) async fn handle_request(
             }
         }
 
-        // Token refresh logic
-        let needs_save = crate::services::cli_auth::refresh_account_token_if_needed(
-            &mut account,
-            &state.http_client,
-        )
-        .await;
-        if needs_save {
-            attempt_settings.api_key = account.api_key.clone();
-            // Update the global settings file with new token
-            if let Some(global_account) = settings.accounts.iter_mut().find(|a| a.id == account.id)
-            {
-                global_account.api_key = account.api_key.clone();
-                global_account.refresh_token = account.refresh_token.clone();
-                global_account.expires_at = account.expires_at;
-                llm_settings::write_llm_settings(
-                    serde_json::to_value(&settings).unwrap_or_default(),
-                );
+        // Get token through AuthRuntime (centralized refresh)
+        match crate::services::cli_auth::AuthRuntime::global().get_valid_token(&mut account, &state.http_client).await {
+            Ok(token) => {
+                attempt_settings.api_key = token;
+            }
+            Err(e) => {
+                tracing::warn!("AuthRuntime failed to get valid token: {}", e);
+                last_error = (StatusCode::UNAUTHORIZED, format!("Auth error: {}", e));
+                let class = route_runtime.classify_failure(&format!("auth failed: {e}"));
+                receipts.push(ProviderAttemptReceipt::new(
+                    &candidate,
+                    attempt,
+                    elapsed_ms(attempt_started),
+                    class.into(),
+                    Some(401),
+                ));
+                if route_runtime.should_try_next(class, attempt < candidate_count) {
+                    continue;
+                }
+                return Err(last_error);
             }
         }
 

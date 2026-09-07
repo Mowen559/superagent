@@ -247,6 +247,20 @@ impl LlmProvider {
             let mut refresh_attempted = false;
 
             loop {
+                if let Err(e) = crate::services::cli_auth::AuthRuntime::global().get_valid_token(&mut candidate.account, &self.client).await {
+                    receipts.push(ProviderAttemptReceipt::new(
+                        &candidate,
+                        attempt,
+                        elapsed_ms(attempt_started),
+                        ModelErrorClass::Authentication.into(),
+                        Some(401),
+                    ));
+                    if runtime.should_try_next(ModelErrorClass::Authentication, attempt < candidate_count) {
+                        break;
+                    }
+                    return Err(format!("Auth error: {}", e));
+                }
+                
                 let mut standard_body = json!({
                     "model": candidate.resolved_model,
                     "max_tokens": request_budget.completion_tokens,
@@ -345,57 +359,12 @@ impl LlmProvider {
                     let class = runtime.classify_http_failure(status.as_u16(), &provider_error);
                     health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
 
-                    if (status.as_u16() == 401 || status.as_u16() == 403) && !refresh_attempted {
-                        if let Some(ref rt) = candidate.account.refresh_token {
-                            tracing::info!(
-                                account_id = %candidate.account.id,
-                                "Token is unauthorized (HTTP {}), attempting auto-refresh",
-                                status.as_u16()
-                            );
-                            eprintln!("Auto-refreshing token for account {}", candidate.account.id);
-                            if let Some(new_token) =
-                                crate::services::subscription::refresh_gemini_token(
-                                    &self.client,
-                                    rt,
-                                )
-                                .await
-                            {
-                                eprintln!("Auto-refresh SUCCESS for {}", candidate.account.id);
-                                // Save to config
-                                let new_token_clone = new_token.clone();
-                                let account_id = candidate.account.id.clone();
-                                if let Err(e) = crate::config::llm_settings::update_llm_settings(
-                                    move |settings| {
-                                        for a in &mut settings.accounts {
-                                            if a.id == account_id {
-                                                a.api_key = new_token_clone.clone();
-                                                break;
-                                            }
-                                        }
-                                        Ok(())
-                                    },
-                                ) {
-                                    tracing::error!(
-                                        "Failed to save refreshed token to llm.json: {}",
-                                        e
-                                    );
-                                }
-
-                                candidate.account.api_key = new_token;
-                                refresh_attempted = true;
-                                attempt_started = std::time::Instant::now(); // Reset timer for the retry
-                                continue;
-                            } else {
-                                eprintln!(
-                                    "Auto-refresh failed for account {}",
-                                    candidate.account.id
-                                );
-                                tracing::error!(
-                                    "Auto-refresh failed for account {}",
-                                    candidate.account.id
-                                );
-                            }
-                        }
+                    if (status.as_u16() == 401 || status.as_u16() == 403) {
+                        tracing::warn!(
+                            account_id = %candidate.account.id,
+                            "Token is unauthorized (HTTP {}), Gateway returning Auth error directly",
+                            status.as_u16()
+                        );
                     }
 
                     receipts.push(failure_receipt(

@@ -34,4 +34,6 @@ hub-rs config quota
 
 ## Architecture
 
+Architecture overview and current implementation boundaries: [系统架构设计](系统架构设计.md).
+
 This project is built using Rust and `axum` for HTTP serving, integrating seamlessly with `reqwest` for external LLM API calls and `tree-sitter` for codebase analysis.

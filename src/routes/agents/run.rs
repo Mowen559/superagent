@@ -67,6 +67,14 @@ pub(crate) fn resolve_agent_timeout(requested: Option<u64>) -> Result<Duration, 
 /// Launch an agent run as a background task. Returns `{ taskId }` immediately;
 /// the caller streams progress via `/api/agents/tasks/:id/events`.
 pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>) -> Response {
+    if state.task_manager.is_shutting_down() {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({ "error": "Server is shutting down" })),
+        )
+            .into_response();
+    }
+
     if body.prompt.trim().is_empty() {
         return (
             StatusCode::BAD_REQUEST,
@@ -179,7 +187,7 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
     let prompt = body.prompt.clone();
     let agent_name = body.agent.clone();
 
-    tokio::spawn(async move {
+    let handle = tokio::spawn(async move {
         if let Ok(kind) = AgentKind::from_str(&agent_name) {
             drive_run(state_bg, task_bg, kind, prompt, opts, cancel_rx).await;
         } else {
@@ -190,6 +198,7 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
             );
         }
     });
+    state.task_manager.register_handle(&task_id, handle);
 
     Json(json!({ "taskId": task_id, "status": "running", "isolatedWorkspace": isolated_workspace }))
         .into_response()

@@ -99,8 +99,11 @@ async fn shutdown_signal(state: Arc<AppState>) {
     }
 
     tracing::info!("Draining in-flight tasks and operations...");
-    state.task_manager.cancel_all_active_tasks("server shutdown");
-    tracing::info!("In-flight tasks drained successfully.");
+    if let Err(e) = state.task_manager.drain_active_tasks("server shutdown", std::time::Duration::from_secs(10)).await {
+        tracing::error!("Failed to drain tasks cleanly: {}", e);
+    } else {
+        tracing::info!("In-flight tasks drained successfully.");
+    }
 }
 
 fn init_tracing() {
