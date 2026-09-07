@@ -332,12 +332,16 @@ mod tests {
         manifest.validate().unwrap();
         let provider = ExternalTranslationProvider(manifest);
         let output = provider
-            .translate(&TranslationInput {
-                text: "hello".to_string(),
-                source_language: None,
-                target_language: "zh-CN".to_string(),
-                model: None,
-            })
+            .translate(
+                &TranslationInput {
+                    text: "hello".to_string(),
+                    source_language: None,
+                    target_language: "zh-CN".to_string(),
+                    model: None,
+                    system_prompt: None,
+                },
+                &VisualSettings::default(),
+            )
             .await
             .unwrap();
         assert_eq!(output.translated_text, "plugin:hello");

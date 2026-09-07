@@ -1,0 +1,1098 @@
+{
+  "baseline": "0904160f6e721f5b76af2bc58f8e4037ec3ceaa4",
+  "method": "Compare Rust declarations against a Git baseline using tree-sitter.\n\nUsage: py -3 scripts/audit_module_split.py --baseline HEAD --output report.json\nRequires tree-sitter==0.25.2 and tree-sitter-rust. Does not modify implementation files.\nEquality ignores comments, whitespace and visibility, but preserves literal bytes.\nIt is source evidence, not proof of name resolution or runtime equivalence.\n",
+  "groups": [
+    {
+      "module": "src/routes/agents",
+      "beforeDeclarations": 34,
+      "afterDeclarations": 34,
+      "equal": [
+        {
+          "symbol": "function_item:router",
+          "beforeLine": 33,
+          "after": "src/routes/agents/mod.rs",
+          "afterLine": 47
+        },
+        {
+          "symbol": "function_item:list_agents",
+          "beforeLine": 76,
+          "after": "src/routes/agents/config.rs",
+          "afterLine": 37
+        },
+        {
+          "symbol": "function_item:install_missing_agents",
+          "beforeLine": 82,
+          "after": "src/routes/agents/config.rs",
+          "afterLine": 43
+        },
+        {
+          "symbol": "function_item:install_agent_endpoint",
+          "beforeLine": 111,
+          "after": "src/routes/agents/config.rs",
+          "afterLine": 72
+        },
+        {
+          "symbol": "struct_item:RunBody",
+          "beforeLine": 139,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 38
+        },
+        {
+          "symbol": "const_item:DEFAULT_AGENT_TIMEOUT_SECONDS",
+          "beforeLine": 154,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 53
+        },
+        {
+          "symbol": "const_item:MAX_AGENT_TIMEOUT_SECONDS",
+          "beforeLine": 155,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 54
+        },
+        {
+          "symbol": "function_item:resolve_agent_timeout",
+          "beforeLine": 157,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 56
+        },
+        {
+          "symbol": "function_item:run_agent",
+          "beforeLine": 170,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 69
+        },
+        {
+          "symbol": "function_item:agent_runs_have_a_finite_default_timeout",
+          "beforeLine": 304,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 203
+        },
+        {
+          "symbol": "function_item:timeout_override_is_bounded",
+          "beforeLine": 312,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 211
+        },
+        {
+          "symbol": "function_item:drive_run",
+          "beforeLine": 324,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 223
+        },
+        {
+          "symbol": "function_item:stream_events",
+          "beforeLine": 402,
+          "after": "src/routes/agents/run.rs",
+          "afterLine": 301
+        },
+        {
+          "symbol": "struct_item:InteractBody",
+          "beforeLine": 480,
+          "after": "src/routes/agents/interact.rs",
+          "afterLine": 38
+        },
+        {
+          "symbol": "function_item:interact_with_task",
+          "beforeLine": 487,
+          "after": "src/routes/agents/interact.rs",
+          "afterLine": 45
+        },
+        {
+          "symbol": "function_item:to_sse_event",
+          "beforeLine": 541,
+          "after": "src/routes/agents/interact.rs",
+          "afterLine": 99
+        },
+        {
+          "symbol": "function_item:sync_agent_config",
+          "beforeLine": 557,
+          "after": "src/routes/agents/config.rs",
+          "afterLine": 99
+        },
+        {
+          "symbol": "function_item:preview_agent_config",
+          "beforeLine": 587,
+          "after": "src/routes/agents/config.rs",
+          "afterLine": 129
+        },
+        {
+          "symbol": "function_item:list_agent_skills",
+          "beforeLine": 618,
+          "after": "src/routes/agents/skills.rs",
+          "afterLine": 36
+        },
+        {
+          "symbol": "function_item:list_agent_mcps",
+          "beforeLine": 638,
+          "after": "src/routes/agents/skills.rs",
+          "afterLine": 56
+        },
+        {
+          "symbol": "function_item:install_agent_skill",
+          "beforeLine": 656,
+          "after": "src/routes/agents/skills.rs",
+          "afterLine": 74
+        },
+        {
+          "symbol": "function_item:update_agent_skill",
+          "beforeLine": 677,
+          "after": "src/routes/agents/skills.rs",
+          "afterLine": 95
+        },
+        {
+          "symbol": "function_item:uninstall_agent_skill",
+          "beforeLine": 732,
+          "after": "src/routes/agents/skills.rs",
+          "afterLine": 150
+        },
+        {
+          "symbol": "function_item:list_agent_models",
+          "beforeLine": 752,
+          "after": "src/routes/agents/models.rs",
+          "afterLine": 36
+        },
+        {
+          "symbol": "const_item:MAX_DIFF_CHARS",
+          "beforeLine": 774,
+          "after": "src/routes/agents/models.rs",
+          "afterLine": 58
+        },
+        {
+          "symbol": "const_item:VERIFICATION_TIMEOUT_SECONDS",
+          "beforeLine": 775,
+          "after": "src/routes/agents/models.rs",
+          "afterLine": 59
+        },
+        {
+          "symbol": "struct_item:DevelopmentRunPaths",
+          "beforeLine": 777,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 36
+        },
+        {
+          "symbol": "function_item:development_run_paths",
+          "beforeLine": 783,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 42
+        },
+        {
+          "symbol": "function_item:get_task_diff",
+          "beforeLine": 832,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 91
+        },
+        {
+          "symbol": "struct_item:ApplyBody",
+          "beforeLine": 898,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 157
+        },
+        {
+          "symbol": "struct_item:VerificationCommand",
+          "beforeLine": 904,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 163
+        },
+        {
+          "symbol": "function_item:verification_plan",
+          "beforeLine": 910,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 169
+        },
+        {
+          "symbol": "function_item:verify_task_changes",
+          "beforeLine": 963,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 222
+        },
+        {
+          "symbol": "function_item:apply_task_changes",
+          "beforeLine": 1052,
+          "after": "src/routes/agents/diff.rs",
+          "afterLine": 311
+        }
+      ],
+      "changed": [],
+      "missing": [],
+      "addedSymbols": [],
+      "duplicateSymbols": {},
+      "visibilityChanged": [
+        "function_item:list_agents",
+        "function_item:install_missing_agents",
+        "function_item:install_agent_endpoint",
+        "const_item:DEFAULT_AGENT_TIMEOUT_SECONDS",
+        "const_item:MAX_AGENT_TIMEOUT_SECONDS",
+        "function_item:resolve_agent_timeout",
+        "function_item:run_agent",
+        "function_item:agent_runs_have_a_finite_default_timeout",
+        "function_item:timeout_override_is_bounded",
+        "function_item:drive_run",
+        "function_item:interact_with_task",
+        "function_item:to_sse_event",
+        "function_item:sync_agent_config",
+        "function_item:preview_agent_config",
+        "function_item:list_agent_skills",
+        "function_item:list_agent_mcps",
+        "function_item:install_agent_skill",
+        "function_item:update_agent_skill",
+        "function_item:uninstall_agent_skill",
+        "function_item:list_agent_models",
+        "const_item:MAX_DIFF_CHARS",
+        "const_item:VERIFICATION_TIMEOUT_SECONDS",
+        "struct_item:DevelopmentRunPaths",
+        "function_item:development_run_paths",
+        "function_item:get_task_diff",
+        "struct_item:VerificationCommand",
+        "function_item:verification_plan",
+        "function_item:verify_task_changes",
+        "function_item:apply_task_changes"
+      ],
+      "parseErrors": []
+    },
+    {
+      "module": "src/services/cli_auth",
+      "beforeDeclarations": 22,
+      "afterDeclarations": 22,
+      "equal": [
+        {
+          "symbol": "struct_item:TokenRes",
+          "beforeLine": 19,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 22
+        },
+        {
+          "symbol": "struct_item:DeviceAuthRes",
+          "beforeLine": 27,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 30
+        },
+        {
+          "symbol": "struct_item:CallbackQuery",
+          "beforeLine": 36,
+          "after": "src/services/cli_auth/server.rs",
+          "afterLine": 22
+        },
+        {
+          "symbol": "struct_item:AppState",
+          "beforeLine": 42,
+          "after": "src/services/cli_auth/server.rs",
+          "afterLine": 28
+        },
+        {
+          "symbol": "function_item:b64url",
+          "beforeLine": 47,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 38
+        },
+        {
+          "symbol": "function_item:ensure_logged_in",
+          "beforeLine": 51,
+          "after": "src/services/cli_auth/ui.rs",
+          "afterLine": 21
+        },
+        {
+          "symbol": "function_item:handle_openai_pkce_flow",
+          "beforeLine": 262,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 42
+        },
+        {
+          "symbol": "function_item:handle_github_copilot_flow",
+          "beforeLine": 360,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 140
+        },
+        {
+          "symbol": "function_item:fetch_cloudaicompanion_project",
+          "beforeLine": 497,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 277
+        },
+        {
+          "symbol": "function_item:handle_gemini_oauth_flow",
+          "beforeLine": 527,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 307
+        },
+        {
+          "symbol": "function_item:handle_deepcloud_sso_flow",
+          "beforeLine": 629,
+          "after": "src/services/cli_auth/ui.rs",
+          "afterLine": 232
+        },
+        {
+          "symbol": "function_item:handle_custom_api_key",
+          "beforeLine": 635,
+          "after": "src/services/cli_auth/ui.rs",
+          "afterLine": 238
+        },
+        {
+          "symbol": "function_item:handle_custom_api_key_with_defaults",
+          "beforeLine": 672,
+          "after": "src/services/cli_auth/ui.rs",
+          "afterLine": 275
+        },
+        {
+          "symbol": "function_item:execute_pkce_flow",
+          "beforeLine": 714,
+          "after": "src/services/cli_auth/server.rs",
+          "afterLine": 33
+        },
+        {
+          "symbol": "function_item:handle_callback",
+          "beforeLine": 843,
+          "after": "src/services/cli_auth/server.rs",
+          "afterLine": 162
+        },
+        {
+          "symbol": "struct_item:DeepcloudCallbackQuery",
+          "beforeLine": 877,
+          "after": "src/services/cli_auth/server.rs",
+          "afterLine": 196
+        },
+        {
+          "symbol": "function_item:handle_deepcloud_flow",
+          "beforeLine": 882,
+          "after": "src/services/cli_auth/server.rs",
+          "afterLine": 201
+        },
+        {
+          "symbol": "function_item:handle_deepcloud_callback",
+          "beforeLine": 939,
+          "after": "src/services/cli_auth/server.rs",
+          "afterLine": 258
+        },
+        {
+          "symbol": "function_item:get_deepcloud_token",
+          "beforeLine": 962,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 409
+        },
+        {
+          "symbol": "function_item:clear_deepcloud_token",
+          "beforeLine": 971,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 418
+        },
+        {
+          "symbol": "function_item:handle_claude_oauth_flow",
+          "beforeLine": 980,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 427
+        },
+        {
+          "symbol": "function_item:refresh_account_token_if_needed",
+          "beforeLine": 1193,
+          "after": "src/services/cli_auth/flow.rs",
+          "afterLine": 640
+        }
+      ],
+      "changed": [],
+      "missing": [],
+      "addedSymbols": [],
+      "duplicateSymbols": {},
+      "visibilityChanged": [
+        "struct_item:TokenRes",
+        "struct_item:DeviceAuthRes",
+        "struct_item:CallbackQuery",
+        "struct_item:AppState",
+        "function_item:b64url",
+        "function_item:fetch_cloudaicompanion_project",
+        "function_item:handle_deepcloud_sso_flow",
+        "function_item:handle_custom_api_key",
+        "function_item:handle_custom_api_key_with_defaults",
+        "function_item:execute_pkce_flow",
+        "function_item:handle_callback",
+        "struct_item:DeepcloudCallbackQuery",
+        "function_item:handle_deepcloud_callback"
+      ],
+      "parseErrors": []
+    },
+    {
+      "module": "src/services/brain/provider_capability_runtime",
+      "beforeDeclarations": 97,
+      "afterDeclarations": 202,
+      "equal": [
+        {
+          "symbol": "const_item:MAX_CATALOG_BYTES",
+          "beforeLine": 15,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 15
+        },
+        {
+          "symbol": "const_item:MAX_CATALOG_MODELS",
+          "beforeLine": 16,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 16
+        },
+        {
+          "symbol": "const_item:MAX_MODEL_ID_CHARS",
+          "beforeLine": 17,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 17
+        },
+        {
+          "symbol": "const_item:MAX_SELECTED_MODELS",
+          "beforeLine": 18,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 18
+        },
+        {
+          "symbol": "const_item:MAX_PROFILES",
+          "beforeLine": 19,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 19
+        },
+        {
+          "symbol": "const_item:MAX_PROBE_REQUESTS",
+          "beforeLine": 20,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 20
+        },
+        {
+          "symbol": "const_item:MAX_PROBE_BYTES",
+          "beforeLine": 21,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 21
+        },
+        {
+          "symbol": "const_item:CATALOG_TIMEOUT",
+          "beforeLine": 22,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 22
+        },
+        {
+          "symbol": "const_item:PROBE_TIMEOUT",
+          "beforeLine": 23,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 23
+        },
+        {
+          "symbol": "const_item:PROBE_MAX_TOKENS",
+          "beforeLine": 24,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 24
+        },
+        {
+          "symbol": "const_item:DEFAULT_CATALOG_TTL_HOURS",
+          "beforeLine": 25,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 25
+        },
+        {
+          "symbol": "const_item:DEFAULT_PROBE_TTL_HOURS",
+          "beforeLine": 26,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 26
+        },
+        {
+          "symbol": "const_item:MIN_EVIDENCE_TTL_HOURS",
+          "beforeLine": 27,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 27
+        },
+        {
+          "symbol": "const_item:MAX_EVIDENCE_TTL_HOURS",
+          "beforeLine": 28,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 28
+        },
+        {
+          "symbol": "const_item:TINY_PNG",
+          "beforeLine": 29,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 29
+        },
+        {
+          "symbol": "function_item:default_catalog_enabled",
+          "beforeLine": 31,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 34
+        },
+        {
+          "symbol": "struct_item:CapabilityDiscoveryRequest",
+          "beforeLine": 37,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 40
+        },
+        {
+          "symbol": "enum_item:CapabilityProfile",
+          "beforeLine": 55,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 36
+        },
+        {
+          "symbol": "function_item:CapabilityProfile::metadata_key",
+          "beforeLine": 63,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 44
+        },
+        {
+          "symbol": "function_item:CapabilityProfile::from_metadata_key",
+          "beforeLine": 72,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 53
+        },
+        {
+          "symbol": "enum_item:CapabilityEvidenceSource",
+          "beforeLine": 85,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 66
+        },
+        {
+          "symbol": "enum_item:CapabilityObservationOutcome",
+          "beforeLine": 92,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 73
+        },
+        {
+          "symbol": "enum_item:CapabilityVerdict",
+          "beforeLine": 101,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 82
+        },
+        {
+          "symbol": "enum_item:CapabilityFreshness",
+          "beforeLine": 109,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 90
+        },
+        {
+          "symbol": "struct_item:CapabilityAssessment",
+          "beforeLine": 119,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 100
+        },
+        {
+          "symbol": "struct_item:CapabilityEvidencePolicy",
+          "beforeLine": 129,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 110
+        },
+        {
+          "symbol": "function_item:Default for CapabilityEvidencePolicy::default",
+          "beforeLine": 135,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 116
+        },
+        {
+          "symbol": "function_item:CapabilityEvidencePolicy::ttl_for",
+          "beforeLine": 150,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 131
+        },
+        {
+          "symbol": "function_item:CapabilityEvidencePolicy::expires_at",
+          "beforeLine": 157,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 138
+        },
+        {
+          "symbol": "struct_item:CapabilityObservation",
+          "beforeLine": 164,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 145
+        },
+        {
+          "symbol": "struct_item:ModelCatalogSnapshot",
+          "beforeLine": 179,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 36
+        },
+        {
+          "symbol": "struct_item:CapabilityDiscoveryReport",
+          "beforeLine": 190,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 58
+        },
+        {
+          "symbol": "struct_item:RecertificationItem",
+          "beforeLine": 204,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 160
+        },
+        {
+          "symbol": "struct_item:RecertificationPlan",
+          "beforeLine": 211,
+          "after": "src/services/brain/provider_capability_runtime/types.rs",
+          "afterLine": 167
+        },
+        {
+          "symbol": "enum_item:CapabilityDiscoveryErrorKind",
+          "beforeLine": 221,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 72
+        },
+        {
+          "symbol": "struct_item:CapabilityDiscoveryError",
+          "beforeLine": 231,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 82
+        },
+        {
+          "symbol": "function_item:CapabilityDiscoveryError::new",
+          "beforeLine": 239,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 90
+        },
+        {
+          "symbol": "function_item:CapabilityDiscoveryError::http",
+          "beforeLine": 247,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 98
+        },
+        {
+          "symbol": "function_item:fmt::Display for CapabilityDiscoveryError::fmt",
+          "beforeLine": 257,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 108
+        },
+        {
+          "symbol": "struct_item:ProviderCapabilityRuntime",
+          "beforeLine": 268,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 52
+        },
+        {
+          "symbol": "function_item:ProviderCapabilityRuntime::new",
+          "beforeLine": 274,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 58
+        },
+        {
+          "symbol": "function_item:ProviderCapabilityRuntime::with_policy",
+          "beforeLine": 282,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 66
+        },
+        {
+          "symbol": "function_item:ProviderCapabilityRuntime::discover",
+          "beforeLine": 289,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 73
+        },
+        {
+          "symbol": "function_item:ProviderCapabilityRuntime::fetch_catalog",
+          "beforeLine": 372,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 156
+        },
+        {
+          "symbol": "function_item:ProviderCapabilityRuntime::fetch_catalog_inner",
+          "beforeLine": 386,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 170
+        },
+        {
+          "symbol": "function_item:ProviderCapabilityRuntime::probe",
+          "beforeLine": 421,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 205
+        },
+        {
+          "symbol": "function_item:ProviderCapabilityRuntime::probe_inner",
+          "beforeLine": 468,
+          "after": "src/services/brain/provider_capability_runtime/mod.rs",
+          "afterLine": 252
+        },
+        {
+          "symbol": "function_item:assess_model_profile",
+          "beforeLine": 543,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 37
+        },
+        {
+          "symbol": "function_item:assess_model_profile_at",
+          "beforeLine": 552,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 46
+        },
+        {
+          "symbol": "function_item:assess_context_limit",
+          "beforeLine": 580,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 74
+        },
+        {
+          "symbol": "function_item:assess_context_limit_at",
+          "beforeLine": 589,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 83
+        },
+        {
+          "symbol": "function_item:plan_recertification_for_account",
+          "beforeLine": 638,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 132
+        },
+        {
+          "symbol": "function_item:plan_recertification_for_account_at",
+          "beforeLine": 642,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 136
+        },
+        {
+          "symbol": "function_item:assess_observation_evidence",
+          "beforeLine": 700,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 194
+        },
+        {
+          "symbol": "function_item:assess_evidence_timing",
+          "beforeLine": 739,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 233
+        },
+        {
+          "symbol": "function_item:unknown_assessment",
+          "beforeLine": 772,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 266
+        },
+        {
+          "symbol": "function_item:observation",
+          "beforeLine": 785,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 279
+        },
+        {
+          "symbol": "function_item:parse_timestamp",
+          "beforeLine": 809,
+          "after": "src/services/brain/provider_capability_runtime/utils.rs",
+          "afterLine": 34
+        },
+        {
+          "symbol": "function_item:ttl_hours_from_env",
+          "beforeLine": 815,
+          "after": "src/services/brain/provider_capability_runtime/utils.rs",
+          "afterLine": 40
+        },
+        {
+          "symbol": "function_item:apply_discovery_report",
+          "beforeLine": 825,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 211
+        },
+        {
+          "symbol": "struct_item:DiscoveredCatalog",
+          "beforeLine": 906,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 46
+        },
+        {
+          "symbol": "struct_item:ProbeFailure",
+          "beforeLine": 913,
+          "after": "src/services/brain/provider_capability_runtime/probe.rs",
+          "afterLine": 35
+        },
+        {
+          "symbol": "function_item:ProbeFailure::failed",
+          "beforeLine": 920,
+          "after": "src/services/brain/provider_capability_runtime/probe.rs",
+          "afterLine": 42
+        },
+        {
+          "symbol": "enum_item:CatalogAdapter",
+          "beforeLine": 930,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 53
+        },
+        {
+          "symbol": "function_item:CatalogAdapter::for_account",
+          "beforeLine": 937,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 60
+        },
+        {
+          "symbol": "function_item:CatalogAdapter::prepare",
+          "beforeLine": 953,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 76
+        },
+        {
+          "symbol": "function_item:validate_request",
+          "beforeLine": 1029,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 118
+        },
+        {
+          "symbol": "function_item:validate_account",
+          "beforeLine": 1104,
+          "after": "src/services/brain/provider_capability_runtime/discovery.rs",
+          "afterLine": 193
+        },
+        {
+          "symbol": "function_item:read_bounded",
+          "beforeLine": 1120,
+          "after": "src/services/brain/provider_capability_runtime/probe.rs",
+          "afterLine": 51
+        },
+        {
+          "symbol": "function_item:read_probe_body",
+          "beforeLine": 1144,
+          "after": "src/services/brain/provider_capability_runtime/probe.rs",
+          "afterLine": 75
+        },
+        {
+          "symbol": "function_item:normalize_catalog",
+          "beforeLine": 1157,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 152
+        },
+        {
+          "symbol": "function_item:catalog_model_id",
+          "beforeLine": 1221,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 216
+        },
+        {
+          "symbol": "function_item:safe_catalog_metadata",
+          "beforeLine": 1229,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 224
+        },
+        {
+          "symbol": "function_item:bound_metadata_value",
+          "beforeLine": 1260,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 255
+        },
+        {
+          "symbol": "function_item:explicit_catalog_observations",
+          "beforeLine": 1289,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 284
+        },
+        {
+          "symbol": "function_item:explicit_capability",
+          "beforeLine": 1324,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 303
+        },
+        {
+          "symbol": "function_item:capability_bool",
+          "beforeLine": 1369,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 348
+        },
+        {
+          "symbol": "function_item:probe_body",
+          "beforeLine": 1389,
+          "after": "src/services/brain/provider_capability_runtime/probe.rs",
+          "afterLine": 88
+        },
+        {
+          "symbol": "function_item:validate_probe_response",
+          "beforeLine": 1428,
+          "after": "src/services/brain/provider_capability_runtime/probe.rs",
+          "afterLine": 127
+        },
+        {
+          "symbol": "function_item:validate_adapted_probe",
+          "beforeLine": 1463,
+          "after": "src/services/brain/provider_capability_runtime/probe.rs",
+          "afterLine": 162
+        },
+        {
+          "symbol": "function_item:contains_key",
+          "beforeLine": 1485,
+          "after": "src/services/brain/provider_capability_runtime/assessment.rs",
+          "afterLine": 368
+        },
+        {
+          "symbol": "function_item:account_settings",
+          "beforeLine": 1496,
+          "after": "src/services/brain/provider_capability_runtime/utils.rs",
+          "afterLine": 50
+        },
+        {
+          "symbol": "function_item:known_models",
+          "beforeLine": 1512,
+          "after": "src/services/brain/provider_capability_runtime/catalog.rs",
+          "afterLine": 319
+        },
+        {
+          "symbol": "function_item:deduplicate_trimmed",
+          "beforeLine": 1525,
+          "after": "src/services/brain/provider_capability_runtime/utils.rs",
+          "afterLine": 66
+        },
+        {
+          "symbol": "function_item:header_value",
+          "beforeLine": 1534,
+          "after": "src/services/brain/provider_capability_runtime/utils.rs",
+          "afterLine": 75
+        },
+        {
+          "symbol": "function_item:merge_metadata",
+          "beforeLine": 1543,
+          "after": "src/services/brain/provider_capability_runtime/utils.rs",
+          "afterLine": 84
+        },
+        {
+          "symbol": "function_item:account",
+          "beforeLine": 1563,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 42
+        },
+        {
+          "symbol": "function_item:catalog_is_bounded_sanitized_and_preserves_explicit_evidence",
+          "beforeLine": 1576,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 55
+        },
+        {
+          "symbol": "function_item:applying_report_merges_models_and_never_persists_failed_downgrades",
+          "beforeLine": 1606,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 85
+        },
+        {
+          "symbol": "function_item:request_requires_explicit_network_confirmation_and_bounded_probe_product",
+          "beforeLine": 1659,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 138
+        },
+        {
+          "symbol": "function_item:evidence_expires_to_unknown_at_the_exact_ttl_boundary",
+          "beforeLine": 1694,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 173
+        },
+        {
+          "symbol": "function_item:invalid_timestamps_fail_closed_to_unknown_and_legacy_metadata_stays_unversioned",
+          "beforeLine": 1727,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 206
+        },
+        {
+          "symbol": "function_item:recertification_plan_is_deterministic_bounded_and_expired_only",
+          "beforeLine": 1755,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 234
+        },
+        {
+          "symbol": "function_item:controlled_recertification_executes_only_the_expired_plan",
+          "beforeLine": 1804,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 283
+        },
+        {
+          "symbol": "function_item:discovery_calls_only_the_configured_catalog_and_redacts_credentials",
+          "beforeLine": 1875,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 354
+        },
+        {
+          "symbol": "function_item:fixed_tools_and_streaming_probes_require_canonical_evidence",
+          "beforeLine": 1923,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 402
+        },
+        {
+          "symbol": "function_item:spawn_test_server",
+          "beforeLine": 1994,
+          "after": "src/services/brain/provider_capability_runtime/tests.rs",
+          "afterLine": 473
+        }
+      ],
+      "changed": [],
+      "missing": [],
+      "addedSymbols": [],
+      "duplicateSymbols": {
+        "const_item:MAX_CATALOG_BYTES": 8,
+        "const_item:MAX_CATALOG_MODELS": 8,
+        "const_item:MAX_MODEL_ID_CHARS": 8,
+        "const_item:MAX_SELECTED_MODELS": 8,
+        "const_item:MAX_PROFILES": 8,
+        "const_item:MAX_PROBE_REQUESTS": 8,
+        "const_item:MAX_PROBE_BYTES": 8,
+        "const_item:CATALOG_TIMEOUT": 8,
+        "const_item:PROBE_TIMEOUT": 8,
+        "const_item:PROBE_MAX_TOKENS": 8,
+        "const_item:DEFAULT_CATALOG_TTL_HOURS": 8,
+        "const_item:DEFAULT_PROBE_TTL_HOURS": 8,
+        "const_item:MIN_EVIDENCE_TTL_HOURS": 8,
+        "const_item:MAX_EVIDENCE_TTL_HOURS": 8,
+        "const_item:TINY_PNG": 8
+      },
+      "visibilityChanged": [
+        "function_item:default_catalog_enabled",
+        "function_item:CapabilityProfile::metadata_key",
+        "function_item:CapabilityProfile::from_metadata_key",
+        "function_item:CapabilityEvidencePolicy::ttl_for",
+        "function_item:CapabilityEvidencePolicy::expires_at",
+        "struct_item:CapabilityDiscoveryReport",
+        "function_item:CapabilityDiscoveryError::new",
+        "function_item:CapabilityDiscoveryError::http",
+        "struct_item:ProviderCapabilityRuntime",
+        "function_item:plan_recertification_for_account_at",
+        "function_item:assess_observation_evidence",
+        "function_item:assess_evidence_timing",
+        "function_item:unknown_assessment",
+        "function_item:observation",
+        "function_item:parse_timestamp",
+        "function_item:ttl_hours_from_env",
+        "struct_item:DiscoveredCatalog",
+        "struct_item:ProbeFailure",
+        "function_item:ProbeFailure::failed",
+        "enum_item:CatalogAdapter",
+        "function_item:CatalogAdapter::for_account",
+        "function_item:CatalogAdapter::prepare",
+        "function_item:validate_request",
+        "function_item:validate_account",
+        "function_item:read_bounded",
+        "function_item:read_probe_body",
+        "function_item:normalize_catalog",
+        "function_item:catalog_model_id",
+        "function_item:safe_catalog_metadata",
+        "function_item:bound_metadata_value",
+        "function_item:explicit_catalog_observations",
+        "function_item:explicit_capability",
+        "function_item:capability_bool",
+        "function_item:probe_body",
+        "function_item:validate_probe_response",
+        "function_item:validate_adapted_probe",
+        "function_item:contains_key",
+        "function_item:account_settings",
+        "function_item:known_models",
+        "function_item:deduplicate_trimmed",
+        "function_item:header_value",
+        "function_item:merge_metadata",
+        "function_item:account",
+        "function_item:catalog_is_bounded_sanitized_and_preserves_explicit_evidence",
+        "function_item:applying_report_merges_models_and_never_persists_failed_downgrades",
+        "function_item:request_requires_explicit_network_confirmation_and_bounded_probe_product",
+        "function_item:evidence_expires_to_unknown_at_the_exact_ttl_boundary",
+        "function_item:invalid_timestamps_fail_closed_to_unknown_and_legacy_metadata_stays_unversioned",
+        "function_item:recertification_plan_is_deterministic_bounded_and_expired_only",
+        "function_item:controlled_recertification_executes_only_the_expired_plan",
+        "function_item:discovery_calls_only_the_configured_catalog_and_redacts_credentials",
+        "function_item:fixed_tools_and_streaming_probes_require_canonical_evidence",
+        "function_item:spawn_test_server"
+      ],
+      "parseErrors": []
+    }
+  ],
+  "files": {
+    "src/routes/agents/config.rs": "cc3dc59ad7efd657663964be5d08d86396d968b023bb1d07cb1a92616c8b8db2",
+    "src/routes/agents/diff.rs": "7ab54d51735d8d350fd3b447bee37a88ef48d46e164d867264fec82c550fd975",
+    "src/routes/agents/interact.rs": "812727f704c4979094a63264ad0289489f04c20b01f7121ba4ba634120adfb83",
+    "src/routes/agents/mod.rs": "28d67a8b99c2e2d327a55f73e83cb0d577a3a73820bb3966eb582c04535895b2",
+    "src/routes/agents/models.rs": "f0ca43c28e650380a17cef4b71e0663fad0582f471b3a776de12360bdabb1f52",
+    "src/routes/agents/run.rs": "aef542dc99a2bbf3c0e4f3b01074bb9f9660485a724fb5718cc5901540610c02",
+    "src/routes/agents/skills.rs": "abe65ef0bf42ed74be3ccd9d2f248322ac4f010f3ea5e1faa0f8141eb139daa3",
+    "src/services/cli_auth/flow.rs": "faa04de5990449e16de3681f4cf06989858e0bd36bccc64ae3d6a0e16614b8b6",
+    "src/services/cli_auth/mod.rs": "f5ee9372c715d2ac352af41ab8dbbf0153bf4a8485fb59e4ff0dd4835f4eb4ac",
+    "src/services/cli_auth/server.rs": "8075020b214975354bec13fc51be051ec1295633da950a3a8e23c20139a02861",
+    "src/services/cli_auth/ui.rs": "d1797cff6793c0981571031c024d04d5fbedeb6bc1843eda0afa6d5a5073368b",
+    "src/services/brain/provider_capability_runtime/assessment.rs": "552048b0a8c7e29175617aa8666f18a86248fc49314ac8d633a5a6e4efd742f9",
+    "src/services/brain/provider_capability_runtime/catalog.rs": "a1c387ea527fbc172f7350f304caf8b92c2b3a9eb347c85a4bd7b113dc20c256",
+    "src/services/brain/provider_capability_runtime/discovery.rs": "d752f6cd9a8abf300740eedd6cf1e786c36a4dbe7d5a1b7edd7fb2781bf0a934",
+    "src/services/brain/provider_capability_runtime/mod.rs": "bf4139d2d92585a8ebb886f880ea677a4a9de68c4576a26d2a2c8936783ec4a4",
+    "src/services/brain/provider_capability_runtime/probe.rs": "e02caca338bdf9d11b951913911f4e85d2ab2f1224716dabb857e55b8be72dcb",
+    "src/services/brain/provider_capability_runtime/tests.rs": "5c8973f714fe8a3d29beb7682cf09cb4c4bab92217ee3dea04efa8c2ae4c464f",
+    "src/services/brain/provider_capability_runtime/types.rs": "4e61a09b982dda04411f8fb2069ac9578b263269d38b38417a697870c93326ee",
+    "src/services/brain/provider_capability_runtime/utils.rs": "bc88156ff9ad7e807345967d8928d06918f71681b9f95078abbf97c07ea18ca2"
+  }
+}
