@@ -297,7 +297,7 @@ pub fn restore_file(
     let guard = crate::services::workspace_guard::WorkspaceGuard::new(project_path)
         .map_err(|e| format!("Invalid project path: {}", e))?;
     let full_path = guard
-        .resolve_safe("", file_path)
+        .resolve_safe(file_path)
         .map_err(|e| format!("Invalid file path (outside workspace): {}", e))?;
 
     let repo = open_repo(project_path, kind)?;
@@ -319,7 +319,7 @@ pub fn restore_file(
     // git uses relative path, ensure we strip prefix if it was made absolute by guard?
     // Actually, `guard.resolve_safe` returns an absolute canonical path.
     // But `tree.get_path` expects a relative path.
-    let rel_path = match full_path.strip_prefix(guard.resolve_safe("", ".").unwrap_or_default()) {
+    let rel_path = match full_path.strip_prefix(guard.resolve_safe(".").unwrap_or_default()) {
         Ok(p) => p,
         Err(_) => Path::new(file_path),
     };

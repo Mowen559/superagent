@@ -60,24 +60,12 @@ async fn list_files(
         }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
-        &state.runtime_config.projects_root,
-    ) {
-        Ok(g) => g,
-        Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Invalid projects root" })),
-            )
-                .into_response()
-        }
-    };
-    let safe_project_path = match guard.resolve_safe(&project_path, "") {
+    let safe_project_path = match state.workspace_capabilities.resolve(&project_path) {
         Ok(p) => p.to_string_lossy().to_string(),
-        Err(_) => {
+        Err(e) => {
             return (
                 StatusCode::FORBIDDEN,
-                Json(json!({ "error": "Invalid project path" })),
+                Json(json!({ "error": format!("Workspace access denied: {}", e) })),
             )
                 .into_response()
         }
@@ -112,29 +100,27 @@ async fn get_file_content(
         }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
-        &state.runtime_config.projects_root,
-    ) {
-        Ok(g) => g,
-        Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Invalid projects root" })),
-            )
-                .into_response()
-        }
-    };
-    let safe_project = match guard.resolve_safe(&project, "") {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
         Ok(p) => p.to_string_lossy().to_string(),
         Err(e) => {
             return (
                 StatusCode::FORBIDDEN,
-                Json(json!({ "error": format!("Invalid project path: {}", e) })),
+                Json(json!({ "error": format!("Workspace access denied: {}", e) })),
             )
                 .into_response()
         }
     };
-    if let Err(e) = guard.resolve_safe(&project, &file_path) {
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&safe_project) {
+        Ok(g) => g,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("Invalid workspace root: {}", e) })),
+            )
+                .into_response()
+        }
+    };
+    if let Err(e) = guard.resolve_safe(&file_path) {
         return (
             StatusCode::FORBIDDEN,
             Json(json!({ "error": format!("Path traversal detected: {}", e) })),
@@ -196,31 +182,27 @@ async fn analyze_file(
         }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
-        &state.runtime_config.projects_root,
-    ) {
-        Ok(g) => g,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("Invalid projects root: {}", e) })),
-            )
-                .into_response()
-        }
-    };
-
-    let safe_project = match guard.resolve_safe(&project, "") {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
         Ok(p) => p.to_string_lossy().to_string(),
         Err(e) => {
             return (
                 StatusCode::FORBIDDEN,
-                Json(json!({ "error": format!("Invalid project path: {}", e) })),
+                Json(json!({ "error": format!("Workspace access denied: {}", e) })),
             )
                 .into_response()
         }
     };
-
-    let safe_file_path = match guard.resolve_safe(&project, &file_path) {
+    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(&safe_project) {
+        Ok(g) => g,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("Invalid workspace root: {}", e) })),
+            )
+                .into_response()
+        }
+    };
+    let safe_file_path = match guard.resolve_safe(&file_path) {
         Ok(_) => file_path.clone(), // keeping the original string for graph/LLM calls
         Err(e) => {
             return (
@@ -296,24 +278,12 @@ async fn get_project_graph(
         }
     };
 
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
-        &state.runtime_config.projects_root,
-    ) {
-        Ok(g) => g,
-        Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Invalid projects root" })),
-            )
-                .into_response()
-        }
-    };
-    let safe_project = match guard.resolve_safe(&project, "") {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
         Ok(p) => p.to_string_lossy().to_string(),
-        Err(_) => {
+        Err(e) => {
             return (
                 StatusCode::FORBIDDEN,
-                Json(json!({ "error": "Invalid project path" })),
+                Json(json!({ "error": format!("Workspace access denied: {}", e) })),
             )
                 .into_response()
         }

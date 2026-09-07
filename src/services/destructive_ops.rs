@@ -17,15 +17,9 @@ impl<'a> DestructiveOps<'a> {
         hash: Option<&str>,
         kind: RepoKind,
     ) -> Result<(), String> {
-        let safe_project = self
-            .guard
-            .resolve_safe(project, "")
-            .map_err(|e| format!("Security violation (project): {}", e))?;
+        let safe_project = self.guard.resolve_safe("").map_err(|e| format!("Security violation (project): {}", e))?;
 
-        let safe_file = self
-            .guard
-            .resolve_safe(project, file_path)
-            .map_err(|e| format!("Security violation (file): {}", e))?;
+        let safe_file = self.guard.resolve_safe(file_path).map_err(|e| format!("Security violation (file): {}", e))?;
 
         tracing::info!(
             "DESTRUCTIVE OP: git restore in {} for file {} (hash: {:?})",
@@ -37,10 +31,7 @@ impl<'a> DestructiveOps<'a> {
     }
 
     pub fn shadow_rollback(&self, project: &str, hash: &str) -> Result<(), String> {
-        let safe_project = self
-            .guard
-            .resolve_safe(project, "")
-            .map_err(|e| format!("Security violation (project): {}", e))?;
+        let safe_project = self.guard.resolve_safe("").map_err(|e| format!("Security violation (project): {}", e))?;
 
         tracing::info!(
             "DESTRUCTIVE OP: shadow rollback in {} to hash {}",
@@ -51,10 +42,7 @@ impl<'a> DestructiveOps<'a> {
     }
 
     pub fn apply_patch(&self, project: &str, patch_content: &str) -> Result<(), String> {
-        let safe_project = self
-            .guard
-            .resolve_safe(project, "")
-            .map_err(|e| format!("Security violation (project): {}", e))?;
+        let safe_project = self.guard.resolve_safe("").map_err(|e| format!("Security violation (project): {}", e))?;
 
         tracing::info!(
             "DESTRUCTIVE OP: git apply patch in {}",

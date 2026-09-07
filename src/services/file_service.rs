@@ -121,7 +121,7 @@ pub fn read_file_content(project_path: &str, file_path: &str) -> Result<String, 
         .map_err(|e| format!("Invalid project path: {}", e))?;
 
     let full_path = guard
-        .resolve_safe("", file_path)
+        .resolve_safe(file_path)
         .map_err(|e| format!("Invalid file path (outside workspace): {}", e))?;
 
     if !full_path.exists() {

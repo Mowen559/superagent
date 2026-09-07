@@ -162,7 +162,17 @@ async fn git_restore(
     };
     let kind = RepoKind::parse(body.repo.as_deref());
 
-    let guard = match WorkspaceGuard::new(&project) {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
+    };
+    let guard = match WorkspaceGuard::new(&safe_project) {
         Ok(g) => g,
         Err(e) => {
             return (
@@ -343,7 +353,17 @@ async fn shadow_rollback(
         }
     };
 
-    let guard = match WorkspaceGuard::new(&project) {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
+    };
+    let guard = match WorkspaceGuard::new(&safe_project) {
         Ok(g) => g,
         Err(e) => {
             return (
@@ -390,7 +410,17 @@ async fn apply_patch(
         }
     };
 
-    let guard = match WorkspaceGuard::new(&project) {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
+    };
+    let guard = match WorkspaceGuard::new(&safe_project) {
         Ok(g) => g,
         Err(e) => {
             return (

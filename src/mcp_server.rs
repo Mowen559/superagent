@@ -206,7 +206,7 @@ async fn handle_request(
                             )
                         }
                     };
-                    let safe_project = match guard.resolve_safe(project, "") {
+                    let safe_project = match guard.resolve_safe(project) {
                         Ok(p) => p.to_string_lossy().to_string(),
                         Err(e) => {
                             return Ok(
@@ -255,7 +255,7 @@ async fn handle_request(
                             )
                         }
                     };
-                    let safe_project = match guard.resolve_safe(project, "") {
+                    let safe_project = match guard.resolve_safe(project) {
                         Ok(p) => p.to_string_lossy().to_string(),
                         Err(e) => {
                             return Ok(
@@ -288,7 +288,7 @@ async fn handle_request(
                             )
                         }
                     };
-                    let safe_project = match guard.resolve_safe(project, "") {
+                    let safe_project = match guard.resolve_safe(project) {
                         Ok(p) => p.to_string_lossy().to_string(),
                         Err(e) => {
                             return Ok(
@@ -321,7 +321,7 @@ async fn handle_request(
                             )
                         }
                     };
-                    let safe_project = match guard.resolve_safe(project, "") {
+                    let safe_project = match guard.resolve_safe(project) {
                         Ok(p) => p.to_string_lossy().to_string(),
                         Err(e) => {
                             return Ok(
@@ -355,7 +355,7 @@ async fn handle_request(
                             )
                         }
                     };
-                    let safe_project = match guard.resolve_safe(project, "") {
+                    let safe_project = match guard.resolve_safe(project) {
                         Ok(p) => p.to_string_lossy().to_string(),
                         Err(e) => {
                             return Ok(
@@ -397,7 +397,7 @@ async fn handle_request(
                             )
                         }
                     };
-                    let safe_project = match guard.resolve_safe(project, "") {
+                    let safe_project = match guard.resolve_safe(project) {
                         Ok(p) => p.to_string_lossy().to_string(),
                         Err(e) => {
                             return Ok(
