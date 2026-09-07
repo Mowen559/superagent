@@ -1,1 +1,0 @@
-﻿{"request":{"model":"gemini-1.5-pro","contents":[{"role":"user","parts":[{"text":"hello"}]}]},"enabledCreditTypes":["GOOGLE_ONE_AI"],"requestId":"agent/test/test","model":"gemini-1.5-pro","requestType":"agent","userAgent":"antigravity/1.21.9 darwin/arm64"}

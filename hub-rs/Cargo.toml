@@ -11,9 +11,6 @@ path = "src/bin/hub.rs"
 name = "superagent"
 path = "src/bin/superagent.rs"
 
-[[bin]]
-name = "test_cropper"
-path = "src/bin/test_cropper.rs"
 
 [dependencies]
 snow-ui-selector = { path = "snow-crates/crates/snow-ui-selector" }
