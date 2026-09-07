@@ -15,95 +15,11 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
-pub fn router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route(
-            "/api/settings/llm",
-            get(get_llm_settings).put(put_llm_settings),
-        )
-        .route("/api/settings/models_fetch", get(fetch_models))
-        .route(
-            "/api/settings/llm/capabilities/discover",
-            post(discover_capabilities),
-        )
-        .route(
-            "/api/settings/llm/capabilities/recertification/{id}",
-            get(get_recertification_plan),
-        )
-        .route("/api/settings/quota", get(fetch_quota))
-        .route("/api/settings/accounts", get(get_accounts))
-        .route("/api/settings/accounts/{id}/toggle", post(toggle_account))
-        .route("/api/settings/accounts/{id}", delete(remove_account))
-        .route("/api/settings/routing", put(update_routing))
-        .route("/api/settings/llm/test", post(test_llm))
-        .route("/api/settings/llm/models/test", post(test_models))
-        .route("/api/settings/oauth/start", post(start_oauth))
-}
 
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct TestLlmBody {
-    #[serde(rename = "accountId")]
-    pub account_id: Option<String>,
-    pub provider: String,
-    pub base_url: Option<String>,
-    pub api_key: Option<String>,
-    pub model: Option<String>,
-    pub prompt: Option<String>,
-}
+use super::*;
+use super::types::*;
 
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct OAuthStartBody {
-    pub provider: String,
-    #[serde(rename = "accountName")]
-    pub account_name: Option<String>,
-    #[serde(rename = "sessionKey")]
-    pub session_key: Option<String>,
-}
-
-async fn start_oauth(Json(body): Json<OAuthStartBody>) -> axum::response::Response {
-    use axum::response::IntoResponse;
-
-    let result = match body.provider.as_str() {
-        "OpenAI Native" => {
-            crate::services::cli_auth::handle_openai_pkce_flow(body.account_name).await
-        }
-        "Gemini Native" => {
-            crate::services::cli_auth::handle_gemini_oauth_flow(body.account_name).await
-        }
-        "Claude Desktop Official" => {
-            crate::services::cli_auth::handle_claude_oauth_flow(body.session_key).await
-        }
-        "GitHub Copilot" => {
-            crate::services::cli_auth::handle_github_copilot_flow(body.account_name).await
-        }
-        _ => Err(format!(
-            "OAuth not supported or implemented for provider: {}",
-            body.provider
-        )),
-    };
-
-    match result {
-        Ok(account) => axum::Json(serde_json::json!({
-            "success": true,
-            "account": {
-                "baseUrl": account.base_url,
-                "projectId": account.project_id,
-                "apiKey": account.api_key,
-                "id": account.id,
-                "refreshToken": account.refresh_token,
-                "expiresAt": account.expires_at,
-            }
-        }))
-        .into_response(),
-        Err(e) => axum::Json(serde_json::json!({
-            "success": false,
-            "error": e
-        }))
-        .into_response(),
-    }
-}
-
-async fn test_llm(Json(body): Json<TestLlmBody>) -> axum::response::Response {
+pub(crate) async fn test_llm(Json(body): Json<TestLlmBody>) -> axum::response::Response {
     use axum::response::IntoResponse;
     let client = reqwest::Client::new();
 
@@ -337,7 +253,7 @@ async fn test_llm(Json(body): Json<TestLlmBody>) -> axum::response::Response {
     }
 }
 
-async fn test_models(
+pub(crate) async fn test_models(
     State(state): State<Arc<AppState>>,
     Json(body): Json<TestLlmBody>,
 ) -> axum::response::Response {
@@ -443,98 +359,8 @@ async fn test_models(
     }
 }
 
-async fn get_recertification_plan(
-    Path(account_id): Path<String>,
-) -> Result<Json<serde_json::Value>, CapabilityApiError> {
-    let settings = llm_settings::read_llm_settings();
-    let account = settings
-        .accounts
-        .iter()
-        .find(|account| account.id == account_id)
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(json!({
-                    "error": "provider account was not found",
-                    "kind": "account_not_found"
-                })),
-            )
-        })?;
-    Ok(Json(json!({
-        "plan": plan_recertification_for_account(account),
-        "networkRequested": false,
-    })))
-}
 
-type CapabilityApiError = (StatusCode, Json<serde_json::Value>);
-
-async fn discover_capabilities(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    Json(request): Json<CapabilityDiscoveryRequest>,
-) -> Result<Json<serde_json::Value>, CapabilityApiError> {
-    require_capability_discovery_header(&headers)?;
-    let settings = llm_settings::read_llm_settings();
-    let runtime = ProviderCapabilityRuntime::new(state.http_client.clone());
-    let report = runtime
-        .discover(&settings, request)
-        .await
-        .map_err(capability_error)?;
-    let updated = commit_capability_report(&report)?;
-
-    Ok(Json(json!({
-        "report": report,
-        "committed": true,
-        "updatedAt": updated.updated_at,
-    })))
-}
-
-fn commit_capability_report(
-    report: &crate::services::brain::provider_capability_runtime::CapabilityDiscoveryReport,
-) -> Result<llm_settings::LLMSettings, CapabilityApiError> {
-    llm_settings::update_llm_settings(|settings| apply_discovery_report(settings, report)).map_err(
-        |error| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "error": "capability discovery completed but its configuration checkpoint failed",
-                    "kind": "capability_commit_failed",
-                    "detail": error,
-                })),
-            )
-        },
-    )
-}
-
-fn require_capability_discovery_header(headers: &HeaderMap) -> Result<(), CapabilityApiError> {
-    let supplied = headers
-        .get("x-hub-capability-discovery")
-        .and_then(|value| value.to_str().ok());
-    if supplied == Some("confirm") {
-        Ok(())
-    } else {
-        Err((
-            StatusCode::FORBIDDEN,
-            Json(json!({
-                "error": "missing or invalid local capability discovery header",
-                "kind": "capability_discovery_header_required"
-            })),
-        ))
-    }
-}
-
-fn capability_error(error: CapabilityDiscoveryError) -> CapabilityApiError {
-    let status = match error.kind {
-        CapabilityDiscoveryErrorKind::InvalidRequest => StatusCode::BAD_REQUEST,
-        CapabilityDiscoveryErrorKind::AccountNotFound => StatusCode::NOT_FOUND,
-        CapabilityDiscoveryErrorKind::UnsupportedProvider => StatusCode::UNPROCESSABLE_ENTITY,
-        CapabilityDiscoveryErrorKind::CatalogRequestFailed
-        | CapabilityDiscoveryErrorKind::CatalogResponseInvalid => StatusCode::BAD_GATEWAY,
-    };
-    (status, Json(json!({ "error": error })))
-}
-
-fn redact_api_key(key: &str) -> String {
+pub(crate) fn redact_api_key(key: &str) -> String {
     if key.is_empty() {
         return String::new();
     }
@@ -545,17 +371,17 @@ fn redact_api_key(key: &str) -> String {
     }
 }
 
-async fn get_llm_settings() -> Json<serde_json::Value> {
+pub(crate) async fn get_llm_settings() -> Json<serde_json::Value> {
     Json(redacted_settings_value(llm_settings::read_llm_settings()))
 }
 
-async fn put_llm_settings(Json(mut body): Json<serde_json::Value>) -> Json<serde_json::Value> {
+pub(crate) async fn put_llm_settings(Json(mut body): Json<serde_json::Value>) -> Json<serde_json::Value> {
     restore_redacted_secrets(&mut body, &llm_settings::read_llm_settings());
     let updated = llm_settings::write_llm_settings(body);
     Json(redacted_settings_value(updated))
 }
 
-async fn fetch_models(
+pub(crate) async fn fetch_models(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, CapabilityApiError> {
@@ -603,7 +429,7 @@ async fn fetch_models(
     })))
 }
 
-fn redacted_settings_value(mut settings: llm_settings::LLMSettings) -> serde_json::Value {
+pub(crate) fn redacted_settings_value(mut settings: llm_settings::LLMSettings) -> serde_json::Value {
     settings.api_key = redact_api_key(&settings.api_key);
     for account in &mut settings.accounts {
         account.api_key = redact_api_key(&account.api_key);
@@ -612,7 +438,7 @@ fn redacted_settings_value(mut settings: llm_settings::LLMSettings) -> serde_jso
     serde_json::to_value(settings).unwrap_or_default()
 }
 
-fn restore_redacted_secrets(body: &mut serde_json::Value, current: &llm_settings::LLMSettings) {
+pub(crate) fn restore_redacted_secrets(body: &mut serde_json::Value, current: &llm_settings::LLMSettings) {
     let Some(object) = body.as_object_mut() else {
         return;
     };
@@ -672,7 +498,8 @@ fn restore_redacted_secrets(body: &mut serde_json::Value, current: &llm_settings
     }
 }
 
-async fn fetch_quota() -> axum::response::Response {
+
+pub(crate) async fn fetch_quota() -> axum::response::Response {
     // For now we run the terminal task in the background and return a 202 accepted
     // since handle_quota() currently prints to stdout instead of returning data.
     // In the future this should be refactored in subscription.rs to return data.
@@ -683,162 +510,4 @@ async fn fetch_quota() -> axum::response::Response {
         .into_response()
 }
 
-#[derive(Deserialize)]
-struct ToggleBody {
-    state: Option<bool>,
-}
 
-async fn toggle_account(
-    Path(account_id): Path<String>,
-    Json(body): Json<ToggleBody>,
-) -> axum::response::Response {
-    let mut settings = llm_settings::read_llm_settings();
-    let mut found = false;
-    for account in settings.accounts.iter_mut() {
-        if account.id == account_id {
-            let new_state = body.state.unwrap_or(!account.enabled);
-            account.enabled = new_state;
-            found = true;
-            break;
-        }
-    }
-
-    if !found {
-        return (
-            axum::http::StatusCode::NOT_FOUND,
-            Json(json!({"error": format!("Account with ID '{}' not found", account_id)})),
-        )
-            .into_response();
-    }
-
-    let updated =
-        llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
-    Json(json!({"success": true, "settings": redacted_settings_value(updated)})).into_response()
-}
-
-async fn remove_account(Path(account_id): Path<String>) -> axum::response::Response {
-    let mut settings = llm_settings::read_llm_settings();
-    let initial_len = settings.accounts.len();
-    settings.accounts.retain(|a| a.id != account_id);
-
-    if settings.accounts.len() == initial_len {
-        return (
-            axum::http::StatusCode::NOT_FOUND,
-            Json(json!({"error": format!("Account with ID '{}' not found", account_id)})),
-        )
-            .into_response();
-    }
-
-    if settings.active_account_id.as_deref() == Some(account_id.as_str()) {
-        settings.active_account_id = None;
-    }
-
-    let updated =
-        llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
-    Json(json!({"success": true, "settings": redacted_settings_value(updated)})).into_response()
-}
-
-#[derive(Deserialize)]
-pub struct AccountQuery {
-    pub limit: Option<usize>,
-    pub offset: Option<usize>,
-    pub search: Option<String>,
-}
-
-async fn get_accounts(Query(query): Query<AccountQuery>) -> Json<serde_json::Value> {
-    let settings = llm_settings::read_llm_settings();
-    let mut accounts = settings.accounts.clone();
-
-    // Filter
-    if let Some(search) = query.search {
-        let search = search.to_lowercase();
-        accounts.retain(|a| {
-            a.name.to_lowercase().contains(&search) || a.provider.to_lowercase().contains(&search)
-        });
-    }
-
-    let total = accounts.len();
-
-    // Offset
-    let offset = query.offset.unwrap_or(0);
-    if offset >= accounts.len() {
-        accounts.clear();
-    } else {
-        accounts = accounts.split_off(offset);
-    }
-
-    // Limit
-    let limit = query.limit.unwrap_or(20);
-    accounts.truncate(limit);
-
-    let redacted_settings = redacted_settings_value(llm_settings::LLMSettings {
-        accounts,
-        ..Default::default()
-    });
-
-    Json(json!({
-        "success": true,
-        "accounts": redacted_settings["accounts"],
-        "total": total,
-        "offset": offset,
-        "limit": limit
-    }))
-}
-
-#[derive(Deserialize)]
-struct RoutingBody {
-    strategy: String,
-}
-
-async fn update_routing(Json(body): Json<RoutingBody>) -> axum::response::Response {
-    let mut settings = llm_settings::read_llm_settings();
-
-    if body.strategy != "failover" && body.strategy != "round_robin" {
-        return (
-            axum::http::StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Strategy must be 'failover' or 'round_robin'"})),
-        )
-            .into_response();
-    }
-
-    settings.routing_strategy = body.strategy.clone();
-    let updated =
-        llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
-    Json(json!({"success": true, "settings": redacted_settings_value(updated)})).into_response()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn capability_discovery_requires_local_control_plane_header() {
-        let error = require_capability_discovery_header(&HeaderMap::new()).unwrap_err();
-        assert_eq!(error.0, StatusCode::FORBIDDEN);
-
-        let mut headers = HeaderMap::new();
-        headers.insert("x-hub-capability-discovery", "confirm".parse().unwrap());
-        assert!(require_capability_discovery_header(&headers).is_ok());
-    }
-
-    #[test]
-    fn settings_responses_redact_account_credentials_and_round_trip_masks() {
-        let current = llm_settings::LLMSettings {
-            api_key: "top-level-secret".to_string(),
-            accounts: vec![llm_settings::LLMAccount {
-                id: "account-1".to_string(),
-                api_key: "account-secret".to_string(),
-                refresh_token: Some("refresh-secret".to_string()),
-                ..llm_settings::LLMAccount::default()
-            }],
-            ..llm_settings::LLMSettings::default()
-        };
-        let mut redacted = redacted_settings_value(current.clone());
-        assert!(!redacted.to_string().contains("account-secret"));
-        assert!(!redacted.to_string().contains("refresh-secret"));
-
-        restore_redacted_secrets(&mut redacted, &current);
-        assert_eq!(redacted["accounts"][0]["apiKey"], "account-secret");
-        assert_eq!(redacted["accounts"][0]["refreshToken"], "refresh-secret");
-    }
-}

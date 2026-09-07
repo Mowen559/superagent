@@ -7,4 +7,3 @@ use super::*;
         assert_eq!(normalize_language("zh_CN", true), "ZH-CN");
         assert_eq!(normalize_language("EN-US", false), "en-us");
     }
-}

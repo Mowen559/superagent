@@ -1,8 +1,8 @@
 use super::*;
-
-    use super::*;
-    use std::fmt::Write as FmtWrite;
-    use std::io::Write as IoWrite;
+use std::io::Cursor;
+use std::fmt::Write as FmtWrite;
+use std::io::Write as IoWrite;
+use crate::services::supermemory_store::SupermemoryStore;
 
     fn runtime(temp: &tempfile::TempDir) -> KnowledgeCorpusRuntime {
         KnowledgeCorpusRuntime::with_store(
@@ -156,4 +156,3 @@ use super::*;
         .unwrap();
         pdf.into_bytes()
     }
-}

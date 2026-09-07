@@ -53,7 +53,7 @@ pub async fn serve(port: u16) {
 
     let state = build_state();
 
-    let app = build_router(state);
+    let app = build_router(state.clone());
 
     let addr = std::net::SocketAddr::from(([127, 0, 0, 1], port));
     tracing::info!("AIndex Hub backend listening on http://{}", addr);
@@ -61,7 +61,46 @@ pub async fn serve(port: u16) {
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .unwrap_or_else(|e| panic!("failed to bind {addr}: {e}"));
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal(state.clone()))
+        .await
+        .unwrap();
+    tracing::info!("AIndex Hub backend shutdown complete");
+}
+
+async fn shutdown_signal(state: Arc<AppState>) {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        if let Ok(mut sig) =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+        {
+            sig.recv().await;
+        } else {
+            std::future::pending::<()>().await;
+        }
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            tracing::info!("Received Ctrl+C / SIGINT signal, initiating graceful shutdown...");
+        },
+        _ = terminate => {
+            tracing::info!("Received SIGTERM signal, initiating graceful shutdown...");
+        },
+    }
+
+    tracing::info!("Draining in-flight tasks and operations...");
+    state.task_manager.cancel_all_active_tasks("server shutdown");
+    tracing::info!("In-flight tasks drained successfully.");
 }
 
 fn init_tracing() {

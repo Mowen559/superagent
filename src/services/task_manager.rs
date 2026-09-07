@@ -403,6 +403,25 @@ impl TaskManager {
         true
     }
 
+    /// Cancel all non-terminal tasks gracefully during server shutdown.
+    pub fn cancel_all_active_tasks(&self, reason: &str) {
+        let active_tasks: Vec<String> = self
+            .list_tasks()
+            .into_iter()
+            .filter(|t| !t.status.is_terminal())
+            .map(|t| t.id)
+            .collect();
+
+        for id in active_tasks {
+            tracing::warn!(task_id = %id, reason, "Cancelling in-flight task on server shutdown");
+            self.append_log(
+                &id,
+                &format!("[System] Task cancelled due to server shutdown: {}", reason),
+            );
+            self.cancel_task(&id);
+        }
+    }
+
     pub fn list_tasks(&self) -> Vec<Task> {
         let mut tasks = Vec::new();
         if let Ok(entries) = std::fs::read_dir(&self.tasks_dir) {

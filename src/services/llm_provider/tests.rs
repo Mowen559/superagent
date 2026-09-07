@@ -163,4 +163,3 @@ use super::types::*;
         assert_eq!(usage.attempts, 2);
         health.reset(&blocked_key);
     }
-}
