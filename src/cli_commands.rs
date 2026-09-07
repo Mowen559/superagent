@@ -277,7 +277,7 @@ pub fn handle_config(cmd: ConfigCommand) {
                     return;
                 }
 
-                let provider = crate::services::llm_provider::LlmProvider::new(reqwest::Client::new());
+                let provider = crate::domains::model_gateway::providers::LlmProvider::new(reqwest::Client::new());
                 if !provider.is_available() {
                     eprintln!("Error: LLM provider is not fully configured (missing API key or base URL).");
                     return;

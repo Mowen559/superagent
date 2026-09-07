@@ -260,30 +260,28 @@ impl ToolExecutionGateway {
     ) -> ToolExecutionReceipt {
         let verification = status == ToolExecutionStatus::Succeeded
             && is_verification_request(&request.name, &request.arguments);
-        let serialized = serde_json::to_string(&result).unwrap_or_default();
         let risk = classify_tool_risk(&request.name, &request.arguments);
-        let original_result_chars = serialized.chars().count();
-        let truncated = original_result_chars > self.max_result_chars;
+        
+        let serialized_original = serde_json::to_string(&result).unwrap_or_default();
+        let original_result_chars = serialized_original.chars().count();
+        let needs_truncation = original_result_chars > self.max_result_chars;
         let mut stored_result_reference = None;
-        let result = if truncated {
-            let stored = self.result_store.persist(&serialized).ok();
+
+        let (final_result, truncated) = if needs_truncation {
+            let stored = self.result_store.persist(&serialized_original).ok();
             stored_result_reference = stored.as_ref().map(|item| item.reference.clone());
-            let head_chars = self.max_result_chars.saturating_mul(2) / 3;
-            let tail_chars = self.max_result_chars.saturating_sub(head_chars);
-            let chars: Vec<char> = serialized.chars().collect();
-            let head: String = chars[..head_chars].iter().collect();
-            let tail: String = chars[chars.len().saturating_sub(tail_chars)..]
-                .iter()
-                .collect();
-            json!({
-                "output": format!("{}\n… [tool result truncated] …\n{}", head, tail),
-                "truncated": true,
-                "original_chars": original_result_chars,
-                "full_result_reference": stored_result_reference.clone(),
-                "retrieval_tool": "read_tool_result",
-            })
+            
+            let (mut compressed, was_truncated) = crate::services::brain::context_interceptor::intelligent_compress(
+                &request, result, self.max_result_chars
+            );
+            if was_truncated {
+                if let Some(obj) = compressed.as_object_mut() {
+                    obj.insert("full_result_reference".to_string(), json!(stored_result_reference));
+                }
+            }
+            (compressed, was_truncated)
         } else {
-            result
+            (result, false)
         };
 
         ToolExecutionReceipt {
@@ -291,7 +289,7 @@ impl ToolExecutionGateway {
             name: request.name,
             status,
             duration_ms: started.elapsed().as_millis() as u64,
-            result,
+            result: final_result,
             original_result_chars,
             truncated,
             stored_result_reference,

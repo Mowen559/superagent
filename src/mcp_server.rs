@@ -1,6 +1,6 @@
 use crate::config::runtime::RuntimeConfig;
 use crate::services::git_service;
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 use crate::services::requirement_analyzer::RequirementAnalyzer;
 use crate::services::workspace_guard::WorkspaceGuard;
 use reqwest::Client;

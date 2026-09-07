@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use async_trait::async_trait;
 use serde_json::{json, Value};
 
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 
 use crate::services::visual_pipeline::types::{
     CaptureProviderOutput, MonitorDescriptor, OcrBlock, OcrProvider, OcrProviderOutput,

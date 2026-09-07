@@ -15,6 +15,7 @@
 
 pub mod cli;
 pub mod cli_commands;
+pub mod domains;
 pub mod config;
 pub mod mcp_server;
 pub mod models;

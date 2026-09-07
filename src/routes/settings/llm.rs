@@ -1,5 +1,5 @@
 use crate::config::llm_settings;
-use crate::services::brain::provider_capability_runtime::{
+use crate::domains::model_gateway::capabilities::{
     apply_discovery_report, plan_recertification_for_account, CapabilityDiscoveryError,
     CapabilityDiscoveryErrorKind, CapabilityDiscoveryRequest, ProviderCapabilityRuntime,
 };
@@ -98,7 +98,7 @@ pub(crate) async fn test_llm(Json(body): Json<TestLlmBody>) -> axum::response::R
         "stream": true
     });
 
-    let adapter = crate::services::protocol_converter::upstream::adapter_for_provider(&settings);
+    let adapter = crate::domains::model_gateway::protocols::upstream::adapter_for_provider(&settings);
 
     let (url, headers, request_body) = match adapter.prepare_request(&settings, standard_body) {
         Ok(req) => req,

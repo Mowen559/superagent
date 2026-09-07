@@ -9,7 +9,7 @@ use crate::services::brain::context::Context;
 use crate::services::brain::events::{EventBus, RunOutcome, SessionEvent, SessionStatus};
 use crate::services::brain::evolution_memory::EvolutionMemory;
 use crate::services::brain::interaction_runtime::InteractionRuntime;
-use crate::services::brain::model_attempt_router::ModelAttemptRouter;
+use crate::domains::model_gateway::model_attempt_router::ModelAttemptRouter;
 use crate::services::brain::run_prelude::RunPreludeRuntime;
 use crate::services::brain::session_ledger::SessionLedger;
 use crate::services::brain::session_lifecycle::SessionLifecycle;
@@ -18,7 +18,7 @@ use crate::services::brain::terminal_receipt::{finish_run, repair_incomplete_run
 use crate::services::brain::tool_execution_gateway::{ToolExecutionGateway, ToolExecutionRequest};
 use crate::services::brain::tool_pairing::repair_tool_pairs;
 use crate::services::brain::tools::dynamic_tool::scan_dynamic_tools;
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 
 /// 宸ュ叿瀹氫箟涓庢墽琛岀殑鍥炶皟鎺ュ彛
 pub trait ToolExecutor: Send + Sync {
@@ -398,11 +398,6 @@ impl AgentLoop {
         loop {
             loop_count += 1;
 
-            // Checkpoint Logic (Multi-layered Synthesis)
-            // Trigger every 15 loops if history has enough events
-            if loop_count % 15 == 0 && self.events.len() > 20 {
-                self.synthesize_memory().await;
-            }
 
             // 1.5 Lease runtime steering, persist its delivery fact, then ack.
             self.inject_pending_steering()?;
@@ -425,6 +420,7 @@ impl AgentLoop {
                         compacted_events, before_tokens, after_tokens
                     );
                     self.save_session();
+                    self.synthesize_memory().await;
                 }
                 CompactionOutcome::Deferred {
                     estimated_tokens,

@@ -50,7 +50,7 @@ async fn analyze_architecture(
         Err(err) => return err,
     };
 
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::architecture_analyzer::ArchitectureAnalyzer::new(llm);
 
     match analyzer
@@ -76,7 +76,7 @@ async fn analyze_domain(
         Err(err) => return err,
     };
 
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::domain_analyzer::DomainAnalyzer::new(llm);
 
     match analyzer
@@ -102,7 +102,7 @@ async fn analyze_impact(
         Err(err) => return err,
     };
 
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::impact_analyzer::ImpactAnalyzer::new(llm);
 
     match analyzer
@@ -317,7 +317,7 @@ async fn generate_wiki_markdown(
     trace: &serde_json::Value,
     lang: &str,
 ) -> Result<String, String> {
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     if !llm.is_available() {
         return Err("LLM not configured".to_string());
     }
@@ -326,7 +326,7 @@ async fn generate_wiki_markdown(
         .chars()
         .take(18_000)
         .collect::<String>();
-    let (directive, _) = crate::services::llm_provider::lang_directive(lang);
+    let (directive, _) = crate::domains::model_gateway::providers::lang_directive(lang);
     let messages = vec![json!({
         "role": "user",
         "content": format!(

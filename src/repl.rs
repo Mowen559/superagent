@@ -1,4 +1,4 @@
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 use reqwest::Client;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;

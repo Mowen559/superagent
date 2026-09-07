@@ -644,7 +644,7 @@ async fn synthesize_workspace_wiki(
         }
     });
 
-    let llm = crate::services::llm_provider::LlmProvider::with_model_override(
+    let llm = crate::domains::model_gateway::providers::LlmProvider::with_model_override(
         state.http_client.clone(),
         model.clone(),
     );

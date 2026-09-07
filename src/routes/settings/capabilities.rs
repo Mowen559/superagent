@@ -1,5 +1,5 @@
 use crate::config::llm_settings;
-use crate::services::brain::provider_capability_runtime::{
+use crate::domains::model_gateway::capabilities::{
     apply_discovery_report, plan_recertification_for_account, CapabilityDiscoveryError,
     CapabilityDiscoveryErrorKind, CapabilityDiscoveryRequest, ProviderCapabilityRuntime,
 };
@@ -65,7 +65,7 @@ pub(crate) async fn discover_capabilities(
 }
 
 pub(crate) fn commit_capability_report(
-    report: &crate::services::brain::provider_capability_runtime::CapabilityDiscoveryReport,
+    report: &crate::domains::model_gateway::capabilities::CapabilityDiscoveryReport,
 ) -> Result<llm_settings::LLMSettings, CapabilityApiError> {
     llm_settings::update_llm_settings(|settings| apply_discovery_report(settings, report)).map_err(
         |error| {

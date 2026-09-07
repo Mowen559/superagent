@@ -228,7 +228,7 @@ async fn analyze_file(
     let graph_nodes = graph_service::get_file_nodes(&db_path_str, &file_path).unwrap_or_default();
 
     // Try LLM analysis (on the compressed content to save tokens)
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     let analysis = if llm.is_available() {
         llm.analyze_file(&file_path, &compressed.content)
             .await

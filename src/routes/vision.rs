@@ -47,6 +47,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/vision/record/stop", post(record_stop))
         .route("/api/vision/record/pause", post(record_pause))
         .route("/api/vision/record/resume", post(record_resume))
+        .route("/api/vision/record/status", get(record_status))
         .route("/api/vision/ffmpeg/install", post(install_ffmpeg))
         .route("/api/vision/ffmpeg/status", get(ffmpeg_status))
 }
@@ -390,15 +391,20 @@ pub async fn record_stop(
     }).await.unwrap_or_else(|e| Err(format!("Recording worker failed: {e}")));
 
     match result {
-        Ok(path) => Json(json!({
+        Ok(artifact) => Json(json!({
             "success": true,
-            "video_path": path,
+            "video_path": artifact.path.to_string_lossy().to_string(),
+            "artifact": artifact,
         })).into_response(),
         Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
             "error": format!("Failed to stop recording: {e}"),
             "active": crate::services::visual_pipeline::record_manager::has_session(),
         }))).into_response(),
     }
+}
+
+pub async fn record_status() -> Json<Value> {
+    Json(json!(crate::services::visual_pipeline::record_manager::current_status()))
 }
 
 pub async fn install_ffmpeg() -> Result<Json<Value>, ApiError> {

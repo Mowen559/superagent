@@ -74,10 +74,6 @@ impl ToolExecutor for ReadFileTool {
                     "type": "string",
                     "description": "Path to file to view. Must be an absolute path."
                 },
-                "filter_level": {
-                    "type": "string",
-                    "description": "RTK Compression level. Options: 'none' (full file), 'minimal' (remove comments), 'aggressive' (skeleton view: imports, signatures, types only. Highly recommended for large or unknown files)."
-                },
                 "start_line": {
                     "type": "integer",
                     "description": "Optional. The 1-indexed line number to start reading from. Used for pagination."
@@ -95,7 +91,7 @@ impl ToolExecutor for ReadFileTool {
         Some(r#"
 [Tool Projection: view_file]
 - Role: Sensory Organ (文件视神经)
-- Note: RTK (Token Killer) is integrated. When exploring unfamiliar codebases or huge files, ALWAYS pass `filter_level: "aggressive"` first. This will instantly strip function bodies and return a crisp Skeleton View (signatures, types, constants), saving massive context tokens!
+- Note: Do not worry about huge files consuming too many context tokens. The Engine's Context Interceptor will automatically compress massive files into crisp Skeleton Views using RTK when needed.
 "#.trim().to_string())
     }
 
@@ -104,11 +100,6 @@ impl ToolExecutor for ReadFileTool {
             .get("AbsolutePath")
             .and_then(|v| v.as_str())
             .ok_or("Missing or invalid 'AbsolutePath' argument")?;
-
-        let filter_level_str = args
-            .get("filter_level")
-            .and_then(|v| v.as_str())
-            .unwrap_or("none"); // Default to none, unless forced by size
 
         let path = Path::new(path_str);
         require_safe_path(path, "file read", &self.workspace_root)?;
@@ -127,13 +118,6 @@ impl ToolExecutor for ReadFileTool {
 
         match fs::read_to_string(path) {
             Ok(full_content) => {
-                use crate::services::token_filter::{compress, FilterLevel};
-                use std::str::FromStr;
-
-                let requested_level =
-                    FilterLevel::from_str(filter_level_str).unwrap_or(FilterLevel::None);
-
-                // Handle Pagination if start_line or end_line is specified
                 let mut content = full_content.clone();
                 let mut is_paginated = false;
                 if start_line.is_some() || end_line.is_some() {
@@ -146,21 +130,12 @@ impl ToolExecutor for ReadFileTool {
                     }
                 }
 
-                if requested_level != FilterLevel::None {
-                    let result = compress(&content, path_str, requested_level);
-                    Ok(json!({
-                        "content": result.content,
-                        "rtk_compression": format!("{:?}", requested_level),
-                        "reduction_percent": result.reduction_percent,
-                        "paginated": is_paginated
-                    }))
-                } else {
-                    Ok(json!({
-                        "content": content,
-                        "paginated": is_paginated,
-                        "bytes": content.len()
-                    }))
-                }
+                Ok(json!({
+                    "content": content,
+                    "paginated": is_paginated,
+                    "bytes": content.len(),
+                    "file_path": path_str
+                }))
             }
             Err(e) => Err(format!("Failed to read file: {}", e)),
         }

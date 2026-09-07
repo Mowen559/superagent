@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
 pub struct ImpactAnalyzer {
-    llm: crate::services::llm_provider::LlmProvider,
+    llm: crate::domains::model_gateway::providers::LlmProvider,
 }
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ pub struct ChangedFile {
 }
 
 impl ImpactAnalyzer {
-    pub fn new(llm: crate::services::llm_provider::LlmProvider) -> Self {
+    pub fn new(llm: crate::domains::model_gateway::providers::LlmProvider) -> Self {
         Self { llm }
     }
 

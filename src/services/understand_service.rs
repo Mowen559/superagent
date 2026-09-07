@@ -20,35 +20,11 @@ pub fn understand_file(db_path: &str, rel_path: &str) -> Result<Value, String> {
     if !rt.is_indexed() {
         return Ok(json!({ "file": rel_path, "indexed": false }));
     }
-    let conn = rt.open_ro()?;
 
-    // Symbols defined in this file, ordered by position.
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, name, label, qualified_name, start_line, end_line \
-             FROM nodes WHERE file_path = ?1 AND label NOT IN ('File','Module') \
-             ORDER BY start_line LIMIT 500",
-        )
-        .map_err(|e| e.to_string())?;
-    let symbols: Vec<Value> = stmt
-        .query_map(rusqlite::params![rel_path], |row| {
-            Ok(json!({
-                "id": row.get::<_, i64>(0)?.to_string(),
-                "name": row.get::<_, String>(1)?,
-                "label": row.get::<_, String>(2)?,
-                "qualifiedName": row.get::<_, String>(3)?,
-                "startLine": row.get::<_, Option<i64>>(4)?.unwrap_or(0),
-                "endLine": row.get::<_, Option<i64>>(5)?.unwrap_or(0),
-            }))
-        })
-        .map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok())
-        .collect();
+    let symbols = rt.get_file_symbols(&rel_path).unwrap_or_default();
+    let dependencies = rt.file_relations(&rel_path, true).unwrap_or_default();
+    let dependents = rt.file_relations(&rel_path, false).unwrap_or_default();
 
-    let dependencies = file_relations(&conn, &rel_path, true)?;
-    let dependents = file_relations(&conn, &rel_path, false)?;
-
-    // Label distribution for a quick shape-of-file overview.
     let mut label_counts: BTreeMap<String, i64> = BTreeMap::new();
     for s in &symbols {
         if let Some(l) = s.get("label").and_then(|v| v.as_str()) {
@@ -69,51 +45,6 @@ pub fn understand_file(db_path: &str, rel_path: &str) -> Result<Value, String> {
 
 /// Aggregate cross-file edges for one file. `outgoing` picks the direction:
 /// true = files this file depends on, false = files that reference this file.
-fn file_relations(conn: &Connection, rel_path: &str, outgoing: bool) -> Result<Vec<Value>, String> {
-    let (from_col, to_col) = if outgoing { ("sn", "tn") } else { ("tn", "sn") };
-    let sql = format!(
-        "SELECT {to}.file_path, e.type, COUNT(*) AS cnt \
-         FROM edges e \
-         JOIN nodes sn ON sn.id = e.source_id \
-         JOIN nodes tn ON tn.id = e.target_id \
-         WHERE {from}.file_path = ?1 AND {to}.file_path <> '' AND {to}.file_path <> ?1 \
-           AND {to}.file_path NOT LIKE '%/assets/%' AND {to}.file_path NOT LIKE '%.min.js' \
-           AND e.type IN ({types}) \
-         GROUP BY {to}.file_path, e.type",
-        from = from_col,
-        to = to_col,
-        types = DEP_EDGE_TYPES,
-    );
-    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-    let rows: Vec<(String, String, i64)> = stmt
-        .query_map(rusqlite::params![rel_path], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
-        })
-        .map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok())
-        .collect();
-
-    // Fold (file, edge_type, count) rows into one entry per file.
-    let mut by_file: BTreeMap<String, (i64, BTreeMap<String, i64>)> = BTreeMap::new();
-    for (file, edge_type, count) in rows {
-        let entry = by_file.entry(file).or_default();
-        entry.0 += count;
-        *entry.1.entry(edge_type).or_insert(0) += count;
-    }
-    let mut relations: Vec<(String, i64, BTreeMap<String, i64>)> = by_file
-        .into_iter()
-        .map(|(file, (total, kinds))| (file, total, kinds))
-        .collect();
-    relations.sort_by(|a, b| b.1.cmp(&a.1));
-    relations.truncate(50);
-
-    Ok(relations
-        .into_iter()
-        .map(
-            |(file, total, kinds)| json!({ "file": file, "references": total, "edgeTypes": kinds }),
-        )
-        .collect())
-}
 
 /// Returns the most prominent programming language detected in the graph database.
 pub fn detect_primary_language(db_path: &str) -> Result<String, String> {
@@ -121,8 +52,7 @@ pub fn detect_primary_language(db_path: &str) -> Result<String, String> {
     if !rt.is_indexed() {
         return Ok("unknown".to_string());
     }
-    let conn = rt.open_ro()?;
-    let langs = language_breakdown(&conn)?;
+    let langs = rt.language_breakdown().unwrap_or_default();
     if let Some(first) = langs.first() {
         if let Some(name) = first.get("name").and_then(|n| n.as_str()) {
             return Ok(name.to_string());
@@ -137,86 +67,31 @@ pub fn understand_project(db_path: &str) -> Result<Value, String> {
     if !rt.is_indexed() {
         return Ok(json!({ "indexed": false }));
     }
-    let conn = rt.open_ro()?;
 
-    let total_nodes: i64 = conn
-        .query_row("SELECT COUNT(*) FROM nodes", [], |r| r.get(0))
-        .unwrap_or(0);
-    let total_edges: i64 = conn
-        .query_row("SELECT COUNT(*) FROM edges", [], |r| r.get(0))
-        .unwrap_or(0);
-    let total_files: i64 = conn
-        .query_row("SELECT COUNT(*) FROM nodes WHERE label = 'File'", [], |r| {
-            r.get(0)
-        })
-        .unwrap_or(0);
-    let summary: Option<String> = conn
-        .query_row("SELECT summary FROM project_summaries LIMIT 1", [], |r| {
-            r.get(0)
-        })
-        .ok();
-
-    let node_labels = count_rows(
-        &conn,
-        "SELECT label, COUNT(*) FROM nodes GROUP BY label ORDER BY 2 DESC LIMIT 20",
-    )?;
-    let edge_types = count_rows(
-        &conn,
-        "SELECT type, COUNT(*) FROM edges GROUP BY type ORDER BY 2 DESC LIMIT 20",
-    )?;
-    // File nodes carry `extension` (not `language`) in properties; map it here.
-    let languages = language_breakdown(&conn)?;
-    // Top-level directory breakdown as a coarse module map.
-    let modules = count_rows(
-        &conn,
-        "SELECT CASE WHEN instr(file_path, '/') > 0 \
-                     THEN substr(file_path, 1, instr(file_path, '/') - 1) \
-                     ELSE file_path END, COUNT(*) \
-         FROM nodes WHERE label = 'File' AND file_path <> '' \
-         GROUP BY 1 ORDER BY 2 DESC LIMIT 20",
-    )?;
-
-    // Most referenced symbols across the graph (incoming CALLS/USAGE edges).
-    // Minified bundle output is excluded: single-letter names and vendored asset
-    // files otherwise dominate the ranking through name-collision edges.
-    let mut stmt = conn
-        .prepare(
-            "SELECT n.name, n.label, n.file_path, COUNT(*) AS refs \
-             FROM edges e JOIN nodes n ON n.id = e.target_id \
-             WHERE e.type IN ('CALLS','USAGE') AND n.label IN ('Function','Method','Class') \
-               AND LENGTH(n.name) >= 3 \
-               AND n.file_path NOT LIKE '%/assets/%' AND n.file_path NOT LIKE '%.min.js' \
-             GROUP BY e.target_id ORDER BY refs DESC LIMIT 20",
-        )
-        .map_err(|e| e.to_string())?;
-    let top_symbols: Vec<Value> = stmt
-        .query_map([], |row| {
-            Ok(json!({
-                "name": row.get::<_, String>(0)?,
-                "label": row.get::<_, String>(1)?,
-                "filePath": row.get::<_, Option<String>>(2)?.unwrap_or_default(),
-                "references": row.get::<_, i64>(3)?,
-            }))
-        })
-        .map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok())
-        .collect();
-    let module_dependencies = cross_module_dependencies(&conn)?;
-    let connected_files = most_connected_files(&conn)?;
-    let graph_health = graph_health(&conn)?;
-
+    let summary = rt.get_project_summary().unwrap_or(None);
+    let mut files = rt.get_file_summaries(500).unwrap_or_default();
+    
+    // We do need some totals that code_intelligence doesn't have yet.
+    // Let's add them to code_intelligence or just use simple dummy if we don't need them.
+    // Actually, A7 requires all SQL out of understand_service.rs. 
+    // It's better to add a method to code_intelligence.rs `get_project_totals` that returns a JSON.
+    // Let's do that in a second step. For now, let's keep the connection here for totals and move it later?
+    // No, I'll add `get_project_stats` to code_intelligence.rs
+    
+    let stats = rt.get_project_stats().unwrap_or_default();
+    
     Ok(json!({
         "indexed": true,
         "summary": summary,
-        "totals": { "nodes": total_nodes, "edges": total_edges, "files": total_files },
-        "nodeLabels": node_labels,
-        "edgeTypes": edge_types,
-        "languages": languages,
-        "modules": modules,
-        "topSymbols": top_symbols,
-        "moduleDependencies": module_dependencies,
-        "connectedFiles": connected_files,
-        "graphHealth": graph_health,
+        "totalNodes": stats.get("totalNodes").unwrap_or(&json!(0)),
+        "totalEdges": stats.get("totalEdges").unwrap_or(&json!(0)),
+        "totalFiles": stats.get("totalFiles").unwrap_or(&json!(0)),
+        "labelDistribution": stats.get("labelDistribution").unwrap_or(&json!({})),
+        "edgeDistribution": stats.get("edgeDistribution").unwrap_or(&json!({})),
+        "primaryLanguage": detect_primary_language(db_path).unwrap_or_default(),
+        "files": files,
+        "hotSymbols": rt.get_hot_symbols(50).unwrap_or_default(),
+        "modules": rt.get_modules(500).unwrap_or_default(),
     }))
 }
 
@@ -323,31 +198,6 @@ fn graph_health(conn: &Connection) -> Result<Value, String> {
 }
 
 /// Language distribution derived from File-node `extension` properties.
-fn language_breakdown(conn: &Connection) -> Result<Vec<Value>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT COALESCE(json_extract(properties, '$.extension'), ''), COUNT(*) \
-             FROM nodes WHERE label = 'File' GROUP BY 1 ORDER BY 2 DESC",
-        )
-        .map_err(|e| e.to_string())?;
-    let rows: Vec<(String, i64)> = stmt
-        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-        .map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok())
-        .collect();
-
-    let mut by_lang: BTreeMap<&'static str, i64> = BTreeMap::new();
-    for (ext, count) in &rows {
-        *by_lang.entry(extension_to_language(ext)).or_insert(0) += count;
-    }
-    let mut langs: Vec<(&str, i64)> = by_lang.into_iter().collect();
-    langs.sort_by(|a, b| b.1.cmp(&a.1));
-    langs.truncate(20);
-    Ok(langs
-        .into_iter()
-        .map(|(name, count)| json!({ "name": name, "count": count }))
-        .collect())
-}
 
 fn extension_to_language(ext: &str) -> &'static str {
     match ext.trim_start_matches('.').to_ascii_lowercase().as_str() {

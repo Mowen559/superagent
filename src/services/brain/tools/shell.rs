@@ -68,10 +68,6 @@ impl ToolExecutor for RunCommandTool {
                     "type": "integer",
                     "description": "Optional timeout in seconds for foreground execution (default: 60)."
                 },
-                "rtk_hook": {
-                    "type": "boolean",
-                    "description": "If true, invokes the RTK token killer to compress massive shell outputs (like large git diffs or massive logs) into structured AST skeletons before returning them."
-                },
                 "ApprovalTicket": {
                     "type": "string",
                     "description": "If the command is highly destructive (like rm, del, drop), you MUST provide an approval ticket obtained via AskUserTool."
@@ -88,8 +84,6 @@ impl ToolExecutor for RunCommandTool {
 - Note: The underlying Rust neuron has a "Spinal Reflex" (脊髓反射) hardwired. When you execute this action, the system will automatically call `ShadowGit` at the bottom layer for an imperceptible snapshot backup.
 - Usage: For starting servers or long-blocking scripts, you MUST set `RunInBackground: true`.
 - Danger: Highly destructive commands (like rm, del, cargo clean) require an 'ApprovalTicket' from AskUserTool.
-- RTK Interceptor: If you expect a massive output (like a global codebase diff), set `rtk_hook: true` to transparently compress the output into a skeleton, saving tokens.
-- Circuit Breaker: Outputs exceeding 100,000 bytes will be aggressively truncated to protect your context window.
 "#.trim().to_string())
     }
 
@@ -144,53 +138,9 @@ impl ToolExecutor for RunCommandTool {
             .get("RunInBackground")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        let enable_rtk_hook = args
-            .get("rtk_hook")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
 
         // Delegate to the actual capability seam provider
-        let mut result = self
-            .shell_service
-            .execute(cmd_str, cwd_str, run_in_bg, timeout_secs)?;
-
-        // If it's running in background, we don't intercept logs here
-        if run_in_bg {
-            return Ok(result);
-        }
-
-        // Post-execution Interceptor: Overload Circuit Breaker and RTK Hook
-        if let Some(stdout_val) = result.get_mut("stdout") {
-            if let Some(stdout_str) = stdout_val.as_str() {
-                let mut output_str = stdout_str.to_string();
-                let original_len = output_str.len();
-
-                // 1. RTK Hook compression requested by LLM
-                if enable_rtk_hook {
-                    use crate::services::token_filter::{compress, FilterLevel};
-                    eprintln!("\x1b[35m[Terminal Hook] RTK Intercepting and compressing shell output...\x1b[0m");
-                    // We assume shell output usually contains code or diffs. We trick the filter to compress it aggressively.
-                    let filter_result =
-                        compress(&output_str, "shell_output.txt", FilterLevel::Aggressive);
-                    output_str = filter_result.content;
-                    result["rtk_hook_engaged"] = json!(true);
-                    result["original_size_bytes"] = json!(original_len);
-                }
-
-                // 2. 100,000 Bytes Hard Truncation Circuit Breaker (if still too large)
-                if output_str.len() > 100_000 {
-                    eprintln!("\x1b[31m[System Guard] Shell output exceeded 100,000 bytes circuit breaker. Truncating...\x1b[0m");
-                    let mut truncated = output_str[..100_000].to_string();
-                    truncated.push_str("\n\n... [TRUNCATED BY CIRCUIT BREAKER: Output exceeded 100,000 bytes. If you need the full logs, please use `> file.txt` to redirect the output to a file and read it with view_file pagination] ...");
-                    output_str = truncated;
-                    result["circuit_breaker"] = json!("triggered: >100,000 bytes");
-                }
-
-                // Update the JSON with the finalized output string
-                result["stdout"] = json!(output_str);
-            }
-        }
-
-        Ok(result)
+        self.shell_service
+            .execute(cmd_str, cwd_str, run_in_bg, timeout_secs)
     }
 }

@@ -10,7 +10,6 @@ pub mod file_service;
 pub mod git_service;
 pub mod graph_service;
 pub mod impact_analyzer;
-pub mod llm_provider;
 pub mod progress;
 pub mod project_context;
 pub mod project_inventory;
@@ -25,7 +24,6 @@ pub mod vector_service;
 pub mod visual_pipeline;
 pub use snow_ui_selector as ui_selector;
 
-pub mod protocol_converter;
 
 pub mod auth_validator;
 pub mod cli_auth;

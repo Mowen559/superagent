@@ -7,11 +7,11 @@ use std::path::Path;
 use tracing::{info, warn};
 
 pub struct DomainAnalyzer {
-    llm: crate::services::llm_provider::LlmProvider,
+    llm: crate::domains::model_gateway::providers::LlmProvider,
 }
 
 impl DomainAnalyzer {
-    pub fn new(llm: crate::services::llm_provider::LlmProvider) -> Self {
+    pub fn new(llm: crate::domains::model_gateway::providers::LlmProvider) -> Self {
         Self { llm }
     }
 

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use crate::services::brain::context::Context;
 use crate::services::brain::events::SessionEvent;
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 use crate::services::brain::dynamic_tool::scan_dynamic_tools;
 
 /// 工具定义与执行的回调接口

@@ -3,7 +3,7 @@ use crate::config::runtime::RuntimeConfig;
 use crate::models::memory::SupermemoryRecord;
 use crate::models::task::{Task, TaskStatus};
 use crate::services::agent::AgentMessage;
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 use crate::services::project_inventory::{inspect_project, InventoryLimits, ProjectInventory};
 use crate::services::supermemory_store::SupermemoryStore;
 use crate::services::task_manager::TaskManager;

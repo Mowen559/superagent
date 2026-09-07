@@ -1,5 +1,5 @@
 use crate::config::llm_settings;
-use crate::services::brain::provider_capability_runtime::{
+use crate::domains::model_gateway::capabilities::{
     apply_discovery_report, plan_recertification_for_account, CapabilityDiscoveryError,
     CapabilityDiscoveryErrorKind, CapabilityDiscoveryRequest, ProviderCapabilityRuntime,
 };

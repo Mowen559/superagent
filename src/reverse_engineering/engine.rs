@@ -2,7 +2,7 @@ use super::rules;
 use crate::config::runtime::RuntimeConfig;
 use crate::models::memory::SupermemoryRecord;
 use crate::models::reverse::*;
-use crate::services::llm_provider::{self, LlmProvider};
+use crate::domains::model_gateway::providers::{self, LlmProvider};
 use crate::services::progress::{ProgressReporter, StepStatus};
 use crate::services::supermemory_store::SupermemoryStore;
 use crate::services::understand_service;
@@ -279,7 +279,7 @@ async fn extract_schema_via_llm(
     language: Option<&str>,
     project: Option<&str>,
 ) -> Result<RequirementSchema, String> {
-    let (directive, _) = llm_provider::lang_directive(language.unwrap_or("zh-CN"));
+    let (directive, _) = crate::domains::model_gateway::providers::lang_directive(language.unwrap_or("zh-CN"));
     let messages = vec![json!({
         "role": "user",
         "content": format!(
@@ -303,7 +303,7 @@ async fn extract_schema_via_llm(
     }
 
     let response = llm.chat(messages, Some(&system_prompt)).await?;
-    let cleaned = llm_provider::strip_code_fences(&response.0);
+    let cleaned = crate::domains::model_gateway::providers::strip_code_fences(&response.0);
     serde_json::from_str(&cleaned).map_err(|e| format!("Failed to parse LLM schema: {}", e))
 }
 

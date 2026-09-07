@@ -1,4 +1,4 @@
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 use anyhow::{Context, Result};
 use rusqlite::{Connection, OpenFlags};
 use std::fs;
@@ -201,7 +201,7 @@ impl RequirementAnalyzer {
             .await
             .map_err(|e| anyhow::anyhow!("LLM Plan Engine Error: {}", e))?;
 
-        let cleaned_json = crate::services::llm_provider::strip_code_fences(&plan_resp);
+        let cleaned_json = crate::domains::model_gateway::providers::strip_code_fences(&plan_resp);
 
         if let Some(r) = &reporter {
             r.report(

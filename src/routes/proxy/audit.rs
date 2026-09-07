@@ -8,24 +8,13 @@ use axum::{
 use reqwest::StatusCode;
 use serde_json::Value;
 
-use crate::{
-    config::llm_settings,
-    services::{
-        auth_validator,
-        brain::model_route_runtime::{
-            provider_health_key, ModelRequirements, ModelRouteRuntime, ProviderAttemptOutcome,
-            ProviderAttemptReceipt,
-        },
-        brain::provider_health_runtime::{ProviderAdmission, ProviderHealthRuntime},
-        protocol_converter::{
-            anthropic::AnthropicConverter, gemini::GeminiConverter, openai::OpenAiConverter,
-            openai_responses::OpenAiResponsesConverter, upstream::adapter_for_provider,
-            ProtocolConverter,
-        },
-        usage_tracker::ApiUsageRecord,
-    },
-    AppState,
-};
+use crate::config::llm_settings;
+use crate::services::auth_validator;
+use crate::services::usage_tracker::ApiUsageRecord;
+use crate::domains::model_gateway::routing::{provider_health_key, ModelRequirements, ModelRouteRuntime, ProviderAttemptOutcome, ProviderAttemptReceipt};
+use crate::domains::model_gateway::health::{ProviderAdmission, ProviderHealthRuntime};
+use crate::domains::model_gateway::protocols::{anthropic::AnthropicConverter, gemini::GeminiConverter, openai::OpenAiConverter, openai_responses::OpenAiResponsesConverter, upstream::adapter_for_provider, ProtocolConverter};
+use crate::AppState;
 
 use std::{
     sync::{Arc, Mutex},
