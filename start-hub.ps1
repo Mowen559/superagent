@@ -1,5 +1,13 @@
-Set-Location D:\mowen\deepcloud\super-agent\hub-rs
-$exe = 'D:\mowen\deepcloud\super-agent\hub-rs\target\release\hub.exe'
+$scriptDir = $PSScriptRoot
+Set-Location $scriptDir
+$exe = Join-Path $scriptDir "target\release\hub.exe"
+if (-not (Test-Path $exe)) {
+    $exe = Join-Path $scriptDir "target\debug\hub.exe"
+}
+if (-not (Test-Path $exe)) {
+    Write-Error "hub.exe not found in target\release or target\debug. Please run 'cargo build --bin hub' first."
+    exit 1
+}
 Start-Process -FilePath $exe -ArgumentList "service", "3001" -WindowStyle Hidden
 Write-Output 'started hub-rs service on port 3001'
 for ($i = 0; $i -lt 15; $i++) {

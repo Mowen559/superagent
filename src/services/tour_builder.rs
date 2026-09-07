@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use tracing::{info, warn};
-use std::path::Path;
-use rusqlite::{Connection, OpenFlags};
-use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::algo::toposort;
+use petgraph::graph::{DiGraph, NodeIndex};
+use rusqlite::{Connection, OpenFlags};
 use std::collections::HashMap;
+use std::path::Path;
+use tracing::{info, warn};
 
 pub struct TourBuilder {
     // 依赖注入
@@ -28,14 +28,19 @@ impl TourBuilder {
             .context("Failed to open graph DB for tour builder")?;
 
         // 1. 获取核心模块节点 (比如 Class, Trait, Struct)
-        let mut stmt = conn.prepare("SELECT id, name FROM nodes WHERE label IN ('Class', 'Struct', 'Interface', 'Trait')")?;
-        let nodes: Vec<(i64, String)> = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        let mut stmt = conn.prepare(
+            "SELECT id, name FROM nodes WHERE label IN ('Class', 'Struct', 'Interface', 'Trait')",
+        )?;
+        let nodes: Vec<(i64, String)> = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
             .filter_map(|r| r.ok())
             .collect();
 
         if nodes.is_empty() {
             info!("No core structures found to build a tour.");
-            return Ok(String::from("No core structures found in the project graph to build a tour."));
+            return Ok(String::from(
+                "No core structures found in the project graph to build a tour.",
+            ));
         }
 
         // 2. 将边表导入到 petgraph 构建模块依赖图
@@ -47,8 +52,10 @@ impl TourBuilder {
             node_map.insert(*id, idx);
         }
 
-        let mut edge_stmt = conn.prepare("SELECT source_id, target_id FROM edges WHERE type = 'CALLS'")?;
-        let edge_iter = edge_stmt.query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))?;
+        let mut edge_stmt =
+            conn.prepare("SELECT source_id, target_id FROM edges WHERE type = 'CALLS'")?;
+        let edge_iter =
+            edge_stmt.query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))?;
 
         for edge_res in edge_iter {
             if let Ok((src, tgt)) = edge_res {
@@ -68,7 +75,7 @@ impl TourBuilder {
                 for idx in sorted_indices {
                     tour_steps.push(graph[idx].clone());
                 }
-                
+
                 info!("Generated Guided Tour Order ({} steps)", tour_steps.len());
                 for (i, step) in tour_steps.iter().enumerate() {
                     output.push_str(&format!("{}. **{}**\n", i + 1, step));

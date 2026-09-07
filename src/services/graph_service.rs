@@ -1,15 +1,23 @@
-use std::collections::HashSet;
-use rusqlite::Connection;
-use crate::models::graph::{GraphNode, GraphEdge, GraphResponse};
+use crate::models::graph::{GraphEdge, GraphNode, GraphResponse};
 use crate::services::code_intelligence::CodeIntelligenceRuntime;
+use rusqlite::Connection;
+use std::collections::HashSet;
 
 /// Query the project graph from codebase-memory-mcp SQLite database.
 /// `labels` optionally restricts node kinds (e.g. ["Function", "Class"]);
 /// edges are then limited to those connecting the selected nodes.
-pub fn get_project_graph(db_path: &str, max_nodes: usize, labels: Option<&[String]>) -> Result<GraphResponse, String> {
+pub fn get_project_graph(
+    db_path: &str,
+    max_nodes: usize,
+    labels: Option<&[String]>,
+) -> Result<GraphResponse, String> {
     let rt = CodeIntelligenceRuntime::new(db_path);
     if !rt.is_indexed() {
-        return Ok(GraphResponse { nodes: vec![], edges: vec![], total_nodes: 0 });
+        return Ok(GraphResponse {
+            nodes: vec![],
+            edges: vec![],
+            total_nodes: 0,
+        });
     }
 
     let conn = rt.open_ro()?;
@@ -26,7 +34,11 @@ pub fn get_project_graph(db_path: &str, max_nodes: usize, labels: Option<&[Strin
         query_edges(&conn, max_nodes)?
     };
 
-    Ok(GraphResponse { nodes, edges, total_nodes: total })
+    Ok(GraphResponse {
+        nodes,
+        edges,
+        total_nodes: total,
+    })
 }
 
 /// Full-text search over graph nodes via the nodes_fts FTS5 index.
@@ -53,7 +65,8 @@ pub fn search_nodes(db_path: &str, query: &str, limit: usize) -> Result<Vec<Grap
 
     let try_fts = || -> Result<Vec<GraphNode>, rusqlite::Error> {
         let mut stmt = conn.prepare(sql)?;
-        let rows = stmt.query_map(rusqlite::params![fts_query, limit as i64], map_node_row)?
+        let rows = stmt
+            .query_map(rusqlite::params![fts_query, limit as i64], map_node_row)?
             .filter_map(|r| r.ok())
             .collect();
         Ok(rows)
@@ -64,11 +77,14 @@ pub fn search_nodes(db_path: &str, query: &str, limit: usize) -> Result<Vec<Grap
         Err(_) => {
             // LIKE fallback
             let like = format!("%{}%", query.trim());
-            let mut stmt = conn.prepare(
-                "SELECT id, name, label, file_path, properties FROM nodes \
-                 WHERE name LIKE ?1 OR qualified_name LIKE ?1 LIMIT ?2"
-            ).map_err(|e| e.to_string())?;
-            let nodes = stmt.query_map(rusqlite::params![like, limit as i64], map_node_row)
+            let mut stmt = conn
+                .prepare(
+                    "SELECT id, name, label, file_path, properties FROM nodes \
+                 WHERE name LIKE ?1 OR qualified_name LIKE ?1 LIMIT ?2",
+                )
+                .map_err(|e| e.to_string())?;
+            let nodes = stmt
+                .query_map(rusqlite::params![like, limit as i64], map_node_row)
                 .map_err(|e| e.to_string())?
                 .filter_map(|r| r.ok())
                 .collect();
@@ -85,7 +101,9 @@ pub fn get_project_summary(db_path: &str) -> Result<Option<String>, String> {
     }
     let conn = rt.open_ro()?;
     let summary = conn
-        .query_row("SELECT summary FROM project_summaries LIMIT 1", [], |row| row.get::<_, String>(0))
+        .query_row("SELECT summary FROM project_summaries LIMIT 1", [], |row| {
+            row.get::<_, String>(0)
+        })
         .ok();
     Ok(summary)
 }
@@ -103,16 +121,21 @@ pub fn get_file_nodes(db_path: &str, file_path: &str) -> Result<Vec<GraphNode>, 
         "SELECT id, name, label, file_path, properties FROM nodes WHERE file_path = ?1 LIMIT 200"
     ).map_err(|e| e.to_string())?;
 
-    let nodes = stmt.query_map(rusqlite::params![file_path], map_node_row).map_err(|e| e.to_string())?
-    .filter_map(|r| r.ok())
-    .collect();
+    let nodes = stmt
+        .query_map(rusqlite::params![file_path], map_node_row)
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
 
     Ok(nodes)
 }
 
 fn map_node_row(row: &rusqlite::Row) -> rusqlite::Result<GraphNode> {
     Ok(GraphNode {
-        id: row.get::<_, i64>(0).map(|v| v.to_string()).unwrap_or_default(),
+        id: row
+            .get::<_, i64>(0)
+            .map(|v| v.to_string())
+            .unwrap_or_default(),
         label: row.get::<_, String>(1).unwrap_or_default(),
         node_type: row.get::<_, String>(2).unwrap_or_default(),
         file_path: row.get::<_, Option<String>>(3).unwrap_or(None),
@@ -123,12 +146,19 @@ fn map_node_row(row: &rusqlite::Row) -> rusqlite::Result<GraphNode> {
     })
 }
 
-fn query_nodes(conn: &Connection, limit: usize, labels: Option<&[String]>) -> Result<Vec<GraphNode>, String> {
+fn query_nodes(
+    conn: &Connection,
+    limit: usize,
+    labels: Option<&[String]>,
+) -> Result<Vec<GraphNode>, String> {
     // Schema of codebase-memory-mcp: nodes(id, project, label, name, qualified_name, file_path, start_line, end_line, properties)
     // `label` is the node kind (Function/Class/...), `name` is the display name.
     let query = match labels {
         Some(ls) if !ls.is_empty() => {
-            let placeholders: Vec<String> = ls.iter().map(|l| format!("'{}'", l.replace('\'', ""))).collect();
+            let placeholders: Vec<String> = ls
+                .iter()
+                .map(|l| format!("'{}'", l.replace('\'', "")))
+                .collect();
             format!(
                 "SELECT id, name, label, file_path, properties FROM nodes WHERE label IN ({}) LIMIT {}",
                 placeholders.join(","), limit
@@ -140,13 +170,15 @@ fn query_nodes(conn: &Connection, limit: usize, labels: Option<&[String]>) -> Re
         ),
     };
 
-    let mut stmt = conn.prepare(&query).map_err(|e| {
-        format!("Failed to query nodes (schema may differ): {}", e)
-    })?;
+    let mut stmt = conn
+        .prepare(&query)
+        .map_err(|e| format!("Failed to query nodes (schema may differ): {}", e))?;
 
-    let nodes = stmt.query_map([], map_node_row).map_err(|e| e.to_string())?
-    .filter_map(|r| r.ok())
-    .collect();
+    let nodes = stmt
+        .query_map([], map_node_row)
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
 
     Ok(nodes)
 }
@@ -155,7 +187,10 @@ fn query_nodes(conn: &Connection, limit: usize, labels: Option<&[String]>) -> Re
 fn extract_language(properties: Option<String>) -> Option<String> {
     let props = properties?;
     let value: serde_json::Value = serde_json::from_str(&props).ok()?;
-    value.get("language").and_then(|v| v.as_str()).map(String::from)
+    value
+        .get("language")
+        .and_then(|v| v.as_str())
+        .map(String::from)
 }
 
 fn query_edges(conn: &Connection, limit: usize) -> Result<Vec<GraphEdge>, String> {
@@ -170,30 +205,41 @@ fn query_edges(conn: &Connection, limit: usize) -> Result<Vec<GraphEdge>, String
         Err(_) => return Ok(Vec::new()), // edges table may not exist
     };
 
-    let edges = stmt.query_map([], |row| {
-        Ok(GraphEdge {
-            source: row.get::<_, i64>(0).map(|v| v.to_string()).unwrap_or_default(),
-            target: row.get::<_, i64>(1).map(|v| v.to_string()).unwrap_or_default(),
-            edge_type: row.get::<_, String>(2).unwrap_or_default(),
-            label: None,
+    let edges = stmt
+        .query_map([], |row| {
+            Ok(GraphEdge {
+                source: row
+                    .get::<_, i64>(0)
+                    .map(|v| v.to_string())
+                    .unwrap_or_default(),
+                target: row
+                    .get::<_, i64>(1)
+                    .map(|v| v.to_string())
+                    .unwrap_or_default(),
+                edge_type: row.get::<_, String>(2).unwrap_or_default(),
+                label: None,
+            })
         })
-    }).map_err(|e| e.to_string())?
-    .filter_map(|r| r.ok())
-    .collect();
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
 
     Ok(edges)
 }
 
 pub fn get_callers(db_path: &str, target_id: &str, limit: usize) -> Result<Vec<GraphNode>, String> {
     let rt = CodeIntelligenceRuntime::new(db_path);
-    if !rt.is_indexed() { return Ok(Vec::new()); }
+    if !rt.is_indexed() {
+        return Ok(Vec::new());
+    }
     let conn = rt.open_ro()?;
     let sql = "SELECT n.id, n.name, n.label, n.file_path, n.properties FROM nodes n JOIN edges e ON n.id = e.source_id WHERE e.target_id = ?1 LIMIT ?2";
     let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
-    
+
     let target_id_int: i64 = target_id.parse().unwrap_or(0);
-    
-    let nodes = stmt.query_map(rusqlite::params![target_id_int, limit as i64], map_node_row)
+
+    let nodes = stmt
+        .query_map(rusqlite::params![target_id_int, limit as i64], map_node_row)
         .map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())
         .collect();
@@ -202,14 +248,17 @@ pub fn get_callers(db_path: &str, target_id: &str, limit: usize) -> Result<Vec<G
 
 pub fn get_callees(db_path: &str, source_id: &str, limit: usize) -> Result<Vec<GraphNode>, String> {
     let rt = CodeIntelligenceRuntime::new(db_path);
-    if !rt.is_indexed() { return Ok(Vec::new()); }
+    if !rt.is_indexed() {
+        return Ok(Vec::new());
+    }
     let conn = rt.open_ro()?;
     let sql = "SELECT n.id, n.name, n.label, n.file_path, n.properties FROM nodes n JOIN edges e ON n.id = e.target_id WHERE e.source_id = ?1 LIMIT ?2";
     let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
-    
+
     let source_id_int: i64 = source_id.parse().unwrap_or(0);
-    
-    let nodes = stmt.query_map(rusqlite::params![source_id_int, limit as i64], map_node_row)
+
+    let nodes = stmt
+        .query_map(rusqlite::params![source_id_int, limit as i64], map_node_row)
         .map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())
         .collect();
@@ -218,31 +267,46 @@ pub fn get_callees(db_path: &str, source_id: &str, limit: usize) -> Result<Vec<G
 
 pub fn get_impact(db_path: &str, target_id: &str, depth: usize) -> Result<Vec<GraphNode>, String> {
     let rt = CodeIntelligenceRuntime::new(db_path);
-    if !rt.is_indexed() { return Ok(Vec::new()); }
+    if !rt.is_indexed() {
+        return Ok(Vec::new());
+    }
     let conn = rt.open_ro()?;
-    
+
     let mut impact_nodes = Vec::new();
     let mut current_level = vec![target_id.to_string()];
     let mut visited = std::collections::HashSet::new();
     visited.insert(target_id.to_string());
-    
+
     for _ in 0..depth {
-        if current_level.is_empty() { break; }
-        
-        let placeholders = current_level.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-        let sql = format!("SELECT n.id, n.name, n.label, n.file_path, n.properties 
-                           FROM nodes n JOIN edges e ON n.id = e.source_id 
-                           WHERE e.target_id IN ({})", placeholders);
-                           
+        if current_level.is_empty() {
+            break;
+        }
+
+        let placeholders = current_level
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT n.id, n.name, n.label, n.file_path, n.properties
+                           FROM nodes n JOIN edges e ON n.id = e.source_id
+                           WHERE e.target_id IN ({})",
+            placeholders
+        );
+
         let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-        
-        let params_vec: Vec<&dyn rusqlite::ToSql> = current_level.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
-        
-        let nodes: Vec<GraphNode> = stmt.query_map(rusqlite::params_from_iter(params_vec), map_node_row)
+
+        let params_vec: Vec<&dyn rusqlite::ToSql> = current_level
+            .iter()
+            .map(|s| s as &dyn rusqlite::ToSql)
+            .collect();
+
+        let nodes: Vec<GraphNode> = stmt
+            .query_map(rusqlite::params_from_iter(params_vec), map_node_row)
             .map_err(|e| e.to_string())?
             .filter_map(|r| r.ok())
             .collect();
-            
+
         let mut next_level = Vec::new();
         for node in nodes {
             if visited.insert(node.id.clone()) {
@@ -252,6 +316,6 @@ pub fn get_impact(db_path: &str, target_id: &str, depth: usize) -> Result<Vec<Gr
         }
         current_level = next_level;
     }
-    
+
     Ok(impact_nodes)
 }

@@ -10,7 +10,7 @@ impl ToolExecutor for ShadowGitTool {
     }
 
     fn description(&self) -> &'static str {
-        "Manage automatic backup snapshots of files. 
+        "Manage automatic backup snapshots of files.
 Actions:
 - 'list': List all available snapshots in the .shadow_git directory.
 - 'restore': Restore a specific file from a snapshot. Requires SnapshotName."

@@ -8,7 +8,15 @@ pub struct QwenBackend;
 
 #[async_trait]
 impl AgentBackend for QwenBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
+    async fn execute(
+        &self,
+        prompt: String,
+        opts: ExecOptions,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+        _control_rx: Option<
+            tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+        >,
+    ) -> BackendResult<AgentSession> {
         stream_json::run(
             StreamJsonSpec {
                 command: "qwen".to_string(),
@@ -42,7 +50,11 @@ impl AgentBackend for QwenBackend {
                 envs: None,
             },
             prompt,
-            opts, cancel_rx, _control_rx).await
+            opts,
+            cancel_rx,
+            _control_rx,
+        )
+        .await
     }
 
     async fn sync_config(
@@ -51,8 +63,19 @@ impl AgentBackend for QwenBackend {
         _executable_path: Option<&str>,
     ) -> BackendResult<()> {
         let global_dir = dirs::home_dir().unwrap_or_default().join(".qwen");
-        crate::services::agent::sync_utils::sync_claude_like(config, &global_dir, ".qwen.json")
+        crate::services::agent::sync_utils::sync_claude_like(
+            "qwen",
+            config,
+            &global_dir,
+            ".qwen.json",
+        )
+    }
+
+    async fn get_config_content(
+        &self,
+        _executable_path: Option<&str>,
+    ) -> BackendResult<Option<String>> {
+        let global_dir = dirs::home_dir().unwrap_or_default().join(".qwen");
+        crate::services::agent::sync_utils::read_claude_like_config(&global_dir)
     }
 }
-
-

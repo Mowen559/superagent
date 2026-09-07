@@ -10,7 +10,10 @@ pub fn module_aliases() -> HashMap<&'static str, Vec<&'static str>> {
     map.insert("auth", vec!["auth", "login", "permission"]);
     map.insert("user", vec!["user", "account"]);
     map.insert("memory", vec!["memory", "supermemory"]);
-    map.insert("reverse-engineering", vec!["reverse", "engineering", "blueprint"]);
+    map.insert(
+        "reverse-engineering",
+        vec!["reverse", "engineering", "blueprint"],
+    );
     map
 }
 

@@ -1,6 +1,6 @@
+use crate::server;
 use clap::{Parser, Subcommand};
 use std::ffi::OsString;
-use crate::server;
 
 /// Global CLI configuration and arguments
 #[derive(Parser, Debug)]
@@ -76,33 +76,29 @@ pub enum AgentCommand {
         /// The agent backend to use (e.g., claude, codex, qwen)
         #[arg(short, long, default_value = "claude")]
         agent: String,
-        
+
         /// Project directory to act on
         #[arg(long)]
         project: Option<String>,
-        
+
         /// Model string to use
         #[arg(long)]
         model: Option<String>,
-        
+
         /// Task description prompt
         prompt: Vec<String>,
     },
     /// List available agents
     List,
     /// Install an agent
-    Install {
-        agent: String,
-    },
+    Install { agent: String },
     /// Update an agent
-    Update {
-        agent: String,
-    },
+    Update { agent: String },
     /// Ingest a document or book into the knowledge base
     Ingest {
         /// Path to the file or directory to ingest
         path: String,
-        
+
         /// Optional global context summary
         #[arg(short, long)]
         context: Option<String>,
@@ -114,22 +110,15 @@ pub enum TaskCommand {
     /// List active tasks
     List,
     /// Watch a specific task
-    Watch {
-        task_id: String,
-    }
+    Watch { task_id: String },
 }
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigCommand {
     /// Set a configuration value
-    Set {
-        key: String,
-        value: String,
-    },
+    Set { key: String, value: String },
     /// Get a configuration value
-    Get {
-        key: String,
-    },
+    Get { key: String },
     /// Configure the model provider and authentication
     Model,
     /// List available models from the provider
@@ -167,13 +156,9 @@ pub enum SkillCommand {
     /// List installed skills
     List,
     /// Install a skill
-    Install {
-        name: String,
-    },
+    Install { name: String },
     /// Remove a skill
-    Remove {
-        name: String,
-    },
+    Remove { name: String },
 }
 
 #[derive(Subcommand, Debug)]
@@ -181,19 +166,29 @@ pub enum McpCommand {
     /// List configured MCP servers
     List,
     /// Install an MCP server
-    Install {
-        name: String,
-    },
+    Install { name: String },
     /// Remove an MCP server
-    Remove {
-        name: String,
-    },
+    Remove { name: String },
 }
 
 /// Entry point invoked from `main`. Never returns for the hook role (it exits
 /// with rtk's process code); returns after the server stops for the service
 /// role.
 pub fn dispatch() {
+    // 强制 Windows DPI Aware，确保截屏获取真实物理像素
+    #[cfg(target_os = "windows")]
+    {
+        use std::ptr;
+        type SetProcessDpiAwareness = unsafe extern "system" fn(i32) -> i32;
+        if let Ok(lib) = unsafe { libloading::Library::new("shcore.dll") } {
+            unsafe {
+                if let Ok(func) = lib.get::<SetProcessDpiAwareness>(b"SetProcessDpiAwareness") {
+                    let _ = func(2); // PROCESS_PER_MONITOR_DPI_AWARE
+                }
+            }
+        }
+    }
+
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(e) => {
@@ -221,18 +216,27 @@ pub fn dispatch() {
         Some(Commands::Mcp { command }) => crate::cli_commands::handle_mcp(command),
         Some(Commands::External(ext)) => {
             if ext.first().map(|s| s.to_string_lossy()) == Some("mcp".into()) && ext.len() == 1 {
-                 crate::mcp_server::run_mcp()
+                crate::mcp_server::run_mcp()
             } else {
-                 run_hook()
+                run_hook()
             }
-        },
+        }
         None => {
             let current_exe = std::env::current_exe().unwrap_or_default();
-            let install_dir = dirs::home_dir().unwrap_or_default().join(".hub").join("bin");
-            let cargo_dir = dirs::home_dir().unwrap_or_default().join(".cargo").join("bin");
+            let install_dir = dirs::home_dir()
+                .unwrap_or_default()
+                .join(".hub")
+                .join("bin");
+            let cargo_dir = dirs::home_dir()
+                .unwrap_or_default()
+                .join(".cargo")
+                .join("bin");
 
             if current_exe.starts_with(&install_dir) || current_exe.starts_with(&cargo_dir) {
-                println!("DeepCloud Hub is installed. Starting service on default port {}...", crate::server::DEFAULT_PORT);
+                println!(
+                    "DeepCloud Hub is installed. Starting service on default port {}...",
+                    crate::server::DEFAULT_PORT
+                );
                 run_service(crate::server::DEFAULT_PORT);
             } else {
                 use dialoguer::Confirm;
@@ -240,7 +244,7 @@ pub fn dispatch() {
                 println!("Welcome to DeepCloud Hub Super Agent!");
                 println!("It looks like you are running this executable for the first time.");
                 println!("============================================================");
-                
+
                 let install = Confirm::new()
                     .with_prompt("Do you want to automatically install and register hub to your system PATH?")
                     .default(true)
@@ -252,12 +256,12 @@ pub fn dispatch() {
                 } else {
                     println!("Installation skipped. You can run 'hub install' manually later.");
                 }
-                
+
                 println!("\nPress Enter to exit...");
                 let mut s = String::new();
                 let _ = std::io::stdin().read_line(&mut s);
             }
-        },
+        }
     }
 }
 

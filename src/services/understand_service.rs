@@ -4,13 +4,14 @@
 //! Project level: summary, totals, label/edge distributions, languages, modules,
 //! and the most referenced symbols.
 
-use std::collections::BTreeMap;
+use crate::services::code_intelligence::CodeIntelligenceRuntime;
 use rusqlite::Connection;
 use serde_json::{json, Value};
-use crate::services::code_intelligence::CodeIntelligenceRuntime;
+use std::collections::BTreeMap;
 
 /// Edge types that represent a real dependency between files.
-const DEP_EDGE_TYPES: &str = "'CALLS','IMPORTS','USAGE','HTTP_CALLS','WRITES','EXTENDS','IMPLEMENTS'";
+const DEP_EDGE_TYPES: &str =
+    "'CALLS','IMPORTS','USAGE','HTTP_CALLS','WRITES','EXTENDS','IMPLEMENTS'";
 
 /// File-level understanding: structure + outgoing dependencies + inbound references.
 pub fn understand_file(db_path: &str, rel_path: &str) -> Result<Value, String> {
@@ -79,7 +80,9 @@ fn file_relations(conn: &Connection, rel_path: &str, outgoing: bool) -> Result<V
            AND {to}.file_path NOT LIKE '%/assets/%' AND {to}.file_path NOT LIKE '%.min.js' \
            AND e.type IN ({types}) \
          GROUP BY {to}.file_path, e.type",
-        from = from_col, to = to_col, types = DEP_EDGE_TYPES,
+        from = from_col,
+        to = to_col,
+        types = DEP_EDGE_TYPES,
     );
     let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows: Vec<(String, String, i64)> = stmt
@@ -106,7 +109,9 @@ fn file_relations(conn: &Connection, rel_path: &str, outgoing: bool) -> Result<V
 
     Ok(relations
         .into_iter()
-        .map(|(file, total, kinds)| json!({ "file": file, "references": total, "edgeTypes": kinds }))
+        .map(
+            |(file, total, kinds)| json!({ "file": file, "references": total, "edgeTypes": kinds }),
+        )
         .collect())
 }
 
@@ -134,17 +139,31 @@ pub fn understand_project(db_path: &str) -> Result<Value, String> {
     }
     let conn = rt.open_ro()?;
 
-    let total_nodes: i64 = conn.query_row("SELECT COUNT(*) FROM nodes", [], |r| r.get(0)).unwrap_or(0);
-    let total_edges: i64 = conn.query_row("SELECT COUNT(*) FROM edges", [], |r| r.get(0)).unwrap_or(0);
+    let total_nodes: i64 = conn
+        .query_row("SELECT COUNT(*) FROM nodes", [], |r| r.get(0))
+        .unwrap_or(0);
+    let total_edges: i64 = conn
+        .query_row("SELECT COUNT(*) FROM edges", [], |r| r.get(0))
+        .unwrap_or(0);
     let total_files: i64 = conn
-        .query_row("SELECT COUNT(*) FROM nodes WHERE label = 'File'", [], |r| r.get(0))
+        .query_row("SELECT COUNT(*) FROM nodes WHERE label = 'File'", [], |r| {
+            r.get(0)
+        })
         .unwrap_or(0);
     let summary: Option<String> = conn
-        .query_row("SELECT summary FROM project_summaries LIMIT 1", [], |r| r.get(0))
+        .query_row("SELECT summary FROM project_summaries LIMIT 1", [], |r| {
+            r.get(0)
+        })
         .ok();
 
-    let node_labels = count_rows(&conn, "SELECT label, COUNT(*) FROM nodes GROUP BY label ORDER BY 2 DESC LIMIT 20")?;
-    let edge_types = count_rows(&conn, "SELECT type, COUNT(*) FROM edges GROUP BY type ORDER BY 2 DESC LIMIT 20")?;
+    let node_labels = count_rows(
+        &conn,
+        "SELECT label, COUNT(*) FROM nodes GROUP BY label ORDER BY 2 DESC LIMIT 20",
+    )?;
+    let edge_types = count_rows(
+        &conn,
+        "SELECT type, COUNT(*) FROM edges GROUP BY type ORDER BY 2 DESC LIMIT 20",
+    )?;
     // File nodes carry `extension` (not `language`) in properties; map it here.
     let languages = language_breakdown(&conn)?;
     // Top-level directory breakdown as a coarse module map.
@@ -182,6 +201,9 @@ pub fn understand_project(db_path: &str) -> Result<Value, String> {
         .map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())
         .collect();
+    let module_dependencies = cross_module_dependencies(&conn)?;
+    let connected_files = most_connected_files(&conn)?;
+    let graph_health = graph_health(&conn)?;
 
     Ok(json!({
         "indexed": true,
@@ -192,6 +214,111 @@ pub fn understand_project(db_path: &str) -> Result<Value, String> {
         "languages": languages,
         "modules": modules,
         "topSymbols": top_symbols,
+        "moduleDependencies": module_dependencies,
+        "connectedFiles": connected_files,
+        "graphHealth": graph_health,
+    }))
+}
+
+/// Aggregate real dependency edges across top-level modules. This is more
+/// useful for architecture comprehension than a directory/file count alone.
+fn cross_module_dependencies(conn: &Connection) -> Result<Vec<Value>, String> {
+    let sql = format!(
+        "SELECT \
+           CASE WHEN instr(sn.file_path, '/') > 0 THEN substr(sn.file_path, 1, instr(sn.file_path, '/') - 1) ELSE 'root' END AS source_module, \
+           CASE WHEN instr(tn.file_path, '/') > 0 THEN substr(tn.file_path, 1, instr(tn.file_path, '/') - 1) ELSE 'root' END AS target_module, \
+           COUNT(*) AS refs, COUNT(DISTINCT sn.file_path || '->' || tn.file_path) AS file_pairs \
+         FROM edges e \
+         JOIN nodes sn ON sn.id = e.source_id \
+         JOIN nodes tn ON tn.id = e.target_id \
+         WHERE e.type IN ({}) AND sn.file_path <> '' AND tn.file_path <> '' \
+           AND sn.file_path <> tn.file_path \
+         GROUP BY source_module, target_module HAVING source_module <> target_module \
+         ORDER BY refs DESC LIMIT 40",
+        DEP_EDGE_TYPES
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(json!({
+                "source": row.get::<_, String>(0)?,
+                "target": row.get::<_, String>(1)?,
+                "references": row.get::<_, i64>(2)?,
+                "filePairs": row.get::<_, i64>(3)?,
+            }))
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+    Ok(rows)
+}
+
+/// Rank files by distinct inbound/outbound neighbours. The ranking highlights
+/// seams and potential change-risk hotspots without pretending complexity can
+/// be inferred from line count alone.
+fn most_connected_files(conn: &Connection) -> Result<Vec<Value>, String> {
+    let sql = format!(
+        "WITH links AS ( \
+           SELECT sn.file_path AS source_file, tn.file_path AS target_file \
+           FROM edges e JOIN nodes sn ON sn.id = e.source_id JOIN nodes tn ON tn.id = e.target_id \
+           WHERE e.type IN ({}) AND sn.file_path <> '' AND tn.file_path <> '' AND sn.file_path <> tn.file_path \
+         ), totals AS ( \
+           SELECT source_file AS file_path, COUNT(DISTINCT target_file) AS outbound, 0 AS inbound, COUNT(*) AS refs FROM links GROUP BY source_file \
+           UNION ALL \
+           SELECT target_file AS file_path, 0 AS outbound, COUNT(DISTINCT source_file) AS inbound, COUNT(*) AS refs FROM links GROUP BY target_file \
+         ) \
+         SELECT file_path, SUM(outbound), SUM(inbound), SUM(refs) \
+         FROM totals GROUP BY file_path \
+         ORDER BY (SUM(outbound) + SUM(inbound)) DESC, SUM(refs) DESC LIMIT 30",
+        DEP_EDGE_TYPES
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(json!({
+                "file": row.get::<_, String>(0)?,
+                "outboundFiles": row.get::<_, i64>(1)?,
+                "inboundFiles": row.get::<_, i64>(2)?,
+                "references": row.get::<_, i64>(3)?,
+            }))
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+    Ok(rows)
+}
+
+fn graph_health(conn: &Connection) -> Result<Value, String> {
+    let isolated_files: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM nodes f WHERE f.label = 'File' AND NOT EXISTS ( \
+               SELECT 1 FROM edges e JOIN nodes sn ON sn.id = e.source_id JOIN nodes tn ON tn.id = e.target_id \
+               WHERE e.type IN ('CALLS','IMPORTS','USAGE','HTTP_CALLS','WRITES','EXTENDS','IMPLEMENTS') \
+                 AND (sn.file_path = f.file_path OR tn.file_path = f.file_path) \
+                 AND sn.file_path <> tn.file_path)",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    let self_edges: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM edges WHERE source_id = target_id",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    let dangling_edges: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM edges e LEFT JOIN nodes sn ON sn.id = e.source_id \
+             LEFT JOIN nodes tn ON tn.id = e.target_id WHERE sn.id IS NULL OR tn.id IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(json!({
+        "isolatedFiles": isolated_files,
+        "selfEdges": self_edges,
+        "danglingEdges": dangling_edges,
     }))
 }
 
@@ -280,7 +407,10 @@ pub fn summarize_file_structure(v: &Value) -> String {
         lines.push(format!("符号数量: {}", n));
     }
     if let Some(by_label) = v.get("symbolsByLabel").and_then(|x| x.as_object()) {
-        let parts: Vec<String> = by_label.iter().map(|(k, val)| format!("{}={}", k, val)).collect();
+        let parts: Vec<String> = by_label
+            .iter()
+            .map(|(k, val)| format!("{}={}", k, val))
+            .collect();
         if !parts.is_empty() {
             lines.push(format!("符号构成: {}", parts.join(", ")));
         }
@@ -368,6 +498,57 @@ pub fn summarize_project_structure(v: &Value) -> String {
             lines.push(format!("顶层模块(文件数): {}", parts.join(", ")));
         }
     }
+    if let Some(dependencies) = v.get("moduleDependencies").and_then(|x| x.as_array()) {
+        let parts: Vec<String> = dependencies
+            .iter()
+            .take(16)
+            .filter_map(|dependency| {
+                Some(format!(
+                    "{}→{}({})",
+                    dependency.get("source")?.as_str()?,
+                    dependency.get("target")?.as_str()?,
+                    dependency.get("references")?.as_i64()?
+                ))
+            })
+            .collect();
+        if !parts.is_empty() {
+            lines.push(format!("跨模块依赖: {}", parts.join(", ")));
+        }
+    }
+    if let Some(files) = v.get("connectedFiles").and_then(|x| x.as_array()) {
+        let parts: Vec<String> = files
+            .iter()
+            .take(12)
+            .filter_map(|file| {
+                Some(format!(
+                    "{}(in={},out={})",
+                    file.get("file")?.as_str()?,
+                    file.get("inboundFiles")?.as_i64()?,
+                    file.get("outboundFiles")?.as_i64()?
+                ))
+            })
+            .collect();
+        if !parts.is_empty() {
+            lines.push(format!("高连接文件: {}", parts.join(", ")));
+        }
+    }
+    if let Some(health) = v.get("graphHealth") {
+        lines.push(format!(
+            "图谱健康: isolatedFiles={}, selfEdges={}, danglingEdges={}",
+            health
+                .get("isolatedFiles")
+                .and_then(|value| value.as_i64())
+                .unwrap_or(0),
+            health
+                .get("selfEdges")
+                .and_then(|value| value.as_i64())
+                .unwrap_or(0),
+            health
+                .get("danglingEdges")
+                .and_then(|value| value.as_i64())
+                .unwrap_or(0),
+        ));
+    }
     if let Some(syms) = v.get("topSymbols").and_then(|x| x.as_array()) {
         let parts: Vec<String> = syms
             .iter()
@@ -384,4 +565,76 @@ pub fn summarize_project_structure(v: &Value) -> String {
     }
 
     lines.join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_understanding_exposes_architecture_dependencies_and_graph_health() {
+        let directory = tempfile::tempdir().unwrap();
+        let db_path = directory.path().join("graph.db");
+        let conn = Connection::open(&db_path).unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE nodes (
+                id INTEGER PRIMARY KEY,
+                project TEXT,
+                label TEXT NOT NULL,
+                name TEXT NOT NULL,
+                qualified_name TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                start_line INTEGER,
+                end_line INTEGER,
+                properties TEXT
+            );
+            CREATE TABLE edges (
+                id INTEGER PRIMARY KEY,
+                project TEXT,
+                source_id INTEGER,
+                target_id INTEGER,
+                type TEXT NOT NULL,
+                properties TEXT
+            );
+            CREATE TABLE project_summaries (summary TEXT);
+            INSERT INTO project_summaries VALUES ('fixture');
+            INSERT INTO nodes VALUES (1, 'p', 'File', 'a.rs', 'a.rs', 'src/a.rs', 1, 10, '{"extension":".rs"}');
+            INSERT INTO nodes VALUES (2, 'p', 'File', 'b.rs', 'b.rs', 'api/b.rs', 1, 10, '{"extension":".rs"}');
+            INSERT INTO nodes VALUES (3, 'p', 'Function', 'alpha', 'alpha', 'src/a.rs', 2, 4, '{}');
+            INSERT INTO nodes VALUES (4, 'p', 'Function', 'beta', 'beta', 'api/b.rs', 2, 4, '{}');
+            INSERT INTO edges VALUES (1, 'p', 3, 4, 'CALLS', '{}');
+            "#,
+        )
+        .unwrap();
+        drop(conn);
+
+        let result = understand_project(db_path.to_str().unwrap()).unwrap();
+        assert_eq!(
+            result.pointer("/totals/files").and_then(Value::as_i64),
+            Some(2)
+        );
+        assert_eq!(
+            result
+                .pointer("/moduleDependencies/0/source")
+                .and_then(Value::as_str),
+            Some("src")
+        );
+        assert_eq!(
+            result
+                .pointer("/moduleDependencies/0/target")
+                .and_then(Value::as_str),
+            Some("api")
+        );
+        assert!(result
+            .get("connectedFiles")
+            .and_then(Value::as_array)
+            .is_some_and(|files| files.len() == 2));
+        assert_eq!(
+            result
+                .pointer("/graphHealth/danglingEdges")
+                .and_then(Value::as_i64),
+            Some(0)
+        );
+    }
 }

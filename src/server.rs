@@ -18,6 +18,8 @@ use crate::services::brain::capabilities::certification::CertificationGatekeeper
 use crate::services::brain::evolution_memory::EvolutionMemory;
 use crate::services::brain::tool_approval_store::ToolApprovalStore;
 use crate::services::task_manager::TaskManager;
+use crate::services::visual_pipeline::VisualPipelineRuntime;
+use crate::services::workspace_capability::WorkspaceCapabilityRegistry;
 
 use std::sync::atomic::AtomicUsize;
 
@@ -25,12 +27,14 @@ use std::sync::atomic::AtomicUsize;
 pub struct AppState {
     pub runtime_config: RuntimeConfig,
     pub app_paths: AppPaths,
-    pub task_manager: TaskManager,
+    pub task_manager: Arc<TaskManager>,
     pub http_client: reqwest::Client,
     pub request_counter: AtomicUsize,
     pub certification: Arc<CertificationGatekeeper>,
     pub approval_store: Arc<ToolApprovalStore>,
     pub evolution_memory: Arc<EvolutionMemory>,
+    pub workspace_capabilities: Arc<WorkspaceCapabilityRegistry>,
+    pub visual_pipeline: Arc<VisualPipelineRuntime>,
 }
 
 /// Default listen port when `hub service` is invoked without an explicit port.
@@ -42,6 +46,7 @@ pub async fn serve(port: u16) {
     init_tracing();
 
     crate::services::usage_tracker::init_db();
+    crate::services::agent::registry_db::init_db();
 
     // Load .env if present
     let _ = dotenvy::dotenv();
@@ -81,26 +86,33 @@ fn build_state() -> Arc<AppState> {
     tracing::info!("Claude settings file: {}", claude_settings_path.display());
 
     let runtime_config = RuntimeConfig::from_env(&app_paths);
-    let task_manager = TaskManager::new(&app_paths);
+    let task_manager = Arc::new(TaskManager::new(&app_paths));
     let approval_store = Arc::new(ToolApprovalStore::new(
         app_paths.data_path(&["tool-approvals"]),
     ));
     let evolution_memory = Arc::new(EvolutionMemory::new(
         app_paths.data_path(&["evolution", "strategies.json"]),
     ));
+    let workspace_capabilities = Arc::new(WorkspaceCapabilityRegistry::new(
+        &runtime_config.projects_root,
+    ));
+    let http_client = reqwest::Client::builder()
+        .http1_only()
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+    let visual_pipeline = Arc::new(VisualPipelineRuntime::new(&app_paths, http_client.clone()));
 
     Arc::new(AppState {
         runtime_config,
         app_paths,
         task_manager,
-        http_client: reqwest::Client::builder()
-            .http1_only()
-            .build()
-            .unwrap_or_else(|_| reqwest::Client::new()),
+        http_client,
         request_counter: std::sync::atomic::AtomicUsize::new(0),
         certification: Arc::new(CertificationGatekeeper::with_builtins()),
         approval_store,
         evolution_memory,
+        workspace_capabilities,
+        visual_pipeline,
     })
 }
 
@@ -137,6 +149,7 @@ fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::settings::router())
         .merge(routes::claude::router())
         .merge(routes::files::router())
+        .merge(routes::mcp_skills::router())
         .merge(routes::git::router())
         .merge(routes::projects::router())
         .merge(routes::tasks::router())
@@ -145,6 +158,8 @@ fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::qa::router())
         .merge(routes::context::router())
         .merge(routes::understand::router())
+        .merge(routes::vision::router())
+        .merge(routes::workspaces::router())
         .merge(routes::compress::router())
         .merge(routes::agents::router())
         .merge(routes::analyze::router())

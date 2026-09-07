@@ -17,8 +17,12 @@ impl ProtocolConverter for OpenAiConverter {
 
     fn standard_to_response_stream(
         &self,
-        stream: std::pin::Pin<Box<dyn futures::stream::Stream<Item = Result<bytes::Bytes, std::io::Error>> + Send>>,
-    ) -> std::pin::Pin<Box<dyn futures::stream::Stream<Item = Result<bytes::Bytes, std::io::Error>> + Send>> {
+        stream: std::pin::Pin<
+            Box<dyn futures::stream::Stream<Item = Result<bytes::Bytes, std::io::Error>> + Send>,
+        >,
+    ) -> std::pin::Pin<
+        Box<dyn futures::stream::Stream<Item = Result<bytes::Bytes, std::io::Error>> + Send>,
+    > {
         use futures::stream::StreamExt;
         Box::pin(stream.map(|res| res.map_err(|e| std::io::Error::other(e))))
     }

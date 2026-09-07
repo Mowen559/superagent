@@ -5,7 +5,7 @@ use crate::services::brain::provider_capability_runtime::{
 };
 use crate::AppState;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -31,11 +31,416 @@ pub fn router() -> Router<Arc<AppState>> {
             get(get_recertification_plan),
         )
         .route("/api/settings/quota", get(fetch_quota))
+        .route("/api/settings/accounts", get(get_accounts))
         .route("/api/settings/accounts/{id}/toggle", post(toggle_account))
         .route("/api/settings/accounts/{id}", delete(remove_account))
         .route("/api/settings/routing", put(update_routing))
-        .route("/api/settings/oauth/start", post(start_oauth_flow))
-        .route("/api/settings/llm/test", post(test_connection))
+        .route("/api/settings/llm/test", post(test_llm))
+        .route("/api/settings/llm/models/test", post(test_models))
+        .route("/api/settings/oauth/start", post(start_oauth))
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct TestLlmBody {
+    #[serde(rename = "accountId")]
+    pub account_id: Option<String>,
+    pub provider: String,
+    pub base_url: Option<String>,
+    pub api_key: Option<String>,
+    pub model: Option<String>,
+    pub prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct OAuthStartBody {
+    pub provider: String,
+    #[serde(rename = "accountName")]
+    pub account_name: Option<String>,
+    #[serde(rename = "sessionKey")]
+    pub session_key: Option<String>,
+}
+
+async fn start_oauth(Json(body): Json<OAuthStartBody>) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
+    let result = match body.provider.as_str() {
+        "OpenAI Native" => {
+            crate::services::cli_auth::handle_openai_pkce_flow(body.account_name).await
+        }
+        "Gemini Native" => {
+            crate::services::cli_auth::handle_gemini_oauth_flow(body.account_name).await
+        }
+        "Claude Desktop Official" => {
+            crate::services::cli_auth::handle_claude_oauth_flow(body.session_key).await
+        }
+        "GitHub Copilot" => {
+            crate::services::cli_auth::handle_github_copilot_flow(body.account_name).await
+        }
+        _ => Err(format!(
+            "OAuth not supported or implemented for provider: {}",
+            body.provider
+        )),
+    };
+
+    match result {
+        Ok(account) => axum::Json(serde_json::json!({
+            "success": true,
+            "account": {
+                "baseUrl": account.base_url,
+                "projectId": account.project_id,
+                "apiKey": account.api_key,
+                "id": account.id,
+                "refreshToken": account.refresh_token,
+                "expiresAt": account.expires_at,
+            }
+        }))
+        .into_response(),
+        Err(e) => axum::Json(serde_json::json!({
+            "success": false,
+            "error": e
+        }))
+        .into_response(),
+    }
+}
+
+async fn test_llm(Json(body): Json<TestLlmBody>) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let client = reqwest::Client::new();
+
+    let model = body
+        .model
+        .clone()
+        .unwrap_or_else(|| "test-model".to_string());
+    let prompt = body.prompt.clone().unwrap_or_else(|| "hi".to_string());
+    let mut api_key = body.api_key.clone();
+    let mut base_url = body.base_url.clone();
+
+    // Inject token if empty, masked, or if account_id is provided
+    let mut global_settings = crate::config::llm_settings::read_llm_settings();
+    let mut needs_save = false;
+    if let Some(ref acc_id) = body.account_id {
+        if let Some(account) = global_settings
+            .accounts
+            .iter_mut()
+            .find(|a| &a.id == acc_id)
+        {
+            // Refresh token if needed
+            needs_save =
+                crate::services::cli_auth::refresh_account_token_if_needed(account, &client).await;
+            api_key = Some(account.api_key.clone());
+            if account.base_url.len() > 0 {
+                base_url = Some(account.base_url.clone());
+            }
+        }
+    } else if let (Some(provider), None) = (Some(&body.provider), &api_key) {
+        if provider == "openai" {
+            // Find active account token if possible, else skip
+            if let Some(account) = global_settings
+                .accounts
+                .iter()
+                .find(|a| a.provider == "openai")
+            {
+                let token = &account.api_key;
+                if token.starts_with("eyJ") {
+                    api_key = Some(token.clone());
+                }
+            }
+        }
+    }
+
+    if needs_save {
+        crate::config::llm_settings::write_llm_settings(
+            serde_json::to_value(&global_settings).unwrap_or_default(),
+        );
+    }
+
+    // Inject base url if empty
+    if let (Some(provider), None) = (Some(&body.provider), &base_url) {
+        if provider == "openai" {
+            base_url = Some("https://api.openai.com/v1".to_string());
+        }
+    }
+
+    // Construct dummy LLMSettings for the adapter
+    let settings = crate::config::llm_settings::LLMSettings {
+        provider: body.provider.clone(),
+        base_url: base_url.unwrap_or_default(),
+        api_key: api_key.unwrap_or_default(),
+        model: model.clone(),
+        ..crate::config::llm_settings::LLMSettings::default()
+    };
+
+    let standard_body = serde_json::json!({
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "max_tokens": 512,
+        "stream": true
+    });
+
+    let adapter = crate::services::protocol_converter::upstream::adapter_for_provider(&settings);
+
+    let (url, headers, request_body) = match adapter.prepare_request(&settings, standard_body) {
+        Ok(req) => req,
+        Err(e) => {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": format!("Failed to prepare request: {}", e)})),
+            )
+                .into_response();
+        }
+    };
+
+    tracing::info!("Test LLM request -> URL: {}", url);
+    tracing::info!("Test LLM request -> Headers: {:?}", headers);
+    tracing::info!(
+        "Test LLM request -> Body: {}",
+        serde_json::to_string(&request_body).unwrap_or_default()
+    );
+
+    let response = client
+        .post(&url)
+        .headers(headers)
+        .json(&request_body)
+        .send()
+        .await;
+
+    match response {
+        Ok(res) => {
+            let status = res.status();
+            let is_custom_model = body.model.is_some();
+
+            tracing::info!("Test LLM response -> Status: {}", status);
+
+            if status.is_success() {
+                use futures::stream::StreamExt;
+                let mut bytes_stream = res
+                    .bytes_stream()
+                    .map(|r| r.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)));
+                let mut accumulated_raw = String::new();
+                while let Some(chunk_res) = bytes_stream.next().await {
+                    if let Ok(bytes) = chunk_res {
+                        accumulated_raw.push_str(&String::from_utf8_lossy(&bytes));
+                    }
+                }
+
+                let mut parsed_text = String::new();
+                for line in accumulated_raw.lines() {
+                    if line.starts_with("data: ") && line != "data: [DONE]" {
+                        let json_str = &line[6..];
+                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
+                            if let Some(choices) = parsed.get("choices").and_then(|c| c.as_array())
+                            {
+                                if let Some(choice) = choices.get(0) {
+                                    if let Some(delta) = choice.get("delta") {
+                                        if let Some(content) =
+                                            delta.get("content").and_then(|c| c.as_str())
+                                        {
+                                            parsed_text.push_str(content);
+                                        }
+                                    }
+                                }
+                            } else if let Some(event_type) =
+                                parsed.get("type").and_then(|v| v.as_str())
+                            {
+                                if event_type == "response.text.delta"
+                                    || event_type == "response.output_text.delta"
+                                {
+                                    if let Some(delta) =
+                                        parsed.get("delta").and_then(|v| v.as_str())
+                                    {
+                                        parsed_text.push_str(delta);
+                                    }
+                                }
+                            } else if let Some(candidates) =
+                                parsed.get("candidates").and_then(|c| c.as_array())
+                            {
+                                if let Some(candidate) = candidates.get(0) {
+                                    if let Some(content) = candidate.get("content") {
+                                        if let Some(parts) =
+                                            content.get("parts").and_then(|p| p.as_array())
+                                        {
+                                            if let Some(part) = parts.get(0) {
+                                                if let Some(text) =
+                                                    part.get("text").and_then(|t| t.as_str())
+                                                {
+                                                    parsed_text.push_str(text);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else if let Some(response_obj) = parsed.get("response") {
+                                if let Some(candidates) =
+                                    response_obj.get("candidates").and_then(|c| c.as_array())
+                                {
+                                    if let Some(candidate) = candidates.get(0) {
+                                        if let Some(content) = candidate.get("content") {
+                                            if let Some(parts) =
+                                                content.get("parts").and_then(|p| p.as_array())
+                                            {
+                                                if let Some(part) = parts.get(0) {
+                                                    if let Some(text) =
+                                                        part.get("text").and_then(|t| t.as_str())
+                                                    {
+                                                        parsed_text.push_str(text);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                let final_res = if parsed_text.is_empty() {
+                    if accumulated_raw.is_empty() {
+                        "连接成功 (Connection successful, but empty stream response)".to_string()
+                    } else {
+                        format!("连接成功 (Connection successful, but failed to parse stream). Raw response:\n{}", accumulated_raw.chars().take(2000).collect::<String>())
+                    }
+                } else {
+                    parsed_text
+                };
+
+                (
+                    axum::http::StatusCode::OK,
+                    Json(serde_json::json!({"success": true, "response": final_res})),
+                )
+                    .into_response()
+            } else if (status.as_u16() == 404 || status.as_u16() == 400) && !is_custom_model {
+                (
+                    axum::http::StatusCode::OK,
+                    Json(serde_json::json!({"success": true, "response": "连接成功 (Connection successful, using test-model)"})),
+                )
+                    .into_response()
+            } else {
+                let err_text = res.text().await.unwrap_or_default();
+                (
+                    status,
+                    Json(serde_json::json!({"success": false, "error": format!("API returned status {}: {}", status, err_text)})),
+                )
+                    .into_response()
+            }
+        }
+        Err(e) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("Request failed: {}", e)})),
+        )
+            .into_response(),
+    }
+}
+
+async fn test_models(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<TestLlmBody>,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let client = state.http_client.clone();
+
+    let mut api_key = body.api_key.clone();
+    let mut base_url = body.base_url.clone();
+
+    // Inject token if empty, masked, or if account_id is provided
+    let mut global_settings = crate::config::llm_settings::read_llm_settings();
+    if let Some(ref acc_id) = body.account_id {
+        if let Some(account) = global_settings
+            .accounts
+            .iter_mut()
+            .find(|a| &a.id == acc_id)
+        {
+            crate::services::cli_auth::refresh_account_token_if_needed(account, &client).await;
+            api_key = Some(account.api_key.clone());
+            if account.base_url.len() > 0 {
+                base_url = Some(account.base_url.clone());
+            }
+        }
+    } else if let (Some(provider), None) = (Some(&body.provider), &api_key) {
+        if provider == "openai" {
+            // Find active account token if possible, else skip
+            if let Some(account) = global_settings
+                .accounts
+                .iter()
+                .find(|a| a.provider == "openai")
+            {
+                let token = &account.api_key;
+                if token.starts_with("eyJ") {
+                    api_key = Some(token.clone());
+                }
+            }
+        }
+    }
+
+    // Inject base url if empty
+    if let (Some(provider), None) = (Some(&body.provider), &base_url) {
+        if provider == "openai" {
+            base_url = Some("https://api.openai.com/v1".to_string());
+        }
+    }
+
+    let account_id = body
+        .account_id
+        .unwrap_or_else(|| "test-account".to_string());
+
+    let dummy_account = crate::config::llm_settings::LLMAccount {
+        id: account_id.clone(),
+        provider: body.provider.clone(),
+        base_url: base_url.unwrap_or_default(),
+        api_key: api_key.unwrap_or_default(),
+        ..crate::config::llm_settings::LLMAccount::default()
+    };
+
+    let mut test_settings = crate::config::llm_settings::LLMSettings::default();
+    test_settings.accounts.push(dummy_account);
+    test_settings.active_account_id = Some(account_id.clone());
+
+    let report = ProviderCapabilityRuntime::new(client)
+        .discover(
+            &test_settings,
+            CapabilityDiscoveryRequest {
+                account_id: account_id.clone(),
+                models: Vec::new(),
+                profiles: Vec::new(),
+                include_catalog: true,
+                run_probes: false,
+                confirm_network: true,
+                revalidate_expired: false,
+            },
+        )
+        .await;
+
+    match report {
+        Ok(r) => {
+            let models = r
+                .catalog
+                .as_ref()
+                .map(|catalog| catalog.models.clone())
+                .unwrap_or_default();
+            (
+                axum::http::StatusCode::OK,
+                Json(serde_json::json!({
+                    "success": true,
+                    "models": models,
+                    "accountId": r.account_id,
+                })),
+            )
+                .into_response()
+        }
+        Err(e) => (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "success": false,
+                "error": format!("Failed to fetch models: {}", e)
+            })),
+        )
+            .into_response(),
+    }
 }
 
 async fn get_recertification_plan(
@@ -334,6 +739,53 @@ async fn remove_account(Path(account_id): Path<String>) -> axum::response::Respo
 }
 
 #[derive(Deserialize)]
+pub struct AccountQuery {
+    pub limit: Option<usize>,
+    pub offset: Option<usize>,
+    pub search: Option<String>,
+}
+
+async fn get_accounts(Query(query): Query<AccountQuery>) -> Json<serde_json::Value> {
+    let settings = llm_settings::read_llm_settings();
+    let mut accounts = settings.accounts.clone();
+
+    // Filter
+    if let Some(search) = query.search {
+        let search = search.to_lowercase();
+        accounts.retain(|a| {
+            a.name.to_lowercase().contains(&search) || a.provider.to_lowercase().contains(&search)
+        });
+    }
+
+    let total = accounts.len();
+
+    // Offset
+    let offset = query.offset.unwrap_or(0);
+    if offset >= accounts.len() {
+        accounts.clear();
+    } else {
+        accounts = accounts.split_off(offset);
+    }
+
+    // Limit
+    let limit = query.limit.unwrap_or(20);
+    accounts.truncate(limit);
+
+    let redacted_settings = redacted_settings_value(llm_settings::LLMSettings {
+        accounts,
+        ..Default::default()
+    });
+
+    Json(json!({
+        "success": true,
+        "accounts": redacted_settings["accounts"],
+        "total": total,
+        "offset": offset,
+        "limit": limit
+    }))
+}
+
+#[derive(Deserialize)]
 struct RoutingBody {
     strategy: String,
 }
@@ -353,134 +805,6 @@ async fn update_routing(Json(body): Json<RoutingBody>) -> axum::response::Respon
     let updated =
         llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
     Json(json!({"success": true, "settings": redacted_settings_value(updated)})).into_response()
-}
-
-#[derive(Deserialize)]
-struct OauthStartBody {
-    provider: String,
-    #[serde(rename = "accountName")]
-    account_name: String,
-}
-
-async fn start_oauth_flow(Json(body): Json<OauthStartBody>) -> axum::response::Response {
-    match crate::services::cli_auth::handle_oauth_from_api(&body.provider, body.account_name).await
-    {
-        Ok(account) => {
-            // Do NOT save it to settings here. Just return the generated account so frontend can save it when the user clicks 'Save'.
-            Json(json!({"success": true, "account": account})).into_response()
-        }
-        Err(e) => (
-            axum::http::StatusCode::BAD_REQUEST,
-            Json(json!({"error": e})),
-        )
-            .into_response(),
-    }
-}
-
-#[derive(Deserialize)]
-struct TestConnectionReq {
-    provider: Option<String>,
-    base_url: Option<String>,
-    api_key: String,
-    model: Option<String>,
-}
-
-async fn test_connection(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<TestConnectionReq>,
-) -> axum::response::Response {
-    use crate::config::llm_settings::LLMSettings;
-    use crate::services::protocol_converter::upstream::adapter_for_provider;
-
-    let model = req.model.unwrap_or_else(|| "gpt-3.5-turbo".to_string());
-    let provider = req.provider.unwrap_or_else(|| "openai".to_string());
-
-    let mut mock_settings = LLMSettings {
-        enabled: true,
-        active_account_id: None,
-        accounts: vec![],
-        provider: provider.clone(),
-        base_url: req.base_url.unwrap_or_default(),
-        api_key: req.api_key,
-        project_id: None,
-        model: model.clone(),
-        temperature: 0.7,
-        max_tokens: 1000,
-        ua_file_limit: 10,
-        ua_sample_file_limit: 10,
-        ua_max_file_chars: 10000,
-        updated_at: "".to_string(),
-        routing_strategy: "priority".to_string(),
-    };
-
-    // Auto-resolve empty base_url for certain providers to match proxy behavior
-    if mock_settings.base_url.is_empty() {
-        match provider.as_str() {
-            "openai_native" | "openai" => {
-                mock_settings.base_url = "https://api.openai.com/v1".to_string()
-            }
-            "claude_desktop_official" | "claude_official" | "anthropic" => {
-                mock_settings.base_url = "https://api.anthropic.com".to_string()
-            }
-            _ => {}
-        }
-    }
-
-    let standard_body = json!({
-        "model": model,
-        "messages": [
-            {
-                "role": "user",
-                "content": "Hello"
-            }
-        ],
-        "stream": false
-    });
-
-    let adapter = adapter_for_provider(&provider);
-    let prepared = adapter.prepare_request(&mock_settings, standard_body);
-
-    match prepared {
-        Ok((url, headers, body)) => {
-            let res = state
-                .http_client
-                .post(&url)
-                .headers(headers)
-                .json(&body)
-                .send()
-                .await;
-
-            match res {
-                Ok(response) => {
-                    let status = response.status();
-                    if status.is_success() {
-                        Json(json!({
-                            "success": true,
-                            "message": format!("连接成功！状态码: {}", status)
-                        }))
-                        .into_response()
-                    } else {
-                        let error_text = response.text().await.unwrap_or_default();
-                        Json(json!({
-                            "success": false,
-                            "error": format!("测试失败: 状态码 {} - {}", status, error_text)
-                        }))
-                        .into_response()
-                    }
-                }
-                Err(e) => Json(json!({
-                    "success": false,
-                    "error": format!("请求发送失败: {}", e)
-                }))
-                .into_response(),
-            }
-        }
-        Err(e) => Json(json!({
-            "success": false,
-            "error": format!("构造请求失败 (通常是配置不正确): {}", e)
-        }))
-        .into_response(),
-    }
 }
 
 #[cfg(test)]

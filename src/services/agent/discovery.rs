@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use super::AgentKind;
+use std::path::PathBuf;
 
 pub struct AgentDiscoverySpec {
     pub skill_paths: Vec<PathBuf>,

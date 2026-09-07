@@ -30,7 +30,8 @@ fn is_path_safe(path: &Path, workspace_root: &Path) -> bool {
         }
     };
 
-    let cwd_canonical = std::fs::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
+    let cwd_canonical =
+        std::fs::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
     normalized.starts_with(cwd_canonical)
 }
 
@@ -46,7 +47,9 @@ fn require_safe_path(path: &Path, operation: &str, workspace_root: &Path) -> Res
 }
 
 /// 文件读取工具 (View File)
-pub struct ReadFileTool { pub workspace_root: PathBuf }
+pub struct ReadFileTool {
+    pub workspace_root: PathBuf,
+}
 
 impl ReadFileTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -165,7 +168,9 @@ impl ToolExecutor for ReadFileTool {
 }
 
 /// 文件写入工具 (Write To File)
-pub struct WriteFileTool { pub workspace_root: PathBuf }
+pub struct WriteFileTool {
+    pub workspace_root: PathBuf,
+}
 
 impl WriteFileTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -247,7 +252,9 @@ impl ToolExecutor for WriteFileTool {
     }
 }
 
-pub struct ReplaceInFileTool { pub workspace_root: PathBuf }
+pub struct ReplaceInFileTool {
+    pub workspace_root: PathBuf,
+}
 
 impl ReplaceInFileTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -331,7 +338,9 @@ impl ToolExecutor for ReplaceInFileTool {
 }
 
 /// 多区块代码重构工具 (AST/Block-level Refactoring)
-pub struct MultiReplaceTool { pub workspace_root: PathBuf }
+pub struct MultiReplaceTool {
+    pub workspace_root: PathBuf,
+}
 
 impl MultiReplaceTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -441,7 +450,9 @@ mod tests {
 
     #[test]
     fn test_path_traversal_prevention() {
-        let tool = WriteFileTool { workspace_root: std::env::current_dir().unwrap() };
+        let tool = WriteFileTool {
+            workspace_root: std::env::current_dir().unwrap(),
+        };
         let malicious_path = if cfg!(windows) {
             "C:\\Windows\\System32\\drivers\\etc\\hosts"
         } else {
@@ -465,14 +476,22 @@ mod tests {
         } else {
             "/etc/hosts"
         };
-        assert!(ReadFileTool { workspace_root: std::env::current_dir().unwrap() }.execute(json!({ "AbsolutePath": outside }))
-            .is_err());
-        assert!(ListDirectoryTool { workspace_root: std::env::current_dir().unwrap() }.execute(json!({ "path": outside }))
-            .is_err());
+        assert!(ReadFileTool {
+            workspace_root: std::env::current_dir().unwrap()
+        }
+        .execute(json!({ "AbsolutePath": outside }))
+        .is_err());
+        assert!(ListDirectoryTool {
+            workspace_root: std::env::current_dir().unwrap()
+        }
+        .execute(json!({ "path": outside }))
+        .is_err());
     }
 }
 
-pub struct ListDirectoryTool { pub workspace_root: PathBuf }
+pub struct ListDirectoryTool {
+    pub workspace_root: PathBuf,
+}
 
 impl ListDirectoryTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -525,7 +544,9 @@ impl ToolExecutor for ListDirectoryTool {
         Ok(json!({"files": entries}))
     }
 }
-pub struct FindByNameTool { pub workspace_root: PathBuf }
+pub struct FindByNameTool {
+    pub workspace_root: PathBuf,
+}
 
 impl FindByNameTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -586,7 +607,9 @@ impl ToolExecutor for FindByNameTool {
     }
 }
 
-pub struct GrepSearchTool { pub workspace_root: PathBuf }
+pub struct GrepSearchTool {
+    pub workspace_root: PathBuf,
+}
 
 impl GrepSearchTool {
     pub fn new(workspace_root: PathBuf) -> Self {

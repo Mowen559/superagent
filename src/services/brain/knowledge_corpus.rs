@@ -277,18 +277,26 @@ pub struct KnowledgeCorpusRuntime {
 
 impl KnowledgeCorpusRuntime {
     pub fn new(config: &RuntimeConfig) -> Result<Self, KnowledgeCorpusError> {
-        let embeddings_enabled = std::env::var("HUB_KNOWLEDGE_EMBEDDINGS")
-            .map(|value| {
-                !matches!(
-                    value.trim().to_ascii_lowercase().as_str(),
-                    "0" | "off" | "false"
-                )
-            })
-            .unwrap_or(true);
+        let embeddings_enabled = embeddings_enabled();
         Self::with_store(
             config.project_root.clone(),
             SupermemoryStore::new(config, None),
             embeddings_enabled,
+        )
+    }
+
+    /// Build a project-scoped corpus while retaining the same extraction,
+    /// chunking, manifest and citation invariants as the global runtime.
+    pub fn for_workspace(
+        config: &RuntimeConfig,
+        workspace_root: impl AsRef<Path>,
+    ) -> Result<Self, KnowledgeCorpusError> {
+        let workspace_root = workspace_root.as_ref().to_path_buf();
+        let project = workspace_root.to_string_lossy().to_string();
+        Self::with_store(
+            workspace_root,
+            SupermemoryStore::new(config, Some(&project)),
+            embeddings_enabled(),
         )
     }
 
@@ -678,6 +686,17 @@ impl KnowledgeCorpusRuntime {
             })
             .filter(|embeddings| embeddings.len() == texts.len())
     }
+}
+
+fn embeddings_enabled() -> bool {
+    std::env::var("HUB_KNOWLEDGE_EMBEDDINGS")
+        .map(|value| {
+            !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "0" | "off" | "false"
+            )
+        })
+        .unwrap_or(true)
 }
 
 pub fn shared_runtime(config: &RuntimeConfig) -> Result<Arc<KnowledgeCorpusRuntime>, String> {

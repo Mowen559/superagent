@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use serde::Serialize;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize)]
 pub struct FileEntry {
@@ -14,9 +14,21 @@ pub struct FileEntry {
 }
 
 const EXCLUDED_DIRS: &[&str] = &[
-    ".git", ".next", ".turbo", ".understand-anything", ".supermemory",
-    ".shadow-git", ".aindex-hub", ".idea", ".vscode", "node_modules",
-    "dist", "build", "target", "__pycache__", ".cache",
+    ".git",
+    ".next",
+    ".turbo",
+    ".understand-anything",
+    ".supermemory",
+    ".shadow-git",
+    ".aindex-hub",
+    ".idea",
+    ".vscode",
+    "node_modules",
+    "dist",
+    "build",
+    "target",
+    "__pycache__",
+    ".cache",
 ];
 
 const MAX_DEPTH: usize = 6;
@@ -49,10 +61,13 @@ fn build_tree_recursive(root: &Path, dir: &Path, remaining_depth: usize) -> Vec<
         let name = entry.file_name().to_string_lossy().to_string();
         let path = entry.path();
 
-        if name.starts_with('.') && name != ".env"
-            && path.is_dir() && EXCLUDED_DIRS.contains(&name.as_str()) {
-                continue;
-            }
+        if name.starts_with('.')
+            && name != ".env"
+            && path.is_dir()
+            && EXCLUDED_DIRS.contains(&name.as_str())
+        {
+            continue;
+        }
 
         if path.is_dir() {
             if EXCLUDED_DIRS.contains(&name.as_str()) {
@@ -61,7 +76,11 @@ fn build_tree_recursive(root: &Path, dir: &Path, remaining_depth: usize) -> Vec<
             dirs.push((name, path));
         } else {
             let size = entry.metadata().map(|m| m.len()).ok();
-            let rel_path = path.strip_prefix(root).unwrap_or(&path).to_string_lossy().replace('\\', "/");
+            let rel_path = path
+                .strip_prefix(root)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .replace('\\', "/");
             files.push(FileEntry {
                 name,
                 path: rel_path,
@@ -76,7 +95,11 @@ fn build_tree_recursive(root: &Path, dir: &Path, remaining_depth: usize) -> Vec<
     dirs.sort_by_key(|a| a.0.to_lowercase());
     for (name, path) in dirs {
         let children = build_tree_recursive(root, &path, remaining_depth - 1);
-        let rel_path = path.strip_prefix(root).unwrap_or(&path).to_string_lossy().replace('\\', "/");
+        let rel_path = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
         entries.push(FileEntry {
             name,
             path: rel_path,
@@ -97,7 +120,8 @@ pub fn read_file_content(project_path: &str, file_path: &str) -> Result<String, 
     let guard = crate::services::workspace_guard::WorkspaceGuard::new(project_path)
         .map_err(|e| format!("Invalid project path: {}", e))?;
 
-    let full_path = guard.resolve_safe("", file_path)
+    let full_path = guard
+        .resolve_safe("", file_path)
         .map_err(|e| format!("Invalid file path (outside workspace): {}", e))?;
 
     if !full_path.exists() {

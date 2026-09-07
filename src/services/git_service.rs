@@ -1,6 +1,6 @@
-use std::path::Path;
-use git2::{Repository, DiffOptions, StatusOptions};
+use git2::{DiffOptions, Repository, StatusOptions};
 use serde::Serialize;
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RepoKind {
@@ -18,6 +18,7 @@ impl RepoKind {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GitStatus {
     pub is_git_repo: bool,
     pub branch: String,
@@ -28,6 +29,7 @@ pub struct GitStatus {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GitCommit {
     pub hash: String,
     pub short_hash: String,
@@ -40,6 +42,7 @@ pub struct GitCommit {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GitDiffResult {
     pub file_path: String,
     pub diff: String,
@@ -48,6 +51,7 @@ pub struct GitDiffResult {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ShadowFileChange {
     pub path: String,
     pub status: String,
@@ -88,19 +92,29 @@ fn diff_to_text(diff: &git2::Diff) -> Result<(String, usize, usize), String> {
     diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
         let content = std::str::from_utf8(line.content()).unwrap_or_default();
         match line.origin() {
-            '+' => { additions += 1; diff_text.push_str(&format!("+{}", content)); }
-            '-' => { deletions += 1; diff_text.push_str(&format!("-{}", content)); }
-            ' ' => { diff_text.push_str(&format!(" {}", content)); }
+            '+' => {
+                additions += 1;
+                diff_text.push_str(&format!("+{}", content));
+            }
+            '-' => {
+                deletions += 1;
+                diff_text.push_str(&format!("-{}", content));
+            }
+            ' ' => {
+                diff_text.push_str(&format!(" {}", content));
+            }
             _ => {}
         }
         true
-    }).map_err(|e| e.to_string())?;
+    })
+    .map_err(|e| e.to_string())?;
     Ok((diff_text, additions, deletions))
 }
 
 /// Get git status for a project
 pub fn get_status(project_path: &str) -> Result<GitStatus, String> {
-    let repo = Repository::open(project_path).map_err(|e| format!("Not a git repository: {}", e))?;
+    let repo =
+        Repository::open(project_path).map_err(|e| format!("Not a git repository: {}", e))?;
 
     let branch = repo
         .head()
@@ -121,24 +135,41 @@ pub fn get_status(project_path: &str) -> Result<GitStatus, String> {
         let path = entry.path().unwrap_or_default().to_string();
         let status = entry.status();
 
-        if status.contains(git2::Status::WT_MODIFIED) || status.contains(git2::Status::INDEX_MODIFIED) {
+        if status.contains(git2::Status::WT_MODIFIED)
+            || status.contains(git2::Status::INDEX_MODIFIED)
+        {
             modified.push(path);
-        } else if status.contains(git2::Status::WT_NEW) || status.contains(git2::Status::INDEX_NEW) {
+        } else if status.contains(git2::Status::WT_NEW) || status.contains(git2::Status::INDEX_NEW)
+        {
             if status.contains(git2::Status::WT_NEW) && !status.contains(git2::Status::INDEX_NEW) {
                 untracked.push(path);
             } else {
                 added.push(path);
             }
-        } else if status.contains(git2::Status::WT_DELETED) || status.contains(git2::Status::INDEX_DELETED) {
+        } else if status.contains(git2::Status::WT_DELETED)
+            || status.contains(git2::Status::INDEX_DELETED)
+        {
             deleted.push(path);
         }
     }
 
-    Ok(GitStatus { is_git_repo: true, branch, modified, added, deleted, untracked })
+    Ok(GitStatus {
+        is_git_repo: true,
+        branch,
+        modified,
+        added,
+        deleted,
+        untracked,
+    })
 }
 
 /// Get file commit history from one repo. An unborn/empty repo yields an empty list.
-pub fn get_file_history(project_path: &str, file_path: &str, limit: usize, kind: RepoKind) -> Result<Vec<GitCommit>, String> {
+pub fn get_file_history(
+    project_path: &str,
+    file_path: &str,
+    limit: usize,
+    kind: RepoKind,
+) -> Result<Vec<GitCommit>, String> {
     let repo = match open_repo(project_path, kind) {
         Ok(r) => r,
         // Shadow repo missing is a normal state, not an error.
@@ -177,7 +208,9 @@ pub fn get_file_history(project_path: &str, file_path: &str, limit: usize, kind:
         let mut diff_opts = DiffOptions::new();
         diff_opts.pathspec(file_path);
 
-        if let Ok(diff) = repo.diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), Some(&mut diff_opts)) {
+        if let Ok(diff) =
+            repo.diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), Some(&mut diff_opts))
+        {
             if diff.deltas().len() > 0 {
                 let author = commit.author();
                 let ts = commit.time().seconds();
@@ -220,7 +253,9 @@ pub fn get_file_diff(
 
     let find_tree = |hash: &str| -> Result<git2::Tree, String> {
         let oid = git2::Oid::from_str(hash).map_err(|e| format!("Invalid hash {}: {}", hash, e))?;
-        let commit = repo.find_commit(oid).map_err(|e| format!("Commit not found {}: {}", hash, e))?;
+        let commit = repo
+            .find_commit(oid)
+            .map_err(|e| format!("Commit not found {}: {}", hash, e))?;
         commit.tree().map_err(|e| e.to_string())
     };
 
@@ -253,10 +288,16 @@ pub fn get_file_diff(
 
 /// Restore a file's content from a commit (defaults to HEAD) in the given repo.
 /// The restored bytes are always written into the project worktree.
-pub fn restore_file(project_path: &str, file_path: &str, hash: Option<&str>, kind: RepoKind) -> Result<(), String> {
+pub fn restore_file(
+    project_path: &str,
+    file_path: &str,
+    hash: Option<&str>,
+    kind: RepoKind,
+) -> Result<(), String> {
     let guard = crate::services::workspace_guard::WorkspaceGuard::new(project_path)
         .map_err(|e| format!("Invalid project path: {}", e))?;
-    let full_path = guard.resolve_safe("", file_path)
+    let full_path = guard
+        .resolve_safe("", file_path)
         .map_err(|e| format!("Invalid file path (outside workspace): {}", e))?;
 
     let repo = open_repo(project_path, kind)?;
@@ -264,11 +305,13 @@ pub fn restore_file(project_path: &str, file_path: &str, hash: Option<&str>, kin
     let commit = match hash {
         Some(h) => {
             let oid = git2::Oid::from_str(h).map_err(|e| format!("Invalid hash {}: {}", h, e))?;
-            repo.find_commit(oid).map_err(|e| format!("Commit not found {}: {}", h, e))?
+            repo.find_commit(oid)
+                .map_err(|e| format!("Commit not found {}: {}", h, e))?
         }
         None => {
             let head = repo.head().map_err(|e| e.to_string())?;
-            repo.find_commit(head.target().ok_or("HEAD has no target")?).map_err(|e| e.to_string())?
+            repo.find_commit(head.target().ok_or("HEAD has no target")?)
+                .map_err(|e| e.to_string())?
         }
     };
     let tree = commit.tree().map_err(|e| e.to_string())?;
@@ -281,13 +324,16 @@ pub fn restore_file(project_path: &str, file_path: &str, hash: Option<&str>, kin
         Err(_) => Path::new(file_path),
     };
 
-    let entry = tree.get_path(rel_path).map_err(|_| format!("File not in commit: {}", file_path))?;
+    let entry = tree
+        .get_path(rel_path)
+        .map_err(|_| format!("File not in commit: {}", file_path))?;
     let blob = repo.find_blob(entry.id()).map_err(|e| e.to_string())?;
 
     if let Some(parent) = full_path.parent() {
         std::fs::create_dir_all(parent).ok();
     }
-    std::fs::write(&full_path, blob.content()).map_err(|e| format!("Failed to write file: {}", e))?;
+    std::fs::write(&full_path, blob.content())
+        .map_err(|e| format!("Failed to write file: {}", e))?;
 
     Ok(())
 }
@@ -348,7 +394,11 @@ pub fn shadow_changed_files(project_path: &str) -> Result<Vec<ShadowFileChange>,
             .and_then(|d| diff_to_text(&d).ok())
             .map(|(t, _, _)| t)
             .unwrap_or_default();
-        files.push(ShadowFileChange { path, status, diff: ftext });
+        files.push(ShadowFileChange {
+            path,
+            status,
+            diff: ftext,
+        });
     }
 
     Ok(files)
@@ -356,7 +406,8 @@ pub fn shadow_changed_files(project_path: &str) -> Result<Vec<ShadowFileChange>,
 
 /// Apply a unified diff to the project worktree.
 pub fn apply_patch(project_path: &str, patch_content: &str) -> Result<(), String> {
-    let repo = Repository::open(project_path).map_err(|e| format!("Not a git repository: {}", e))?;
+    let repo =
+        Repository::open(project_path).map_err(|e| format!("Not a git repository: {}", e))?;
     let diff = git2::Diff::from_buffer(patch_content.as_bytes())
         .map_err(|e| format!("Invalid patch: {}", e))?;
     repo.apply(&diff, git2::ApplyLocation::WorkDir, None)
@@ -365,8 +416,7 @@ pub fn apply_patch(project_path: &str, patch_content: &str) -> Result<(), String
 
 /// Clone a git repository
 pub fn clone_repo(url: &str, target_path: &str) -> Result<String, String> {
-    let _repo = Repository::clone(url, target_path)
-        .map_err(|e| format!("Clone failed: {}", e))?;
+    let _repo = Repository::clone(url, target_path).map_err(|e| format!("Clone failed: {}", e))?;
     Ok(target_path.to_string())
 }
 
@@ -374,39 +424,37 @@ pub fn clone_repo(url: &str, target_path: &str) -> Result<String, String> {
 pub fn record_ai_snapshot(project_path: &str, message: &str) -> Result<String, String> {
     let repo = open_repo(project_path, RepoKind::Local)?;
     let mut index = repo.index().map_err(|e| e.to_string())?;
-    
+
     // 将工作区所有变动加入内存索引（不影响用户真实的磁盘 staging area）
-    index.add_all(["*", "."].iter(), git2::IndexAddOption::DEFAULT, None).map_err(|e| e.to_string())?;
-    
+    index
+        .add_all(["*", "."].iter(), git2::IndexAddOption::DEFAULT, None)
+        .map_err(|e| e.to_string())?;
+
     // 生成 Tree
     let tree_oid = index.write_tree().map_err(|e| e.to_string())?;
     let tree = repo.find_tree(tree_oid).map_err(|e| e.to_string())?;
 
-    let sig = repo.signature()
+    let sig = repo
+        .signature()
         .or_else(|_| git2::Signature::now("DeepCloud AI", "ai@deepcloud.com"))
         .map_err(|e| e.to_string())?;
-    
+
     let ref_name = "refs/deepcloud/ai-history";
     let mut parents = Vec::new();
-    
+
     // 尝试寻找上一次的快照作为父节点
     if let Ok(existing_ref) = repo.find_reference(ref_name) {
         if let Ok(parent_commit) = existing_ref.peel_to_commit() {
             parents.push(parent_commit);
         }
     }
-    
+
     let parent_refs: Vec<&git2::Commit> = parents.iter().collect();
-    
-    let commit_oid = repo.commit(
-        Some(ref_name),
-        &sig,
-        &sig,
-        message,
-        &tree,
-        &parent_refs
-    ).map_err(|e| format!("Failed to create snapshot commit: {}", e))?;
-    
+
+    let commit_oid = repo
+        .commit(Some(ref_name), &sig, &sig, message, &tree, &parent_refs)
+        .map_err(|e| format!("Failed to create snapshot commit: {}", e))?;
+
     Ok(commit_oid.to_string())
 }
 
@@ -414,15 +462,15 @@ pub fn record_ai_snapshot(project_path: &str, message: &str) -> Result<String, S
 pub fn get_ai_history(project_path: &str, limit: usize) -> Result<Vec<GitCommit>, String> {
     let repo = open_repo(project_path, RepoKind::Local)?;
     let ref_name = "refs/deepcloud/ai-history";
-    
+
     let _existing_ref = match repo.find_reference(ref_name) {
         Ok(r) => r,
         Err(_) => return Ok(Vec::new()), // No history yet
     };
-    
+
     let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
     revwalk.push_ref(ref_name).map_err(|e| e.to_string())?;
-    
+
     let mut commits = Vec::new();
     for oid in revwalk.take(limit) {
         let oid = match oid {
@@ -433,7 +481,7 @@ pub fn get_ai_history(project_path: &str, limit: usize) -> Result<Vec<GitCommit>
             Ok(c) => c,
             Err(_) => continue,
         };
-        
+
         let author = commit.author();
         let ts = commit.time().seconds();
         commits.push(GitCommit {
@@ -446,25 +494,27 @@ pub fn get_ai_history(project_path: &str, limit: usize) -> Result<Vec<GitCommit>
             date: to_iso(ts),
         });
     }
-    
+
     Ok(commits)
 }
 
 /// 回滚工作区到指定快照（仅覆盖工作区文件，保持修改状态）
 pub fn rollback_to_snapshot(project_path: &str, snapshot_hash: &str) -> Result<(), String> {
     let repo = open_repo(project_path, RepoKind::Local)?;
-    
+
     let oid = git2::Oid::from_str(snapshot_hash).map_err(|e| format!("Invalid hash: {}", e))?;
-    let commit = repo.find_commit(oid).map_err(|e| format!("Snapshot not found: {}", e))?;
-    
+    let commit = repo
+        .find_commit(oid)
+        .map_err(|e| format!("Snapshot not found: {}", e))?;
+
     let tree = commit.tree().map_err(|e| e.to_string())?;
-    
+
     // 使用 checkout_tree 将快照内容直接还原到工作区，不更新 HEAD 也不更新 Index
     let mut checkout_builder = git2::build::CheckoutBuilder::new();
     checkout_builder.force().update_index(false);
-    
+
     repo.checkout_tree(tree.as_object(), Some(&mut checkout_builder))
         .map_err(|e| format!("Failed to rollback files: {}", e))?;
-    
+
     Ok(())
 }

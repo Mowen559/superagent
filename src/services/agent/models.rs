@@ -52,7 +52,9 @@ pub struct CacheEntry<T> {
 }
 
 static MODEL_CACHE: OnceLock<RwLock<HashMap<CacheKey, CacheEntry<Vec<Model>>>>> = OnceLock::new();
-static THINKING_CACHE: OnceLock<RwLock<HashMap<CacheKey, CacheEntry<HashMap<String, ModelThinking>>>>> = OnceLock::new();
+static THINKING_CACHE: OnceLock<
+    RwLock<HashMap<CacheKey, CacheEntry<HashMap<String, ModelThinking>>>>,
+> = OnceLock::new();
 
 /// Cached asynchronous discovery for models.
 pub async fn cached_discovery<F, Fut>(
@@ -65,7 +67,10 @@ where
     F: FnOnce() -> Fut,
     Fut: std::future::Future<Output = crate::services::agent::backend::BackendResult<Vec<Model>>>,
 {
-    let key = CacheKey { provider, executable_path };
+    let key = CacheKey {
+        provider,
+        executable_path,
+    };
     let cache = MODEL_CACHE.get_or_init(|| RwLock::new(HashMap::new()));
 
     if let Ok(guard) = cache.read() {
@@ -104,9 +109,14 @@ pub async fn cached_thinking<F, Fut>(
 ) -> crate::services::agent::backend::BackendResult<HashMap<String, ModelThinking>>
 where
     F: FnOnce() -> Fut,
-    Fut: std::future::Future<Output = crate::services::agent::backend::BackendResult<HashMap<String, ModelThinking>>>,
+    Fut: std::future::Future<
+        Output = crate::services::agent::backend::BackendResult<HashMap<String, ModelThinking>>,
+    >,
 {
-    let key = CacheKey { provider, executable_path };
+    let key = CacheKey {
+        provider,
+        executable_path,
+    };
     let cache = THINKING_CACHE.get_or_init(|| RwLock::new(HashMap::new()));
 
     if let Ok(guard) = cache.read() {

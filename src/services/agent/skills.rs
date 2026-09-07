@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RegisteredService {
@@ -49,7 +49,11 @@ impl ScannerCache {
     }
 }
 
-pub fn scan_skills_for_agent(agent_type: &str, skill_paths: &[PathBuf], cache: &mut ScannerCache) -> Vec<DetectedSkill> {
+pub fn scan_skills_for_agent(
+    agent_type: &str,
+    skill_paths: &[PathBuf],
+    cache: &mut ScannerCache,
+) -> Vec<DetectedSkill> {
     let mut skills = Vec::new();
 
     for skill_root in skill_paths {
@@ -177,7 +181,7 @@ fn build_detected_skill(
     cache: &mut ScannerCache,
 ) -> Option<DetectedSkill> {
     let directory = path.file_name()?.to_string_lossy().to_string();
-    
+
     let md_path = path.join("SKILL.md");
     let (name, description) = if let Some(meta) = cache.skill_meta.get(&md_path) {
         meta.clone()
@@ -186,7 +190,7 @@ fn build_detected_skill(
         cache.skill_meta.insert(md_path, meta.clone());
         meta
     };
-    
+
     let lock = cache.agents_lock.get(&directory);
     let (repo_owner, repo_name) = lock
         .and_then(|info| info.source.as_deref())
@@ -280,7 +284,7 @@ fn dedupe_skills(skills: &mut Vec<DetectedSkill>) {
 fn parse_agents_lock() -> HashMap<String, AgentsLockInfo> {
     let home = crate::config::app_paths::AppPaths::home_dir().unwrap_or_default();
     let lock_path = home.join(".agents").join(".skill-lock.json");
-    
+
     let Some(content) = std::fs::read_to_string(&lock_path).ok() else {
         return HashMap::new();
     };
@@ -389,7 +393,7 @@ pub fn write_agents_lock_skill(skill_name: &str, source: &AgentsLockInfo) -> Res
         .ok()
         .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
         .unwrap_or_else(|| serde_json::json!({ "skills": {} }));
-    
+
     if !json.is_object() {
         json = serde_json::json!({ "skills": {} });
     }
@@ -398,7 +402,7 @@ pub fn write_agents_lock_skill(skill_name: &str, source: &AgentsLockInfo) -> Res
         if !skills_obj.contains_key("skills") {
             skills_obj.insert("skills".to_string(), serde_json::json!({}));
         }
-        
+
         let skills = skills_obj.get_mut("skills").unwrap();
         if !skills.is_object() {
             *skills = serde_json::json!({});
@@ -426,7 +430,10 @@ pub fn write_agents_lock_skill(skill_name: &str, source: &AgentsLockInfo) -> Res
                 skill_info.insert("updated_at".to_string(), serde_json::json!(updated_at));
             }
 
-            skills_map.insert(skill_name.to_string(), serde_json::Value::Object(skill_info));
+            skills_map.insert(
+                skill_name.to_string(),
+                serde_json::Value::Object(skill_info),
+            );
         }
     }
 
@@ -464,4 +471,3 @@ pub fn remove_agents_lock_skill(skill_name: &str) -> Result<bool, String> {
 
     Ok(removed)
 }
-

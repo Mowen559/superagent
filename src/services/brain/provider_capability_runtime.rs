@@ -477,7 +477,7 @@ impl ProviderCapabilityRuntime {
 
         let settings = account_settings(account, model);
         let canonical = probe_body(model, profile);
-        let adapter = adapter_for_provider(&account.provider);
+        let adapter = adapter_for_provider(&settings);
         let (url, headers, body) = adapter
             .prepare_request(&settings, canonical)
             .map_err(|_| ProbeFailure::failed("request_adaptation_failed"))?;
@@ -956,10 +956,17 @@ impl CatalogAdapter {
     ) -> Result<(String, HeaderMap), CapabilityDiscoveryError> {
         let base = account.base_url.trim_end_matches('/');
         let mut headers = HeaderMap::new();
-        headers.insert(
-            USER_AGENT,
-            HeaderValue::from_static("hub-rs/capability-discovery"),
-        );
+        if base.ends_with("/backend-api/codex") {
+            headers.insert(
+                USER_AGENT,
+                HeaderValue::from_static("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"),
+            );
+        } else {
+            headers.insert(
+                USER_AGENT,
+                HeaderValue::from_static("hub-rs/capability-discovery"),
+            );
+        }
         match self {
             Self::Anthropic => {
                 headers.insert(
@@ -1005,7 +1012,10 @@ impl CatalogAdapter {
                         "invalid provider API key",
                     )?,
                 );
-                let url = if base.ends_with("/v1") {
+
+                let url = if base.ends_with("/backend-api/codex") {
+                    base.replace("/backend-api/codex", "/backend-api/models")
+                } else if base.ends_with("/v1") {
                     format!("{base}/models")
                 } else {
                     format!("{base}/v1/models")
@@ -1210,6 +1220,7 @@ fn normalize_catalog(
 
 fn catalog_model_id(item: &Value) -> Option<String> {
     item.get("id")
+        .or_else(|| item.get("slug"))
         .or_else(|| item.get("name"))
         .and_then(Value::as_str)
         .map(|id| id.trim_start_matches("models/").trim().to_string())

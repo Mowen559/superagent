@@ -11,7 +11,6 @@ pub fn init_db() {
     INIT.call_once(|| {
         let db_path = get_db_path();
 
-        // Ensure data directory exists
         let paths = AppPaths::new();
         paths.ensure_data_dir(&["data"]);
 
@@ -47,6 +46,7 @@ pub fn init_db() {
                 "ALTER TABLE api_usage_logs ADD COLUMN cache_write_tokens INTEGER NOT NULL DEFAULT 0",
                 "ALTER TABLE api_usage_logs ADD COLUMN request_body TEXT",
                 "ALTER TABLE api_usage_logs ADD COLUMN response_body TEXT",
+                "ALTER TABLE api_usage_logs ADD COLUMN attempt_receipts TEXT",
             ] {
                 let _ = conn.execute(migration, []);
             }
@@ -68,10 +68,9 @@ pub fn record_usage(
     total_cost: f64,
 ) {
     if prompt_tokens == 0 && completion_tokens == 0 {
-        return; // Nothing to record
+        return;
     }
 
-    // Fire and forget, don't block the async runtime
     tokio::task::spawn_blocking(move || {
         let db_path = get_db_path();
         match Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_WRITE) {
@@ -84,9 +83,7 @@ pub fn record_usage(
                     tracing::error!("Failed to insert usage log: {}", e);
                 }
             }
-            Err(e) => {
-                tracing::error!("Failed to open usage.db for recording: {}", e);
-            }
+            Err(e) => tracing::error!("Failed to open usage.db for recording: {}", e),
         }
     });
 }
@@ -107,6 +104,7 @@ pub struct ApiUsageRecord {
     pub total_cost: f64,
     pub request_body: Option<String>,
     pub response_body: Option<String>,
+    pub attempt_receipts: Option<Value>,
 }
 
 #[derive(Debug, Serialize)]
@@ -127,7 +125,20 @@ pub struct ApiUsageLog {
     pub total_cost: f64,
     pub request_body: Option<Value>,
     pub response_body: Option<Value>,
+    pub attempt_receipts: Option<Value>,
 }
+
+#[derive(Serialize)]
+pub struct DailyUsage {
+    pub date: String,
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_cost: f64,
+    pub cached_tokens: u32,
+    pub cache_write_tokens: u32,
+}
+
+pub type UsageLog = ApiUsageLog;
 
 pub fn record_api_call(record: ApiUsageRecord) {
     tokio::task::spawn_blocking(move || {
@@ -138,8 +149,8 @@ pub fn record_api_call(record: ApiUsageRecord) {
                     "INSERT INTO api_usage_logs (
                         account_id, model, protocol, method, path, status, duration_ms,
                         prompt_tokens, completion_tokens, cached_tokens, cache_write_tokens,
-                        total_cost, request_body, response_body
-                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                        total_cost, request_body, response_body, attempt_receipts
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
                     rusqlite::params![
                         record.account_id,
                         record.model,
@@ -155,6 +166,9 @@ pub fn record_api_call(record: ApiUsageRecord) {
                         record.total_cost,
                         record.request_body.map(|body| truncate_for_storage(&body)),
                         record.response_body.map(|body| truncate_for_storage(&body)),
+                        record
+                            .attempt_receipts
+                            .and_then(|val| serde_json::to_string(&val).ok()),
                     ],
                 );
                 if let Err(e) = res {
@@ -166,13 +180,76 @@ pub fn record_api_call(record: ApiUsageRecord) {
     });
 }
 
+pub fn record_request(
+    account_id: String,
+    model: String,
+    prompt_tokens: u32,
+    completion_tokens: u32,
+    total_cost: f64,
+    status: u16,
+    method: String,
+    protocol: String,
+    path: String,
+    duration_ms: u64,
+) {
+    record_api_call(ApiUsageRecord {
+        account_id,
+        model,
+        protocol,
+        method,
+        path,
+        status,
+        duration_ms,
+        prompt_tokens,
+        completion_tokens,
+        cached_tokens: 0,
+        cache_write_tokens: 0,
+        total_cost,
+        request_body: None,
+        response_body: None,
+        attempt_receipts: None,
+    });
+}
+
+pub fn get_daily_usage(days: u32) -> Result<Vec<DailyUsage>, rusqlite::Error> {
+    let conn = Connection::open_with_flags(get_db_path(), OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let mut stmt = conn.prepare(
+        "SELECT DATE(timestamp) as date,
+                COALESCE(SUM(prompt_tokens), 0),
+                COALESCE(SUM(completion_tokens), 0),
+                COALESCE(SUM(total_cost), 0),
+                COALESCE(SUM(cached_tokens), 0),
+                COALESCE(SUM(cache_write_tokens), 0)
+         FROM api_usage_logs
+         WHERE timestamp >= date('now', ?)
+         GROUP BY DATE(timestamp)
+         ORDER BY date ASC",
+    )?;
+    let time_modifier = format!("-{} days", days);
+    let iter = stmt.query_map(rusqlite::params![time_modifier], |row| {
+        Ok(DailyUsage {
+            date: row.get(0)?,
+            prompt_tokens: row.get::<_, i64>(1)?.max(0) as u32,
+            completion_tokens: row.get::<_, i64>(2)?.max(0) as u32,
+            total_cost: row.get::<_, f64>(3).unwrap_or(0.0),
+            cached_tokens: row.get::<_, i64>(4)?.max(0) as u32,
+            cache_write_tokens: row.get::<_, i64>(5)?.max(0) as u32,
+        })
+    })?;
+    iter.collect()
+}
+
+pub fn get_usage_logs(limit: u32) -> Result<Vec<UsageLog>, rusqlite::Error> {
+    list_usage_logs(limit as usize).map_err(rusqlite::Error::InvalidParameterName)
+}
+
 pub fn list_usage_logs(limit: usize) -> Result<Vec<ApiUsageLog>, String> {
     let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare(
             "SELECT id, timestamp, account_id, model, protocol, method, path, status, duration_ms,
                     prompt_tokens, completion_tokens, cached_tokens, cache_write_tokens, total_cost,
-                    request_body, response_body
+                    request_body, response_body, attempt_receipts
              FROM api_usage_logs
              ORDER BY id DESC
              LIMIT ?1",
@@ -182,6 +259,7 @@ pub fn list_usage_logs(limit: usize) -> Result<Vec<ApiUsageLog>, String> {
         .query_map([limit.min(1000) as i64], |row| {
             let request_text: Option<String> = row.get(14)?;
             let response_text: Option<String> = row.get(15)?;
+            let attempt_receipts_text: Option<String> = row.get(16)?;
             Ok(ApiUsageLog {
                 id: row.get(0)?,
                 timestamp: row.get(1)?,
@@ -199,6 +277,7 @@ pub fn list_usage_logs(limit: usize) -> Result<Vec<ApiUsageLog>, String> {
                 total_cost: row.get(13)?,
                 request_body: request_text.as_deref().map(parse_json_or_text),
                 response_body: response_text.as_deref().map(parse_json_or_text),
+                attempt_receipts: attempt_receipts_text.and_then(|t| serde_json::from_str(&t).ok()),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -250,4 +329,11 @@ fn truncate_for_storage(value: &str) -> String {
     let mut truncated: String = value.chars().take(MAX_CHARS).collect();
     truncated.push_str("\n... truncated ...");
     truncated
+}
+
+pub fn clear_usage_logs() -> rusqlite::Result<()> {
+    let db_path = get_db_path();
+    let conn = Connection::open(&db_path)?;
+    conn.execute("DELETE FROM api_usage_logs", [])?;
+    Ok(())
 }

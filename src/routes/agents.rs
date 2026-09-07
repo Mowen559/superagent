@@ -41,10 +41,18 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/api/agents/tasks/{task_id}/diff", get(get_task_diff))
         .route(
+            "/api/agents/tasks/{task_id}/verify",
+            post(verify_task_changes),
+        )
+        .route(
             "/api/agents/tasks/{task_id}/apply",
             post(apply_task_changes),
         )
         .route("/api/agents/{kind}/config/sync", post(sync_agent_config))
+        .route(
+            "/api/agents/{kind}/config/preview",
+            get(preview_agent_config),
+        )
         .route("/api/agents/{kind}/skills", get(list_agent_skills))
         .route(
             "/api/agents/{kind}/skills/install",
@@ -61,6 +69,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/agents/{kind}/mcps", get(list_agent_mcps))
         .route("/api/agents/{kind}/models", get(list_agent_models))
         .route("/api/agents/install_missing", post(install_missing_agents))
+        .route("/api/agents/{kind}/install", post(install_agent_endpoint))
 }
 
 /// Probe every known agent CLI and report install/version/support status.
@@ -96,6 +105,33 @@ async fn install_missing_agents() -> Json<serde_json::Value> {
     }
 
     Json(json!({ "results": results }))
+}
+
+/// Install or update a specific agent.
+async fn install_agent_endpoint(Path(kind_str): Path<String>) -> Response {
+    let kind = match AgentKind::from_str(&kind_str) {
+        Ok(k) => k,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": format!("Invalid agent kind: {}", e) })),
+            )
+                .into_response()
+        }
+    };
+
+    let result = tokio::task::spawn_blocking(move || agent::installer::install_agent(kind))
+        .await
+        .unwrap_or_else(|e| Err(agent::installer::InstallError::ProcessFailed(e.to_string())));
+
+    match result {
+        Ok(_) => Json(json!({ "success": true })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -156,27 +192,15 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
     };
 
     let project = body.project.clone().unwrap_or_default();
-    let guard = match crate::services::workspace_guard::WorkspaceGuard::new(
-        &state.runtime_config.projects_root,
-    ) {
-        Ok(g) => g,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": e.to_string() })),
-            )
-                .into_response()
-        }
-    };
     let project = if project.is_empty() {
         "".to_string()
     } else {
-        match guard.resolve_safe(&project, "") {
+        match state.workspace_capabilities.resolve(&project) {
             Ok(p) => p.to_string_lossy().to_string(),
             Err(e) => {
                 return (
                     StatusCode::FORBIDDEN,
-                    Json(json!({ "error": e.to_string() })),
+                    Json(json!({ "error": e, "kind": "workspace_not_open" })),
                 )
                     .into_response()
             }
@@ -193,37 +217,40 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
     );
     let task_id = task.id.clone();
 
-    // Phase 2: Create a Workspace Baseline for Two-Phase Commit isolation.
-    let workspace_baseline = if !project.is_empty() {
-        let run_dir = state
-            .runtime_config
-            .projects_root
-            .join(format!(".deepcloud/runs/{}", task_id));
+    // Create an immutable baseline manifest and an isolated working copy.
+    let isolated_workspace = if !project.is_empty() {
+        // The run directory must never be nested under the selected project:
+        // selecting the managed projects root itself would otherwise make the
+        // copy operation recursively copy its own destination.
+        let run_root = state.app_paths.ensure_data_dir(&["runs", &task_id]);
+        let run_dir = run_root.join("workspace");
+        let baseline_path = run_root.join("baseline.json");
         let _ = crate::services::git_service::record_ai_snapshot(
             &project,
             "Creating Baseline Snapshot",
         );
-        // Deep copy the project to isolate changes for Two-Phase commit diffing.
-        // We use ignore::WalkBuilder to skip .gitignore files (e.g. node_modules, target)
-        // and we manually skip the .deepcloud folder to prevent recursive copying.
-        let walker = ignore::WalkBuilder::new(&project)
-            .hidden(false) // we might want to copy some hidden files like .env, but usually ignore is enough
-            .filter_entry(|e| e.file_name() != ".deepcloud" && e.file_name() != ".git")
-            .build();
-
-        for result in walker {
-            if let Ok(entry) = result {
-                if let Ok(rel_path) = entry.path().strip_prefix(&project) {
-                    let dest_path = run_dir.join(rel_path);
-                    if entry.file_type().map_or(false, |ft| ft.is_dir()) {
-                        let _ = std::fs::create_dir_all(&dest_path);
-                    } else if entry.file_type().map_or(false, |ft| ft.is_file()) {
-                        let _ = std::fs::copy(entry.path(), &dest_path);
-                    }
-                }
-            }
+        let prepared = crate::services::change_set::capture_baseline(
+            std::path::Path::new(&project),
+            &baseline_path,
+        )
+        .and_then(|_| {
+            crate::services::change_set::copy_workspace(std::path::Path::new(&project), &run_dir)
+        });
+        if let Err(error) = prepared {
+            state.task_manager.update_status(
+                &task_id,
+                TaskStatus::Failed,
+                Some(format!("Failed to prepare isolated workspace: {error}")),
+            );
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": error, "taskId": task_id })),
+            )
+                .into_response();
         }
-
+        state
+            .task_manager
+            .update_workspace_baseline(&task_id, baseline_path.to_string_lossy().to_string());
         run_dir.to_string_lossy().to_string()
     } else {
         "".to_string()
@@ -233,8 +260,8 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
         .task_manager
         .update_status(&task_id, TaskStatus::Running, None);
 
-    let cwd_path = if !workspace_baseline.is_empty() {
-        workspace_baseline.clone()
+    let cwd_path = if !isolated_workspace.is_empty() {
+        isolated_workspace.clone()
     } else {
         project.clone()
     };
@@ -265,10 +292,8 @@ async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Json<RunBody>
         }
     });
 
-    Json(
-        json!({ "taskId": task_id, "status": "running", "workspace_baseline": workspace_baseline }),
-    )
-    .into_response()
+    Json(json!({ "taskId": task_id, "status": "running", "isolatedWorkspace": isolated_workspace }))
+        .into_response()
 }
 
 #[cfg(test)]
@@ -342,7 +367,22 @@ async fn drive_run(
             } else {
                 Some(result.error.clone())
             };
-            state.task_manager.update_status(&task_id, status, error);
+            if status == TaskStatus::Completed {
+                let output = result.output.chars().take(120_000).collect::<String>();
+                let receipt = json!({
+                    "schemaVersion": 1,
+                    "kind": "agent-run",
+                    "status": result.status,
+                    "output": output,
+                    "outputTruncated": result.output.chars().count() > 120_000,
+                    "durationMs": result.duration_ms,
+                    "sessionId": result.session_id,
+                    "usage": result.usage,
+                });
+                state.task_manager.complete_with_receipt(&task_id, receipt);
+            } else {
+                state.task_manager.update_status(&task_id, status, error);
+            }
         }
         Err(_) => {
             // Backend dropped the result sender without sending — treat as failure.
@@ -359,7 +399,7 @@ use axum::http::HeaderMap;
 
 /// SSE endpoint: replay the persisted backlog, then follow the live broadcast.
 /// A terminal event (or the channel closing) ends the stream.
-async fn stream_events(
+pub(crate) async fn stream_events(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
     headers: HeaderMap,
@@ -543,6 +583,38 @@ async fn sync_agent_config(
     }
 }
 
+/// Preview the local configuration of a specific agent.
+async fn preview_agent_config(Path(kind_str): Path<String>) -> Response {
+    let kind = match AgentKind::from_str(&kind_str) {
+        Ok(k) => k,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": format!("Invalid agent kind: {}", e) })),
+            )
+                .into_response()
+        }
+    };
+
+    let backend = agent::new(kind);
+    match backend.get_config_content(None).await {
+        Ok(Some(content)) => Json(json!({ "content": content })).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Configuration file not found" })),
+        )
+            .into_response(),
+        Err(e) => {
+            let err_msg = e.to_string();
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": err_msg })),
+            )
+                .into_response()
+        }
+    }
+}
+
 async fn list_agent_skills(Path(kind_str): Path<String>) -> Response {
     let kind = match AgentKind::from_str(&kind_str) {
         Ok(k) => k,
@@ -699,78 +771,282 @@ async fn list_agent_models(Path(kind_str): Path<String>) -> Response {
     }
 }
 
-/// Get the diff between the original project and the isolated workspace baseline (Two-Phase Commit).
+const MAX_DIFF_CHARS: usize = 1_000_000;
+const VERIFICATION_TIMEOUT_SECONDS: u64 = 5 * 60;
 
-fn parse_change_set_from_diff(diff_text: &str) -> serde_json::Value {
-    let mut files = Vec::new();
-    for line in diff_text.lines() {
-        if line.starts_with("+++ b/") {
-            let file = &line[6..];
-            if file != "dev/null" && !files.contains(&file.to_string()) {
-                files.push(file.to_string());
-            }
-        } else if line.starts_with("--- a/") {
-            let file = &line[6..];
-            // If the file is only deleted, it might only show --- a/ and +++ b/dev/null.
-            // But we typically want to know if it's changed.
-            if file != "dev/null" && !files.contains(&file.to_string()) {
-                files.push(file.to_string());
-            }
-        }
+struct DevelopmentRunPaths {
+    project: std::path::PathBuf,
+    run_dir: std::path::PathBuf,
+    baseline: crate::services::change_set::BaselineManifest,
+}
+
+fn development_run_paths(
+    state: &Arc<AppState>,
+    task: &crate::models::task::Task,
+) -> Result<DevelopmentRunPaths, String> {
+    if task.task_type != "agent" {
+        return Err("Task is not an Agent development run".to_string());
     }
-    serde_json::json!({ "files": files })
+    if task.status != TaskStatus::Completed {
+        return Err(format!(
+            "Agent task must be completed before reviewing changes; current status is {}",
+            task.status.as_str()
+        ));
+    }
+    if task.project_path.is_empty() {
+        return Err("Agent task has no workspace".to_string());
+    }
+    let project = state.workspace_capabilities.resolve(&task.project_path)?;
+    let baseline_path = task
+        .workspace_baseline
+        .as_deref()
+        .map(std::path::PathBuf::from)
+        .filter(|path| path.is_file())
+        .unwrap_or_else(|| {
+            state
+                .app_paths
+                .data_path(&["runs", &task.id, "baseline.json"])
+        });
+    let run_dir = baseline_path
+        .parent()
+        .map(|parent| parent.join("workspace"))
+        .filter(|path| path.is_dir())
+        // Compatibility with development runs created by the previous layout.
+        .unwrap_or_else(|| {
+            state
+                .runtime_config
+                .projects_root
+                .join(format!(".deepcloud/runs/{}", task.id))
+        });
+    if !run_dir.is_dir() {
+        return Err("Isolated Agent workspace is unavailable".to_string());
+    }
+    let baseline = crate::services::change_set::load_baseline(&baseline_path)?;
+    Ok(DevelopmentRunPaths {
+        project,
+        run_dir,
+        baseline,
+    })
 }
 
 async fn get_task_diff(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> Response {
-    let task = state.task_manager.get_task(&task_id);
-    if task.is_none() {
+    let Some(task) = state.task_manager.get_task(&task_id) else {
         return (
             StatusCode::NOT_FOUND,
             Json(json!({ "error": "Task not found" })),
         )
             .into_response();
-    }
-    let task = task.unwrap();
-    let project = task.project_path.clone();
-    let run_dir = state
-        .runtime_config
-        .projects_root
-        .join(format!(".deepcloud/runs/{}", task_id));
-
-    if !project.is_empty() && run_dir.exists() {
-        // Use `git diff --no-index` to compare the two directories.
-        // This is safe even if they aren't git repositories.
-        let output = tokio::process::Command::new("git")
-            .arg("diff")
-            .arg("--no-index")
-            .arg(&project)
-            .arg(&run_dir)
-            .output()
-            .await;
-
-        if let Ok(out) = output {
-            // git diff --no-index returns exit code 1 if differences were found
-            let diff_text = String::from_utf8_lossy(&out.stdout).to_string();
-            let change_set = parse_change_set_from_diff(&diff_text);
-            state.task_manager.update_development_run(
-                &task_id,
-                Some(change_set),
-                Some("pending".to_string()),
-            );
-            return Json(json!({ "diff": diff_text })).into_response();
+    };
+    let paths = match development_run_paths(&state, &task) {
+        Ok(paths) => paths,
+        Err(error) => {
+            return (
+                StatusCode::CONFLICT,
+                Json(json!({ "error": error, "kind": "development_run_not_ready" })),
+            )
+                .into_response()
         }
-    }
+    };
+    let change_set = match crate::services::change_set::inspect_changes(
+        &paths.baseline,
+        &paths.project,
+        &paths.run_dir,
+    ) {
+        Ok(change_set) => change_set,
+        Err(error) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": error })),
+            )
+                .into_response()
+        }
+    };
+    state.task_manager.update_development_run(
+        &task_id,
+        Some(json!(change_set.clone())),
+        Some("pending".to_string()),
+    );
 
-    Json(json!({ "diff": "" })).into_response()
+    let output = tokio::process::Command::new("git")
+        .arg("diff")
+        .arg("--no-index")
+        .arg("--")
+        .arg(&paths.project)
+        .arg(&paths.run_dir)
+        .output()
+        .await;
+    let diff = output
+        .as_ref()
+        .map(|output| String::from_utf8_lossy(&output.stdout).to_string())
+        .unwrap_or_default();
+    let truncated = diff.chars().count() > MAX_DIFF_CHARS;
+    let diff = diff.chars().take(MAX_DIFF_CHARS).collect::<String>();
+    Json(json!({
+        "diff": diff,
+        "diffTruncated": truncated,
+        "files": change_set.files,
+        "conflicts": change_set.conflicts,
+    }))
+    .into_response()
 }
 
-/// Apply the isolated workspace baseline changes back to the original project.
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ApplyBody {
     pub files: Option<Vec<String>>,
+    pub force: Option<bool>,
+}
+
+#[derive(Clone)]
+struct VerificationCommand {
+    label: String,
+    program: String,
+    args: Vec<String>,
+}
+
+fn verification_plan(run_dir: &std::path::Path) -> Vec<VerificationCommand> {
+    let mut plan = Vec::new();
+    if run_dir.join("Cargo.toml").is_file() {
+        plan.push(VerificationCommand {
+            label: "Rust cargo check".to_string(),
+            program: "cargo".to_string(),
+            args: vec!["check".to_string(), "--quiet".to_string()],
+        });
+    }
+    let package_json = run_dir.join("package.json");
+    if let Ok(payload) = std::fs::read_to_string(package_json) {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&payload) {
+            if let Some(scripts) = value.get("scripts").and_then(|value| value.as_object()) {
+                for name in ["typecheck", "lint", "test", "build"] {
+                    if scripts.contains_key(name) && plan.len() < 3 {
+                        plan.push(VerificationCommand {
+                            label: format!("Node.js npm run {name}"),
+                            program: if cfg!(windows) { "npm.cmd" } else { "npm" }.to_string(),
+                            args: vec!["run".to_string(), name.to_string()],
+                        });
+                    }
+                }
+            }
+        }
+    }
+    if run_dir.join("pom.xml").is_file() && plan.len() < 3 {
+        plan.push(VerificationCommand {
+            label: "Maven compile".to_string(),
+            program: if cfg!(windows) { "mvn.cmd" } else { "mvn" }.to_string(),
+            args: vec![
+                "-q".to_string(),
+                "-DskipTests".to_string(),
+                "compile".to_string(),
+            ],
+        });
+    }
+    if (run_dir.join("pyproject.toml").is_file() || run_dir.join("requirements.txt").is_file())
+        && plan.len() < 3
+    {
+        plan.push(VerificationCommand {
+            label: "Python compileall".to_string(),
+            program: "python".to_string(),
+            args: vec![
+                "-m".to_string(),
+                "compileall".to_string(),
+                "-q".to_string(),
+                ".".to_string(),
+            ],
+        });
+    }
+    plan
+}
+
+async fn verify_task_changes(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> Response {
+    let Some(task) = state.task_manager.get_task(&task_id) else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Task not found" })),
+        )
+            .into_response();
+    };
+    let paths = match development_run_paths(&state, &task) {
+        Ok(paths) => paths,
+        Err(error) => {
+            return (StatusCode::CONFLICT, Json(json!({ "error": error }))).into_response()
+        }
+    };
+    let fingerprint = match crate::services::change_set::workspace_fingerprint(&paths.run_dir) {
+        Ok(fingerprint) => fingerprint,
+        Err(error) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": error })),
+            )
+                .into_response()
+        }
+    };
+    let plan = verification_plan(&paths.run_dir);
+    let mut results = Vec::new();
+    let mut passed = !plan.is_empty();
+    for spec in plan {
+        let started = std::time::Instant::now();
+        let mut command = tokio::process::Command::new(&spec.program);
+        command
+            .args(&spec.args)
+            .current_dir(&paths.run_dir)
+            .kill_on_drop(true);
+        let outcome = tokio::time::timeout(
+            Duration::from_secs(VERIFICATION_TIMEOUT_SECONDS),
+            command.output(),
+        )
+        .await;
+        let result = match outcome {
+            Ok(Ok(output)) => {
+                let success = output.status.success();
+                passed &= success;
+                json!({
+                    "label": spec.label,
+                    "program": spec.program,
+                    "args": spec.args,
+                    "status": if success { "passed" } else { "failed" },
+                    "exitCode": output.status.code(),
+                    "stdout": String::from_utf8_lossy(&output.stdout).chars().take(20_000).collect::<String>(),
+                    "stderr": String::from_utf8_lossy(&output.stderr).chars().take(20_000).collect::<String>(),
+                    "durationMs": started.elapsed().as_millis(),
+                })
+            }
+            Ok(Err(error)) => {
+                passed = false;
+                json!({ "label": spec.label, "program": spec.program, "args": spec.args, "status": "failed", "error": error.to_string(), "durationMs": started.elapsed().as_millis() })
+            }
+            Err(_) => {
+                passed = false;
+                json!({ "label": spec.label, "program": spec.program, "args": spec.args, "status": "timeout", "durationMs": started.elapsed().as_millis() })
+            }
+        };
+        results.push(result);
+    }
+    let status = if results.is_empty() {
+        "skipped"
+    } else if passed {
+        "passed"
+    } else {
+        "failed"
+    };
+    let receipt = json!({
+        "schemaVersion": 1,
+        "kind": "verification",
+        "status": status,
+        "sourceFingerprint": fingerprint,
+        "completedAt": chrono::Utc::now().to_rfc3339(),
+        "commands": results,
+    });
+    state
+        .task_manager
+        .update_verification(&task_id, receipt.clone());
+    Json(json!({ "success": status == "passed", "verification": receipt })).into_response()
 }
 
 async fn apply_task_changes(
@@ -778,56 +1054,156 @@ async fn apply_task_changes(
     Path(task_id): Path<String>,
     payload: Option<Json<ApplyBody>>,
 ) -> Response {
-    let task = state.task_manager.get_task(&task_id);
-    if task.is_none() {
+    let Some(task) = state.task_manager.get_task(&task_id) else {
         return (
             StatusCode::NOT_FOUND,
             Json(json!({ "error": "Task not found" })),
         )
             .into_response();
-    }
-    let task = task.unwrap();
-    let project = task.project_path.clone();
-    let run_dir = state
-        .runtime_config
-        .projects_root
-        .join(format!(".deepcloud/runs/{}", task_id));
-
-    if project.is_empty() || !run_dir.exists() {
+    };
+    if task.approval.as_deref() == Some("approved") {
         return (
-            StatusCode::BAD_REQUEST,
-            Json(json!({ "error": "Workspace baseline not found or empty project." })),
+            StatusCode::CONFLICT,
+            Json(json!({ "error": "Change set has already been applied", "kind": "already_applied" })),
         )
             .into_response();
     }
-
-    // We can use the same ignore::WalkBuilder trick to copy files back,
-    // overwriting the original files.
-    let walker = ignore::WalkBuilder::new(&run_dir).hidden(false).build();
-
-    let mut applied_count = 0;
-    for result in walker {
-        if let Ok(entry) = result {
-            if let Ok(rel_path) = entry.path().strip_prefix(&run_dir) {
-                if rel_path.as_os_str().is_empty() {
-                    continue;
-                }
-                let dest_path = std::path::Path::new(&project).join(rel_path);
-                if entry.file_type().map_or(false, |ft| ft.is_dir()) {
-                    let _ = std::fs::create_dir_all(&dest_path);
-                } else if entry.file_type().map_or(false, |ft| ft.is_file()) {
-                    let _ = std::fs::copy(entry.path(), &dest_path);
-                    applied_count += 1;
-                }
-            }
+    let paths = match development_run_paths(&state, &task) {
+        Ok(paths) => paths,
+        Err(error) => {
+            return (StatusCode::CONFLICT, Json(json!({ "error": error }))).into_response()
         }
+    };
+    let body = payload.map(|Json(body)| body).unwrap_or_default();
+    let forced = body.force.unwrap_or(false);
+    let proposed_fingerprint =
+        match crate::services::change_set::workspace_fingerprint(&paths.run_dir) {
+            Ok(fingerprint) => fingerprint,
+            Err(error) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": error })),
+                )
+                    .into_response()
+            }
+        };
+    let verification_passed = task.verification.as_ref().is_some_and(|receipt| {
+        receipt.get("status").and_then(|value| value.as_str()) == Some("passed")
+            && receipt
+                .get("sourceFingerprint")
+                .and_then(|value| value.as_str())
+                == Some(proposed_fingerprint.as_str())
+    });
+    if !verification_passed && !forced {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "error": "A passing, current Verification Receipt is required before Apply",
+                "kind": "verification_required",
+            })),
+        )
+            .into_response();
     }
-
-    // Optionally mark the task as approved
-    let _ = crate::services::git_service::record_ai_snapshot(
-        &project,
-        &format!("AI Changes Applied: {}", task_id),
+    let change_set = match crate::services::change_set::inspect_changes(
+        &paths.baseline,
+        &paths.project,
+        &paths.run_dir,
+    ) {
+        Ok(change_set) => change_set,
+        Err(error) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": error })),
+            )
+                .into_response()
+        }
+    };
+    if change_set.files.is_empty() {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({ "error": "Agent task produced no file changes", "kind": "empty_change_set" })),
+        )
+            .into_response();
+    }
+    if !change_set.conflicts.is_empty() {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({ "error": "Original workspace has conflicting changes", "kind": "workspace_conflict", "conflicts": change_set.conflicts })),
+        )
+            .into_response();
+    }
+    let snapshot_hash =
+        match crate::services::git_service::record_ai_snapshot(
+            &task.project_path,
+            &format!("Before applying AI task {task_id}"),
+        ) {
+            Ok(hash) => hash,
+            Err(error) => return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    json!({ "error": format!("Cannot create pre-apply shadow snapshot: {error}") }),
+                ),
+            )
+                .into_response(),
+        };
+    let apply_receipt = match crate::services::change_set::apply_changes(
+        &change_set,
+        &paths.project,
+        &paths.run_dir,
+        body.files.as_deref(),
+        forced,
+    ) {
+        Ok(receipt) => receipt,
+        Err(error) => {
+            return (
+                StatusCode::CONFLICT,
+                Json(json!({ "error": error, "kind": "apply_rejected" })),
+            )
+                .into_response()
+        }
+    };
+    state.task_manager.update_development_run(
+        &task_id,
+        Some(json!(change_set)),
+        Some("approved".to_string()),
     );
 
-    Json(json!({ "status": "success", "files_applied": applied_count })).into_response()
+    let applied_count = apply_receipt.applied_files.len() + apply_receipt.deleted_files.len();
+    let summary =
+        format!("AI Changes Applied: {task_id}. Files changed: {applied_count}. Forced: {forced}");
+
+    // Save to supermemory
+    let store = crate::services::supermemory_store::SupermemoryStore::new(
+        &state.runtime_config,
+        Some(&task.project_path),
+    );
+    let now = chrono::Utc::now().to_rfc3339();
+    let record = crate::models::memory::SupermemoryRecord {
+        id: uuid::Uuid::new_v4().to_string(),
+        file_path: "".to_string(),
+        name: format!("AI Application Task: {}", task_id),
+        summary: serde_json::to_string(&json!({
+            "summary": summary,
+            "snapshotHash": snapshot_hash,
+            "apply": apply_receipt,
+        }))
+        .unwrap_or(summary),
+        tags: vec!["ai_applied_change".to_string(), task_id.clone()],
+        complexity: "low".to_string(),
+        node_type: "ai_applied_change".to_string(),
+        source_graph_path: "".to_string(),
+        source_label: "".to_string(),
+        updated_at: now,
+        embedding: None,
+    };
+    let memory_synced = store.write_memory_result(record).is_ok();
+
+    Json(json!({
+        "status": "success",
+        "files_applied": applied_count,
+        "snapshotHash": snapshot_hash,
+        "memorySynced": memory_synced,
+        "receipt": apply_receipt,
+    }))
+    .into_response()
 }

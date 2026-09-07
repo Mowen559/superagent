@@ -46,13 +46,13 @@ impl CliSyncCoordinator {
     ) -> Result<super::adapter::ConfigMutationPlan, SyncError> {
         let install = self.adapter.detect().await?;
         let current_config = self.adapter.inspect(&install).await?;
-        
+
         if let Some(expected_rev) = &request.expected_revision {
             if *expected_rev != current_config.revision {
                 return Err(SyncError::ConfigConflict);
             }
         }
-        
+
         self.adapter.plan(&install, request, hub_base_url).await
     }
 

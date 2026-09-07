@@ -4,8 +4,14 @@ use crate::services::supermemory_store::SupermemoryStore;
 use serde_json::{json, Value};
 
 /// 原生超级记忆海马体 (Native SuperMemory Organ)
-pub struct NativeMemoryTool { pub workspace_root: std::path::PathBuf }
-impl NativeMemoryTool { pub fn new(w: std::path::PathBuf) -> Self { Self { workspace_root: w } } }
+pub struct NativeMemoryTool {
+    pub workspace_root: std::path::PathBuf,
+}
+impl NativeMemoryTool {
+    pub fn new(w: std::path::PathBuf) -> Self {
+        Self { workspace_root: w }
+    }
+}
 
 impl ToolExecutor for NativeMemoryTool {
     fn name(&self) -> &'static str {

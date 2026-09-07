@@ -1,4 +1,4 @@
-﻿use sys_locale::get_locale;
+use sys_locale::get_locale;
 
 pub fn detect_language() -> String {
     get_locale().unwrap_or_else(|| "zh-CN".to_string())
@@ -23,4 +23,3 @@ pub fn no_tools_directive() -> &'static str {
         "你没有任何可用工具，禁止调用任何工具或函数，直接以纯文本输出最终答案。"
     }
 }
-

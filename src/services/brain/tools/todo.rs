@@ -5,8 +5,14 @@ use crate::services::brain::executor::ToolExecutor;
 use serde_json::{json, Value};
 use std::fs;
 
-pub struct ManageTaskTool { pub workspace_root: std::path::PathBuf }
-impl ManageTaskTool { pub fn new(w: std::path::PathBuf) -> Self { Self { workspace_root: w } } }
+pub struct ManageTaskTool {
+    pub workspace_root: std::path::PathBuf,
+}
+impl ManageTaskTool {
+    pub fn new(w: std::path::PathBuf) -> Self {
+        Self { workspace_root: w }
+    }
+}
 
 impl ToolExecutor for ManageTaskTool {
     fn name(&self) -> &'static str {

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::memory::SupermemoryRecord;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -119,7 +119,11 @@ pub struct TestingConstraints {
 
 impl Default for TestingConstraints {
     fn default() -> Self {
-        Self { unit: true, integration: true, e2e: false }
+        Self {
+            unit: true,
+            integration: true,
+            e2e: false,
+        }
     }
 }
 
@@ -164,6 +168,8 @@ pub struct ReverseEngineeringOptions {
     pub existing_module_limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

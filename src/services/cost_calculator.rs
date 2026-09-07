@@ -12,27 +12,27 @@ impl CostCalculator {
         let name = model_name.to_lowercase();
         // Strip provider prefix if exists (e.g., 'openai/gpt-4o' -> 'gpt-4o')
         let name = name.split('/').last().unwrap_or(&name);
-        
-        let (in_price_per_m, out_price_per_m, cache_read_price_per_m, cache_write_price_per_m) = 
-        if name.starts_with("claude-3-5-sonnet") {
-            (3.0, 15.0, 0.30, 3.75)
-        } else if name.starts_with("claude-3-haiku") {
-            (0.25, 1.25, 0.03, 0.30)
-        } else if name.starts_with("claude-3-opus") {
-            (15.0, 75.0, 1.50, 18.75)
-        } else if name.starts_with("gpt-4o-mini") {
-            (0.15, 0.60, 0.075, 0.15)
-        } else if name.starts_with("gpt-4o") {
-            (5.0, 15.0, 2.50, 5.0)
-        } else if name.starts_with("gemini-1.5-pro") {
-            (3.50, 10.50, 0.0, 0.0)
-        } else if name.starts_with("gemini-1.5-flash") || name.starts_with("gemini-3-flash") {
-            (0.075, 0.30, 0.0, 0.0)
-        } else if name.starts_with("deepseek-coder") || name.starts_with("deepseek-chat") {
-            (0.14, 0.28, 0.014, 0.14)
-        } else {
-            (0.0, 0.0, 0.0, 0.0)
-        };
+
+        let (in_price_per_m, out_price_per_m, cache_read_price_per_m, cache_write_price_per_m) =
+            if name.starts_with("claude-3-5-sonnet") {
+                (3.0, 15.0, 0.30, 3.75)
+            } else if name.starts_with("claude-3-haiku") {
+                (0.25, 1.25, 0.03, 0.30)
+            } else if name.starts_with("claude-3-opus") {
+                (15.0, 75.0, 1.50, 18.75)
+            } else if name.starts_with("gpt-4o-mini") {
+                (0.15, 0.60, 0.075, 0.15)
+            } else if name.starts_with("gpt-4o") {
+                (5.0, 15.0, 2.50, 5.0)
+            } else if name.starts_with("gemini-1.5-pro") {
+                (3.50, 10.50, 0.0, 0.0)
+            } else if name.starts_with("gemini-1.5-flash") || name.starts_with("gemini-3-flash") {
+                (0.075, 0.30, 0.0, 0.0)
+            } else if name.starts_with("deepseek-coder") || name.starts_with("deepseek-chat") {
+                (0.14, 0.28, 0.014, 0.14)
+            } else {
+                (0.0, 0.0, 0.0, 0.0)
+            };
 
         // Use f64 for safer precision handling
         let in_cost = (input_tokens as f64 / 1_000_000.0) * in_price_per_m;
@@ -56,14 +56,18 @@ mod tests {
 
         // 2. Weird prefix model name (should be free if it's a fake/local model)
         let cost_fake = CostCalculator::calculate_cost("fake-gpt-4o-local", 1_000_000, 0, 0, 0);
-        assert_eq!(cost_fake, 0.0, "Fake models should not be charged as gpt-4o");
+        assert_eq!(
+            cost_fake, 0.0,
+            "Fake models should not be charged as gpt-4o"
+        );
 
         // 3. OpenRouter format
         let cost_or = CostCalculator::calculate_cost("openai/gpt-4o-mini", 1_000_000, 0, 0, 0);
         assert_eq!(cost_or, 0.15);
 
         // 4. Precision loss with huge numbers
-        let cost_huge = CostCalculator::calculate_cost("claude-3-opus", u32::MAX, u32::MAX, u32::MAX, u32::MAX);
+        let cost_huge =
+            CostCalculator::calculate_cost("claude-3-opus", u32::MAX, u32::MAX, u32::MAX, u32::MAX);
         assert!(cost_huge > 0.0);
     }
 }

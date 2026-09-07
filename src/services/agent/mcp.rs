@@ -2,9 +2,9 @@
 //!
 //! Mirrors multica's `writeMcpConfigToTemp` and `hasManagedMcpConfig`.
 
+use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
-use serde_json::Value;
 
 /// An RAII guard for an MCP config file written to a temporary directory.
 /// The file is removed when this guard is dropped.
@@ -17,12 +17,12 @@ impl McpConfigTempFile {
     pub fn new(config: &Value) -> Result<Self, std::io::Error> {
         // Use tempfile crate or just a random file in std::env::temp_dir()
         use std::io::Write;
-        
+
         let mut temp_file = tempfile::NamedTempFile::new()?;
         let json_bytes = serde_json::to_vec(config)?;
         temp_file.write_all(&json_bytes)?;
         temp_file.flush()?;
-        
+
         let (_, path) = temp_file.keep()?;
         Ok(Self { path })
     }

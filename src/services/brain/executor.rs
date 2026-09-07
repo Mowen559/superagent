@@ -223,21 +223,33 @@ impl AgentLoop {
         }
     }
 
-    
     pub fn push_event(&mut self, evt: SessionEvent) {
         if self.emit_jsonl {
             match &evt {
                 SessionEvent::ModelThought(t) => {
                     println!("{}", serde_json::json!({ "type": "text", "content": t }));
                 }
-                SessionEvent::ToolCall { id, name, arguments } => {
-                    println!("{}", serde_json::json!({ "type": "tool_call", "tool": name, "arguments": arguments }));
+                SessionEvent::ToolCall {
+                    id,
+                    name,
+                    arguments,
+                } => {
+                    println!(
+                        "{}",
+                        serde_json::json!({ "type": "tool_call", "tool": name, "arguments": arguments })
+                    );
                 }
                 SessionEvent::ToolResult { id, result } => {
-                    println!("{}", serde_json::json!({ "type": "tool_result", "tool": id, "result": result }));
+                    println!(
+                        "{}",
+                        serde_json::json!({ "type": "tool_result", "tool": id, "result": result })
+                    );
                 }
                 SessionEvent::SystemWarning(w) => {
-                    println!("{}", serde_json::json!({ "type": "text", "content": format!("[System Warning] {}", w) }));
+                    println!(
+                        "{}",
+                        serde_json::json!({ "type": "text", "content": format!("[System Warning] {}", w) })
+                    );
                 }
                 _ => {}
             }

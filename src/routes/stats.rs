@@ -1,34 +1,51 @@
-use axum::{
-    extract::Query,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    routing::get,
-    Json, Router,
-};
+use crate::services::usage_tracker::{self, DailyUsage, UsageLog};
+use axum::extract::Query;
+use axum::{routing::get, Json, Router};
 use serde::Deserialize;
-use std::sync::Arc;
 
-use crate::{services::usage_tracker, AppState};
-
-#[derive(Debug, Deserialize)]
-struct LogsQuery {
-    limit: Option<usize>,
+#[derive(Deserialize)]
+pub struct StatsQuery {
+    pub days: Option<u32>,
+    pub limit: Option<u32>,
 }
 
-pub fn router() -> Router<Arc<AppState>> {
+pub fn router() -> Router<std::sync::Arc<crate::server::AppState>> {
     Router::new()
-        .route("/api/stats/logs", get(list_logs))
-        .route("/api/stats/daily", get(daily_stats))
+        .route("/api/stats/daily", get(handle_daily_usage))
+        .route(
+            "/api/stats/logs",
+            axum::routing::get(handle_usage_logs).delete(handle_clear_logs),
+        )
 }
 
-async fn list_logs(Query(query): Query<LogsQuery>) -> Result<Response, (StatusCode, String)> {
-    let logs = usage_tracker::list_usage_logs(query.limit.unwrap_or(200))
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error))?;
-    Ok(Json(logs).into_response())
+async fn handle_daily_usage(Query(query): Query<StatsQuery>) -> Json<Vec<DailyUsage>> {
+    let days = query.days.unwrap_or(30);
+    match usage_tracker::get_daily_usage(days) {
+        Ok(data) => Json(data),
+        Err(e) => {
+            tracing::error!("Failed to fetch daily usage: {}", e);
+            Json(vec![])
+        }
+    }
 }
 
-async fn daily_stats() -> Result<Response, (StatusCode, String)> {
-    let stats = usage_tracker::daily_usage_stats()
-        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error))?;
-    Ok(Json(stats).into_response())
+async fn handle_usage_logs(Query(query): Query<StatsQuery>) -> Json<Vec<UsageLog>> {
+    let limit = query.limit.unwrap_or(100);
+    match usage_tracker::get_usage_logs(limit) {
+        Ok(data) => Json(data),
+        Err(e) => {
+            tracing::error!("Failed to fetch usage logs: {}", e);
+            Json(vec![])
+        }
+    }
+}
+
+async fn handle_clear_logs() -> Json<serde_json::Value> {
+    match usage_tracker::clear_usage_logs() {
+        Ok(_) => Json(serde_json::json!({ "success": true })),
+        Err(e) => {
+            tracing::error!("Failed to clear logs: {}", e);
+            Json(serde_json::json!({ "success": false, "error": e.to_string() }))
+        }
+    }
 }

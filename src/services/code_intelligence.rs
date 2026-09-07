@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use rusqlite::{Connection, OpenFlags};
+use std::path::{Path, PathBuf};
 
 /// Provides unified access to the Code Intelligence graph database
 pub struct CodeIntelligenceRuntime {
@@ -27,20 +27,24 @@ impl CodeIntelligenceRuntime {
         }
         let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
             .map_err(|e| format!("Failed to open graph DB: {}", e))?;
-            
+
         // Basic schema validation to ensure the DB is a valid codebase-memory graph
-        let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'edges')")
+        let mut stmt = conn
+            .prepare(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'edges')",
+            )
             .map_err(|e| format!("Schema validation failed: {}", e))?;
-            
-        let tables: Vec<String> = stmt.query_map([], |row| row.get(0))
+
+        let tables: Vec<String> = stmt
+            .query_map([], |row| row.get(0))
             .map_err(|e| format!("Schema validation failed: {}", e))?
             .filter_map(|r| r.ok())
             .collect();
-            
+
         if tables.len() != 2 {
             return Err("Graph database schema is invalid or missing required tables".to_string());
         }
-        
+
         drop(stmt);
         Ok(conn)
     }

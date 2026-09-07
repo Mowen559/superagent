@@ -32,7 +32,10 @@ pub struct RunCommandTool {
 
 impl RunCommandTool {
     pub fn new(shell_service: Arc<dyn ShellService>, workspace_root: std::path::PathBuf) -> Self {
-        Self { shell_service, workspace_root }
+        Self {
+            shell_service,
+            workspace_root,
+        }
     }
 }
 
@@ -114,19 +117,24 @@ impl ToolExecutor for RunCommandTool {
             return Err("ERROR: This command is highly destructive (Interaction Approval Required). You MUST first use AskUserTool to explain what you are deleting and request permission. Once the user approves, include the user's reply in the 'ApprovalTicket' parameter to proceed.".to_string());
         }
 
-                let absolute_cwd = if std::path::Path::new(cwd_str).is_absolute() {
+        let absolute_cwd = if std::path::Path::new(cwd_str).is_absolute() {
             std::path::PathBuf::from(cwd_str)
         } else {
             self.workspace_root.join(cwd_str)
         };
-        
-        let canonical_cwd = std::fs::canonicalize(&absolute_cwd).unwrap_or_else(|_| absolute_cwd.clone());
-        let canonical_root = std::fs::canonicalize(&self.workspace_root).unwrap_or_else(|_| self.workspace_root.clone());
-        
+
+        let canonical_cwd =
+            std::fs::canonicalize(&absolute_cwd).unwrap_or_else(|_| absolute_cwd.clone());
+        let canonical_root = std::fs::canonicalize(&self.workspace_root)
+            .unwrap_or_else(|_| self.workspace_root.clone());
+
         if !canonical_cwd.starts_with(&canonical_root) {
-            return Err(format!("ERROR: The specified Cwd '{}' resolves outside the workspace root.", cwd_str));
+            return Err(format!(
+                "ERROR: The specified Cwd '{}' resolves outside the workspace root.",
+                cwd_str
+            ));
         }
-        
+
         let timeout_secs = args
             .get("TimeoutSeconds")
             .and_then(|v| v.as_u64())

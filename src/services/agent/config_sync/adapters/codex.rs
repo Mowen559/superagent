@@ -145,7 +145,7 @@ impl CliConfigAdapter for CodexConfigAdapter {
                 if p.is_local_proxy {
                     let auth_token = crate::services::agent::provider_store::global_provider_store()
                         .generate_proxy_token(provider_id);
-                        
+
                     let proxy_provider = toml_edit::Item::Table({
                         let mut t = toml_edit::Table::new();
                         // Codex needs OpenAI compatible endpoint, typically we proxy to /openai on hub
@@ -196,7 +196,7 @@ impl CliConfigAdapter for CodexConfigAdapter {
                 network_probe: "SKIPPED".to_string(),
             });
         }
-        
+
         // CLI Probe
         let cli_probe = match std::process::Command::new(&install.executable)
             .arg("--version")

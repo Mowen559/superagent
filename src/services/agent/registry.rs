@@ -57,7 +57,10 @@ pub enum Protocol {
 impl Protocol {
     /// Whether a backend of this family can actually run this round.
     pub fn is_live(self) -> bool {
-        matches!(self, Protocol::StreamJson | Protocol::Json | Protocol::Acp | Protocol::AppServer)
+        matches!(
+            self,
+            Protocol::StreamJson | Protocol::Json | Protocol::Acp | Protocol::AppServer
+        )
     }
 }
 
@@ -89,29 +92,176 @@ pub struct KindInfo {
 /// The canonical table. Command names + min versions are taken from multica
 /// `agent.go` launchHeaders and `version.go` MinVersions.
 pub const KINDS: &[KindInfo] = &[
-    KindInfo { kind: AgentKind::Claude, slug: "claude", command: "claude", min_version: Some("2.0.0"), protocol: Protocol::StreamJson, launch_header: "claude (stream-json)", install_strategy: InstallStrategy::Npm("@anthropic-ai/claude-code") },
-    KindInfo { kind: AgentKind::Cursor, slug: "cursor", command: "cursor-agent", min_version: None, protocol: Protocol::StreamJson, launch_header: "cursor-agent (stream-json)", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Qwen, slug: "qwen", command: "qwen", min_version: Some("0.20.0"), protocol: Protocol::StreamJson, launch_header: "qwen -p (stream-json)", install_strategy: InstallStrategy::Npm("@qwen-code/qwen-code") },
-    KindInfo { kind: AgentKind::Codebuddy, slug: "codebuddy", command: "codebuddy", min_version: None, protocol: Protocol::StreamJson, launch_header: "codebuddy (stream-json)", install_strategy: InstallStrategy::Npm("codebuddy") },
-    KindInfo { kind: AgentKind::Copilot, slug: "copilot", command: "copilot", min_version: Some("1.0.0"), protocol: Protocol::Json, launch_header: "copilot (json)", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Opencode, slug: "opencode", command: "opencode", min_version: None, protocol: Protocol::Json, launch_header: "opencode run (json)", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Deveco, slug: "deveco", command: "deveco", min_version: None, protocol: Protocol::Json, launch_header: "deveco run (json)", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Openclaw, slug: "openclaw", command: "openclaw", min_version: None, protocol: Protocol::Json, launch_header: "openclaw agent (json)", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Pi, slug: "pi", command: "pi", min_version: None, protocol: Protocol::Json, launch_header: "pi (json mode)", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Antigravity, slug: "antigravity", command: "agy", min_version: None, protocol: Protocol::Json, launch_header: "agy -p (non-interactive)", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Hermes, slug: "hermes", command: "hermes", min_version: None, protocol: Protocol::Acp, launch_header: "hermes acp", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Kimi, slug: "kimi", command: "kimi", min_version: None, protocol: Protocol::Acp, launch_header: "kimi acp", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Kiro, slug: "kiro", command: "kiro-cli", min_version: None, protocol: Protocol::Acp, launch_header: "kiro-cli acp", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Qoder, slug: "qoder", command: "qodercli", min_version: None, protocol: Protocol::Acp, launch_header: "qodercli --acp", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Traecli, slug: "traecli", command: "traecli", min_version: None, protocol: Protocol::Acp, launch_header: "traecli acp serve", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Grok, slug: "grok", command: "grok", min_version: Some("0.2.89"), protocol: Protocol::Acp, launch_header: "grok agent stdio", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::Codex, slug: "codex", command: "codex", min_version: Some("0.100.0"), protocol: Protocol::AppServer, launch_header: "codex app-server", install_strategy: InstallStrategy::Unsupported },
-    KindInfo { kind: AgentKind::SuperAgent, slug: "superagent", command: "hub", min_version: None, protocol: Protocol::Json, launch_header: "hub superagent-worker", install_strategy: InstallStrategy::Unsupported },
+    KindInfo {
+        kind: AgentKind::Claude,
+        slug: "claude",
+        command: "claude",
+        min_version: Some("2.0.0"),
+        protocol: Protocol::StreamJson,
+        launch_header: "claude (stream-json)",
+        install_strategy: InstallStrategy::Npm("@anthropic-ai/claude-code"),
+    },
+    KindInfo {
+        kind: AgentKind::Cursor,
+        slug: "cursor",
+        command: "cursor-agent",
+        min_version: None,
+        protocol: Protocol::StreamJson,
+        launch_header: "cursor-agent (stream-json)",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Qwen,
+        slug: "qwen",
+        command: "qwen",
+        min_version: Some("0.20.0"),
+        protocol: Protocol::StreamJson,
+        launch_header: "qwen -p (stream-json)",
+        install_strategy: InstallStrategy::Npm("@qwen-code/qwen-code"),
+    },
+    KindInfo {
+        kind: AgentKind::Codebuddy,
+        slug: "codebuddy",
+        command: "codebuddy",
+        min_version: None,
+        protocol: Protocol::StreamJson,
+        launch_header: "codebuddy (stream-json)",
+        install_strategy: InstallStrategy::Npm("codebuddy"),
+    },
+    KindInfo {
+        kind: AgentKind::Copilot,
+        slug: "copilot",
+        command: "copilot",
+        min_version: Some("1.0.0"),
+        protocol: Protocol::Json,
+        launch_header: "copilot (json)",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Opencode,
+        slug: "opencode",
+        command: "opencode",
+        min_version: None,
+        protocol: Protocol::Json,
+        launch_header: "opencode run (json)",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Deveco,
+        slug: "deveco",
+        command: "deveco",
+        min_version: None,
+        protocol: Protocol::Json,
+        launch_header: "deveco run (json)",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Openclaw,
+        slug: "openclaw",
+        command: "openclaw",
+        min_version: None,
+        protocol: Protocol::Json,
+        launch_header: "openclaw agent (json)",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Pi,
+        slug: "pi",
+        command: "pi",
+        min_version: None,
+        protocol: Protocol::Json,
+        launch_header: "pi (json mode)",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Antigravity,
+        slug: "antigravity",
+        command: "agy",
+        min_version: None,
+        protocol: Protocol::Json,
+        launch_header: "agy -p (non-interactive)",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Hermes,
+        slug: "hermes",
+        command: "hermes",
+        min_version: None,
+        protocol: Protocol::Acp,
+        launch_header: "hermes acp",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Kimi,
+        slug: "kimi",
+        command: "kimi",
+        min_version: None,
+        protocol: Protocol::Acp,
+        launch_header: "kimi acp",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Kiro,
+        slug: "kiro",
+        command: "kiro-cli",
+        min_version: None,
+        protocol: Protocol::Acp,
+        launch_header: "kiro-cli acp",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Qoder,
+        slug: "qoder",
+        command: "qodercli",
+        min_version: None,
+        protocol: Protocol::Acp,
+        launch_header: "qodercli --acp",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Traecli,
+        slug: "traecli",
+        command: "traecli",
+        min_version: None,
+        protocol: Protocol::Acp,
+        launch_header: "traecli acp serve",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Grok,
+        slug: "grok",
+        command: "grok",
+        min_version: Some("0.2.89"),
+        protocol: Protocol::Acp,
+        launch_header: "grok agent stdio",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::Codex,
+        slug: "codex",
+        command: "codex",
+        min_version: Some("0.100.0"),
+        protocol: Protocol::AppServer,
+        launch_header: "codex app-server",
+        install_strategy: InstallStrategy::Unsupported,
+    },
+    KindInfo {
+        kind: AgentKind::SuperAgent,
+        slug: "superagent",
+        command: "hub",
+        min_version: None,
+        protocol: Protocol::Json,
+        launch_header: "hub superagent-worker",
+        install_strategy: InstallStrategy::Unsupported,
+    },
 ];
 
 impl AgentKind {
     pub fn info(self) -> &'static KindInfo {
-        KINDS.iter().find(|k| k.kind == self).expect("every kind is in KINDS")
+        KINDS
+            .iter()
+            .find(|k| k.kind == self)
+            .expect("every kind is in KINDS")
     }
 }
 
@@ -162,6 +312,8 @@ pub struct AgentDetection {
     pub launch_header: &'static str,
     /// Whether the backend can actually run this round (family is live).
     pub supported: bool,
+    /// Whether the agent can be installed via the Hub.
+    pub installable: bool,
     pub installed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
@@ -180,12 +332,14 @@ pub async fn detect_all() -> Vec<AgentDetection> {
             (Some(v), Some(min)) => version_at_least(v, min),
             _ => true,
         };
+        let installable = !matches!(info.install_strategy, InstallStrategy::Unsupported);
         AgentDetection {
             agent: info.slug,
             command: info.command,
             protocol: info.protocol,
             launch_header: info.launch_header,
             supported: info.protocol.is_live(),
+            installable,
             installed,
             version,
             version_ok,
@@ -278,10 +432,11 @@ mod tests {
     }
 }
 
-
-
 /// Resolves the provider from the registry and calls its list_models implementation.
-pub async fn list_models(kind: AgentKind, executable_path: Option<&str>) -> super::backend::BackendResult<Vec<super::models::Model>> {
+pub async fn list_models(
+    kind: AgentKind,
+    executable_path: Option<&str>,
+) -> super::backend::BackendResult<Vec<super::models::Model>> {
     let backend = new(kind);
     backend.list_models(executable_path).await
 }
@@ -291,4 +446,3 @@ pub fn model_selection_supported(kind: AgentKind) -> bool {
     let backend = new(kind);
     backend.model_selection_supported()
 }
-

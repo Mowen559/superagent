@@ -197,7 +197,10 @@ mod tests {
 
     #[test]
     fn test_level_parsing() {
-        assert_eq!(FilterLevel::from_str("aggressive").unwrap(), FilterLevel::Aggressive);
+        assert_eq!(
+            FilterLevel::from_str("aggressive").unwrap(),
+            FilterLevel::Aggressive
+        );
         assert_eq!(FilterLevel::from_str("min").unwrap(), FilterLevel::Minimal);
         assert!(FilterLevel::from_str("bogus").is_err());
     }

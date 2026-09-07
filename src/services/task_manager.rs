@@ -110,11 +110,16 @@ impl TaskManager {
             })
     }
 
-    pub fn update_status(&self, task_id: &str, status: TaskStatus, error: Option<String>) {
-        let _ = self.try_update_status(task_id, status, error);
+    pub fn update_status(&self, task_id: &str, status: TaskStatus, error: Option<String>) -> bool {
+        self.try_update_status(task_id, status, error)
     }
 
-    pub fn update_development_run(&self, task_id: &str, change_set: Option<serde_json::Value>, approval: Option<String>) {
+    pub fn update_development_run(
+        &self,
+        task_id: &str,
+        change_set: Option<serde_json::Value>,
+        approval: Option<String>,
+    ) {
         let _transition_guard = self.status_lock.lock().unwrap();
         if let Some(mut task) = self.get_task(task_id) {
             if change_set.is_some() {
@@ -126,6 +131,77 @@ impl TaskManager {
             task.updated_at = chrono::Utc::now().timestamp_millis();
             let _ = self.save_task(&task);
         }
+    }
+
+    pub fn update_workspace_baseline(&self, task_id: &str, baseline: String) -> bool {
+        let _transition_guard = self.status_lock.lock().unwrap();
+        let Some(mut task) = self.get_task(task_id) else {
+            return false;
+        };
+        if task.status.is_terminal() {
+            return false;
+        }
+        task.workspace_baseline = Some(baseline);
+        task.updated_at = chrono::Utc::now().timestamp_millis();
+        self.save_task(&task).is_ok()
+    }
+
+    pub fn update_verification(&self, task_id: &str, verification: serde_json::Value) -> bool {
+        let _transition_guard = self.status_lock.lock().unwrap();
+        let Some(mut task) = self.get_task(task_id) else {
+            return false;
+        };
+        task.verification = Some(verification);
+        task.updated_at = chrono::Utc::now().timestamp_millis();
+        self.save_task(&task).is_ok()
+    }
+
+    /// Attach a structured result before committing the terminal status.
+    /// Terminal tasks are immutable so a late worker cannot rewrite the
+    /// evidence associated with a cancelled or otherwise finished task.
+    pub fn update_receipt(&self, task_id: &str, receipt: serde_json::Value) -> bool {
+        let _transition_guard = self.status_lock.lock().unwrap();
+        let Some(mut task) = self.get_task(task_id) else {
+            return false;
+        };
+        if task.status.is_terminal() {
+            return false;
+        }
+        task.receipt = Some(receipt);
+        task.updated_at = chrono::Utc::now().timestamp_millis();
+        self.save_task(&task).is_ok()
+    }
+
+    /// Atomically persist an evidence receipt and commit `completed`. This
+    /// closes the final race with cancellation: either cancellation wins and
+    /// no successful receipt is attached, or the verified completion wins.
+    pub fn complete_with_receipt(&self, task_id: &str, receipt: serde_json::Value) -> bool {
+        let _transition_guard = self.status_lock.lock().unwrap();
+        let Some(mut task) = self.get_task(task_id) else {
+            return false;
+        };
+        if task.status.is_terminal() {
+            return false;
+        }
+        let now = chrono::Utc::now().timestamp_millis();
+        task.receipt = Some(receipt);
+        task.status = TaskStatus::Completed;
+        task.updated_at = now;
+        task.duration_ms = Some(now - task.created_at);
+        if self.save_task(&task).is_err() {
+            return false;
+        }
+        self.append_event(
+            task_id,
+            &AgentMessage::Status {
+                status: TaskStatus::Completed.as_str().to_string(),
+                session_id: String::new(),
+            },
+        );
+        self.event_bus.lock().unwrap().remove(task_id);
+        self.cancel_bus.lock().unwrap().remove(task_id);
+        self.remove_control(task_id);
+        true
     }
 
     fn try_update_status(&self, task_id: &str, status: TaskStatus, error: Option<String>) -> bool {
@@ -235,7 +311,11 @@ impl TaskManager {
             .lines()
             .filter(|l| !l.trim().is_empty())
             .enumerate()
-            .filter_map(|(i, l)| serde_json::from_str::<AgentMessage>(l).ok().map(|msg| (i + 1, msg)))
+            .filter_map(|(i, l)| {
+                serde_json::from_str::<AgentMessage>(l)
+                    .ok()
+                    .map(|msg| (i + 1, msg))
+            })
             .collect()
     }
 
@@ -341,6 +421,16 @@ impl TaskManager {
         tasks
     }
 
+    pub fn latest_project_analysis(&self, project_path: &str) -> Option<Task> {
+        self.latest_project_task(project_path, "analysis")
+    }
+
+    pub fn latest_project_task(&self, project_path: &str, task_type: &str) -> Option<Task> {
+        self.list_tasks().into_iter().find(|task| {
+            task.task_type == task_type && same_project_path(&task.project_path, project_path)
+        })
+    }
+
     fn save_task(&self, task: &Task) -> std::io::Result<()> {
         let path = self.task_file_path(&task.id);
         let temp_path = self.tasks_dir.join(format!("{}.json.tmp", task.id));
@@ -376,8 +466,21 @@ impl TaskManager {
 
     fn persisted_event_count(&self, task_id: &str) -> usize {
         std::fs::read_to_string(self.events_file_path(task_id))
-            .map(|content| content.lines().filter(|line| !line.trim().is_empty()).count())
+            .map(|content| {
+                content
+                    .lines()
+                    .filter(|line| !line.trim().is_empty())
+                    .count()
+            })
             .unwrap_or(0)
+    }
+}
+
+fn same_project_path(left: &str, right: &str) -> bool {
+    if cfg!(windows) {
+        left.eq_ignore_ascii_case(right)
+    } else {
+        left == right
     }
 }
 
@@ -442,17 +545,67 @@ mod tests {
     }
 
     #[test]
+    fn receipt_is_persisted_before_completion_and_is_immutable_afterwards() {
+        let (_directory, manager) = manager();
+        let (task, _cancel_rx) = manager.create_task("analysis", "", None);
+        manager.update_status(&task.id, TaskStatus::Running, None);
+        assert!(manager.update_receipt(&task.id, serde_json::json!({ "indexed": true })));
+        manager.update_status(&task.id, TaskStatus::Completed, None);
+        assert_eq!(
+            manager
+                .get_task(&task.id)
+                .unwrap()
+                .receipt
+                .unwrap()
+                .get("indexed")
+                .and_then(serde_json::Value::as_bool),
+            Some(true)
+        );
+        assert!(!manager.update_receipt(&task.id, serde_json::json!({ "indexed": false })));
+    }
+
+    #[test]
+    fn receipt_and_success_terminal_state_commit_together() {
+        let (_directory, manager) = manager();
+        let (task, _cancel_rx) = manager.create_task("analysis", "", None);
+        manager.update_status(&task.id, TaskStatus::Running, None);
+        assert!(manager
+            .complete_with_receipt(&task.id, serde_json::json!({ "kind": "project-analysis" })));
+        let completed = manager.get_task(&task.id).unwrap();
+        assert_eq!(completed.status, TaskStatus::Completed);
+        assert_eq!(
+            completed
+                .receipt
+                .as_ref()
+                .and_then(|receipt| receipt.get("kind"))
+                .and_then(serde_json::Value::as_str),
+            Some("project-analysis")
+        );
+        assert!(!manager.cancel_task(&task.id));
+    }
+
+    #[test]
     fn replay_and_live_subscription_have_one_monotonic_boundary() {
         let (_directory, manager) = manager();
         let (task, _cancel_rx) = manager.create_task("agent", "", None);
-        manager.append_event(&task.id, &AgentMessage::Text { content: "before".into() });
+        manager.append_event(
+            &task.id,
+            &AgentMessage::Text {
+                content: "before".into(),
+            },
+        );
 
         let (backlog, mut receiver) = manager.snapshot_and_subscribe(&task.id, 0);
         assert_eq!(backlog.len(), 1);
         assert_eq!(backlog[0].0, 1);
         assert!(receiver.as_mut().unwrap().try_recv().is_err());
 
-        manager.append_event(&task.id, &AgentMessage::Text { content: "after".into() });
+        manager.append_event(
+            &task.id,
+            &AgentMessage::Text {
+                content: "after".into(),
+            },
+        );
         let (sequence, event) = receiver.as_mut().unwrap().try_recv().unwrap();
         assert_eq!(sequence, 2);
         assert!(matches!(event, AgentMessage::Text { content } if content == "after"));
@@ -480,7 +633,9 @@ mod tests {
         manager.update_status(&task.id, TaskStatus::Completed, None);
         assert!(!manager.send_control(
             &task.id,
-            TaskControl::Intervene { instruction: "late".into() }
+            TaskControl::Intervene {
+                instruction: "late".into()
+            }
         ));
     }
 }

@@ -13,7 +13,7 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
     fn prepare_request(
         &self,
         settings: &LLMSettings,
-        standard_body: Value,
+        mut standard_body: Value,
     ) -> Result<(String, HeaderMap, Value), anyhow::Error> {
         let is_stream = standard_body
             .get("stream")
@@ -25,7 +25,7 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
             "generateContent"
         };
         let query_string = if is_stream { "?alt=sse" } else { "" };
-        let base_url = "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal";
+        let base_url = "https://daily-cloudcode-pa.googleapis.com/v1internal";
         let target_url = format!("{}:{}{}", base_url, method, query_string);
 
         let mut headers = HeaderMap::new();
@@ -36,12 +36,32 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
         );
         headers.insert(
             USER_AGENT,
-            HeaderValue::from_static("antigravity/1.21.9 darwin/arm64"),
+            HeaderValue::from_static("vscode/1.X.X (Antigravity/4.3.0)"),
         );
         headers.insert("Connection", HeaderValue::from_static("close"));
 
+        let requested_model = standard_body
+            .get("model")
+            .and_then(Value::as_str)
+            .unwrap_or(&settings.model)
+            .to_string();
+        fn resolve_gemini_native_model(m: &str) -> &str {
+            match m {
+                "claude-opus-4-6-thinking" => "claude-3.5-sonnet-v2-0",
+                "claude-3.5-sonnet" => "claude-3.5-sonnet-v2-0",
+                "gemini-3.1-pro-high" => "gemini-pro-agent",
+                "gemini-3.1-pro-low" => "gemini-3.1-pro-low",
+                "gemini-3.1-flash-lite" => "gemini-3.1-flash-lite",
+                _ => m,
+            }
+        }
+        let resolved_model = resolve_gemini_native_model(&requested_model).to_string();
+        if let Some(body) = standard_body.as_object_mut() {
+            body.insert("model".to_string(), Value::String(resolved_model.clone()));
+        }
+
         // Convert standard (OpenAI) to Gemini
-        let gemini_body = convert_standard_to_gemini(standard_body, settings.model.clone());
+        let gemini_body = convert_standard_to_gemini(standard_body, resolved_model.clone());
 
         // Wrap into v1internal
         let mut project_id = settings
@@ -60,8 +80,8 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
         let v1internal_body = json!({
             "project": project_id,
             "request": gemini_body,
-            "model": settings.model,
-            "userAgent": "antigravity/1.21.9 darwin/arm64",
+            "model": resolved_model,
+            "userAgent": "vscode/1.X.X (Antigravity/4.3.0)",
             "requestType": "agent",
             "requestId": official_request_id,
             "enabledCreditTypes": ["GOOGLE_ONE_AI"],
@@ -69,7 +89,8 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
 
         tracing::info!("gemini_native target_url: {}", target_url);
         tracing::debug!(
-            model = %settings.model,
+            requested_model = %requested_model,
+            resolved_model = %resolved_model,
             streaming = is_stream,
             "prepared gemini_native Canonical Model Request"
         );
@@ -89,52 +110,79 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
     ) -> std::pin::Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>> {
         // Due to complexity, we will implement a basic passthrough map, but ideally we'd parse SSE lines,
         // extract `response`, and convert it to OpenAI stream format.
+        let mut last_text = String::new();
+        let mut buffer = String::new();
 
         let mapped = futures::stream::StreamExt::map(stream, move |res| match res {
             Ok(bytes) => {
                 let text = String::from_utf8_lossy(&bytes);
+                buffer.push_str(&text);
                 let mut out_text = String::new();
-                for line in text.lines() {
-                    if line.starts_with("data: ") {
-                        let data = &line[6..];
-                        if data == "[DONE]" {
-                            out_text.push_str("data: [DONE]\n\n");
-                            continue;
-                        }
-                        if let Ok(mut json) = serde_json::from_str::<Value>(data) {
-                            if let Some(resp) = json.get("response").cloned() {
-                                // Simple mapping for standard compatibility
-                                if let Ok(standard) = convert_gemini_to_standard(resp) {
-                                    // For streams, OpenAI returns delta.
-                                    // We approximate it by wrapping in stream format
-                                    let content = standard["choices"][0]["message"]["content"]
-                                        .as_str()
-                                        .unwrap_or("");
-                                    let stream_json = json!({
-                                        "id": standard["id"],
-                                        "object": "chat.completion.chunk",
-                                        "created": standard["created"],
-                                        "model": standard["model"],
-                                        "choices": [{
-                                            "index": 0,
-                                            "delta": {
-                                                "content": content
-                                            },
-                                            "finish_reason": serde_json::Value::Null
-                                        }]
-                                    });
-                                    out_text.push_str(&format!(
-                                        "data: {}\n\n",
-                                        serde_json::to_string(&stream_json).unwrap()
-                                    ));
-                                    continue;
+
+                while let Some(block) =
+                    crate::services::protocol_converter::sse::take_sse_block(&mut buffer)
+                {
+                    let mut is_processed = false;
+
+                    for line in block.lines() {
+                        if let Some(data) =
+                            crate::services::protocol_converter::sse::strip_sse_field(line, "data")
+                        {
+                            is_processed = true;
+                            if data == "[DONE]" {
+                                out_text.push_str("data: [DONE]\n\n");
+                                continue;
+                            }
+                            if let Ok(json) = serde_json::from_str::<Value>(data) {
+                                if let Some(resp) = json.get("response").cloned() {
+                                    // Simple mapping for standard compatibility
+                                    if let Ok(standard) = convert_gemini_to_standard(resp) {
+                                        // For streams, OpenAI returns delta.
+                                        let content = standard["choices"][0]["message"]["content"]
+                                            .as_str()
+                                            .unwrap_or("");
+
+                                        // Handle cumulative text robustly
+                                        let new_text = if content.starts_with(&last_text) {
+                                            let sliced = &content[last_text.len()..];
+                                            last_text = content.to_string();
+                                            sliced
+                                        } else {
+                                            last_text = content.to_string();
+                                            content
+                                        };
+
+                                        if !new_text.is_empty() {
+                                            let stream_json = json!({
+                                                "id": standard["id"],
+                                                "object": "chat.completion.chunk",
+                                                "created": standard["created"],
+                                                "model": standard["model"],
+                                                "choices": [{
+                                                    "index": 0,
+                                                    "delta": {
+                                                        "content": new_text
+                                                    },
+                                                    "finish_reason": serde_json::Value::Null
+                                                }]
+                                            });
+                                            out_text.push_str(&format!(
+                                                "data: {}\n\n",
+                                                serde_json::to_string(&stream_json).unwrap()
+                                            ));
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                    out_text.push_str(line);
-                    out_text.push('\n');
+
+                    if !is_processed {
+                        out_text.push_str(&block);
+                        out_text.push_str("\n\n");
+                    }
                 }
+
                 Ok(Bytes::from(out_text))
             }
             Err(e) => Err(e),
@@ -263,14 +311,45 @@ fn convert_standard_to_gemini(mut standard: Value, fallback_model: String) -> Va
         .and_then(|m| m.as_str())
         .unwrap_or(&fallback_model);
 
-    let mut gemini_req = json!({
-        "contents": contents,
-        "model": model,
-        "generationConfig": {
-            "temperature": standard.get("temperature").unwrap_or(&json!(0.7)),
-        }
+    let mut generation_config = json!({
+        "temperature": standard.get("temperature").unwrap_or(&json!(0.7)),
     });
 
+    if let Some(max_tokens) = standard
+        .get("max_completion_tokens")
+        .or_else(|| standard.get("max_tokens"))
+        .and_then(|v| v.as_u64())
+    {
+        // Cap maxOutputTokens at 131072 for safety against 400 INVALID_ARGUMENT
+        generation_config
+            .as_object_mut()
+            .unwrap()
+            .insert("maxOutputTokens".to_string(), json!(max_tokens.min(131072)));
+    } else {
+        generation_config
+            .as_object_mut()
+            .unwrap()
+            .insert("maxOutputTokens".to_string(), json!(8192));
+    }
+
+    // Thinking parameter mapping
+    if let Some(thinking) = standard.get("thinking") {
+        if let Some(budget) = thinking.get("budget_tokens").and_then(|v| v.as_u64()) {
+            generation_config
+                .as_object_mut()
+                .unwrap()
+                .insert("thinkingBudget".to_string(), json!(budget));
+        }
+    } else if let Some(thinking_level) = standard.get("thinking_level") {
+        generation_config
+            .as_object_mut()
+            .unwrap()
+            .insert("thinkingLevel".to_string(), thinking_level.clone());
+    }
+
+    let mut gemini_req = json!({});
+
+    // 1. systemInstruction
     if let Some(sys) = system_instruction {
         gemini_req.as_object_mut().unwrap().insert(
             "systemInstruction".to_string(),
@@ -280,6 +359,7 @@ fn convert_standard_to_gemini(mut standard: Value, fallback_model: String) -> Va
         );
     }
 
+    // 2. tools and 3. toolConfig
     if let Some(tools) = standard.get("tools").and_then(|t| t.as_array()) {
         let mut gemini_tools = Vec::new();
         let mut function_declarations = Vec::new();
@@ -303,6 +383,23 @@ fn convert_standard_to_gemini(mut standard: Value, fallback_model: String) -> Va
             .unwrap()
             .insert("tools".to_string(), json!(gemini_tools));
     }
+
+    // 4. generationConfig
+    gemini_req
+        .as_object_mut()
+        .unwrap()
+        .insert("generationConfig".to_string(), generation_config);
+
+    // 5. safetySettings (placeholder if needed)
+
+    // 6. contents (must be last for caching)
+    gemini_req
+        .as_object_mut()
+        .unwrap()
+        .insert("contents".to_string(), json!(contents));
+
+    // Cleanup [undefined] strings recursively
+    deep_clean_undefined(&mut gemini_req, 0);
 
     gemini_req
 }
@@ -366,7 +463,7 @@ fn convert_gemini_to_standard(gemini: Value) -> Result<Value, anyhow::Error> {
         message["tool_calls"] = json!(tool_calls);
     }
 
-    Ok(json!({
+    let mut response = json!({
         "id": format!("chatcmpl-{}", Uuid::new_v4()),
         "object": "chat.completion",
         "created": chrono::Utc::now().timestamp(),
@@ -376,5 +473,50 @@ fn convert_gemini_to_standard(gemini: Value) -> Result<Value, anyhow::Error> {
             "message": message,
             "finish_reason": if !tool_calls.is_empty() { "tool_calls" } else { "stop" }
         }]
-    }))
+    });
+
+    if let Some(usage) = gemini.get("usageMetadata") {
+        let prompt_tokens = usage_u64(usage, "promptTokenCount");
+        let completion_tokens = usage_u64(usage, "candidatesTokenCount");
+        let cached_tokens = usage_u64(usage, "cachedContentTokenCount");
+        response["usage"] = json!({
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": usage_u64(usage, "totalTokenCount").max(prompt_tokens + completion_tokens),
+            "prompt_tokens_details": {
+                "cached_tokens": cached_tokens
+            },
+            "cached_tokens": cached_tokens
+        });
+    }
+
+    Ok(response)
+}
+
+fn usage_u64(usage: &Value, field: &str) -> u64 {
+    usage.get(field).and_then(Value::as_u64).unwrap_or(0)
+}
+
+fn deep_clean_undefined(val: &mut Value, depth: usize) {
+    if depth > 10 {
+        return;
+    }
+    match val {
+        Value::Object(map) => {
+            for v in map.values_mut() {
+                deep_clean_undefined(v, depth + 1);
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                deep_clean_undefined(v, depth + 1);
+            }
+        }
+        Value::String(s) => {
+            if s.contains("[undefined]") {
+                *s = s.replace("[undefined]", "");
+            }
+        }
+        _ => {}
+    }
 }

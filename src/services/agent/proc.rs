@@ -63,8 +63,11 @@ pub async fn detect_version(name: &str) -> Option<String> {
 
 pub fn resolve_agent_path(name: &str) -> String {
     let install_dir = super::installer::get_agents_install_dir();
-    
-    let p_ext = install_dir.join("node_modules").join(".bin").join(format!("{name}.cmd"));
+
+    let p_ext = install_dir
+        .join("node_modules")
+        .join(".bin")
+        .join(format!("{name}.cmd"));
     if p_ext.exists() {
         return p_ext.to_string_lossy().into_owned();
     }
@@ -76,9 +79,17 @@ pub fn resolve_agent_path(name: &str) -> String {
     for info in super::registry::KINDS {
         if info.command == name {
             let p = if cfg!(windows) {
-                install_dir.join("venvs").join(info.slug).join("Scripts").join(format!("{name}.exe"))
+                install_dir
+                    .join("venvs")
+                    .join(info.slug)
+                    .join("Scripts")
+                    .join(format!("{name}.exe"))
             } else {
-                install_dir.join("venvs").join(info.slug).join("bin").join(name)
+                install_dir
+                    .join("venvs")
+                    .join(info.slug)
+                    .join("bin")
+                    .join(name)
             };
             if p.exists() {
                 return p.to_string_lossy().into_owned();

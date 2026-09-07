@@ -7,11 +7,11 @@
 //!   3. L2-normalize + int8-quantize each keyword vector
 //!   4. score = min over keywords of cosine(keyword_vec, node_vec)
 
-use std::path::Path;
+use crate::services::graph_service;
 use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
+use std::path::Path;
 use xxhash_rust::xxh3::{xxh3_64, xxh3_64_with_seed};
-use crate::services::graph_service;
 
 const VEC_DIM: usize = 768;
 const SPARSE_NNZE: u32 = 8;
@@ -82,7 +82,11 @@ pub fn hybrid_search(db_path: &str, query: &str, limit: usize) -> Result<Vec<Hyb
     }
 
     let mut hits: Vec<HybridHit> = fused.into_values().collect();
-    hits.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    hits.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     hits.truncate(limit);
     Ok(hits)
 }
@@ -114,7 +118,11 @@ pub fn tokenize(query: &str) -> Vec<String> {
 }
 
 /// Semantic search: returns Function/Method/Class nodes ranked by min-cosine similarity.
-pub fn semantic_search(db_path: &str, query: &str, limit: usize) -> Result<Vec<SemanticHit>, String> {
+pub fn semantic_search(
+    db_path: &str,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<SemanticHit>, String> {
     if !Path::new(db_path).exists() {
         return Ok(Vec::new());
     }
@@ -162,28 +170,38 @@ pub fn semantic_search(db_path: &str, query: &str, limit: usize) -> Result<Vec<S
         })
         .map_err(|e| e.to_string())?
         .filter_map(|r| r.ok())
-        .filter_map(|(id, name, qualified_name, label, file_path, start_line, end_line, vector)| {
-            let score = min_cosine_score(&vector, &kw_vecs)?;
-            Some(SemanticHit {
-                id: id.to_string(),
-                name,
-                qualified_name,
-                label,
-                file_path,
-                start_line,
-                end_line,
-                score,
-            })
-        })
+        .filter_map(
+            |(id, name, qualified_name, label, file_path, start_line, end_line, vector)| {
+                let score = min_cosine_score(&vector, &kw_vecs)?;
+                Some(SemanticHit {
+                    id: id.to_string(),
+                    name,
+                    qualified_name,
+                    label,
+                    file_path,
+                    start_line,
+                    end_line,
+                    score,
+                })
+            },
+        )
         .collect();
 
-    hits.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    hits.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     hits.truncate(limit);
     Ok(hits)
 }
 
 /// Build one int8 query vector per token; tokens producing zero vectors are skipped.
-fn build_keyword_vectors(conn: &Connection, project: &str, tokens: &[String]) -> Vec<[i8; VEC_DIM]> {
+fn build_keyword_vectors(
+    conn: &Connection,
+    project: &str,
+    tokens: &[String],
+) -> Vec<[i8; VEC_DIM]> {
     let mut vecs = Vec::new();
     for token in tokens.iter().take(MAX_KW) {
         let mut f = [0f32; VEC_DIM];
@@ -198,7 +216,12 @@ fn build_keyword_vectors(conn: &Connection, project: &str, tokens: &[String]) ->
 }
 
 /// Look up the enriched int8 vector for `token` and dequantize it.
-fn load_enriched_vector(conn: &Connection, project: &str, token: &str, out: &mut [f32; VEC_DIM]) -> bool {
+fn load_enriched_vector(
+    conn: &Connection,
+    project: &str,
+    token: &str,
+    out: &mut [f32; VEC_DIM],
+) -> bool {
     let blob: Option<Vec<u8>> = conn
         .query_row(
             "SELECT vector FROM token_vectors WHERE project = ?1 AND token = ?2 LIMIT 1",
@@ -260,7 +283,11 @@ fn min_cosine_score(node_vec: &[u8], kw_vecs: &[[i8; VEC_DIM]]) -> Option<f64> {
             mb += b * b;
         }
         let denom = (ma as f64).sqrt() * (mb as f64).sqrt();
-        let cos_k = if denom > DENOM_EPS { dot as f64 / denom } else { 0.0 };
+        let cos_k = if denom > DENOM_EPS {
+            dot as f64 / denom
+        } else {
+            0.0
+        };
         if cos_k < min_score {
             min_score = cos_k;
         }

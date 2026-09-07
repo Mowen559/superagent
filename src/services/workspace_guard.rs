@@ -12,10 +12,14 @@ impl WorkspaceGuard {
         })
     }
 
-    pub fn resolve_safe<P: AsRef<Path>>(&self, project_name: &str, path: P) -> std::io::Result<PathBuf> {
+    pub fn resolve_safe<P: AsRef<Path>>(
+        &self,
+        project_name: &str,
+        path: P,
+    ) -> std::io::Result<PathBuf> {
         // Compute the expected project boundary
         let project_root = self.projects_root.join(project_name);
-        
+
         // If the project doesn't exist, canonicalize will fail, which is safe.
         // We ensure project_root is safely within projects_root
         let canonical_project_root = std::fs::canonicalize(&project_root)?;

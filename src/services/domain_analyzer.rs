@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use tracing::{info, warn};
-use std::path::Path;
-use rusqlite::{Connection, OpenFlags};
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::Dfs;
+use rusqlite::{Connection, OpenFlags};
 use std::collections::HashMap;
+use std::path::Path;
+use tracing::{info, warn};
 
 pub struct DomainAnalyzer {
     llm: crate::services::llm_provider::LlmProvider,
@@ -30,7 +30,8 @@ impl DomainAnalyzer {
 
             // 1. 获取所有入口节点 (API / Controller / Route)
             let mut stmt = conn.prepare("SELECT id, name FROM nodes WHERE label IN ('Route', 'Controller', 'Endpoint') LIMIT 50")?;
-            let entry_nodes: Vec<(i64, String)> = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            let entry_nodes: Vec<(i64, String)> = stmt
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
                 .filter_map(|r| r.ok())
                 .collect();
 
@@ -43,9 +44,14 @@ impl DomainAnalyzer {
             let mut graph = DiGraph::<i64, String>::new();
             let mut node_map: HashMap<i64, NodeIndex> = HashMap::new();
 
-            let mut edge_stmt = conn.prepare("SELECT source_id, target_id, type FROM edges WHERE type = 'CALLS'")?;
+            let mut edge_stmt =
+                conn.prepare("SELECT source_id, target_id, type FROM edges WHERE type = 'CALLS'")?;
             let edge_iter = edge_stmt.query_map([], |row| {
-                Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?, row.get::<_, String>(2)?))
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
             })?;
 
             for (src, tgt, edge_type) in edge_iter.flatten() {
@@ -53,11 +59,15 @@ impl DomainAnalyzer {
                 let tgt_idx = *node_map.entry(tgt).or_insert_with(|| graph.add_node(tgt));
                 graph.add_edge(src_idx, tgt_idx, edge_type);
             }
-            
+
             (entry_nodes, graph, node_map)
         };
 
-        info!("Loaded {} nodes and {} edges into memory graph.", graph.node_count(), graph.edge_count());
+        info!(
+            "Loaded {} nodes and {} edges into memory graph.",
+            graph.node_count(),
+            graph.edge_count()
+        );
 
         let mut full_report = String::new();
         let lang_str = lang.unwrap_or("zh-CN");
@@ -67,19 +77,26 @@ impl DomainAnalyzer {
             if let Some(&start_idx) = node_map.get(&entry_id) {
                 let mut dfs = Dfs::new(&graph, start_idx);
                 let mut downstream = Vec::new();
-                
+
                 while let Some(visited) = dfs.next(&graph) {
                     let node_id = graph[visited];
                     if node_id != entry_id {
                         downstream.push(node_id.to_string());
                     }
                 }
-                
+
                 let downstream_str = downstream.join(",");
-                
-                match self.llm.explain_domain_flow(&entry_name, &downstream_str, lang_str).await {
+
+                match self
+                    .llm
+                    .explain_domain_flow(&entry_name, &downstream_str, lang_str)
+                    .await
+                {
                     Ok(report) => {
-                        full_report.push_str(&format!("## Flow for Entry: {}\n\n{}\n\n", entry_name, report));
+                        full_report.push_str(&format!(
+                            "## Flow for Entry: {}\n\n{}\n\n",
+                            entry_name, report
+                        ));
                     }
                     Err(e) => {
                         warn!("LLM error generating flow for {}: {}", entry_name, e);
@@ -88,6 +105,10 @@ impl DomainAnalyzer {
             }
         }
 
-        Ok(if full_report.is_empty() { "Failed to generate domain flows.".to_string() } else { full_report })
+        Ok(if full_report.is_empty() {
+            "Failed to generate domain flows.".to_string()
+        } else {
+            full_report
+        })
     }
 }

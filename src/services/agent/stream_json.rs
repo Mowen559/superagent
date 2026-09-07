@@ -38,8 +38,9 @@ pub struct StreamJsonSpec {
     pub prompt_on_stdin: bool,
     /// Builds the argument vector (excluding the command name and, when
     /// `prompt_on_stdin` is false, excluding the prompt itself).
-    pub build_args: Box<dyn Fn(&str, &ExecOptions, Option<&std::path::Path>) -> Vec<String> + Send + Sync>,
-    
+    pub build_args:
+        Box<dyn Fn(&str, &ExecOptions, Option<&std::path::Path>) -> Vec<String> + Send + Sync>,
+
     /// Optional environment variables to set for the CLI command.
     pub envs: Option<Box<dyn Fn(&ExecOptions) -> HashMap<String, String> + Send + Sync>>,
 }
@@ -50,12 +51,17 @@ pub async fn run(
     spec: StreamJsonSpec,
     prompt: String,
     opts: ExecOptions,
-    mut cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>,
+    mut cancel_rx: tokio::sync::watch::Receiver<bool>,
+    _control_rx: Option<
+        tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+    >,
 ) -> BackendResult<AgentSession> {
     let mut _mcp_guard = None;
-    let mcp_path = if crate::services::agent::mcp::has_managed_mcp_config(opts.mcp_config.as_ref()) {
-        let guard = crate::services::agent::mcp::McpConfigTempFile::new(opts.mcp_config.as_ref().unwrap())
-            .map_err(|e| BackendError::Launch(format!("mcp config: {e}")))?;
+    let mcp_path = if crate::services::agent::mcp::has_managed_mcp_config(opts.mcp_config.as_ref())
+    {
+        let guard =
+            crate::services::agent::mcp::McpConfigTempFile::new(opts.mcp_config.as_ref().unwrap())
+                .map_err(|e| BackendError::Launch(format!("mcp config: {e}")))?;
         let path = guard.path().to_path_buf();
         _mcp_guard = Some(guard);
         Some(path)
@@ -70,12 +76,16 @@ pub async fn run(
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-        
+
     if let Some(envs_fn) = &spec.envs {
         cmd.envs((envs_fn)(&opts));
     }
-    
-    if let Some(dir) = opts.cwd.as_deref().filter(|p| std::path::Path::new(p).is_dir()) {
+
+    if let Some(dir) = opts
+        .cwd
+        .as_deref()
+        .filter(|p| std::path::Path::new(p).is_dir())
+    {
         cmd.current_dir(dir);
     }
     if let Some(env) = &opts.env {
@@ -214,9 +224,17 @@ impl StreamState {
         };
 
         let (status_str, output, error) = if self.cancelled {
-            ("cancelled".to_string(), String::new(), "run cancelled by user".to_string())
+            (
+                "cancelled".to_string(),
+                String::new(),
+                "run cancelled by user".to_string(),
+            )
         } else if self.timed_out {
-            ("timeout".to_string(), String::new(), "run timed out".to_string())
+            (
+                "timeout".to_string(),
+                String::new(),
+                "run timed out".to_string(),
+            )
         } else if self.result_is_error {
             (
                 "failed".to_string(),
@@ -292,7 +310,10 @@ async fn handle_event(
         "result" => {
             state.saw_result = true;
             let subtype = event.get("subtype").and_then(|v| v.as_str()).unwrap_or("");
-            state.result_is_error = event.get("is_error").and_then(|v| v.as_bool()).unwrap_or(false)
+            state.result_is_error = event
+                .get("is_error")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
                 || subtype == "error"
                 || subtype == "failed";
             if let Some(text) = event.get("result").and_then(|v| v.as_str()) {
@@ -332,7 +353,11 @@ async fn handle_assistant(
                 "thinking" => {
                     if let Some(t) = block.get("thinking").and_then(|v| v.as_str()) {
                         if !t.is_empty() {
-                            let _ = tx.send(AgentMessage::Thinking { content: t.to_string() }).await;
+                            let _ = tx
+                                .send(AgentMessage::Thinking {
+                                    content: t.to_string(),
+                                })
+                                .await;
                         }
                     }
                 }
@@ -340,7 +365,11 @@ async fn handle_assistant(
                     if let Some(t) = block.get("text").and_then(|v| v.as_str()) {
                         if !t.is_empty() {
                             turn_text.push_str(t);
-                            let _ = tx.send(AgentMessage::Text { content: t.to_string() }).await;
+                            let _ = tx
+                                .send(AgentMessage::Text {
+                                    content: t.to_string(),
+                                })
+                                .await;
                         }
                     }
                 }
@@ -348,8 +377,16 @@ async fn handle_assistant(
                     tools += 1;
                     let _ = tx
                         .send(AgentMessage::ToolUse {
-                            tool: block.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                            call_id: block.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                            tool: block
+                                .get("name")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                            call_id: block
+                                .get("id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string(),
                             input: block.get("input").cloned(),
                         })
                         .await;
@@ -377,7 +414,11 @@ async fn handle_user(message: Option<&serde_json::Value>, tx: &mpsc::Sender<Agen
                 };
                 let _ = tx
                     .send(AgentMessage::ToolResult {
-                        call_id: block.get("tool_use_id").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                        call_id: block
+                            .get("tool_use_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
                         tool: String::new(),
                         output,
                     })
@@ -419,7 +460,11 @@ fn error_text(event: &serde_json::Value) -> String {
             return r.to_string();
         }
     }
-    if let Some(m) = event.get("error").and_then(|e| e.get("message")).and_then(|v| v.as_str()) {
+    if let Some(m) = event
+        .get("error")
+        .and_then(|e| e.get("message"))
+        .and_then(|v| v.as_str())
+    {
         return m.to_string();
     }
     if let Some(e) = event.get("error") {
@@ -472,7 +517,8 @@ mod tests {
         let (tx, _rx) = mpsc::channel::<AgentMessage>(64);
         let mut state = StreamState::default();
         let ev: serde_json::Value =
-            serde_json::from_str(r#"{"type":"result","is_error":true,"error":{"message":"boom"}}"#).unwrap();
+            serde_json::from_str(r#"{"type":"result","is_error":true,"error":{"message":"boom"}}"#)
+                .unwrap();
         handle_event(&ev, &tx, &mut state).await;
         assert!(state.result_is_error);
         assert_eq!(state.final_result_text, "boom");

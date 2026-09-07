@@ -65,7 +65,7 @@ impl ToolExecutor for NativeHarnessTool {
                 }.map_err(|e| format!("Failed to spawn process: {}", e))?;
 
                 let res = tokio::time::timeout(Duration::from_secs(timeout_secs), process.wait_with_output()).await;
-                
+
                 match res {
                     Ok(Ok(output)) => {
                         let stdout = String::from_utf8_lossy(&output.stdout).to_string();

@@ -29,7 +29,15 @@ pub enum BackendError {
 pub trait AgentBackend: Send + Sync {
     /// Start a run. The prompt is delivered per the backend's protocol (stdin
     /// for stream-json, argv for json). Returns a session to stream from.
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession>;
+    async fn execute(
+        &self,
+        prompt: String,
+        opts: ExecOptions,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+        control_rx: Option<
+            tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+        >,
+    ) -> BackendResult<AgentSession>;
 
     /// Returns the models supported by the given agent provider.
     async fn list_models(&self, executable_path: Option<&str>) -> BackendResult<Vec<Model>> {
@@ -51,6 +59,17 @@ pub trait AgentBackend: Send + Sync {
     ) -> BackendResult<()> {
         let _ = config;
         let _ = executable_path;
-        Err(BackendError::NotImplemented("sync_config not implemented for this backend".to_string()))
+        Err(BackendError::NotImplemented(
+            "sync_config not implemented for this backend".to_string(),
+        ))
+    }
+
+    /// Reads the agent-specific local configuration file and returns its content as a string.
+    async fn get_config_content(
+        &self,
+        executable_path: Option<&str>,
+    ) -> BackendResult<Option<String>> {
+        let _ = executable_path;
+        Ok(None)
     }
 }

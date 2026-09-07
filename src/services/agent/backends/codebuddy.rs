@@ -1,19 +1,26 @@
 use async_trait::async_trait;
 
 use crate::services::agent::backend::{AgentBackend, BackendError, BackendResult};
+use crate::services::agent::models::{cached_discovery, Model};
 use crate::services::agent::stream_json::{self, StreamJsonSpec};
 use crate::services::agent::types::{AgentSession, ExecOptions};
-use std::time::Duration;
-use crate::services::agent::models::{Model, cached_discovery};
 use regex::Regex;
 use std::process::Stdio;
-
+use std::time::Duration;
 
 pub struct CodebuddyBackend;
 
 #[async_trait]
 impl AgentBackend for CodebuddyBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
+    async fn execute(
+        &self,
+        prompt: String,
+        opts: ExecOptions,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+        _control_rx: Option<
+            tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+        >,
+    ) -> BackendResult<AgentSession> {
         stream_json::run(
             StreamJsonSpec {
                 command: "codebuddy".to_string(),
@@ -47,12 +54,16 @@ impl AgentBackend for CodebuddyBackend {
                 envs: None,
             },
             prompt,
-            opts, cancel_rx, _control_rx).await
+            opts,
+            cancel_rx,
+            _control_rx,
+        )
+        .await
     }
 
     async fn list_models(&self, executable_path: Option<&str>) -> BackendResult<Vec<Model>> {
         let exec = executable_path.unwrap_or("codebuddy").to_string();
-        
+
         cached_discovery(
             "codebuddy".to_string(),
             exec.clone(),
@@ -72,21 +83,24 @@ impl AgentBackend for CodebuddyBackend {
 
                 let text = String::from_utf8_lossy(&output.stdout);
                 let mut models = Vec::new();
-                
+
                 // Matches e.g. "Model to use [gpt-4o, claude-3-5-sonnet, gemini-1.5-pro]"
                 let re = Regex::new(r"(?i)model\s+to\s+use\s+\[(.*?)\]").unwrap();
 
                 if let Some(caps) = re.captures(&text) {
                     let models_str = caps.get(1).unwrap().as_str();
                     let model_names: Vec<&str> = models_str.split(',').map(|s| s.trim()).collect();
-                    
+
                     for (i, name) in model_names.iter().enumerate() {
                         if name.is_empty() {
                             continue;
                         }
                         let provider = if name.starts_with("claude-") {
                             Some("anthropic".to_string())
-                        } else if name.starts_with("gpt-") || name.starts_with("o1-") || name.starts_with("o3-") {
+                        } else if name.starts_with("gpt-")
+                            || name.starts_with("o1-")
+                            || name.starts_with("o3-")
+                        {
                             Some("openai".to_string())
                         } else if name.starts_with("gemini-") {
                             Some("google".to_string())
@@ -104,10 +118,11 @@ impl AgentBackend for CodebuddyBackend {
                         });
                     }
                 }
-                
+
                 Ok(models)
             },
-        ).await
+        )
+        .await
     }
 
     async fn sync_config(
@@ -116,8 +131,19 @@ impl AgentBackend for CodebuddyBackend {
         _executable_path: Option<&str>,
     ) -> BackendResult<()> {
         let global_dir = dirs::home_dir().unwrap_or_default().join(".codebuddy");
-        crate::services::agent::sync_utils::sync_claude_like(config, &global_dir, ".codebuddy.json")
+        crate::services::agent::sync_utils::sync_claude_like(
+            "codebuddy",
+            config,
+            &global_dir,
+            ".codebuddy.json",
+        )
+    }
+
+    async fn get_config_content(
+        &self,
+        _executable_path: Option<&str>,
+    ) -> BackendResult<Option<String>> {
+        let global_dir = dirs::home_dir().unwrap_or_default().join(".codebuddy");
+        crate::services::agent::sync_utils::read_claude_like_config(&global_dir)
     }
 }
-
-

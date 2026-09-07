@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::process::Command;
 use thiserror::Error;
 
-use crate::services::agent::AgentKind;
 use super::registry::InstallStrategy;
+use crate::services::agent::AgentKind;
 
 #[derive(Debug, Error)]
 pub enum InstallError {
@@ -33,12 +33,13 @@ pub fn install_agent(kind: AgentKind) -> Result<(), InstallError> {
 fn install_npm(package_name: &str) -> Result<(), InstallError> {
     let install_dir = get_agents_install_dir();
     if !install_dir.exists() {
-        std::fs::create_dir_all(&install_dir)
-            .map_err(|e| InstallError::CommandFailed(format!("Failed to create install dir: {}", e)))?;
+        std::fs::create_dir_all(&install_dir).map_err(|e| {
+            InstallError::CommandFailed(format!("Failed to create install dir: {}", e))
+        })?;
     }
 
     let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
-    
+
     let mut cmd = Command::new(npm_cmd);
     cmd.arg("install")
         .arg("--prefix")
@@ -52,7 +53,8 @@ fn install_npm(package_name: &str) -> Result<(), InstallError> {
         cmd.creation_flags(0x0800_0000);
     }
 
-    let status = cmd.status()
+    let status = cmd
+        .status()
         .map_err(|e| InstallError::CommandFailed(e.to_string()))?;
 
     if !status.success() {
@@ -63,10 +65,13 @@ fn install_npm(package_name: &str) -> Result<(), InstallError> {
 }
 
 fn install_pip(kind: AgentKind, package_name: &str) -> Result<(), InstallError> {
-    let install_dir = get_agents_install_dir().join("venvs").join(kind.info().slug);
+    let install_dir = get_agents_install_dir()
+        .join("venvs")
+        .join(kind.info().slug);
     if !install_dir.exists() {
-        std::fs::create_dir_all(&install_dir)
-            .map_err(|e| InstallError::CommandFailed(format!("Failed to create venv dir: {}", e)))?;
+        std::fs::create_dir_all(&install_dir).map_err(|e| {
+            InstallError::CommandFailed(format!("Failed to create venv dir: {}", e))
+        })?;
     }
 
     // Create venv
@@ -80,11 +85,15 @@ fn install_pip(kind: AgentKind, package_name: &str) -> Result<(), InstallError> 
         venv_cmd.creation_flags(0x0800_0000);
     }
 
-    let venv_status = venv_cmd.status()
+    let venv_status = venv_cmd
+        .status()
         .map_err(|e| InstallError::CommandFailed(format!("Failed to run venv: {}", e)))?;
 
     if !venv_status.success() {
-        return Err(InstallError::ProcessFailed(format!("venv creation failed: {}", venv_status)));
+        return Err(InstallError::ProcessFailed(format!(
+            "venv creation failed: {}",
+            venv_status
+        )));
     }
 
     // Run pip install
@@ -103,11 +112,15 @@ fn install_pip(kind: AgentKind, package_name: &str) -> Result<(), InstallError> 
         cmd.creation_flags(0x0800_0000);
     }
 
-    let status = cmd.status()
+    let status = cmd
+        .status()
         .map_err(|e| InstallError::CommandFailed(format!("Failed to run pip: {}", e)))?;
 
     if !status.success() {
-        return Err(InstallError::ProcessFailed(format!("pip install failed: {}", status)));
+        return Err(InstallError::ProcessFailed(format!(
+            "pip install failed: {}",
+            status
+        )));
     }
 
     Ok(())
@@ -131,7 +144,9 @@ pub fn update_agent(kind: AgentKind) -> Result<(), InstallError> {
 fn update_npm(package_name: &str) -> Result<(), InstallError> {
     let install_dir = get_agents_install_dir();
     if !install_dir.exists() {
-        return Err(InstallError::CommandFailed("Agent is not installed yet.".into()));
+        return Err(InstallError::CommandFailed(
+            "Agent is not installed yet.".into(),
+        ));
     }
 
     let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
@@ -148,7 +163,8 @@ fn update_npm(package_name: &str) -> Result<(), InstallError> {
         cmd.creation_flags(0x0800_0000);
     }
 
-    let status = cmd.status()
+    let status = cmd
+        .status()
         .map_err(|e| InstallError::CommandFailed(e.to_string()))?;
 
     if !status.success() {
@@ -158,9 +174,13 @@ fn update_npm(package_name: &str) -> Result<(), InstallError> {
 }
 
 fn update_pip(kind: AgentKind, package_name: &str) -> Result<(), InstallError> {
-    let install_dir = get_agents_install_dir().join("venvs").join(kind.info().slug);
+    let install_dir = get_agents_install_dir()
+        .join("venvs")
+        .join(kind.info().slug);
     if !install_dir.exists() {
-        return Err(InstallError::CommandFailed("Agent is not installed yet.".into()));
+        return Err(InstallError::CommandFailed(
+            "Agent is not installed yet.".into(),
+        ));
     }
 
     let pip_cmd = if cfg!(windows) {
@@ -178,11 +198,15 @@ fn update_pip(kind: AgentKind, package_name: &str) -> Result<(), InstallError> {
         cmd.creation_flags(0x0800_0000);
     }
 
-    let status = cmd.status()
+    let status = cmd
+        .status()
         .map_err(|e| InstallError::CommandFailed(format!("Failed to run pip: {}", e)))?;
 
     if !status.success() {
-        return Err(InstallError::ProcessFailed(format!("pip install failed: {}", status)));
+        return Err(InstallError::ProcessFailed(format!(
+            "pip install failed: {}",
+            status
+        )));
     }
     Ok(())
 }

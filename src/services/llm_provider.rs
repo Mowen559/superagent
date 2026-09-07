@@ -63,6 +63,7 @@ pub struct TokenUsage {
 pub struct LlmProvider {
     settings: LLMSettings,
     client: reqwest::Client,
+    model_override: Option<String>,
 }
 
 fn max_context_chars_for(account: Option<&LLMAccount>, model: &str) -> usize {
@@ -153,7 +154,29 @@ impl LlmProvider {
         Self {
             settings: llm_settings::read_llm_settings(),
             client,
+            model_override: None,
         }
+    }
+
+    pub fn with_model_override(client: reqwest::Client, model: Option<String>) -> Self {
+        let model_override = model.filter(|value| !value.trim().is_empty());
+        let mut settings = llm_settings::read_llm_settings();
+        if let Some(model) = &model_override {
+            settings.model = model.clone();
+        }
+        Self {
+            settings,
+            client,
+            model_override,
+        }
+    }
+
+    fn effective_settings(&self) -> LLMSettings {
+        let mut settings = llm_settings::read_llm_settings();
+        if let Some(model) = &self.model_override {
+            settings.model = model.clone();
+        }
+        settings
     }
 
     pub fn max_context_chars(&self) -> usize {
@@ -185,7 +208,7 @@ impl LlmProvider {
     ) -> Result<(Value, TokenUsage), String> {
         // Reload on every autonomous step so account switching does not require
         // restarting a long-running agent session.
-        let settings = llm_settings::read_llm_settings();
+        let settings = self.effective_settings();
         let mut combined_system = system.unwrap_or("").to_string();
         if tools.is_none() {
             combined_system.push_str(&format!(
@@ -260,6 +283,41 @@ impl LlmProvider {
         ))
     }
 
+    /// Send a raw chat completion request without injecting system prompts for tools or personalities
+    pub async fn chat_raw(
+        &self,
+        messages: Vec<Value>,
+        system: Option<&str>,
+    ) -> Result<(String, TokenUsage), String> {
+        let settings = self.effective_settings();
+        let mut msgs = Vec::new();
+        if let Some(sys) = system {
+            msgs.push(json!({ "role": "system", "content": sys }));
+        }
+        msgs.extend(messages);
+
+        let request_shape = json!({
+            "messages": msgs,
+            "stream": false,
+        });
+        let requirements = ModelRequirements::from_canonical_body(&request_shape);
+        let runtime = ModelRouteRuntime::default();
+        let route = runtime.plan_with_requirements(&settings, &settings.model, &[], requirements);
+        if route.is_empty() {
+            return Err(
+                "LLM is not configured or no Provider Route satisfies Model Requirements".into(),
+            );
+        }
+
+        let (response, usage) = self.execute_route(&settings, route.candidates, msgs, None).await?;
+        let text = response
+            .get("content")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        Ok((text, usage))
+    }
+
     async fn execute_route(
         &self,
         settings: &LLMSettings,
@@ -314,7 +372,7 @@ impl LlmProvider {
                 }
 
                 let attempt_settings = candidate.attempt_settings(settings);
-                let adapter = adapter_for_provider(&attempt_settings.provider);
+                let adapter = adapter_for_provider(&attempt_settings);
                 let (target_url, headers, upstream_body) =
                     match adapter.prepare_request(&attempt_settings, standard_body) {
                         Ok(prepared) => prepared,
@@ -376,7 +434,11 @@ impl LlmProvider {
                     Ok(response) => response,
                     Err(error) => {
                         let class = runtime.classify_failure(&format!("request failed: {error}"));
-                        health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
+                        health.finish_attempt(
+                            &health_key,
+                            class.into(),
+                            elapsed_ms(attempt_started),
+                        );
                         receipts.push(failure_receipt(
                             &candidate,
                             attempt,
@@ -405,30 +467,47 @@ impl LlmProvider {
                                 status.as_u16()
                             );
                             eprintln!("Auto-refreshing token for account {}", candidate.account.id);
-                            if let Some(new_token) = crate::services::subscription::refresh_gemini_token(&self.client, rt).await {
+                            if let Some(new_token) =
+                                crate::services::subscription::refresh_gemini_token(
+                                    &self.client,
+                                    rt,
+                                )
+                                .await
+                            {
                                 eprintln!("Auto-refresh SUCCESS for {}", candidate.account.id);
                                 // Save to config
                                 let new_token_clone = new_token.clone();
                                 let account_id = candidate.account.id.clone();
-                                if let Err(e) = crate::config::llm_settings::update_llm_settings(move |settings| {
-                                    for a in &mut settings.accounts {
-                                        if a.id == account_id {
-                                            a.api_key = new_token_clone.clone();
-                                            break;
+                                if let Err(e) = crate::config::llm_settings::update_llm_settings(
+                                    move |settings| {
+                                        for a in &mut settings.accounts {
+                                            if a.id == account_id {
+                                                a.api_key = new_token_clone.clone();
+                                                break;
+                                            }
                                         }
-                                    }
-                                    Ok(())
-                                }) {
-                                    tracing::error!("Failed to save refreshed token to llm.json: {}", e);
+                                        Ok(())
+                                    },
+                                ) {
+                                    tracing::error!(
+                                        "Failed to save refreshed token to llm.json: {}",
+                                        e
+                                    );
                                 }
-                                
+
                                 candidate.account.api_key = new_token;
                                 refresh_attempted = true;
                                 attempt_started = std::time::Instant::now(); // Reset timer for the retry
                                 continue;
                             } else {
-                                eprintln!("Auto-refresh failed for account {}", candidate.account.id);
-                                tracing::error!("Auto-refresh failed for account {}", candidate.account.id);
+                                eprintln!(
+                                    "Auto-refresh failed for account {}",
+                                    candidate.account.id
+                                );
+                                tracing::error!(
+                                    "Auto-refresh failed for account {}",
+                                    candidate.account.id
+                                );
                             }
                         }
                     }
@@ -468,7 +547,11 @@ impl LlmProvider {
                     Ok(response) => response,
                     Err(error) => {
                         let class = runtime.classify_failure(&error.to_string());
-                        health.finish_attempt(&health_key, class.into(), elapsed_ms(attempt_started));
+                        health.finish_attempt(
+                            &health_key,
+                            class.into(),
+                            elapsed_ms(attempt_started),
+                        );
                         receipts.push(failure_receipt(
                             &candidate,
                             attempt,

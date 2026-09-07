@@ -1,6 +1,6 @@
-use crate::cli::{AgentCommand, TaskCommand, ConfigCommand, SkillCommand, McpCommand, AuthCommand};
-use crate::services::agent::{registry, installer};
-use crate::services::agent::types::{ExecOptions, AgentMessage};
+use crate::cli::{AgentCommand, AuthCommand, ConfigCommand, McpCommand, SkillCommand, TaskCommand};
+use crate::services::agent::types::{AgentMessage, ExecOptions};
+use crate::services::agent::{installer, registry};
 use std::str::FromStr;
 
 pub fn handle_agent(cmd: AgentCommand) {
@@ -23,16 +23,16 @@ pub fn handle_agent(cmd: AgentCommand) {
                     crate::services::brain::supervisor::run_superagent_with_evolution(&text, project).await;
                     return;
                 }
-                
+
                 let kind = registry::AgentKind::from_str(&agent).unwrap_or(registry::AgentKind::Claude);
                 let backend = registry::new(kind);
-                
+
                 let opts = ExecOptions {
                     cwd: project,
                     model,
                     ..Default::default()
                 };
-                
+
                 let (_tx, rx) = tokio::sync::watch::channel(false);
                 match backend.execute(text, opts, rx, None).await {
                     Ok(mut session) => {
@@ -66,7 +66,7 @@ pub fn handle_agent(cmd: AgentCommand) {
                             use std::io::Write;
                             std::io::stdout().flush().unwrap();
                         }
-                        
+
                         // Wait for the final result
                         if let Ok(res) = session.result.await {
                             println!("\n\x1b[36m[Run Completed: {} ({}ms)]\x1b[0m", res.status, res.duration_ms);
@@ -114,13 +114,13 @@ pub fn handle_agent(cmd: AgentCommand) {
                 let app_paths = crate::config::app_paths::AppPaths::new();
                 let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
                 let store = crate::services::supermemory_store::SupermemoryStore::new(&config, None);
-                
+
                 use crate::services::brain::contextual_chunker::ContextualChunker;
                 let chunker = ContextualChunker::new(1000);
-                
+
                 let mut files_to_process = Vec::new();
                 let p = std::path::Path::new(&path);
-                
+
                 if p.is_dir() {
                     let walker = ignore::WalkBuilder::new(p)
                         .standard_filters(true)
@@ -151,13 +151,13 @@ pub fn handle_agent(cmd: AgentCommand) {
                         let global_context = context.clone().unwrap_or_else(|| {
                             format!("Extracted knowledge from file: {}", doc_name)
                         });
-                        
+
                         let chunks = chunker.chunk_text(&content, &global_context);
                         let file_chunks_count = chunks.len();
                         total_chunks += file_chunks_count;
-                        
+
                         println!("- {} ({} chunks)", file_path.display(), file_chunks_count);
-                        
+
                         for chunk in chunks {
                             let record = crate::models::memory::SupermemoryRecord {
                                 id: uuid::Uuid::new_v4().to_string(),
@@ -176,7 +176,7 @@ pub fn handle_agent(cmd: AgentCommand) {
                         }
                     }
                 }
-                
+
                 println!("Successfully ingested {} files into {} knowledge chunks!", files_to_process.len(), total_chunks);
             }
         }
@@ -216,30 +216,40 @@ pub fn handle_config(cmd: ConfigCommand) {
             let settings = crate::config::llm_settings::read_llm_settings();
             let json = serde_json::to_value(&settings).unwrap_or_default();
             if let Some(val) = json.get(&key) {
-                let display = if let Some(s) = val.as_str() { s.to_string() } else { val.to_string() };
+                let display = if let Some(s) = val.as_str() {
+                    s.to_string()
+                } else {
+                    val.to_string()
+                };
                 println!("{} = {}", key, display);
             } else {
                 eprintln!("Key '{}' not found in config.", key);
             }
         }
         ConfigCommand::Routing => {
-            use dialoguer::{Select, theme::ColorfulTheme};
+            use dialoguer::{theme::ColorfulTheme, Select};
             let mut settings = crate::config::llm_settings::read_llm_settings();
             let strategies = vec!["failover", "round_robin"];
-            let default_idx = if settings.routing_strategy == "round_robin" { 1 } else { 0 };
-            
+            let default_idx = if settings.routing_strategy == "round_robin" {
+                1
+            } else {
+                0
+            };
+
             println!("Select the routing strategy for load balancing:");
             println!("- Failover: Uses the primary account (first in list) and only falls back on rate limits (429) or server errors (500+).");
             println!("- Round Robin: Distributes requests evenly across all available accounts.");
-            
+
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .items(&["Failover (Primary/Standby)", "Round Robin"])
                 .default(default_idx)
                 .interact()
                 .unwrap_or(0);
-                
+
             settings.routing_strategy = strategies[selection].to_string();
-            crate::config::llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
+            crate::config::llm_settings::write_llm_settings(
+                serde_json::to_value(&settings).unwrap_or_default(),
+            );
             println!("Routing strategy updated to: {}", settings.routing_strategy);
         }
         ConfigCommand::Model => {
@@ -296,7 +306,12 @@ pub fn handle_config(cmd: ConfigCommand) {
                 if account.id == account_id {
                     let new_state = state.unwrap_or(!account.enabled);
                     account.enabled = new_state;
-                    println!("Account '{}' ({}) is now {}", account.name, account.id, if new_state { "enabled" } else { "disabled" });
+                    println!(
+                        "Account '{}' ({}) is now {}",
+                        account.name,
+                        account.id,
+                        if new_state { "enabled" } else { "disabled" }
+                    );
                     found = true;
                     break;
                 }
@@ -304,7 +319,9 @@ pub fn handle_config(cmd: ConfigCommand) {
             if !found {
                 eprintln!("Error: Account with ID '{}' not found.", account_id);
             } else {
-                crate::config::llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
+                crate::config::llm_settings::write_llm_settings(
+                    serde_json::to_value(&settings).unwrap_or_default(),
+                );
             }
         }
         ConfigCommand::Remove { account_id } => {
@@ -318,7 +335,9 @@ pub fn handle_config(cmd: ConfigCommand) {
                     settings.active_account_id = None;
                     println!("Active account was removed, you may need to configure a new one.");
                 }
-                crate::config::llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
+                crate::config::llm_settings::write_llm_settings(
+                    serde_json::to_value(&settings).unwrap_or_default(),
+                );
             } else {
                 eprintln!("Error: Account with ID '{}' not found.", account_id);
             }
@@ -341,7 +360,7 @@ pub fn handle_sync() {
         .enable_all()
         .build()
         .expect("Failed to build Tokio runtime for sync");
-    
+
     runtime.block_on(async {
         // e.g. let adapter = Arc::new(crate::services::agent::config_sync::adapters::claude::ClaudeAdapter::new());
         // let coordinator = crate::services::agent::config_sync::coordinator::CliSyncCoordinator::new(adapter);
@@ -359,12 +378,18 @@ pub fn handle_skill(cmd: SkillCommand) {
             if let Some(dir) = crate::config::app_paths::AppPaths::home_dir() {
                 paths.push(dir.join(".agents").join("skills"));
             }
-            let skills = crate::services::agent::skills::scan_skills_for_agent("cli", &paths, &mut cache);
+            let skills =
+                crate::services::agent::skills::scan_skills_for_agent("cli", &paths, &mut cache);
             if skills.is_empty() {
                 println!("No skills found.");
             } else {
                 for s in skills {
-                    println!("- {} ({}) - {}", s.name, s.directory, s.description.unwrap_or_default());
+                    println!(
+                        "- {} ({}) - {}",
+                        s.name,
+                        s.directory,
+                        s.description.unwrap_or_default()
+                    );
                 }
             }
         }
@@ -397,10 +422,9 @@ pub fn handle_mcp(cmd: McpCommand) {
     }
 }
 
-
 pub fn handle_install() {
     println!("Installing hub to global PATH...");
-    
+
     let current_exe = match std::env::current_exe() {
         Ok(exe) => exe,
         Err(e) => {
@@ -413,18 +437,23 @@ pub fn handle_install() {
         eprintln!("Error getting user home directory");
         return;
     };
-    
+
     let install_dir = home.join(".hub").join("bin");
     if !install_dir.exists() {
         if let Err(e) = std::fs::create_dir_all(&install_dir) {
-            eprintln!("Error creating installation directory {:?}: {}", install_dir, e);
+            eprintln!(
+                "Error creating installation directory {:?}: {}",
+                install_dir, e
+            );
             return;
         }
     }
 
-    let exe_name = current_exe.file_name().unwrap_or_else(|| std::ffi::OsStr::new("hub.exe"));
+    let exe_name = current_exe
+        .file_name()
+        .unwrap_or_else(|| std::ffi::OsStr::new("hub.exe"));
     let install_exe_path = install_dir.join(exe_name);
-    
+
     // Copy the executable
     match std::fs::copy(&current_exe, &install_exe_path) {
         Ok(_) => println!("Successfully copied binary to {:?}", install_exe_path),
@@ -438,13 +467,16 @@ pub fn handle_install() {
 
     #[cfg(windows)]
     {
-        println!("Adding {:?} to User PATH using PowerShell...", install_dir_str);
+        println!(
+            "Adding {:?} to User PATH using PowerShell...",
+            install_dir_str
+        );
         // Using PowerShell to safely append to User PATH without 1024 char limit of setx
         let script = format!(
             r#"$path = [Environment]::GetEnvironmentVariable('Path', 'User'); if ($path -notmatch [regex]::Escape('{}')) {{ [Environment]::SetEnvironmentVariable('Path', $path + ';{}', 'User'); Write-Host 'PATH updated.' }} else {{ Write-Host 'PATH already contains the directory.' }}"#,
             install_dir_str, install_dir_str
         );
-        
+
         let output = std::process::Command::new("powershell.exe")
             .args(&["-NoProfile", "-Command", &script])
             .output();
@@ -455,7 +487,10 @@ pub fn handle_install() {
                     println!("{}", String::from_utf8_lossy(&out.stdout).trim());
                     println!("Successfully installed! Please restart your terminal for the new PATH to take effect.");
                 } else {
-                    eprintln!("Error updating PATH: {}", String::from_utf8_lossy(&out.stderr));
+                    eprintln!(
+                        "Error updating PATH: {}",
+                        String::from_utf8_lossy(&out.stderr)
+                    );
                 }
             }
             Err(e) => eprintln!("Failed to run PowerShell: {}", e),
@@ -464,7 +499,10 @@ pub fn handle_install() {
 
     #[cfg(not(windows))]
     {
-        println!("Please add {:?} to your PATH manually in your ~/.bashrc or ~/.zshrc:", install_dir_str);
+        println!(
+            "Please add {:?} to your PATH manually in your ~/.bashrc or ~/.zshrc:",
+            install_dir_str
+        );
         println!("export PATH=\"{}:$PATH\"", install_dir_str);
     }
 }
@@ -483,17 +521,18 @@ pub fn handle_auth(cmd: AuthCommand) {
                     eprintln!("Login failed: {}", e);
                 }
             }
-            AuthCommand::Status => {
-                match crate::services::cli_auth::get_deepcloud_token() {
-                    Ok(token) => {
-                        println!("✅ Logged into DeepCloud.");
-                        println!("Token snippet: {}...", &token[0..std::cmp::min(10, token.len())]);
-                    }
-                    Err(_) => {
-                        println!("❌ Not logged into DeepCloud. Run `hub auth login`.");
-                    }
+            AuthCommand::Status => match crate::services::cli_auth::get_deepcloud_token() {
+                Ok(token) => {
+                    println!("✅ Logged into DeepCloud.");
+                    println!(
+                        "Token snippet: {}...",
+                        &token[0..std::cmp::min(10, token.len())]
+                    );
                 }
-            }
+                Err(_) => {
+                    println!("❌ Not logged into DeepCloud. Run `hub auth login`.");
+                }
+            },
             AuthCommand::Logout => {
                 if let Err(e) = crate::services::cli_auth::clear_deepcloud_token() {
                     eprintln!("Failed to clear token: {}", e);

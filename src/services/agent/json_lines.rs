@@ -62,7 +62,8 @@ pub struct JsonSpec {
     pub args: Vec<String>,
     /// Maps one parsed event line into zero or more unified messages, mutating
     /// terminal state as needed. Called once per non-empty stdout line.
-    pub map_event: Box<dyn Fn(&serde_json::Value, &mut JsonState) -> Vec<AgentMessage> + Send + Sync>,
+    pub map_event:
+        Box<dyn Fn(&serde_json::Value, &mut JsonState) -> Vec<AgentMessage> + Send + Sync>,
     /// Optional handler for non-JSON lines (plain-text stdout CLIs). When
     /// `None`, non-JSON lines are ignored.
     pub map_raw: Option<RawLineMapper>,
@@ -73,14 +74,20 @@ pub async fn run(
     spec: JsonSpec,
     opts: ExecOptions,
     mut cancel_rx: tokio::sync::watch::Receiver<bool>,
-    mut control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>,
+    mut control_rx: Option<
+        tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+    >,
 ) -> BackendResult<AgentSession> {
     let mut cmd = agent_command(&spec.command);
     cmd.args(&spec.args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    if let Some(dir) = opts.cwd.as_deref().filter(|p| std::path::Path::new(p).is_dir()) {
+    if let Some(dir) = opts
+        .cwd
+        .as_deref()
+        .filter(|p| std::path::Path::new(p).is_dir())
+    {
         cmd.current_dir(dir);
     }
     if let Some(env) = &opts.env {
@@ -99,7 +106,10 @@ pub async fn run(
             while let Some(control) = rx.recv().await {
                 // For superagent IPC, we serialize it as UserResponse or Intervene.
                 let msg = match control {
-                    crate::services::task_manager::TaskControl::UserResponse { request_id, response } => {
+                    crate::services::task_manager::TaskControl::UserResponse {
+                        request_id,
+                        response,
+                    } => {
                         serde_json::json!({
                             "type": "UserResponse",
                             "payload": {
@@ -114,7 +124,6 @@ pub async fn run(
                             "payload": instruction
                         })
                     }
-                    _ => continue,
                 };
                 let mut s = msg.to_string();
                 s.push_str("\n");
@@ -252,10 +261,13 @@ fn finalize(
     };
 
     let mut error = error;
-    if status_str == "failed" && !stderr_tail.is_empty() && !error.contains(stderr_tail)
-        && error.is_empty() {
-            error = stderr_tail.to_string();
-        }
+    if status_str == "failed"
+        && !stderr_tail.is_empty()
+        && !error.contains(stderr_tail)
+        && error.is_empty()
+    {
+        error = stderr_tail.to_string();
+    }
 
     AgentResult {
         status: status_str,
@@ -285,7 +297,9 @@ mod tests {
                 if let Some(c) = evt.pointer("/data/content").and_then(|v| v.as_str()) {
                     st.output = c.to_string();
                     st.pending_delta.clear();
-                    out.push(AgentMessage::Text { content: c.to_string() });
+                    out.push(AgentMessage::Text {
+                        content: c.to_string(),
+                    });
                 }
             }
             "result" => {

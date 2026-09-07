@@ -1,3 +1,3 @@
-Get-Process hub-rs -ErrorAction SilentlyContinue | ForEach-Object { Write-Output ('stopping hub-rs pid ' + $_.Id); Stop-Process -Id $_.Id -Force }
+Get-Process hub, hub-rs, superagent -ErrorAction SilentlyContinue | ForEach-Object { Write-Output ('stopping process ' + $_.ProcessName + ' pid ' + $_.Id); Stop-Process -Id $_.Id -Force }
 Start-Sleep -Seconds 1
-Write-Output 'hub-rs stopped'
+Write-Output 'hub service stopped'

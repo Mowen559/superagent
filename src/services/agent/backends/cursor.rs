@@ -1,18 +1,26 @@
 use async_trait::async_trait;
 
 use crate::services::agent::backend::{AgentBackend, BackendError, BackendResult};
+use crate::services::agent::models::{cached_discovery, Model};
 use crate::services::agent::stream_json::{self, StreamJsonSpec};
 use crate::services::agent::types::{AgentSession, ExecOptions};
-use std::time::Duration;
-use crate::services::agent::models::{Model, cached_discovery};
 use regex::Regex;
 use std::process::Stdio;
+use std::time::Duration;
 
 pub struct CursorBackend;
 
 #[async_trait]
 impl AgentBackend for CursorBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
+    async fn execute(
+        &self,
+        prompt: String,
+        opts: ExecOptions,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+        _control_rx: Option<
+            tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+        >,
+    ) -> BackendResult<AgentSession> {
         stream_json::run(
             StreamJsonSpec {
                 command: "cursor-agent".to_string(),
@@ -46,12 +54,16 @@ impl AgentBackend for CursorBackend {
                 envs: None,
             },
             prompt,
-            opts, cancel_rx, _control_rx).await
+            opts,
+            cancel_rx,
+            _control_rx,
+        )
+        .await
     }
 
     async fn list_models(&self, executable_path: Option<&str>) -> BackendResult<Vec<Model>> {
         let exec = executable_path.unwrap_or("cursor-agent").to_string();
-        
+
         cached_discovery(
             "cursor".to_string(),
             exec.clone(),
@@ -71,7 +83,7 @@ impl AgentBackend for CursorBackend {
 
                 let text = String::from_utf8_lossy(&output.stdout);
                 let mut models = Vec::new();
-                
+
                 // Matches e.g. "gpt-4 (default)" or "claude-3-5-sonnet"
                 // Group 1: model name
                 // Group 2: optional " (default)"
@@ -87,7 +99,10 @@ impl AgentBackend for CursorBackend {
                         let is_default = caps.get(2).is_some();
                         let provider = if name.starts_with("claude-") {
                             Some("anthropic".to_string())
-                        } else if name.starts_with("gpt-") || name.starts_with("o1-") || name.starts_with("o3-") {
+                        } else if name.starts_with("gpt-")
+                            || name.starts_with("o1-")
+                            || name.starts_with("o3-")
+                        {
                             Some("openai".to_string())
                         } else if name.starts_with("gemini-") {
                             Some("google".to_string())
@@ -105,10 +120,11 @@ impl AgentBackend for CursorBackend {
                         });
                     }
                 }
-                
+
                 Ok(models)
             },
-        ).await
+        )
+        .await
     }
 
     async fn sync_config(
@@ -117,8 +133,19 @@ impl AgentBackend for CursorBackend {
         _executable_path: Option<&str>,
     ) -> BackendResult<()> {
         let global_dir = dirs::home_dir().unwrap_or_default().join(".cursor");
-        crate::services::agent::sync_utils::sync_claude_like(config, &global_dir, ".cursor.json")
+        crate::services::agent::sync_utils::sync_claude_like(
+            "cursor",
+            config,
+            &global_dir,
+            ".cursor.json",
+        )
+    }
+
+    async fn get_config_content(
+        &self,
+        _executable_path: Option<&str>,
+    ) -> BackendResult<Option<String>> {
+        let global_dir = dirs::home_dir().unwrap_or_default().join(".cursor");
+        crate::services::agent::sync_utils::read_claude_like_config(&global_dir)
     }
 }
-
-

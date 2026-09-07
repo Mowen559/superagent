@@ -13,7 +13,7 @@ pub trait ToolExecutor: Send + Sync {
     fn name(&self) -> &'static str;
     fn description(&self) -> &'static str;
     fn parameters_schema(&self) -> Value;
-    
+
     // 执行工具并返回 JSON 结果
     fn execute(&self, args: Value) -> Result<Value, String>;
 
@@ -38,16 +38,16 @@ pub struct AgentLoop {
 impl AgentLoop {
     pub fn new(base_prompt: &str) -> Self {
         let client = reqwest::Client::new();
-        
+
         let cwd = std::env::current_dir()
             .map(|p| p.display().to_string())
             .unwrap_or_else(|_| "Unknown".to_string());
-        
+
         let os = std::env::consts::OS;
         let arch = std::env::consts::ARCH;
         use chrono::Local;
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        
+
         let mut super_memory_context = String::new();
         if let Ok(mem_data) = std::fs::read_to_string(".super_memory.json") {
             super_memory_context = format!("\n\n[SuperMemory Subconscious Context]\n{}", mem_data);
@@ -140,14 +140,14 @@ impl AgentLoop {
         // Keep first 2 events (usually UserInput or SuperMemory)
         // Keep last 10 events
         if self.events.len() <= 12 {
-            return; 
+            return;
         }
 
         // We must ensure we don`t split a ToolCall and ToolResult!
         // For safety, we just drop the middle events and replace with a ContextCompacted.
         let keep_front = 2;
         let mut keep_back = 10;
-        
+
         // Adjust keep_back so it starts with a ModelThought or UserInput, not an orphaned ToolResult
         while keep_back < self.events.len() - keep_front {
             let idx = self.events.len() - keep_back;
@@ -160,9 +160,9 @@ impl AgentLoop {
 
         let front_events: Vec<SessionEvent> = self.events.iter().take(keep_front).cloned().collect();
         let back_events: Vec<SessionEvent> = self.events.iter().skip(self.events.len() - keep_back).cloned().collect();
-        
+
         let compacted_count = self.events.len() - keep_front - keep_back;
-        
+
         let compacted_event = SessionEvent::ContextCompacted {
             summary: "Older tool executions and thoughts were compacted to save memory. Focus on the most recent observations.".to_string(),
             original_event_count: compacted_count,
@@ -192,7 +192,7 @@ impl AgentLoop {
         // 1. 发射用户输入事件
         self.push_event(SessionEvent::UserInput(prompt.to_string()));
         self.save_session();
-        
+
         let mut consecutive_same_tool_calls = 0;
         let mut last_tool_call_signature = String::new();
 
@@ -223,7 +223,7 @@ impl AgentLoop {
                     let func_name = call["function"]["name"].as_str().unwrap_or("").to_string();
                     let args_str = call["function"]["arguments"].as_str().unwrap_or("{}");
                     let args: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
-                    
+
                     let call_id = call["id"].as_str().unwrap_or("").to_string();
 
                     let current_sig = format!("{}({})", func_name, args_str);
@@ -270,7 +270,7 @@ impl AgentLoop {
                                     json!({ "error": "Tool panicked", "panicked": true })
                                 }
                             };
-                            
+
                             let mut tools_guard = self.tools.lock().unwrap();
                             tools_guard.insert(func_name.clone(), tool);
                             res
@@ -286,7 +286,7 @@ impl AgentLoop {
                     });
                 }
                 self.save_session();
-                
+
                 if guard_triggered { continue; }
                 continue;
             }
@@ -304,11 +304,11 @@ impl AgentLoop {
 
     async fn call_llm_api(&self, messages: Vec<Value>) -> Result<Value, String> {
         let mut dynamic_prompt = self.system_prompt.clone();
-        
+
         let tools_schema: Vec<Value> = {
             let tools_guard = self.tools.lock().unwrap();
             let mut projections = Vec::new();
-            
+
             let schema = tools_guard.values().map(|t| {
                 if let Some(proj) = t.prompt_projection() {
                     projections.push(proj);
@@ -322,12 +322,12 @@ impl AgentLoop {
                     }
                 })
             }).collect();
-            
+
             if !projections.is_empty() {
                 dynamic_prompt.push_str("\n\n# Dynamic Tool Projections (Active Skills)\n");
                 dynamic_prompt.push_str(&projections.join("\n\n"));
             }
-            
+
             schema
         };
         if let Ok(mem_data) = std::fs::read_to_string(".super_memory.json") {
@@ -399,14 +399,14 @@ impl AgentLoop {
         // Keep first 2 events (usually UserInput or SuperMemory)
         // Keep last 10 events
         if self.events.len() <= 12 {
-            return; 
+            return;
         }
 
         // We must ensure we don`t split a ToolCall and ToolResult!
         // For safety, we just drop the middle events and replace with a ContextCompacted.
         let keep_front = 2;
         let mut keep_back = 10;
-        
+
         // Adjust keep_back so it starts with a ModelThought or UserInput, not an orphaned ToolResult
         while keep_back < self.events.len() - keep_front {
             let idx = self.events.len() - keep_back;
@@ -419,9 +419,9 @@ impl AgentLoop {
 
         let front_events: Vec<SessionEvent> = self.events.iter().take(keep_front).cloned().collect();
         let back_events: Vec<SessionEvent> = self.events.iter().skip(self.events.len() - keep_back).cloned().collect();
-        
+
         let compacted_count = self.events.len() - keep_front - keep_back;
-        
+
         let compacted_event = SessionEvent::ContextCompacted {
             summary: "Older tool executions and thoughts were compacted to save memory. Focus on the most recent observations.".to_string(),
             original_event_count: compacted_count,
@@ -451,7 +451,7 @@ impl AgentLoop {
         // 1. 发射用户输入事件
         self.push_event(SessionEvent::UserInput(prompt.to_string()));
         self.save_session();
-        
+
         let mut consecutive_same_tool_calls = 0;
         let mut last_tool_call_signature = String::new();
 
@@ -482,7 +482,7 @@ impl AgentLoop {
                     let func_name = call["function"]["name"].as_str().unwrap_or("").to_string();
                     let args_str = call["function"]["arguments"].as_str().unwrap_or("{}");
                     let args: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
-                    
+
                     let call_id = call["id"].as_str().unwrap_or("").to_string();
 
                     let current_sig = format!("{}({})", func_name, args_str);
@@ -529,7 +529,7 @@ impl AgentLoop {
                                     json!({ "error": "Tool panicked", "panicked": true })
                                 }
                             };
-                            
+
                             let mut tools_guard = self.tools.lock().unwrap();
                             tools_guard.insert(func_name.clone(), tool);
                             res
@@ -545,7 +545,7 @@ impl AgentLoop {
                     });
                 }
                 self.save_session();
-                
+
                 if guard_triggered { continue; }
                 continue;
             }
@@ -563,11 +563,11 @@ impl AgentLoop {
 
     async fn call_llm_api(&self, messages: Vec<Value>) -> Result<Value, String> {
         let mut dynamic_prompt = self.system_prompt.clone();
-        
+
         let tools_schema: Vec<Value> = {
             let tools_guard = self.tools.lock().unwrap();
             let mut projections = Vec::new();
-            
+
             let schema = tools_guard.values().map(|t| {
                 if let Some(proj) = t.prompt_projection() {
                     projections.push(proj);
@@ -581,20 +581,20 @@ impl AgentLoop {
                     }
                 })
             }).collect();
-            
+
             if !projections.is_empty() {
                 dynamic_prompt.push_str("\n\n# Dynamic Tool Projections (Active Skills)\n");
                 dynamic_prompt.push_str(&projections.join("\n\n"));
             }
-            
+
             schema
         };
-        
+
         let tools_param = if tools_schema.is_empty() { None } else { Some(json!(tools_schema)) };
-        
+
         match self.llm_provider.chat_with_tools(messages, Some(&dynamic_prompt), tools_param).await {
             Ok((msg, usage)) => {
-                eprintln!("\n\x1b[45;37m[Token Usage] Prompt: {}, Completion: {}, Cost: ${:.4}, Latency: {}ms\x1b[0m\n", 
+                eprintln!("\n\x1b[45;37m[Token Usage] Prompt: {}, Completion: {}, Cost: ${:.4}, Latency: {}ms\x1b[0m\n",
                     usage.prompt_tokens, usage.completion_tokens, usage.cost, usage.duration_ms);
                 Ok(msg)
             },

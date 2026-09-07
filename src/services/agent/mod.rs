@@ -25,6 +25,7 @@ pub mod json_lines;
 pub mod mcp;
 pub mod proc;
 pub mod registry;
+pub mod registry_db;
 pub mod skills;
 pub mod skills_sync;
 pub mod stream_json;

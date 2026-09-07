@@ -1,19 +1,27 @@
-use std::time::Duration;
 use crate::services::agent::acp::{discover_acp_models, AcpDiscoveryProvider};
 use crate::services::agent::models::cached_discovery;
+use std::time::Duration;
 
 use async_trait::async_trait;
 
-use crate::services::agent::backend::{AgentBackend, BackendError, BackendResult};
 use crate::services::agent::acp::{self, AcpSpec};
-use crate::services::agent::types::{AgentSession, ExecOptions};
+use crate::services::agent::backend::{AgentBackend, BackendError, BackendResult};
 use crate::services::agent::models::Model;
+use crate::services::agent::types::{AgentSession, ExecOptions};
 
 pub struct GrokBackend;
 
 #[async_trait]
 impl AgentBackend for GrokBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
+    async fn execute(
+        &self,
+        prompt: String,
+        opts: ExecOptions,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+        _control_rx: Option<
+            tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+        >,
+    ) -> BackendResult<AgentSession> {
         acp::run(
             AcpSpec {
                 command: "grok-agent".to_string(),
@@ -37,7 +45,11 @@ impl AgentBackend for GrokBackend {
                 }),
             },
             prompt,
-            opts, cancel_rx, _control_rx).await
+            opts,
+            cancel_rx,
+            _control_rx,
+        )
+        .await
     }
 
     async fn list_models(&self, executable_path: Option<&str>) -> BackendResult<Vec<Model>> {
@@ -53,12 +65,20 @@ impl AgentBackend for GrokBackend {
                         default_bin: "grok".to_string(),
                         client_name: "multica-model-discovery".to_string(),
                         extra_env: vec![],
-                        acp_args: vec!["--no-auto-update".to_string(), "agent".to_string(), "--always-approve".to_string(), "stdio".to_string()],
+                        acp_args: vec![
+                            "--no-auto-update".to_string(),
+                            "agent".to_string(),
+                            "--always-approve".to_string(),
+                            "stdio".to_string(),
+                        ],
                         select_auth_method: None,
-                    }
-                ).await.map_err(BackendError::Launch)
-            }
-        ).await
+                    },
+                )
+                .await
+                .map_err(BackendError::Launch)
+            },
+        )
+        .await
     }
 
     async fn sync_config(
@@ -67,8 +87,19 @@ impl AgentBackend for GrokBackend {
         _executable_path: Option<&str>,
     ) -> BackendResult<()> {
         let global_dir = dirs::home_dir().unwrap_or_default().join(".grok");
-        crate::services::agent::sync_utils::sync_claude_like(config, &global_dir, ".grok.json")
+        crate::services::agent::sync_utils::sync_claude_like(
+            "grok",
+            config,
+            &global_dir,
+            ".grok.json",
+        )
+    }
+
+    async fn get_config_content(
+        &self,
+        _executable_path: Option<&str>,
+    ) -> BackendResult<Option<String>> {
+        let global_dir = dirs::home_dir().unwrap_or_default().join(".grok");
+        crate::services::agent::sync_utils::read_claude_like_config(&global_dir)
     }
 }
-
-

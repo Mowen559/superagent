@@ -30,7 +30,14 @@ impl UpstreamAdapter for AnthropicUpstreamAdapter {
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
-        headers.insert("x-api-key", HeaderValue::from_str(&settings.api_key)?);
+
+        if settings.api_key.starts_with("sk-ant-") && !settings.api_key.starts_with("sk-ant-oauth")
+        {
+            headers.insert("x-api-key", HeaderValue::from_str(&settings.api_key)?);
+        } else {
+            let bearer = format!("Bearer {}", settings.api_key);
+            headers.insert("Authorization", HeaderValue::from_str(&bearer)?);
+        }
 
         Ok((
             target_url,
@@ -496,7 +503,7 @@ mod tests {
         LLMSettings {
             provider: "anthropic".to_string(),
             base_url: "https://api.anthropic.com".to_string(),
-            api_key: "test-key".to_string(),
+            api_key: "sk-ant-test-key".to_string(),
             model: "claude-test".to_string(),
             max_tokens: 4096,
             ..LLMSettings::default()
@@ -527,7 +534,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(url, "https://api.anthropic.com/v1/messages");
-        assert_eq!(headers.get("x-api-key").unwrap(), "test-key");
+        assert_eq!(headers.get("x-api-key").unwrap(), "sk-ant-test-key");
         assert_eq!(body["system"], "Be precise.");
         assert_eq!(body["messages"][1]["content"][0]["type"], "tool_use");
         assert_eq!(body["messages"][2]["content"][0]["type"], "tool_result");
