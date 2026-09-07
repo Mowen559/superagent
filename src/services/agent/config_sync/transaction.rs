@@ -150,9 +150,19 @@ impl ConfigTransactionManager {
     }
 
     /// Rollback changes using snapshots.
-    pub fn rollback(&self) -> Result<(), SyncError> {
+    pub fn rollback(&self, files_to_write: Option<&HashMap<String, String>>) -> Result<(), SyncError> {
         let mut errs = Vec::new();
-        for (path, original_content) in &self.snapshots {
+                for (path, original_content) in &self.snapshots {
+            if let Some(writes) = files_to_write {
+                if let Some(written_str) = writes.get(&path.to_string_lossy().to_string()) {
+                    if let Ok(current_bytes) = fs::read(path) {
+                        if current_bytes != written_str.as_bytes() {
+                            errs.push(format!("File {} changed externally, skipping rollback", path.display()));
+                            continue;
+                        }
+                    }
+                }
+            }
             if let Some(content) = original_content {
                 // Restore file
                 let tmp_name = format!(

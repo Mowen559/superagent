@@ -184,7 +184,7 @@ async fn git_restore(
     };
     let ops = DestructiveOps::new(&guard);
 
-    match ops.git_restore(&project, &file_path, body.hash.as_deref(), kind) {
+    match ops.git_restore(&file_path, body.hash.as_deref(), kind) {
         Ok(()) => Json(json!({ "success": true, "path": file_path })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -375,7 +375,7 @@ async fn shadow_rollback(
     };
     let ops = DestructiveOps::new(&guard);
 
-    match ops.shadow_rollback(&project, &hash) {
+    match ops.shadow_rollback(&hash) {
         Ok(_) => Json(json!({ "success": true, "hash": hash })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -432,7 +432,7 @@ async fn apply_patch(
     };
     let ops = DestructiveOps::new(&guard);
 
-    match ops.apply_patch(&project, &patch) {
+    match ops.apply_patch(&patch) {
         Ok(()) => Json(json!({ "success": true })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,

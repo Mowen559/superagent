@@ -12,7 +12,6 @@ impl<'a> DestructiveOps<'a> {
 
     pub fn git_restore(
         &self,
-        project: &str,
         file_path: &str,
         hash: Option<&str>,
         kind: RepoKind,
@@ -27,10 +26,10 @@ impl<'a> DestructiveOps<'a> {
             safe_file.display(),
             hash
         );
-        git_service::restore_file(project, file_path, hash, kind)
+        git_service::restore_file(&safe_project.to_string_lossy(), file_path, hash, kind)
     }
 
-    pub fn shadow_rollback(&self, project: &str, hash: &str) -> Result<(), String> {
+    pub fn shadow_rollback(&self, hash: &str) -> Result<(), String> {
         let safe_project = self.guard.resolve_safe("").map_err(|e| format!("Security violation (project): {}", e))?;
 
         tracing::info!(
@@ -38,16 +37,16 @@ impl<'a> DestructiveOps<'a> {
             safe_project.display(),
             hash
         );
-        git_service::rollback_to_snapshot(project, hash)
+        git_service::rollback_to_snapshot(&safe_project.to_string_lossy(), hash)
     }
 
-    pub fn apply_patch(&self, project: &str, patch_content: &str) -> Result<(), String> {
+    pub fn apply_patch(&self, patch_content: &str) -> Result<(), String> {
         let safe_project = self.guard.resolve_safe("").map_err(|e| format!("Security violation (project): {}", e))?;
 
         tracing::info!(
             "DESTRUCTIVE OP: git apply patch in {}",
             safe_project.display()
         );
-        git_service::apply_patch(project, patch_content)
+        git_service::apply_patch(&safe_project.to_string_lossy(), patch_content)
     }
 }

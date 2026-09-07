@@ -1,4 +1,5 @@
 use crate::AppState;
+use crate::services::workspace_guard::WorkspaceGuard;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{
@@ -31,7 +32,7 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 async fn playwright_list(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Query(params): Query<QaQuery>,
 ) -> Response {
     let project = match params.project {
@@ -44,8 +45,12 @@ async fn playwright_list(
                 .into_response()
         }
     };
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
 
-    let tests_dir = std::path::Path::new(&project).join("tests").join("e2e");
+    let tests_dir = safe_project.join("tests").join("e2e");
     let mut specs = Vec::new();
 
     if tests_dir.exists() {
@@ -59,11 +64,11 @@ async fn playwright_list(
         }
     }
 
-    Json(json!({ "specs": specs, "project": project })).into_response()
+    Json(json!({ "specs": specs, "project": safe_project.to_string_lossy() })).into_response()
 }
 
 async fn playwright_run(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<QaRunRequest>,
 ) -> Response {
     let project = match body.project {
@@ -76,13 +81,17 @@ async fn playwright_run(
                 .into_response()
         }
     };
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
 
     let mut cmd = Command::new("npx");
     cmd.arg("playwright").arg("test");
     if let Some(spec) = &body.spec {
         cmd.arg(spec);
     }
-    cmd.current_dir(&project);
+    cmd.current_dir(&safe_project);
 
     match cmd.output().await {
         Ok(output) => {
@@ -105,7 +114,7 @@ async fn playwright_run(
 }
 
 async fn playwright_record(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Json(body): Json<QaRunRequest>,
 ) -> Response {
     let project = match body.project {
@@ -118,12 +127,16 @@ async fn playwright_record(
                 .into_response()
         }
     };
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
 
     let url = body.spec.unwrap_or_else(|| "http://localhost:3000".into());
 
     let mut cmd = Command::new("npx");
     cmd.arg("playwright").arg("codegen").arg(&url);
-    cmd.current_dir(&project);
+    cmd.current_dir(&safe_project);
 
     match cmd.spawn() {
         Ok(_) => Json(json!({ "success": true, "message": "Playwright codegen started" }))
@@ -136,7 +149,7 @@ async fn playwright_record(
     }
 }
 
-async fn k6_run(State(_state): State<Arc<AppState>>, Json(body): Json<QaRunRequest>) -> Response {
+async fn k6_run(State(state): State<Arc<AppState>>, Json(body): Json<QaRunRequest>) -> Response {
     let project = match body.project {
         Some(p) => p,
         None => {
@@ -147,11 +160,22 @@ async fn k6_run(State(_state): State<Arc<AppState>>, Json(body): Json<QaRunReque
                 .into_response()
         }
     };
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
 
+    let guard = match WorkspaceGuard::new(&safe_project) {
+        Ok(g) => g,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
     let script = body
         .spec
         .unwrap_or_else(|| "tests/k6/analyze-project.js".into());
-    let script_path = std::path::Path::new(&project).join(&script);
+    let script_path = match guard.resolve_safe(&script) {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::FORBIDDEN, Json(json!({ "error": e.to_string() }))).into_response(),
+    };
 
     if !script_path.exists() {
         return (
@@ -164,7 +188,7 @@ async fn k6_run(State(_state): State<Arc<AppState>>, Json(body): Json<QaRunReque
     let mut cmd = Command::new("k6");
     cmd.arg("run")
         .arg(script_path.to_string_lossy().to_string());
-    cmd.current_dir(&project);
+    cmd.current_dir(&safe_project);
 
     match cmd.output().await {
         Ok(output) => {

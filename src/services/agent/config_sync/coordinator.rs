@@ -95,23 +95,36 @@ impl CliSyncCoordinator {
             return Err(e);
         }
 
+
         // 7. SNAPSHOT
         if let Err(e) = tx.snapshot(&files) {
             return Err(e);
         }
 
+        // Re-inspect to verify version under lock
+        let locked_config = self.adapter.inspect(&install).await?;
+        if let Some(expected_rev) = &request.expected_revision {
+            if *expected_rev != locked_config.revision {
+                return Err(SyncError::ConfigConflict);
+            }
+        }
+
+
         // 7. WRITE
-        if let Err(e) = tx.commit(&plan.files_to_write) {
-            // ROLLBACK
-            let _ = tx.rollback();
-            return Err(e);
+        if let Err(write_e) = tx.commit(&plan.files_to_write) {
+            if let Err(rb_e) = tx.rollback(Some(&plan.files_to_write)) {
+                return Err(SyncError::RollbackFailed(format!("Original error: {}; Rollback error: {}", write_e, rb_e)));
+            }
+            return Err(write_e);
         }
 
         // 8. READ BACK
         let new_config = match self.adapter.inspect(&install).await {
             Ok(c) => c,
-            Err(_e) => {
-                let _ = tx.rollback();
+            Err(e) => {
+                if let Err(rb_e) = tx.rollback(Some(&plan.files_to_write)) {
+                    return Err(SyncError::RollbackFailed(format!("Readback error: {}; Rollback error: {}", e, rb_e)));
+                }
                 return Err(SyncError::ReadBackMismatch);
             }
         };
@@ -123,7 +136,9 @@ impl CliSyncCoordinator {
         let probe_result = match self.adapter.probe(&install, &new_config).await {
             Ok(p) => p,
             Err(e) => {
-                let _ = tx.rollback();
+                if let Err(rb_e) = tx.rollback(Some(&plan.files_to_write)) {
+                    return Err(SyncError::RollbackFailed(format!("Probe error: {}; Rollback error: {}", e, rb_e)));
+                }
                 return Err(e);
             }
         };

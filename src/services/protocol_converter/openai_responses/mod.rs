@@ -33,9 +33,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use crate::services::protocol_converter::ProtocolConverter;
-
-    use super::*;
-    use serde_json::json;
+    use futures::StreamExt;
 
     #[test]
     fn request_maps_messages_function_history_and_flat_tools() {
