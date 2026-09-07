@@ -79,6 +79,20 @@ pub enum AudioConfig {
     Both { mic: String, sys: String },
 }
 
+
+pub fn get_default_mic() -> Option<String> {
+    let devices = get_audio_devices();
+    devices.into_iter().find(|d| d.contains("麦克风") || d.to_lowercase().contains("mic"))
+}
+
+pub fn get_default_sys_audio() -> Option<String> {
+    let devices = get_audio_devices();
+    devices.into_iter().find(|d| {
+        let lower = d.to_lowercase();
+        lower.contains("立体声混音") || lower.contains("stereo mix") || lower.contains("virtual-audio-capturer") || lower.contains("cable output")
+    })
+}
+
 pub struct FfmpegEngine {
     process: Option<Child>,
     output_path: Option<PathBuf>,
@@ -144,15 +158,32 @@ impl FfmpegEngine {
         match &audio_config {
             AudioConfig::None => {}
             AudioConfig::Mic(dev) => {
-                cmd.args(["-f", "dshow", "-i", &format!("audio={dev}")]);
+                let dev_name = if dev.is_empty() { get_default_mic().unwrap_or_default() } else { dev.clone() };
+                if !dev_name.is_empty() {
+                    cmd.args(["-f", "dshow", "-i", &format!("audio={dev_name}")]);
+                }
             }
             AudioConfig::System(dev) => {
-                cmd.args(["-f", "dshow", "-i", &format!("audio={dev}")]);
+                let dev_name = if dev.is_empty() { get_default_sys_audio().unwrap_or_default() } else { dev.clone() };
+                if !dev_name.is_empty() {
+                    cmd.args(["-f", "dshow", "-i", &format!("audio={dev_name}")]);
+                }
             }
             AudioConfig::Both { mic, sys } => {
-                cmd.args(["-f", "dshow", "-i", &format!("audio={sys}")]);
-                cmd.args(["-f", "dshow", "-i", &format!("audio={mic}")]);
-                cmd.args(["-filter_complex", "amix=inputs=2:duration=longest"]);
+                let mic_name = if mic.is_empty() { get_default_mic().unwrap_or_default() } else { mic.clone() };
+                let sys_name = if sys.is_empty() { get_default_sys_audio().unwrap_or_default() } else { sys.clone() };
+                let mut inputs = 0;
+                if !sys_name.is_empty() {
+                    cmd.args(["-f", "dshow", "-i", &format!("audio={sys_name}")]);
+                    inputs += 1;
+                }
+                if !mic_name.is_empty() {
+                    cmd.args(["-f", "dshow", "-i", &format!("audio={mic_name}")]);
+                    inputs += 1;
+                }
+                if inputs == 2 {
+                    cmd.args(["-filter_complex", "amix=inputs=2:duration=longest"]);
+                }
             }
         }
 

@@ -140,16 +140,11 @@ unsafe fn recording_region(hwnd: HWND, state: &AppState, enabled: bool) -> Resul
 unsafe fn start_record_job(hwnd: HWND, state: &mut AppState, action: Action) -> Result<(), String> {
     let rect = state.crop_rect.ok_or("请先选择范围")?;
     let dir = state.vp.as_ref().ok_or("视觉引擎不可用")?.artifact_dir().to_path_buf();
-    let audio_config = if state.is_record_muted {
-        AudioConfig::None
-    } else {
-        let default_audio = state.vp.as_ref().map(|vp| vp.settings().default_record_audio).unwrap_or_else(|| "system".to_string());
-        match default_audio.as_str() {
-            "mic" => AudioConfig::Mic("".to_string()),
-            "system" => AudioConfig::System("".to_string()),
-            "both" => AudioConfig::Both { mic: "".to_string(), sys: "".to_string() },
-            _ => AudioConfig::None,
-        }
+    let audio_config = match state.record_audio_mode {
+        crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mute => AudioConfig::None,
+        crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mic => AudioConfig::Mic("".to_string()),
+        crate::services::visual_pipeline::cropper::types::RecordAudioMode::System => AudioConfig::System("".to_string()),
+        crate::services::visual_pipeline::cropper::types::RecordAudioMode::Both => AudioConfig::Both { mic: "".to_string(), sys: "".to_string() },
     };
     if action == Action::Record {
         state.mode = AppMode::Recording;
@@ -256,8 +251,13 @@ pub unsafe fn handle(hwnd: HWND, state: &mut AppState, action: Action) {
                 }
             }
         }
-        Action::ToggleMute => {
-            state.is_record_muted = !state.is_record_muted;
+        Action::ToggleAudioMode => {
+            state.record_audio_mode = match state.record_audio_mode {
+                crate::services::visual_pipeline::cropper::types::RecordAudioMode::System => crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mic,
+                crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mic => crate::services::visual_pipeline::cropper::types::RecordAudioMode::Both,
+                crate::services::visual_pipeline::cropper::types::RecordAudioMode::Both => crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mute,
+                crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mute => crate::services::visual_pipeline::cropper::types::RecordAudioMode::System,
+            };
             setup_toolbar(state);
             let _ = InvalidateRect(Some(hwnd), None, false);
         }

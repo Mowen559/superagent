@@ -14,7 +14,7 @@ pub enum Action {
     Translate,
     TTS,
     Record,
-    ToggleMute,
+    ToggleAudioMode,
     RecordPause,
     RecordResume,
     RecordStop,
@@ -168,8 +168,18 @@ pub enum DragMode {
     ResizeBottomRight,
 }
 
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RecordAudioMode {
+    System,
+    Mic,
+    Both,
+    Mute,
+}
+
 pub struct AppState {
-    pub is_record_muted: bool,
+    pub record_audio_mode: RecordAudioMode,
+
     pub analysis_job: Option<super::analysis::AnalysisJob>,
     pub record_job: Option<std::sync::mpsc::Receiver<Result<super::actions::RecordOutcome, String>>>,
     pub text_lines: Vec<super::text_selection::TextLine>,

@@ -89,7 +89,17 @@ pub fn setup_toolbar(state: &mut AppState) {
         (Action::Translate, "\u{E775}", "就地翻译"),
         (Action::TTS, "\u{E189}", "朗读文字"),
         (Action::Record, "\u{E714}", "区域录屏"),
-        (Action::ToggleMute, if state.is_record_muted { "\u{E74F}" } else { "\u{E767}" }, if state.is_record_muted { "已静音 (点击开启)" } else { "录音中 (点击静音)" }),
+        (Action::ToggleAudioMode, match state.record_audio_mode {
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::System => "\u{E767}", // System speaker icon
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mic => "\u{E720}", // Mic icon
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::Both => "\u{F327}", // Both icon (headset)
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mute => "\u{E74F}", // Mute icon
+        }, match state.record_audio_mode {
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::System => "录制电脑声音(点击切换麦克风)",
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mic => "录制麦克风(点击切换系统+麦克风)",
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::Both => "录制全部声音(点击静音)",
+            crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mute => "静音录制(点击切换电脑声音)",
+        }),
         (Action::Pin, "\u{E718}", "贴在桌面"),
         (Action::Copy, "\u{E8C8}", "复制到剪贴板"),
         (Action::Accept, "\u{E73E}", "确认完成"),

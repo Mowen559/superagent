@@ -124,8 +124,17 @@ pub fn run_interactive_capture(
     let ui_service = ElementRegionService::new().ok();
 
     tracing::info!("[NativeCropper] Step 5: Preparing AppState and toolbar");
+    let default_audio = vp.settings().default_record_audio.clone();
+    let audio_mode = match default_audio.as_str() {
+        "mic" => crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mic,
+        "both" => crate::services::visual_pipeline::cropper::types::RecordAudioMode::Both,
+        "none" => crate::services::visual_pipeline::cropper::types::RecordAudioMode::Mute,
+        _ => crate::services::visual_pipeline::cropper::types::RecordAudioMode::System,
+    };
+
     let mut state = Box::new(AppState {
-        is_record_muted: false,
+        record_audio_mode: audio_mode,
+
         analysis_job: None, record_job: None, text_lines: Vec::new(), selected_spans: Vec::new(),
         status_text: String::new(), last_saved_path: None, input_window: None,
         frame_width: width,
