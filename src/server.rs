@@ -172,6 +172,8 @@ fn build_router(state: Arc<AppState>) -> Router {
                         || origin_str.starts_with("http://localhost:")
                         || origin_str == "http://127.0.0.1"
                         || origin_str.starts_with("http://127.0.0.1:")
+                        || origin_str == "app://-"
+                        || origin_str.starts_with("app://")
                 } else {
                     false
                 }
