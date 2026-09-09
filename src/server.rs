@@ -182,8 +182,8 @@ fn build_router(state: Arc<AppState>) -> Router {
                 }
             },
         ))
-        .allow_credentials(true).allow_methods(Any)
-        .allow_headers(Any);
+        .allow_credentials(true).allow_methods(vec![axum::http::Method::GET, axum::http::Method::POST, axum::http::Method::PUT, axum::http::Method::DELETE, axum::http::Method::PATCH, axum::http::Method::OPTIONS])
+        .allow_headers(vec![axum::http::header::CONTENT_TYPE, axum::http::header::AUTHORIZATION, axum::http::header::ACCEPT]);
 
     Router::new()
         .merge(routes::health::router())
