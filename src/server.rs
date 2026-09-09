@@ -182,7 +182,7 @@ fn build_router(state: Arc<AppState>) -> Router {
                 }
             },
         ))
-        .allow_methods(Any)
+        .allow_credentials(true).allow_methods(Any)
         .allow_headers(Any);
 
     Router::new()
