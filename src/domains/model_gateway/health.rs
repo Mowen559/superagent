@@ -5,6 +5,10 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc};
+use std::fs;
+use std::path::PathBuf;
+use crate::config::app_paths::AppPaths;
 
 use crate::domains::model_gateway::routing::ProviderAttemptOutcome;
 
@@ -62,6 +66,7 @@ pub struct ProviderHealthRuntime {
 }
 
 #[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 struct ProviderHealthEntry {
     circuit: ProviderCircuitState,
     consecutive_failures: u32,
@@ -69,13 +74,13 @@ struct ProviderHealthEntry {
     total_recoverable_failures: u64,
     latency_ema_ms: Option<f64>,
     open_count: u32,
-    open_until: Option<Instant>,
+    open_until: Option<DateTime<Utc>>,
     probe_in_flight: bool,
-    last_touched: Instant,
+    last_touched: DateTime<Utc>,
 }
 
 impl ProviderHealthEntry {
-    fn new(now: Instant) -> Self {
+    fn new(now: DateTime<Utc>) -> Self {
         Self {
             circuit: ProviderCircuitState::Closed,
             consecutive_failures: 0,
@@ -97,6 +102,31 @@ impl Default for ProviderHealthRuntime {
 }
 
 impl ProviderHealthRuntime {
+    
+    fn get_persistence_path() -> PathBuf {
+        AppPaths::new().data_path(&["health_ledger.json"])
+    }
+
+    fn save_to_disk(&self) {
+        let entries = self.entries.lock().unwrap_or_else(|error| error.into_inner());
+        if let Ok(json) = serde_json::to_string_pretty(&*entries) {
+            let path = Self::get_persistence_path();
+            if let Some(parent) = path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            let _ = fs::write(path, json);
+        }
+    }
+
+    fn load_from_disk() -> Option<HashMap<String, ProviderHealthEntry>> {
+        let path = Self::get_persistence_path();
+        if let Ok(json) = fs::read_to_string(path) {
+            serde_json::from_str(&json).ok()
+        } else {
+            None
+        }
+    }
+
     pub fn global() -> &'static Self {
         GLOBAL_PROVIDER_HEALTH.get_or_init(Self::default)
     }
@@ -115,7 +145,7 @@ impl ProviderHealthRuntime {
     }
 
     pub fn begin_attempt(&self, provider_key: &str) -> ProviderAdmission {
-        self.begin_attempt_at(provider_key, Instant::now())
+        self.begin_attempt_at(provider_key, Utc::now())
     }
 
     pub fn finish_attempt(
@@ -124,12 +154,12 @@ impl ProviderHealthRuntime {
         outcome: ProviderAttemptOutcome,
         duration_ms: u64,
     ) {
-        self.finish_attempt_at(provider_key, outcome, duration_ms, Instant::now());
+        self.finish_attempt_at(provider_key, outcome, duration_ms, Utc::now());
     }
 
     /// Release a half-open Probe when the request never reached the Provider.
     pub fn cancel_attempt(&self, provider_key: &str) {
-        let now = Instant::now();
+        let now = Utc::now();
         let mut entries = self
             .entries
             .lock()
@@ -145,11 +175,11 @@ impl ProviderHealthRuntime {
     }
 
     pub fn snapshot(&self, provider_key: &str) -> Option<ProviderHealthSnapshot> {
-        self.snapshot_at(provider_key, Instant::now())
+        self.snapshot_at(provider_key, Utc::now())
     }
 
     pub fn snapshots(&self) -> Vec<ProviderHealthSnapshot> {
-        let now = Instant::now();
+        let now = Utc::now();
         let entries = self
             .entries
             .lock()
@@ -170,7 +200,7 @@ impl ProviderHealthRuntime {
             .is_some()
     }
 
-    fn begin_attempt_at(&self, provider_key: &str, now: Instant) -> ProviderAdmission {
+    fn begin_attempt_at(&self, provider_key: &str, now: DateTime<Utc>) -> ProviderAdmission {
         let mut entries = self
             .entries
             .lock()
@@ -187,7 +217,7 @@ impl ProviderHealthRuntime {
                 let open_until = entry.open_until.unwrap_or(now);
                 if now < open_until {
                     ProviderAdmission::Rejected {
-                        retry_after_ms: duration_ms(open_until.duration_since(now)),
+                        retry_after_ms: open_until.signed_duration_since(now).num_milliseconds().max(0) as u64,
                     }
                 } else if entry.probe_in_flight {
                     ProviderAdmission::Rejected { retry_after_ms: 1 }
@@ -213,7 +243,7 @@ impl ProviderHealthRuntime {
         provider_key: &str,
         outcome: ProviderAttemptOutcome,
         duration_ms: u64,
-        now: Instant,
+        now: DateTime<Utc>,
     ) {
         let mut entries = self
             .entries
@@ -263,9 +293,11 @@ impl ProviderHealthRuntime {
                 }
             }
         }
+        drop(entries);
+        self.save_to_disk();
     }
 
-    fn snapshot_at(&self, provider_key: &str, now: Instant) -> Option<ProviderHealthSnapshot> {
+    fn snapshot_at(&self, provider_key: &str, now: DateTime<Utc>) -> Option<ProviderHealthSnapshot> {
         let entries = self
             .entries
             .lock()
@@ -276,7 +308,7 @@ impl ProviderHealthRuntime {
     }
 }
 
-fn open_circuit(entry: &mut ProviderHealthEntry, policy: &ProviderHealthPolicy, now: Instant) {
+fn open_circuit(entry: &mut ProviderHealthEntry, policy: &ProviderHealthPolicy, now: DateTime<Utc>) {
     entry.open_count = entry.open_count.saturating_add(1);
     let exponent = entry.open_count.saturating_sub(1).min(20);
     let multiplier = 2_u32.saturating_pow(exponent);
@@ -285,18 +317,18 @@ fn open_circuit(entry: &mut ProviderHealthEntry, policy: &ProviderHealthPolicy, 
         .saturating_mul(multiplier)
         .min(policy.max_cooldown);
     entry.circuit = ProviderCircuitState::Open;
-    entry.open_until = Some(now + cooldown);
+    entry.open_until = Some(now + chrono::Duration::from_std(cooldown).unwrap_or_else(|_| chrono::Duration::zero()));
 }
 
 fn snapshot_entry(
     provider_key: &str,
     entry: &ProviderHealthEntry,
-    now: Instant,
+    now: DateTime<Utc>,
 ) -> ProviderHealthSnapshot {
     let retry_after_ms = entry
         .open_until
         .filter(|deadline| *deadline > now)
-        .map(|deadline| duration_ms(deadline.duration_since(now)))
+        .map(|deadline| deadline.signed_duration_since(now).num_milliseconds().max(0) as u64)
         .unwrap_or(0);
     ProviderHealthSnapshot {
         provider_key: provider_key.to_string(),
@@ -346,25 +378,25 @@ mod tests {
     #[test]
     fn opens_after_threshold_and_allows_exactly_one_half_open_probe() {
         let runtime = runtime();
-        let now = Instant::now();
+        let now = Utc::now();
         for offset in 0..3 {
             assert_eq!(
-                runtime.begin_attempt_at("provider", now + Duration::from_millis(offset)),
+                runtime.begin_attempt_at("provider", now + chrono::Duration::milliseconds(offset as i64)),
                 ProviderAdmission::Allowed
             );
             runtime.finish_attempt_at(
                 "provider",
                 ProviderAttemptOutcome::Transient,
                 10,
-                now + Duration::from_millis(offset),
+                now + chrono::Duration::milliseconds(offset as i64),
             );
         }
         assert!(matches!(
-            runtime.begin_attempt_at("provider", now + Duration::from_secs(1)),
+            runtime.begin_attempt_at("provider", now + chrono::Duration::seconds(1)),
             ProviderAdmission::Rejected { .. }
         ));
 
-        let probe_time = now + Duration::from_secs(11);
+        let probe_time = now + chrono::Duration::seconds(11);
         assert_eq!(
             runtime.begin_attempt_at("provider", probe_time),
             ProviderAdmission::Allowed
@@ -388,7 +420,7 @@ mod tests {
     #[test]
     fn authentication_opens_immediately_but_request_errors_do_not_poison_health() {
         let runtime = runtime();
-        let now = Instant::now();
+        let now = Utc::now();
         runtime.finish_attempt_at("auth", ProviderAttemptOutcome::Authentication, 1, now);
         assert_eq!(
             runtime.snapshot_at("auth", now).unwrap().circuit,
@@ -406,19 +438,19 @@ mod tests {
     #[test]
     fn health_table_is_bounded_and_success_tracks_latency_ema() {
         let runtime = runtime();
-        let now = Instant::now();
+        let now = Utc::now();
         runtime.finish_attempt_at("old", ProviderAttemptOutcome::Succeeded, 100, now);
         runtime.finish_attempt_at(
             "kept",
             ProviderAttemptOutcome::Succeeded,
             200,
-            now + Duration::from_secs(1),
+            now + chrono::Duration::seconds(1),
         );
         runtime.finish_attempt_at(
             "new",
             ProviderAttemptOutcome::Succeeded,
             300,
-            now + Duration::from_secs(2),
+            now + chrono::Duration::seconds(2),
         );
         assert!(runtime.snapshot_at("old", now).is_none());
         assert_eq!(runtime.snapshots().len(), 2);
