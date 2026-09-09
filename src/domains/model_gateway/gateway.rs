@@ -70,10 +70,15 @@ pub async fn execute_model_request(
                 }
                 Err(e) => {
                     let class = route_runtime.classify_failure(&format!("auth failed: {e}"));
+                    let acc_key = candidate.account_health_key();
+                    let mod_key = candidate.model_health_key();
+                    let duration = crate::domains::model_gateway::providers::elapsed_ms(attempt_started);
+                    health.finish_attempt(&acc_key, class.into(), duration);
+                    health.finish_attempt(&mod_key, class.into(), duration);
                     receipts.push(ProviderAttemptReceipt::new(
                         &candidate,
                         attempt,
-                        crate::domains::model_gateway::providers::elapsed_ms(attempt_started),
+                        duration,
                         class.into(),
                         Some(401),
                     ));
@@ -139,11 +144,36 @@ pub async fn execute_model_request(
             }
         };
 
-        let health_key = candidate.health_key();
-        if let ProviderAdmission::Rejected { retry_after_ms } = health.begin_attempt(&health_key) {
+        let acc_key = candidate.account_health_key();
+        let mod_key = candidate.model_health_key();
+
+        // 1. 账号级断路器准入校验
+        if let ProviderAdmission::Rejected { retry_after_ms } = health.begin_attempt(&acc_key) {
             last_error = (
                 StatusCode::SERVICE_UNAVAILABLE,
-                format!("Provider Circuit open; retry after {retry_after_ms} ms"),
+                format!("Account Circuit open; retry after {retry_after_ms} ms"),
+            );
+            receipts.push(ProviderAttemptReceipt::new(
+                &candidate,
+                attempt,
+                crate::domains::model_gateway::providers::elapsed_ms(attempt_started),
+                ProviderAttemptOutcome::CircuitOpen,
+                Some(503),
+            ));
+            if attempt < candidate_count {
+                continue;
+            }
+            return Err(last_error);
+        }
+
+        // 2. 模型级断路器准入校验
+        if let ProviderAdmission::Rejected { retry_after_ms } = health.begin_attempt(&mod_key) {
+            // 释放账号级刚才可能开启的 HalfOpen 探针
+            health.cancel_attempt(&acc_key);
+
+            last_error = (
+                StatusCode::SERVICE_UNAVAILABLE,
+                format!("Model Circuit open for '{}'; retry after {retry_after_ms} ms", candidate.resolved_model),
             );
             receipts.push(ProviderAttemptReceipt::new(
                 &candidate,
@@ -176,11 +206,14 @@ pub async fn execute_model_request(
             Ok(r) => r,
             Err(e) => {
                 let class = route_runtime.classify_failure(&format!("request failed: {e}"));
-                health.finish_attempt(&health_key, class.into(), crate::domains::model_gateway::providers::elapsed_ms(attempt_started));
+                let attempt_duration = crate::domains::model_gateway::providers::elapsed_ms(attempt_started);
+                health.finish_attempt(&mod_key, class.into(), attempt_duration);
+                health.cancel_attempt(&acc_key);
+
                 receipts.push(ProviderAttemptReceipt::new(
                     &candidate,
                     attempt,
-                    crate::domains::model_gateway::providers::elapsed_ms(attempt_started),
+                    attempt_duration,
                     class.into(),
                     Some(502),
                 ));
@@ -198,8 +231,33 @@ pub async fn execute_model_request(
         if !status.is_success() {
             // Need to read body for error analysis
             let error_text = res.text().await.unwrap_or_default();
-            let class = route_runtime.classify_http_failure(status.as_u16(), &error_text);
-            health.finish_attempt(&health_key, class.into(), attempt_duration_ms);
+            let status_u16 = status.as_u16();
+            let class = route_runtime.classify_http_failure(status_u16, &error_text);
+            let attempt_duration = attempt_duration_ms;
+
+            match class {
+                crate::domains::model_gateway::model_attempt_router::ModelErrorClass::Authentication => {
+                    health.finish_attempt(&acc_key, ProviderAttemptOutcome::Authentication, attempt_duration);
+                    health.finish_attempt(&mod_key, ProviderAttemptOutcome::Authentication, attempt_duration);
+                }
+                crate::domains::model_gateway::model_attempt_router::ModelErrorClass::RateLimited => {
+                    health.finish_attempt(&mod_key, ProviderAttemptOutcome::RateLimited, attempt_duration);
+                    health.finish_attempt(&acc_key, ProviderAttemptOutcome::Succeeded, attempt_duration);
+                }
+                crate::domains::model_gateway::model_attempt_router::ModelErrorClass::Transient => {
+                    health.finish_attempt(&mod_key, ProviderAttemptOutcome::Transient, attempt_duration);
+                    health.cancel_attempt(&acc_key);
+                }
+                _ => {
+                    if status_u16 == 404 || (error_text.contains("model") && error_text.contains("not found")) {
+                        health.finish_attempt(&mod_key, ProviderAttemptOutcome::Permanent, attempt_duration);
+                    } else {
+                        health.finish_attempt(&mod_key, class.into(), attempt_duration);
+                    }
+                    health.finish_attempt(&acc_key, ProviderAttemptOutcome::Succeeded, attempt_duration);
+                }
+            }
+
             receipts.push(ProviderAttemptReceipt::new(
                 &candidate,
                 attempt,
@@ -229,7 +287,8 @@ pub async fn execute_model_request(
             .unwrap_or(false);
 
         if is_stream {
-            health.finish_attempt(&health_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
+            health.finish_attempt(&mod_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
+            health.finish_attempt(&acc_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
             receipts.push(ProviderAttemptReceipt::new(
                 &candidate,
                 attempt,
@@ -255,10 +314,11 @@ pub async fn execute_model_request(
             Ok(body) => body,
             Err(error) => {
                 health.finish_attempt(
-                    &health_key,
+                    &mod_key,
                     ProviderAttemptOutcome::Permanent,
                     attempt_duration_ms,
                 );
+                health.cancel_attempt(&acc_key);
                 receipts.push(ProviderAttemptReceipt::new(
                     &candidate,
                     attempt,
@@ -277,10 +337,11 @@ pub async fn execute_model_request(
             Ok(response) => response,
             Err(error) => {
                 health.finish_attempt(
-                    &health_key,
+                    &mod_key,
                     ProviderAttemptOutcome::Permanent,
                     attempt_duration_ms,
                 );
+                health.cancel_attempt(&acc_key);
                 receipts.push(ProviderAttemptReceipt::new(
                     &candidate,
                     attempt,
@@ -292,7 +353,8 @@ pub async fn execute_model_request(
             }
         };
 
-        health.finish_attempt(&health_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
+        health.finish_attempt(&mod_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
+        health.finish_attempt(&acc_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
         receipts.push(ProviderAttemptReceipt::new(
             &candidate,
             attempt,

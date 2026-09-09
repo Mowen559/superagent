@@ -35,18 +35,40 @@ impl ProviderCandidate {
         settings
     }
 
+    pub fn account_health_key(&self) -> String {
+        account_health_key(&self.account)
+    }
+
+    pub fn model_health_key(&self) -> String {
+        model_health_key(&self.account, &self.resolved_model)
+    }
+
     pub fn health_key(&self) -> String {
-        provider_health_key(&self.account)
+        self.model_health_key()
     }
 }
 
-pub fn provider_health_key(account: &LLMAccount) -> String {
+pub fn account_health_key(account: &LLMAccount) -> String {
     format!(
-        "{}:{}:{:016x}",
+        "acc:{}:{}:{:016x}",
         account.provider,
         account.id,
         xxh3_64(account.base_url.as_bytes())
     )
+}
+
+pub fn model_health_key(account: &LLMAccount, resolved_model: &str) -> String {
+    format!(
+        "mod:{}:{}:{:016x}:{}",
+        account.provider,
+        account.id,
+        xxh3_64(account.base_url.as_bytes()),
+        resolved_model
+    )
+}
+
+pub fn provider_health_key(account: &LLMAccount) -> String {
+    account_health_key(account)
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -731,5 +753,27 @@ mod tests {
         let assessment = capability_assessment(&stale, "model", ModelRequirements::default());
         assert_eq!(assessment.evidence, ModelCapabilityEvidence::Unknown);
         assert!(assessment.expired);
+    }
+
+    #[test]
+    fn two_tier_health_keys_are_distinct_and_isolated() {
+        let acc = account("acc-1", 10, &["gpt-4o", "claude-3-5"], &[]);
+        let acc_key = account_health_key(&acc);
+        let mod_key_1 = model_health_key(&acc, "gpt-4o");
+        let mod_key_2 = model_health_key(&acc, "claude-3-5");
+
+        assert!(acc_key.starts_with("acc:openai:acc-1:"));
+        assert!(mod_key_1.starts_with("mod:openai:acc-1:"));
+        assert!(mod_key_1.ends_with(":gpt-4o"));
+        assert!(mod_key_2.ends_with(":claude-3-5"));
+        assert_ne!(acc_key, mod_key_1);
+        assert_ne!(mod_key_1, mod_key_2);
+
+        let candidate = ProviderCandidate {
+            account: acc.clone(),
+            resolved_model: "gpt-4o".to_string(),
+        };
+        assert_eq!(candidate.account_health_key(), acc_key);
+        assert_eq!(candidate.model_health_key(), mod_key_1);
     }
 }

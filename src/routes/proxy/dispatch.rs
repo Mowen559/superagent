@@ -8,10 +8,13 @@ use axum::{
 use reqwest::StatusCode;
 use serde_json::Value;
 
-use crate::config::llm_settings;
+use crate::config::llm_settings::{self, LLMAccount};
 use crate::services::auth_validator;
 use crate::services::usage_tracker::ApiUsageRecord;
-use crate::domains::model_gateway::routing::{provider_health_key, ModelRequirements, ModelRouteRuntime, ProviderAttemptOutcome, ProviderAttemptReceipt};
+use crate::domains::model_gateway::routing::{
+    account_health_key, model_health_key, provider_health_key, ModelRequirements,
+    ModelRouteRuntime, ProviderAttemptOutcome, ProviderAttemptReceipt,
+};
 use crate::domains::model_gateway::health::{ProviderAdmission, ProviderHealthRuntime};
 use crate::domains::model_gateway::protocols::{anthropic::AnthropicConverter, gemini::GeminiConverter, openai::OpenAiConverter, openai_responses::OpenAiResponsesConverter, upstream::adapter_for_provider, ProtocolConverter};
 use crate::AppState;
@@ -124,8 +127,9 @@ pub(crate) async fn handle_request(
         };
         let upstream_adapter = adapter_for_provider(&dummy_settings);
         let standard_stream = upstream_adapter.response_stream_to_standard(Box::pin(io_stream));
-        let health_key = provider_health_key(&account);
-        let standard_stream = track_provider_stream(standard_stream, health_key.clone(), attempt_started);
+        let acc_key = account_health_key(&account);
+        let mod_key = model_health_key(&account, &requested_model);
+        let standard_stream = track_provider_stream(standard_stream, acc_key, mod_key, attempt_started);
 
         let stream_audit = Arc::new(Mutex::new(StreamAuditState::new(
             account.id.clone(),
@@ -343,6 +347,53 @@ pub(crate) async fn handle_gemini(
     .await
 }
 
+fn build_source_info(account: &LLMAccount, model_name: &str) -> serde_json::Value {
+    let health = ProviderHealthRuntime::global();
+    let acc_key = account_health_key(account);
+    let mod_key = model_health_key(account, model_name);
+
+    let acc_snapshot = health.snapshot(&acc_key);
+    let mod_snapshot = health.snapshot(&mod_key);
+
+    let (circuit, failure_tier, primary_health) = match (&acc_snapshot, &mod_snapshot) {
+        (Some(acc), _) if acc.circuit == crate::domains::model_gateway::health::ProviderCircuitState::Open => {
+            (crate::domains::model_gateway::health::ProviderCircuitState::Open, "account", Some(acc.clone()))
+        }
+        (_, Some(m)) if m.circuit == crate::domains::model_gateway::health::ProviderCircuitState::Open => {
+            (crate::domains::model_gateway::health::ProviderCircuitState::Open, "model", Some(m.clone()))
+        }
+        (Some(acc), _) if acc.circuit == crate::domains::model_gateway::health::ProviderCircuitState::HalfOpen => {
+            (crate::domains::model_gateway::health::ProviderCircuitState::HalfOpen, "account", Some(acc.clone()))
+        }
+        (_, Some(m)) if m.circuit == crate::domains::model_gateway::health::ProviderCircuitState::HalfOpen => {
+            (crate::domains::model_gateway::health::ProviderCircuitState::HalfOpen, "model", Some(m.clone()))
+        }
+        (_, Some(m)) => {
+            (crate::domains::model_gateway::health::ProviderCircuitState::Closed, "none", Some(m.clone()))
+        }
+        (Some(acc), None) => {
+            (crate::domains::model_gateway::health::ProviderCircuitState::Closed, "none", Some(acc.clone()))
+        }
+        (None, None) => {
+            (crate::domains::model_gateway::health::ProviderCircuitState::Closed, "none", None)
+        }
+    };
+
+    serde_json::json!({
+        "accountId": account.id,
+        "accountName": account.name,
+        "provider": account.provider,
+        "tags": account.tags,
+        "priority": account.priority,
+        "weight": account.weight,
+        "circuit": circuit,
+        "failureTier": failure_tier,
+        "health": primary_health,
+        "accountHealth": acc_snapshot,
+        "modelHealth": mod_snapshot,
+    })
+}
+
 pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
     let settings = llm_settings::read_llm_settings();
     let mut unique_models: std::collections::HashMap<String, serde_json::Value> =
@@ -354,18 +405,9 @@ pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, Str
             continue;
         }
 
-        let source_info = serde_json::json!({
-            "accountId": account.id,
-            "accountName": account.name,
-            "provider": account.provider,
-            "tags": account.tags,
-            "priority": account.priority,
-            "weight": account.weight,
-            "health": ProviderHealthRuntime::global().snapshot(&provider_health_key(account))
-        });
-
         // Add actual models
         for model in &account.models {
+            let source_info = build_source_info(account, model);
             if let Some(existing) = unique_models.get_mut(model) {
                 if let Some(sources) = existing.get_mut("sources").and_then(|v| v.as_array_mut()) {
                     sources.push(source_info.clone());
@@ -398,6 +440,7 @@ pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, Str
 
         // Add aliases (mapping)
         for (alias, target) in &account.model_mapping {
+            let source_info = build_source_info(account, target);
             if let Some(existing) = unique_models.get_mut(alias) {
                 if let Some(sources) = existing.get_mut("sources").and_then(|v| v.as_array_mut()) {
                     sources.push(source_info.clone());

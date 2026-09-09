@@ -34,7 +34,7 @@ use snow_ui_selector::{ElementRegionService, HitTestMode};
 
 use crate::services::visual_pipeline::cropper::draw::{
     draw_border, draw_elements, draw_in_progress, draw_magnifier, draw_ocr_blocks,
-    draw_recording_border, draw_translated_lines,
+    draw_recording_border, draw_resize_handles, draw_selection_badge, draw_translated_lines,
 };
 use crate::services::visual_pipeline::cropper::toolbar::{draw_toolbar, setup_toolbar};
 use crate::services::visual_pipeline::cropper::types::{
@@ -626,28 +626,28 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                     }
                 } else if let Some(r) = state.crop_rect {
                     draw_border(hdc_mem, r, COLORREF(0x00D9531E), 2);
+                    draw_resize_handles(hdc_mem, r);
+                    draw_selection_badge(hdc_mem, r, state);
                 } else if state.mode == AppMode::Selecting && state.is_dragging {
                     if let Some(r) = active_rect {
                         draw_border(hdc_mem, r, COLORREF(0x00FF0000), 2);
+                        draw_selection_badge(hdc_mem, r, state);
                     }
                 }
 
                 // Native capture interaction.
-                let saved_dc=SaveDC(hdc_mem);
-                if let Some(r)=state.crop_rect { IntersectClipRect(hdc_mem,r.left,r.top,r.right,r.bottom); }
+                let saved_dc = SaveDC(hdc_mem);
+                if let Some(r) = state.crop_rect { IntersectClipRect(hdc_mem, r.left, r.top, r.right, r.bottom); }
                 draw_elements(hdc_mem, state, &bmi);
 
                 // Native capture interaction.
                 draw_in_progress(hdc_mem, state);
 
                 // Native capture interaction.
-
-
-                // Native capture interaction.
                 draw_translated_lines(hdc_mem, state);
-                draw_ocr_blocks(hdc_mem,state);
-                let _ = RestoreDC(hdc_mem,saved_dc);
-                let _ = DeleteDC(hdc_mem);
+                draw_ocr_blocks(hdc_mem, state);
+                let _ = RestoreDC(hdc_mem, saved_dc);
+
                 if state.mode == AppMode::Selecting && state.crop_rect.is_none() {
                     draw_magnifier(hdc_mem, state.current_pt, state);
                 }
@@ -655,7 +655,7 @@ extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPA
                 // Native capture interaction.
                 draw_toolbar(hdc_mem, state);
 
-                // 鍙岀紦鍐叉嫹璐濊嚦灞忓箷
+                // 双缓冲拷贝至屏幕
                 let _ = BitBlt(hdc, 0, 0, state.frame_width as i32, state.frame_height as i32, Some(hdc_mem), 0, 0, SRCCOPY);
                 SelectObject(hdc_mem, hbm_old);
                 let _ = DeleteObject(hbm_mem.into());

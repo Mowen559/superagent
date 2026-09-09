@@ -28,13 +28,14 @@ pub(crate) fn track_provider_stream(
     mut stream: std::pin::Pin<
         Box<dyn futures::stream::Stream<Item = Result<bytes::Bytes, std::io::Error>> + Send>,
     >,
-    health_key: String,
+    acc_key: String,
+    mod_key: String,
     started: Instant,
 ) -> std::pin::Pin<
     Box<dyn futures::stream::Stream<Item = Result<bytes::Bytes, std::io::Error>> + Send>,
 > {
     Box::pin(async_stream::stream! {
-        let mut guard = ProviderStreamHealthGuard::new(health_key, started);
+        let mut guard = ProviderStreamHealthGuard::new(acc_key, mod_key, started);
         while let Some(item) = futures::StreamExt::next(&mut stream).await {
             match &item {
                 Ok(chunk) => {
@@ -54,15 +55,17 @@ pub(crate) fn track_provider_stream(
 }
 
 pub(crate) struct ProviderStreamHealthGuard {
-    pub(crate) health_key: String,
+    pub(crate) acc_key: String,
+    pub(crate) mod_key: String,
     pub(crate) started: Instant,
     pub(crate) finished: bool,
 }
 
 impl ProviderStreamHealthGuard {
-    pub(crate) fn new(health_key: String, started: Instant) -> Self {
+    pub(crate) fn new(acc_key: String, mod_key: String, started: Instant) -> Self {
         Self {
-            health_key,
+            acc_key,
+            mod_key,
             started,
             finished: false,
         }
@@ -72,11 +75,29 @@ impl ProviderStreamHealthGuard {
         if self.finished {
             return;
         }
-        ProviderHealthRuntime::global().finish_attempt(
-            &self.health_key,
-            outcome,
-            elapsed_ms(self.started),
-        );
+        let duration = elapsed_ms(self.started);
+        match outcome {
+            ProviderAttemptOutcome::Succeeded => {
+                ProviderHealthRuntime::global().finish_attempt(&self.mod_key, ProviderAttemptOutcome::Succeeded, duration);
+                ProviderHealthRuntime::global().finish_attempt(&self.acc_key, ProviderAttemptOutcome::Succeeded, duration);
+            }
+            ProviderAttemptOutcome::Authentication => {
+                ProviderHealthRuntime::global().finish_attempt(&self.acc_key, ProviderAttemptOutcome::Authentication, duration);
+                ProviderHealthRuntime::global().finish_attempt(&self.mod_key, ProviderAttemptOutcome::Authentication, duration);
+            }
+            ProviderAttemptOutcome::RateLimited => {
+                ProviderHealthRuntime::global().finish_attempt(&self.mod_key, ProviderAttemptOutcome::RateLimited, duration);
+                ProviderHealthRuntime::global().finish_attempt(&self.acc_key, ProviderAttemptOutcome::Succeeded, duration);
+            }
+            ProviderAttemptOutcome::Transient => {
+                ProviderHealthRuntime::global().finish_attempt(&self.mod_key, ProviderAttemptOutcome::Transient, duration);
+                ProviderHealthRuntime::global().cancel_attempt(&self.acc_key);
+            }
+            _ => {
+                ProviderHealthRuntime::global().finish_attempt(&self.mod_key, outcome, duration);
+                ProviderHealthRuntime::global().finish_attempt(&self.acc_key, ProviderAttemptOutcome::Succeeded, duration);
+            }
+        }
         self.finished = true;
     }
 }

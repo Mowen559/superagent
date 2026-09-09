@@ -432,3 +432,90 @@ pub unsafe fn draw_magnifier(dc: HDC, pt: POINT, state: &AppState) {
     SetTextColor(dc, old_color);
     SetBkMode(dc, windows::Win32::Graphics::Gdi::BACKGROUND_MODE(old_bk as u32));
 }
+
+/// 绘制选区尺寸标牌 (如 800 × 600)
+pub unsafe fn draw_selection_badge(dc: HDC, rect: RECT, state: &AppState) {
+    let w = (rect.right - rect.left).abs();
+    let h = (rect.bottom - rect.top).abs();
+    if w == 0 || h == 0 {
+        return;
+    }
+
+    let text = format!("{} × {}", w, h);
+    let mut wide: Vec<u16> = text.encode_utf16().collect();
+
+    let badge_w = 90;
+    let badge_h = 24;
+    let mut badge_x = rect.left.min(rect.right);
+    let mut badge_y = rect.top.min(rect.bottom) - badge_h - 4;
+
+    // 如果上方超出屏幕，则翻转至选区内侧上方
+    if badge_y < 4 {
+        badge_y = rect.top.min(rect.bottom) + 6;
+    }
+    // 防止右侧超出屏幕
+    if badge_x + badge_w > state.frame_width as i32 {
+        badge_x = state.frame_width as i32 - badge_w - 4;
+    }
+
+    let badge_rect = RECT {
+        left: badge_x,
+        top: badge_y,
+        right: badge_x + badge_w,
+        bottom: badge_y + badge_h,
+    };
+
+    let bg_brush = CreateSolidBrush(COLORREF(0x00222222));
+    FillRect(dc, &badge_rect, bg_brush);
+    let _ = DeleteObject(bg_brush.into());
+    draw_border(dc, badge_rect, COLORREF(0x00555555), 1);
+
+    let font = CreateFontW(
+        13, 0, 0, 0, 600, 0, 0, 0, DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 0,
+        windows::core::w!("Segoe UI"),
+    );
+    let old_font = SelectObject(dc, font.into());
+    let old_bk = SetBkMode(dc, TRANSPARENT);
+    let old_color = SetTextColor(dc, COLORREF(0x00FFFFFF));
+
+    let mut tr = badge_rect;
+    let _ = DrawTextW(dc, &mut wide, &mut tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    SetTextColor(dc, old_color);
+    SetBkMode(dc, windows::Win32::Graphics::Gdi::BACKGROUND_MODE(old_bk as u32));
+    SelectObject(dc, old_font);
+    let _ = DeleteObject(font.into());
+}
+
+/// 绘制选区四周的 8 个拖拽调整手柄
+pub unsafe fn draw_resize_handles(dc: HDC, rect: RECT) {
+    let handle_size = 6;
+    let half = handle_size / 2;
+    let cx = (rect.left + rect.right) / 2;
+    let cy = (rect.top + rect.bottom) / 2;
+
+    let points = [
+        (rect.left, rect.top),       // 左上
+        (cx, rect.top),              // 上中
+        (rect.right, rect.top),      // 右上
+        (rect.right, cy),            // 右中
+        (rect.right, rect.bottom),   // 右下
+        (cx, rect.bottom),           // 下中
+        (rect.left, rect.bottom),    // 左下
+        (rect.left, cy),             // 左中
+    ];
+
+    let brush = CreateSolidBrush(COLORREF(0x00FFFFFF));
+    for (x, y) in points {
+        let hr = RECT {
+            left: x - half,
+            top: y - half,
+            right: x + half,
+            bottom: y + half,
+        };
+        FillRect(dc, &hr, brush);
+        draw_border(dc, hr, COLORREF(0x00D9531E), 1);
+    }
+    let _ = DeleteObject(brush.into());
+}
