@@ -21,19 +21,28 @@ pub fn intelligent_compress(
     if request.name == "view_file" {
         if let Some(path) = request.arguments.get("AbsolutePath").and_then(|v| v.as_str()) {
             if let Some(content) = result.get("content").and_then(|v| v.as_str()) {
-                let filter_result = compress(content, path, FilterLevel::Aggressive);
+                // Preserves code bodies by default with Minimal mode; Aggressive mode is only used when explicitly requested for architecture summary.
+                let level = if request.arguments.get("SummaryMode").and_then(|v| v.as_bool()).unwrap_or(false)
+                    || request.arguments.get("ArchitectureOnly").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    FilterLevel::Aggressive
+                } else {
+                    FilterLevel::Minimal
+                };
+                let filter_result = compress(content, path, level);
                 result["content"] = json!(filter_result.content);
-                result["rtk_compression"] = json!("Aggressive");
+                result["rtk_compression"] = json!(level.to_string());
                 result["reduction_percent"] = json!(filter_result.reduction_percent);
+                result["tokens_saved"] = json!(filter_result.original_tokens_est.saturating_sub(filter_result.compressed_tokens_est));
                 modified = true;
             }
         }
     } else if request.name == "run_command" {
         if let Some(content) = result.get("stdout").and_then(|v| v.as_str()) {
-            // Shell output often contains code snippets, diffs, or JSON.
-            let filter_result = compress(content, "shell.txt", FilterLevel::Aggressive);
+            let filter_result = crate::services::token_filter::compress_terminal_output(content, 200);
             result["stdout"] = json!(filter_result.content);
-            result["rtk_compression"] = json!("Aggressive");
+            result["rtk_compression"] = json!("SmartLog");
+            result["reduction_percent"] = json!(filter_result.reduction_percent);
+            result["tokens_saved"] = json!(filter_result.original_tokens_est.saturating_sub(filter_result.compressed_tokens_est));
             modified = true;
         }
     }
