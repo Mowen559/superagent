@@ -52,6 +52,27 @@ impl AgentBlackboard {
         let lock = self.history.read().unwrap();
         lock.clone()
     }
+
+    /// Post an RTK compression event onto the blackboard to track token savings.
+    pub fn post_rtk_stats(
+        &self,
+        tool_name: &str,
+        original_tokens: usize,
+        compressed_tokens: usize,
+        reduction_percent: f64,
+    ) {
+        let saved = original_tokens.saturating_sub(compressed_tokens);
+        let val = serde_json::json!({
+            "tool": tool_name,
+            "original_tokens": original_tokens,
+            "compressed_tokens": compressed_tokens,
+            "saved_tokens": saved,
+            "reduction_percent": reduction_percent,
+        }).to_string();
+
+        let key = format!("rtk:stats:{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0));
+        self.post(key, val, "rtk-engine", "rtk:savings");
+    }
 }
 
 #[cfg(test)]

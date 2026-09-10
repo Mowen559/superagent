@@ -191,6 +191,94 @@ pub fn compress(content: &str, path_or_ext: &str, level: FilterLevel) -> Compres
     }
 }
 
+/// Compress raw terminal output / build logs while preserving error tracebacks, panic messages,
+/// compiler warnings and key status lines.
+pub fn compress_terminal_output(content: &str, max_lines: usize) -> CompressionResult {
+    let lines: Vec<&str> = content.lines().collect();
+    let original_bytes = content.len();
+    let original_lines = lines.len();
+
+    if original_lines <= max_lines {
+        return CompressionResult {
+            original_lines,
+            compressed_lines: original_lines,
+            original_bytes,
+            compressed_bytes: original_bytes,
+            reduction_percent: 0.0,
+            original_tokens_est: original_bytes / 4,
+            compressed_tokens_est: original_bytes / 4,
+            content: content.to_string(),
+            level: "smart_log".to_string(),
+            language: "log".to_string(),
+        };
+    }
+
+    let mut keep_mask = vec![false; original_lines];
+
+    // Always keep top N lines (command & initial context) and bottom N lines (summary / exit status)
+    let head_count = (max_lines / 4).max(10).min(original_lines);
+    let tail_count = (max_lines / 3).max(15).min(original_lines.saturating_sub(head_count));
+
+    for i in 0..head_count {
+        keep_mask[i] = true;
+    }
+    for i in (original_lines.saturating_sub(tail_count))..original_lines {
+        keep_mask[i] = true;
+    }
+
+    // Keep error stack lines and context (1 line before & after error lines)
+    for (i, line) in lines.iter().enumerate() {
+        let l = line.to_lowercase();
+        if l.contains("error") || l.contains("panic") || l.contains("fail")
+            || l.contains("exception") || l.contains("traceback") || l.contains("caused by")
+            || l.contains("warning") || l.contains("at line") || l.contains("-->")
+        {
+            if i > 0 { keep_mask[i - 1] = true; }
+            keep_mask[i] = true;
+            if i + 1 < original_lines { keep_mask[i + 1] = true; }
+        }
+    }
+
+    let mut filtered_lines = Vec::new();
+    let mut omitted_count = 0;
+
+    for (i, &keep) in keep_mask.iter().enumerate() {
+        if keep {
+            if omitted_count > 0 {
+                filtered_lines.push(format!("... [RTK SmartLog omitted {} lines] ...", omitted_count));
+                omitted_count = 0;
+            }
+            filtered_lines.push(lines[i].to_string());
+        } else {
+            omitted_count += 1;
+        }
+    }
+    if omitted_count > 0 {
+        filtered_lines.push(format!("... [RTK SmartLog omitted {} lines] ...", omitted_count));
+    }
+
+    let filtered = filtered_lines.join("\n");
+    let compressed_bytes = filtered.len();
+    let reduction_percent = if original_bytes > 0 {
+        ((original_bytes - compressed_bytes) as f64 / original_bytes as f64) * 100.0
+    } else {
+        0.0
+    };
+
+    CompressionResult {
+        original_lines,
+        compressed_lines: filtered_lines.len(),
+        original_bytes,
+        compressed_bytes,
+        reduction_percent: (reduction_percent * 10.0).round() / 10.0,
+        original_tokens_est: original_bytes / 4,
+        compressed_tokens_est: compressed_bytes / 4,
+        content: filtered,
+        level: "smart_log".to_string(),
+        language: "log".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,5 +332,23 @@ mod tests {
         let r = compress(content, "a.rs", FilterLevel::Aggressive);
         assert_eq!(r.content, "x");
         assert!(r.compressed_bytes <= r.original_bytes);
+    }
+
+    #[test]
+    fn test_smart_log_preserves_error_stacks() {
+        let mut log = String::new();
+        for i in 0..100 {
+            if i == 50 {
+                log.push_str("ERROR: Failed to establish database connection\n");
+                log.push_str("   at src/db/connect.rs:42\n");
+            } else {
+                log.push_str(&format!("INFO: Regular log message step {}\n", i));
+            }
+        }
+        let res = compress_terminal_output(&log, 30);
+        assert!(res.content.contains("ERROR: Failed to establish database connection"));
+        assert!(res.content.contains("at src/db/connect.rs:42"));
+        assert!(res.content.contains("[RTK SmartLog omitted"));
+        assert!(res.reduction_percent > 0.0);
     }
 }
