@@ -1,18 +1,22 @@
 //! Utilities for updating local agent configurations.
 
+use serde_json::Value;
 use std::fs;
 use std::path::Path;
-use serde_json::Value;
 
 use super::backend::{BackendError, BackendResult};
+use super::registry_db;
 use super::types::SyncConfigPayload;
 
 /// Helper to backup a file before modifying it.
 fn backup_file(path: &Path) -> std::io::Result<()> {
     if path.exists() {
         let mut backup_path = path.to_path_buf();
-        let ext = backup_path.extension().unwrap_or_default().to_string_lossy();
-        backup_path.set_extension(format!("{}.antigravity.bak", ext));
+        let ext = backup_path
+            .extension()
+            .unwrap_or_default()
+            .to_string_lossy();
+        backup_path.set_extension(format!("{}.bak", ext));
         fs::copy(path, backup_path)?;
     }
     Ok(())
@@ -28,9 +32,44 @@ fn ensure_parent(path: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+fn copy_dir_recursive(source: &Path, target: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(target)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let source_path = entry.path();
+        let target_path = target.join(entry.file_name());
+        let file_type = entry.file_type()?;
+
+        if file_type.is_dir() {
+            copy_dir_recursive(&source_path, &target_path)?;
+        } else if file_type.is_file() {
+            fs::copy(&source_path, &target_path)?;
+        }
+    }
+    Ok(())
+}
+
+/// Helper to sync Skills to the target agent directory.
+fn inject_skills(agent_kind: &str, global_dir: &Path) {
+    if let Ok(skills) = registry_db::get_enabled_skills_for_agent(agent_kind) {
+        let target_skills_dir = global_dir.join("skills");
+        let _ = fs::create_dir_all(&target_skills_dir);
+        for skill in skills {
+            let src_path = Path::new(&skill.path);
+            if src_path.exists() {
+                let target_path = target_skills_dir.join(&skill.name);
+                if !target_path.exists() {
+                    let _ = copy_dir_recursive(src_path, &target_path);
+                }
+            }
+        }
+    }
+}
+
 /// Helper to sync Claude-like agent configurations.
 /// It creates/updates the onboarding file and the `settings.json` file.
 pub fn sync_claude_like(
+    agent_kind: &str,
     config: &SyncConfigPayload,
     global_dir: &Path,
     onboarding_file: &str,
@@ -57,13 +96,46 @@ pub fn sync_claude_like(
         let env = obj.entry("env").or_insert(serde_json::json!({}));
         if let Some(env_obj) = env.as_object_mut() {
             if let Some(base_url) = &config.base_url {
-                env_obj.insert("CLAUDE_BASE_URL".to_string(), serde_json::Value::String(base_url.clone()));
+                env_obj.insert(
+                    "CLAUDE_BASE_URL".to_string(),
+                    serde_json::Value::String(base_url.clone()),
+                );
             }
             if let Some(api_key) = &config.api_key {
-                env_obj.insert("CLAUDE_API_KEY".to_string(), serde_json::Value::String(api_key.clone()));
+                env_obj.insert(
+                    "CLAUDE_API_KEY".to_string(),
+                    serde_json::Value::String(api_key.clone()),
+                );
             }
             if let Some(model) = &config.model {
-                env_obj.insert("CLAUDE_MODEL".to_string(), serde_json::Value::String(model.clone()));
+                env_obj.insert(
+                    "CLAUDE_MODEL".to_string(),
+                    serde_json::Value::String(model.clone()),
+                );
+            }
+        }
+    }
+
+    // --- MCP Injection ---
+    if let Ok(mcps) = registry_db::get_enabled_mcps_for_agent(agent_kind) {
+        if !mcps.is_empty() {
+            let mcp_servers_node = if let Some(obj) = settings.as_object_mut() {
+                obj.entry("mcpServers").or_insert(serde_json::json!({}))
+            } else {
+                &mut settings
+            };
+            if let Some(mcp_obj) = mcp_servers_node.as_object_mut() {
+                for mcp in mcps {
+                    let args =
+                        serde_json::from_str::<Vec<String>>(&mcp.args_json).unwrap_or_default();
+                    mcp_obj.insert(
+                        mcp.name.clone(),
+                        serde_json::json!({
+                            "command": mcp.command,
+                            "args": args
+                        }),
+                    );
+                }
             }
         }
     }
@@ -72,18 +144,29 @@ pub fn sync_claude_like(
         .map_err(|e| BackendError::Launch(format!("failed to backup settings.json: {}", e)))?;
     let new_content = serde_json::to_string_pretty(&settings)
         .map_err(|e| BackendError::Launch(format!("failed to serialize settings.json: {}", e)))?;
-    
+
     fs::write(&settings_path, new_content)
         .map_err(|e| BackendError::Launch(format!("failed to write settings.json: {}", e)))?;
+
+    inject_skills(agent_kind, global_dir);
 
     Ok(())
 }
 
+/// Helper to read Claude-like agent configurations.
+pub fn read_claude_like_config(global_dir: &Path) -> BackendResult<Option<String>> {
+    let settings_path = global_dir.join("settings.json");
+    if settings_path.exists() {
+        let content = fs::read_to_string(&settings_path)
+            .map_err(|e| BackendError::Launch(format!("failed to read settings.json: {}", e)))?;
+        Ok(Some(content))
+    } else {
+        Ok(None)
+    }
+}
+
 /// Helper to sync OpenCode-like configurations.
-pub fn sync_opencode(
-    config: &SyncConfigPayload,
-    global_dir: &Path,
-) -> BackendResult<()> {
+pub fn sync_opencode(config: &SyncConfigPayload, global_dir: &Path) -> BackendResult<()> {
     ensure_parent(&global_dir.join("dummy"))
         .map_err(|e| BackendError::Launch(format!("failed to create dir: {}", e)))?;
 
@@ -102,10 +185,40 @@ pub fn sync_opencode(
             let openai = prov_obj.entry("openai").or_insert(serde_json::json!({}));
             if let Some(openai_obj) = openai.as_object_mut() {
                 if let Some(base_url) = &config.base_url {
-                    openai_obj.insert("apiBase".to_string(), serde_json::Value::String(base_url.clone()));
+                    openai_obj.insert(
+                        "apiBase".to_string(),
+                        serde_json::Value::String(base_url.clone()),
+                    );
                 }
                 if let Some(api_key) = &config.api_key {
-                    openai_obj.insert("apiKey".to_string(), serde_json::Value::String(api_key.clone()));
+                    openai_obj.insert(
+                        "apiKey".to_string(),
+                        serde_json::Value::String(api_key.clone()),
+                    );
+                }
+            }
+        }
+    }
+
+    // --- MCP Injection ---
+    if let Ok(mcps) = registry_db::get_enabled_mcps_for_agent("opencode") {
+        if !mcps.is_empty() {
+            let mcp_servers_node = if let Some(obj) = settings.as_object_mut() {
+                obj.entry("mcpServers").or_insert(serde_json::json!({}))
+            } else {
+                &mut settings
+            };
+            if let Some(mcp_obj) = mcp_servers_node.as_object_mut() {
+                for mcp in mcps {
+                    let args =
+                        serde_json::from_str::<Vec<String>>(&mcp.args_json).unwrap_or_default();
+                    mcp_obj.insert(
+                        mcp.name.clone(),
+                        serde_json::json!({
+                            "command": mcp.command,
+                            "args": args
+                        }),
+                    );
                 }
             }
         }
@@ -115,18 +228,29 @@ pub fn sync_opencode(
         .map_err(|e| BackendError::Launch(format!("failed to backup config.json: {}", e)))?;
     let new_content = serde_json::to_string_pretty(&settings)
         .map_err(|e| BackendError::Launch(format!("failed to serialize config.json: {}", e)))?;
-    
+
     fs::write(&config_path, new_content)
         .map_err(|e| BackendError::Launch(format!("failed to write config.json: {}", e)))?;
+
+    inject_skills("opencode", global_dir);
 
     Ok(())
 }
 
+/// Helper to read OpenCode-like configurations.
+pub fn read_opencode_config(global_dir: &Path) -> BackendResult<Option<String>> {
+    let config_path = global_dir.join("config.json");
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .map_err(|e| BackendError::Launch(format!("failed to read config.json: {}", e)))?;
+        Ok(Some(content))
+    } else {
+        Ok(None)
+    }
+}
+
 /// Helper to sync Codex-like configurations.
-pub fn sync_codex(
-    config: &SyncConfigPayload,
-    global_dir: &Path,
-) -> BackendResult<()> {
+pub fn sync_codex(config: &SyncConfigPayload, global_dir: &Path) -> BackendResult<()> {
     ensure_parent(&global_dir.join("dummy"))
         .map_err(|e| BackendError::Launch(format!("failed to create dir: {}", e)))?;
 
@@ -143,7 +267,10 @@ pub fn sync_codex(
         let custom = obj.entry("custom").or_insert(serde_json::json!({}));
         if let Some(custom_obj) = custom.as_object_mut() {
             if let Some(api_key) = &config.api_key {
-                custom_obj.insert("apiKey".to_string(), serde_json::Value::String(api_key.clone()));
+                custom_obj.insert(
+                    "apiKey".to_string(),
+                    serde_json::Value::String(api_key.clone()),
+                );
             }
         }
     }
@@ -152,7 +279,7 @@ pub fn sync_codex(
         .map_err(|e| BackendError::Launch(format!("failed to backup auth.json: {}", e)))?;
     let new_auth_content = serde_json::to_string_pretty(&auth)
         .map_err(|e| BackendError::Launch(format!("failed to serialize auth.json: {}", e)))?;
-    
+
     fs::write(&auth_path, new_auth_content)
         .map_err(|e| BackendError::Launch(format!("failed to write auth.json: {}", e)))?;
 
@@ -160,7 +287,9 @@ pub fn sync_codex(
     let mut doc = if config_path.exists() {
         let content = fs::read_to_string(&config_path)
             .map_err(|e| BackendError::Launch(format!("failed to read config.toml: {}", e)))?;
-        content.parse::<toml_edit::DocumentMut>().unwrap_or_default()
+        content
+            .parse::<toml_edit::DocumentMut>()
+            .unwrap_or_default()
     } else {
         toml_edit::DocumentMut::new()
     };
@@ -185,10 +314,39 @@ pub fn sync_codex(
         }
     }
 
+    // --- MCP Injection ---
+    if let Ok(mcps) = registry_db::get_enabled_mcps_for_agent("codex") {
+        if !mcps.is_empty() {
+            if !doc.contains_key("mcpServers") {
+                doc["mcpServers"] = toml_edit::Item::Table(toml_edit::Table::new());
+            }
+            if let Some(mcp_table) = doc["mcpServers"].as_table_mut() {
+                for mcp in mcps {
+                    let mut server_table = toml_edit::Table::new();
+                    server_table.set_implicit(true);
+                    server_table.insert("command", toml_edit::value(mcp.command));
+                    let args =
+                        serde_json::from_str::<Vec<String>>(&mcp.args_json).unwrap_or_default();
+                    let mut toml_args = toml_edit::Array::new();
+                    for arg in args {
+                        toml_args.push(arg);
+                    }
+                    server_table.insert(
+                        "args",
+                        toml_edit::Item::Value(toml_edit::Value::Array(toml_args)),
+                    );
+                    mcp_table.insert(&mcp.name, toml_edit::Item::Table(server_table));
+                }
+            }
+        }
+    }
+
     backup_file(&config_path)
         .map_err(|e| BackendError::Launch(format!("failed to backup config.toml: {}", e)))?;
     fs::write(&config_path, doc.to_string())
         .map_err(|e| BackendError::Launch(format!("failed to write config.toml: {}", e)))?;
+
+    inject_skills("codex", global_dir);
 
     Ok(())
 }

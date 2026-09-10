@@ -131,7 +131,7 @@ impl SessionEvent {
     }
 }
 
-use crate::services::llm_provider::LlmProvider;
+use crate::domains::model_gateway::providers::LlmProvider;
 use std::future::Future;
 use std::pin::Pin;
 

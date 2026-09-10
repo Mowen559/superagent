@@ -14,7 +14,7 @@ impl ToolExecutor for LspTool {
     }
 
     fn description(&self) -> &'static str {
-        "Query a Language Server (like rust-analyzer) for code intelligence. 
+        "Query a Language Server (like rust-analyzer) for code intelligence.
 Actions:
 - 'start': Start the LSP server (e.g., Command='rust-analyzer', RootUri='file:///path/to/project').
 - 'hover': Get documentation for a symbol (File, Line, Character).

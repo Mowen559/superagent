@@ -1,4 +1,5 @@
 pub async fn run_worker(prompt: &str, project: Option<String>) {
+    use crate::services::brain::capabilities::shell::LocalShellProvider;
     use crate::services::brain::executor::AgentLoop;
     use crate::services::brain::subagent_runtime::SubagentRuntime;
     use crate::services::brain::tools::fs::{ReadFileTool, WriteFileTool};
@@ -16,7 +17,6 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
     use crate::services::brain::tools::todo::ManageTaskTool;
     use crate::services::brain::tools::tool_result::ReadToolResultTool;
     use crate::services::brain::tools::web::WebFetchTool;
-    use crate::services::brain::capabilities::shell::LocalShellProvider;
     use std::sync::Arc;
 
     let mut agent = AgentLoop::new(
@@ -25,9 +25,14 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
     agent.emit_jsonl = true;
 
     let provider = Arc::new(LocalShellProvider);
-    let cwd_path = project.map(std::path::PathBuf::from).unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")));
-    
-    agent.register_tool(Box::new(RunCommandTool::new(provider.clone(), cwd_path.clone())));
+    let cwd_path = project.map(std::path::PathBuf::from).unwrap_or_else(|| {
+        std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+    });
+
+    agent.register_tool(Box::new(RunCommandTool::new(
+        provider.clone(),
+        cwd_path.clone(),
+    )));
     agent.register_tool(Box::new(ReadFileTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(WriteFileTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(WebFetchTool));
@@ -36,22 +41,36 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
     agent.register_tool(Box::new(ManageTaskTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(LspTool));
     agent.register_tool(Box::new(ManageProcessTool));
-    agent.register_tool(Box::new(AskUserTool::new(agent.interaction_runtime.clone())));
+    agent.register_tool(Box::new(AskUserTool::new(
+        agent.interaction_runtime.clone(),
+    )));
     agent.register_tool(Box::new(SkillTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(ReloadPluginsTool::new(agent.get_tools_ref())));
 
-    let runtime = Arc::new(SubagentRuntime::new("worker", crate::services::brain::steering_queue::SteeringQueue::default_location().into()));
-    agent.register_tool(Box::new(InvokeSubagentTool::new(runtime.clone(), "worker".to_string())));
-    agent.register_tool(Box::new(CheckWorkerStatusTool::new(runtime.clone(), "worker".to_string())));
+    let runtime = Arc::new(SubagentRuntime::new(
+        "worker",
+        crate::services::brain::steering_queue::SteeringQueue::default_location().into(),
+    ));
+    agent.register_tool(Box::new(InvokeSubagentTool::new(
+        runtime.clone(),
+        "worker".to_string(),
+    )));
+    agent.register_tool(Box::new(CheckWorkerStatusTool::new(
+        runtime.clone(),
+        "worker".to_string(),
+    )));
     agent.register_tool(Box::new(InterveneWorkerTool::new(runtime.clone())));
     agent.register_tool(Box::new(CancelSubagentTool::new(runtime.clone())));
-    
+
     let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(cwd_path);
     agent.register_tool(Box::new(ReadToolResultTool::new(result_store)));
 
     match agent.run(prompt).await {
         Ok(result) => {
-            println!("{}", serde_json::json!({ "type": "status", "status": "completed", "result": result }));
+            println!(
+                "{}",
+                serde_json::json!({ "type": "status", "status": "completed", "result": result })
+            );
         }
         Err(e) => {
             println!("{}", serde_json::json!({ "type": "error", "content": e }));

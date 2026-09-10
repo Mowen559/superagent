@@ -1,0 +1,56 @@
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+use tts::Tts;
+use once_cell::sync::Lazy;
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TtsRequest {
+    pub text: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TtsResponse {
+    pub success: bool,
+    pub error: Option<String>,
+}
+
+static TTS_ENGINE: Lazy<Mutex<Option<Tts>>> = Lazy::new(|| {
+    match Tts::default() {
+        Ok(tts) => Mutex::new(Some(tts)),
+        Err(e) => {
+            eprintln!("Failed to initialize TTS engine: {}", e);
+            Mutex::new(None)
+        }
+    }
+});
+
+pub fn speak_text(text: &str) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        let safe_text = text.replace("'", "''");
+        let script = format!(
+            "Add-Type -AssemblyName System.Speech; $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; $synth.Speak('{}');",
+            safe_text
+        );
+        std::thread::spawn(move || {
+            use std::os::windows::process::CommandExt;
+            let _ = std::process::Command::new("powershell")
+                .creation_flags(0x08000000) // CREATE_NO_WINDOW
+                .arg("-NoProfile")
+                .arg("-Command")
+                .arg(&script)
+                .output();
+        });
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        let mut engine_guard = TTS_ENGINE.lock().unwrap();
+        if let Some(engine) = engine_guard.as_mut() {
+            engine.speak(text, true).map_err(|e| format!("TTS Speak Error: {}", e))?;
+            Ok(())
+        } else {
+            Err("TTS Engine not initialized".to_string())
+        }
+    }
+}

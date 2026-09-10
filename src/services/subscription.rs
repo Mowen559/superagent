@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::config::llm_settings::read_llm_settings;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -37,7 +37,10 @@ pub async fn handle_quota() {
                 query_gemini_quota(&client, account).await;
             }
             _ => {
-                println!("  Quota query not supported for provider: {}", account.provider);
+                println!(
+                    "  Quota query not supported for provider: {}",
+                    account.provider
+                );
             }
         }
         println!();
@@ -48,19 +51,19 @@ fn format_reset_time_iso(iso_time: &str) -> String {
     if iso_time == "unknown" {
         return "unknown".to_string();
     }
-    
+
     if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(iso_time) {
         let now = chrono::Utc::now();
         let diff = dt.with_timezone(&chrono::Utc) - now;
-        
+
         if diff.num_seconds() <= 0 {
             return "resetting now".to_string();
         }
-        
+
         let days = diff.num_days();
         let hours = diff.num_hours() % 24;
         let mins = diff.num_minutes() % 60;
-        
+
         if days > 0 {
             format!("{}d {}h", days, hours)
         } else if hours > 0 {
@@ -95,11 +98,21 @@ async fn query_claude_quota(client: &reqwest::Client, access_token: &str) {
                 let mut found = false;
                 if let Some(obj) = body.as_object() {
                     for (k, v) in obj {
-                        if k == "extra_usage" { continue; }
+                        if k == "extra_usage" {
+                            continue;
+                        }
                         if let Some(util) = v.get("utilization").and_then(|u| u.as_f64()) {
-                            let resets = v.get("resets_at").and_then(|r| r.as_str()).unwrap_or("unknown");
+                            let resets = v
+                                .get("resets_at")
+                                .and_then(|r| r.as_str())
+                                .unwrap_or("unknown");
                             let remaining = 100.0 - util;
-                            println!("  - {}: Remaining: {:.2}% (Resets in: {})", k, remaining, format_reset_time_iso(resets));
+                            println!(
+                                "  - {}: Remaining: {:.2}% (Resets in: {})",
+                                k,
+                                remaining,
+                                format_reset_time_iso(resets)
+                            );
                             found = true;
                         }
                     }
@@ -120,7 +133,11 @@ async fn query_claude_quota(client: &reqwest::Client, access_token: &str) {
     }
 }
 
-async fn query_openai_quota(client: &reqwest::Client, access_token: &str, account_id: Option<&str>) {
+async fn query_openai_quota(
+    client: &reqwest::Client,
+    access_token: &str,
+    account_id: Option<&str>,
+) {
     let mut req = client
         .get("https://chatgpt.com/backend-api/wham/usage")
         .header("Authorization", format!("Bearer {}", access_token))
@@ -138,18 +155,25 @@ async fn query_openai_quota(client: &reqwest::Client, access_token: &str, accoun
                 if let Some(rate_limit) = body.get("rate_limit") {
                     for window_key in &["primary_window", "secondary_window"] {
                         if let Some(window) = rate_limit.get(window_key) {
-                            if let Some(used) = window.get("used_percent").and_then(|u| u.as_f64()) {
-                                let window_secs = window.get("limit_window_seconds").and_then(|u| u.as_i64()).unwrap_or(0);
+                            if let Some(used) = window.get("used_percent").and_then(|u| u.as_f64())
+                            {
+                                let window_secs = window
+                                    .get("limit_window_seconds")
+                                    .and_then(|u| u.as_i64())
+                                    .unwrap_or(0);
                                 let reset_at = window.get("reset_at").and_then(|u| u.as_i64());
                                 let remaining = 100.0 - used;
-                                
+
                                 let reset_str = if let Some(ts) = reset_at {
                                     format_reset_time_unix(ts)
                                 } else {
                                     "unknown".to_string()
                                 };
-                                
-                                println!("  - {} ({}s): Remaining: {:.2}% (Resets in: {})", window_key, window_secs, remaining, reset_str);
+
+                                println!(
+                                    "  - {} ({}s): Remaining: {:.2}% (Resets in: {})",
+                                    window_key, window_secs, remaining, reset_str
+                                );
                                 found = true;
                             }
                         }
@@ -167,7 +191,8 @@ async fn query_openai_quota(client: &reqwest::Client, access_token: &str, accoun
     }
 }
 
-const GEMINI_OAUTH_CLIENT_ID: &str = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
+const GEMINI_OAUTH_CLIENT_ID: &str =
+    "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
 const GEMINI_OAUTH_CLIENT_SECRET: &str = "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";
 
 pub async fn refresh_gemini_token(client: &reqwest::Client, refresh_token: &str) -> Option<String> {
@@ -188,8 +213,15 @@ pub async fn refresh_gemini_token(client: &reqwest::Client, refresh_token: &str)
         .await;
 
     // If it fails due to network/proxy issues, try again directly without proxy.
-    if resp_opt.is_err() || resp_opt.as_ref().map(|r| r.status() == reqwest::StatusCode::SERVICE_UNAVAILABLE).unwrap_or(false) {
-        tracing::warn!("Failed to reach oauth2.googleapis.com via proxy, attempting direct connection...");
+    if resp_opt.is_err()
+        || resp_opt
+            .as_ref()
+            .map(|r| r.status() == reqwest::StatusCode::SERVICE_UNAVAILABLE)
+            .unwrap_or(false)
+    {
+        tracing::warn!(
+            "Failed to reach oauth2.googleapis.com via proxy, attempting direct connection..."
+        );
         if let Ok(direct_client) = reqwest::Client::builder().no_proxy().build() {
             resp_opt = direct_client
                 .post("https://oauth2.googleapis.com/token")
@@ -211,7 +243,10 @@ pub async fn refresh_gemini_token(client: &reqwest::Client, refresh_token: &str)
     body.get("access_token")?.as_str().map(String::from)
 }
 
-async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::llm_settings::LLMAccount) {
+async fn query_gemini_quota(
+    client: &reqwest::Client,
+    account: &crate::config::llm_settings::LLMAccount,
+) {
     let mut access_token = account.api_key.clone();
 
     let is_native = account.provider == "gemini_native";
@@ -220,19 +255,23 @@ async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::l
     } else {
         "https://cloudcode-pa.googleapis.com"
     };
-    
-    let ide_type = if is_native { "ANTIGRAVITY" } else { "GEMINI_CLI" };
+
+    let ide_type = if is_native {
+        "ANTIGRAVITY"
+    } else {
+        "GEMINI_CLI"
+    };
     let plugin_type = if is_native { None } else { Some("GEMINI") };
-    
+
     let mut load_req = client
         .post(format!("{}/v1internal:loadCodeAssist", base_url))
         .header("Authorization", format!("Bearer {}", access_token))
         .header("Content-Type", "application/json");
-        
+
     if is_native {
         load_req = load_req.header("User-Agent", "vscode/1.X.X (Antigravity/4.3.0)");
     }
-    
+
     let mut metadata = serde_json::json!({
         "ideType": ide_type
     });
@@ -252,42 +291,55 @@ async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::l
     match load_resp {
         Ok(r) if r.status().is_success() => {
             if let Ok(body) = r.json::<serde_json::Value>().await {
-                project_id = body.get("cloudaicompanionProject")
-                    .and_then(|v| {
-                        if let Some(s) = v.as_str() { Some(s.to_string()) }
-                        else if let Some(obj) = v.as_object() {
-                            obj.get("id").or_else(|| obj.get("projectId")).and_then(|id| id.as_str()).map(|s| s.to_string())
-                        } else { None }
-                    });
+                project_id = body.get("cloudaicompanionProject").and_then(|v| {
+                    if let Some(s) = v.as_str() {
+                        Some(s.to_string())
+                    } else if let Some(obj) = v.as_object() {
+                        obj.get("id")
+                            .or_else(|| obj.get("projectId"))
+                            .and_then(|id| id.as_str())
+                            .map(|s| s.to_string())
+                    } else {
+                        None
+                    }
+                });
             }
         }
-        Ok(r) if r.status() == reqwest::StatusCode::UNAUTHORIZED || r.status() == reqwest::StatusCode::FORBIDDEN => {
+        Ok(r)
+            if r.status() == reqwest::StatusCode::UNAUTHORIZED
+                || r.status() == reqwest::StatusCode::FORBIDDEN =>
+        {
             // Token might be expired, attempt refresh
             if let Some(ref rt) = account.refresh_token {
                 if let Some(new_token) = refresh_gemini_token(client, rt).await {
                     access_token = new_token.clone();
-                    
+
                     // Persist the new token to settings
                     let mut settings = read_llm_settings();
                     for a in &mut settings.accounts {
                         if a.id == account.id {
                             a.api_key = new_token.clone();
-                            if let Some(expires_in) = 3600_i64.into() { // Approximate, usually 1h
-                                a.expires_at = Some(chrono::Utc::now().timestamp_millis() + expires_in * 1000);
+                            if let Some(expires_in) = 3600_i64.into() {
+                                // Approximate, usually 1h
+                                a.expires_at =
+                                    Some(chrono::Utc::now().timestamp_millis() + expires_in * 1000);
                             }
                             break;
                         }
                     }
-                    crate::config::llm_settings::write_llm_settings(serde_json::to_value(&settings).unwrap_or_default());
-                    
+                    crate::config::llm_settings::write_llm_settings(
+                        serde_json::to_value(&settings).unwrap_or_default(),
+                    );
+
                     // Retry loadCodeAssist
                     let mut retry_req = client
                         .post(format!("{}/v1internal:loadCodeAssist", base_url))
                         .header("Authorization", format!("Bearer {}", access_token))
                         .header("Content-Type", "application/json");
-                        
+
                     if is_native {
-                        retry_req = retry_req.header("User-Agent", "vscode/1.X.X (Antigravity/4.3.0)");
+                        retry_req =
+                            retry_req.header("User-Agent", "vscode/1.X.X (Antigravity/4.3.0)");
                     }
 
                     let retry_resp = retry_req
@@ -301,18 +353,28 @@ async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::l
                     if let Ok(rr) = retry_resp {
                         if rr.status().is_success() {
                             if let Ok(body) = rr.json::<serde_json::Value>().await {
-                                project_id = body.get("cloudaicompanionProject")
-                                    .and_then(|v| {
-                                        if let Some(s) = v.as_str() { Some(s.to_string()) }
-                                        else if let Some(obj) = v.as_object() {
-                                            obj.get("id").or_else(|| obj.get("projectId")).and_then(|id| id.as_str()).map(|s| s.to_string())
-                                        } else { None }
-                                    });
+                                project_id = body.get("cloudaicompanionProject").and_then(|v| {
+                                    if let Some(s) = v.as_str() {
+                                        Some(s.to_string())
+                                    } else if let Some(obj) = v.as_object() {
+                                        obj.get("id")
+                                            .or_else(|| obj.get("projectId"))
+                                            .and_then(|id| id.as_str())
+                                            .map(|s| s.to_string())
+                                    } else {
+                                        None
+                                    }
+                                });
                             }
                         } else {
-                            println!("  Failed to loadCodeAssist after refresh: HTTP {}", rr.status());
+                            println!(
+                                "  Failed to loadCodeAssist after refresh: HTTP {}",
+                                rr.status()
+                            );
                             let body = rr.text().await.unwrap_or_default();
-                            if !body.is_empty() { println!("  Body: {}", body); }
+                            if !body.is_empty() {
+                                println!("  Body: {}", body);
+                            }
                             return;
                         }
                     } else {
@@ -324,14 +386,19 @@ async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::l
                     return;
                 }
             } else {
-                println!("  Authentication failed: HTTP {} (No refresh token available)", r.status());
+                println!(
+                    "  Authentication failed: HTTP {} (No refresh token available)",
+                    r.status()
+                );
                 return;
             }
         }
         Ok(r) => {
             println!("  Failed to loadCodeAssist: HTTP {}", r.status());
             let body = r.text().await.unwrap_or_default();
-            if !body.is_empty() { println!("  Body: {}", body); }
+            if !body.is_empty() {
+                println!("  Body: {}", body);
+            }
             return;
         }
         Err(e) => {
@@ -349,7 +416,7 @@ async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::l
         .post(format!("{}/v1internal:retrieveUserQuota", base_url))
         .header("Authorization", format!("Bearer {}", access_token))
         .header("Content-Type", "application/json");
-        
+
     if is_native {
         quota_req = quota_req.header("User-Agent", "vscode/1.X.X (Antigravity/4.3.0)");
     }
@@ -366,11 +433,25 @@ async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::l
                 let mut found = false;
                 if let Some(buckets) = body.get("buckets").and_then(|b| b.as_array()) {
                     for bucket in buckets {
-                        let remaining = bucket.get("remainingFraction").and_then(|u| u.as_f64()).unwrap_or(1.0);
-                        let model_id = bucket.get("modelId").and_then(|m| m.as_str()).unwrap_or("unknown");
-                        let reset_time = bucket.get("resetTime").and_then(|m| m.as_str()).unwrap_or("unknown");
+                        let remaining = bucket
+                            .get("remainingFraction")
+                            .and_then(|u| u.as_f64())
+                            .unwrap_or(1.0);
+                        let model_id = bucket
+                            .get("modelId")
+                            .and_then(|m| m.as_str())
+                            .unwrap_or("unknown");
+                        let reset_time = bucket
+                            .get("resetTime")
+                            .and_then(|m| m.as_str())
+                            .unwrap_or("unknown");
                         let remaining_pct = remaining * 100.0;
-                        println!("  - {}: Remaining: {:.2}% (Resets in: {})", model_id, remaining_pct, format_reset_time_iso(reset_time));
+                        println!(
+                            "  - {}: Remaining: {:.2}% (Resets in: {})",
+                            model_id,
+                            remaining_pct,
+                            format_reset_time_iso(reset_time)
+                        );
                         found = true;
                     }
                 }
@@ -384,7 +465,9 @@ async fn query_gemini_quota(client: &reqwest::Client, account: &crate::config::l
         Ok(r) => {
             println!("  Failed to retrieveUserQuota: HTTP {}", r.status());
             let body = r.text().await.unwrap_or_default();
-            if !body.is_empty() { println!("  Body: {}", body); }
+            if !body.is_empty() {
+                println!("  Body: {}", body);
+            }
         }
         Err(e) => println!("  Network error (retrieveUserQuota): {}", e),
     }

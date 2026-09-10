@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
-use serde_json::{json, Value};
 use super::app_paths::AppPaths;
+use serde_json::{json, Value};
+use std::path::{Path, PathBuf};
 
 /// Claude CLI settings persisted at `{app_data_root}/settings/claude.json`.
 ///

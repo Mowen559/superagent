@@ -30,7 +30,8 @@ fn is_path_safe(path: &Path, workspace_root: &Path) -> bool {
         }
     };
 
-    let cwd_canonical = std::fs::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
+    let cwd_canonical =
+        std::fs::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
     normalized.starts_with(cwd_canonical)
 }
 
@@ -46,7 +47,9 @@ fn require_safe_path(path: &Path, operation: &str, workspace_root: &Path) -> Res
 }
 
 /// 文件读取工具 (View File)
-pub struct ReadFileTool { pub workspace_root: PathBuf }
+pub struct ReadFileTool {
+    pub workspace_root: PathBuf,
+}
 
 impl ReadFileTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -71,10 +74,6 @@ impl ToolExecutor for ReadFileTool {
                     "type": "string",
                     "description": "Path to file to view. Must be an absolute path."
                 },
-                "filter_level": {
-                    "type": "string",
-                    "description": "RTK Compression level. Options: 'none' (full file), 'minimal' (remove comments), 'aggressive' (skeleton view: imports, signatures, types only. Highly recommended for large or unknown files)."
-                },
                 "start_line": {
                     "type": "integer",
                     "description": "Optional. The 1-indexed line number to start reading from. Used for pagination."
@@ -92,7 +91,7 @@ impl ToolExecutor for ReadFileTool {
         Some(r#"
 [Tool Projection: view_file]
 - Role: Sensory Organ (文件视神经)
-- Note: RTK (Token Killer) is integrated. When exploring unfamiliar codebases or huge files, ALWAYS pass `filter_level: "aggressive"` first. This will instantly strip function bodies and return a crisp Skeleton View (signatures, types, constants), saving massive context tokens!
+- Note: Do not worry about huge files consuming too many context tokens. The Engine's Context Interceptor will automatically compress massive files into crisp Skeleton Views using RTK when needed.
 "#.trim().to_string())
     }
 
@@ -101,11 +100,6 @@ impl ToolExecutor for ReadFileTool {
             .get("AbsolutePath")
             .and_then(|v| v.as_str())
             .ok_or("Missing or invalid 'AbsolutePath' argument")?;
-
-        let filter_level_str = args
-            .get("filter_level")
-            .and_then(|v| v.as_str())
-            .unwrap_or("none"); // Default to none, unless forced by size
 
         let path = Path::new(path_str);
         require_safe_path(path, "file read", &self.workspace_root)?;
@@ -124,13 +118,6 @@ impl ToolExecutor for ReadFileTool {
 
         match fs::read_to_string(path) {
             Ok(full_content) => {
-                use crate::services::token_filter::{compress, FilterLevel};
-                use std::str::FromStr;
-
-                let requested_level =
-                    FilterLevel::from_str(filter_level_str).unwrap_or(FilterLevel::None);
-
-                // Handle Pagination if start_line or end_line is specified
                 let mut content = full_content.clone();
                 let mut is_paginated = false;
                 if start_line.is_some() || end_line.is_some() {
@@ -143,21 +130,12 @@ impl ToolExecutor for ReadFileTool {
                     }
                 }
 
-                if requested_level != FilterLevel::None {
-                    let result = compress(&content, path_str, requested_level);
-                    Ok(json!({
-                        "content": result.content,
-                        "rtk_compression": format!("{:?}", requested_level),
-                        "reduction_percent": result.reduction_percent,
-                        "paginated": is_paginated
-                    }))
-                } else {
-                    Ok(json!({
-                        "content": content,
-                        "paginated": is_paginated,
-                        "bytes": content.len()
-                    }))
-                }
+                Ok(json!({
+                    "content": content,
+                    "paginated": is_paginated,
+                    "bytes": content.len(),
+                    "file_path": path_str
+                }))
             }
             Err(e) => Err(format!("Failed to read file: {}", e)),
         }
@@ -165,7 +143,9 @@ impl ToolExecutor for ReadFileTool {
 }
 
 /// 文件写入工具 (Write To File)
-pub struct WriteFileTool { pub workspace_root: PathBuf }
+pub struct WriteFileTool {
+    pub workspace_root: PathBuf,
+}
 
 impl WriteFileTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -247,7 +227,9 @@ impl ToolExecutor for WriteFileTool {
     }
 }
 
-pub struct ReplaceInFileTool { pub workspace_root: PathBuf }
+pub struct ReplaceInFileTool {
+    pub workspace_root: PathBuf,
+}
 
 impl ReplaceInFileTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -331,7 +313,9 @@ impl ToolExecutor for ReplaceInFileTool {
 }
 
 /// 多区块代码重构工具 (AST/Block-level Refactoring)
-pub struct MultiReplaceTool { pub workspace_root: PathBuf }
+pub struct MultiReplaceTool {
+    pub workspace_root: PathBuf,
+}
 
 impl MultiReplaceTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -441,7 +425,9 @@ mod tests {
 
     #[test]
     fn test_path_traversal_prevention() {
-        let tool = WriteFileTool { workspace_root: std::env::current_dir().unwrap() };
+        let tool = WriteFileTool {
+            workspace_root: std::env::current_dir().unwrap(),
+        };
         let malicious_path = if cfg!(windows) {
             "C:\\Windows\\System32\\drivers\\etc\\hosts"
         } else {
@@ -465,14 +451,22 @@ mod tests {
         } else {
             "/etc/hosts"
         };
-        assert!(ReadFileTool { workspace_root: std::env::current_dir().unwrap() }.execute(json!({ "AbsolutePath": outside }))
-            .is_err());
-        assert!(ListDirectoryTool { workspace_root: std::env::current_dir().unwrap() }.execute(json!({ "path": outside }))
-            .is_err());
+        assert!(ReadFileTool {
+            workspace_root: std::env::current_dir().unwrap()
+        }
+        .execute(json!({ "AbsolutePath": outside }))
+        .is_err());
+        assert!(ListDirectoryTool {
+            workspace_root: std::env::current_dir().unwrap()
+        }
+        .execute(json!({ "path": outside }))
+        .is_err());
     }
 }
 
-pub struct ListDirectoryTool { pub workspace_root: PathBuf }
+pub struct ListDirectoryTool {
+    pub workspace_root: PathBuf,
+}
 
 impl ListDirectoryTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -525,7 +519,9 @@ impl ToolExecutor for ListDirectoryTool {
         Ok(json!({"files": entries}))
     }
 }
-pub struct FindByNameTool { pub workspace_root: PathBuf }
+pub struct FindByNameTool {
+    pub workspace_root: PathBuf,
+}
 
 impl FindByNameTool {
     pub fn new(workspace_root: PathBuf) -> Self {
@@ -586,7 +582,9 @@ impl ToolExecutor for FindByNameTool {
     }
 }
 
-pub struct GrepSearchTool { pub workspace_root: PathBuf }
+pub struct GrepSearchTool {
+    pub workspace_root: PathBuf,
+}
 
 impl GrepSearchTool {
     pub fn new(workspace_root: PathBuf) -> Self {

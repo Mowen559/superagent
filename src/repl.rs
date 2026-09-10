@@ -1,9 +1,9 @@
-use tokio::runtime::Builder;
+use crate::domains::model_gateway::providers::LlmProvider;
 use reqwest::Client;
-use crate::services::llm_provider::LlmProvider;
-use serde_json::json;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
+use serde_json::json;
+use tokio::runtime::Builder;
 
 pub fn run_chat() -> ! {
     let runtime = Builder::new_multi_thread()
@@ -14,7 +14,7 @@ pub fn run_chat() -> ! {
     runtime.block_on(async {
         println!("Welcome to DeepCloud Hub CLI Chat!");
         println!("Type '/help' for commands, '/exit' or 'quit' to leave.");
-        
+
         let client = Client::new();
         let llm = LlmProvider::new(client);
 
@@ -33,7 +33,7 @@ pub fn run_chat() -> ! {
                     if text.is_empty() {
                         continue;
                     }
-                    
+
                     let _ = rl.add_history_entry(text);
 
                     // Handle slash commands
@@ -108,4 +108,3 @@ pub fn run_chat() -> ! {
 
     std::process::exit(0);
 }
-

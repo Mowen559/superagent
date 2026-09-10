@@ -20,14 +20,11 @@ pub enum BlockedArgMode {
 /// Removes protocol-critical flags from user-configured custom args to prevent
 /// breaking daemon↔agent communication. Each backend defines its own blocked set
 /// (the flags it hardcodes).
-pub fn filter_custom_args(
-    args: &[String],
-    blocked: &HashMap<&str, BlockedArgMode>,
-) -> Vec<String> {
+pub fn filter_custom_args(args: &[String], blocked: &HashMap<&str, BlockedArgMode>) -> Vec<String> {
     if args.is_empty() {
         return vec![];
     }
-    
+
     let mut filtered = Vec::with_capacity(args.len());
     let mut i = 0;
     while i < args.len() {
@@ -35,21 +32,24 @@ pub fn filter_custom_args(
         let arg = unshell_quote_arg(raw);
         let mut flag = arg.as_str();
         let mut has_inline_value = false;
-        
+
         if let Some(idx) = arg.find('=') {
             flag = &arg[..idx];
             has_inline_value = true;
         }
-        
+
         if let Some(mode) = blocked.get(flag) {
-            warn!("custom_args: blocked protocol-critical flag, skipping flag={}", flag);
+            warn!(
+                "custom_args: blocked protocol-critical flag, skipping flag={}",
+                flag
+            );
             if *mode == BlockedArgMode::WithValue && !has_inline_value {
                 // The next arg is the value for this flag — skip it too.
                 i += 1;
-            } else if *mode == BlockedArgMode::OptionalValue 
-                && !has_inline_value 
+            } else if *mode == BlockedArgMode::OptionalValue
+                && !has_inline_value
                 && i + 1 < args.len()
-                && !unshell_quote_arg(&args[i + 1]).starts_with('-') 
+                && !unshell_quote_arg(&args[i + 1]).starts_with('-')
             {
                 // Optional values are consumed only when the next token is not
                 // another flag, so a boolean form cannot swallow an unrelated option.
@@ -58,7 +58,7 @@ pub fn filter_custom_args(
             i += 1;
             continue;
         }
-        
+
         filtered.push(arg);
         i += 1;
     }
@@ -120,16 +120,20 @@ mod tests {
         blocked.insert("--profile", BlockedArgMode::WithValue);
         blocked.insert("--safe-mode", BlockedArgMode::Standalone);
         blocked.insert("-c", BlockedArgMode::OptionalValue);
-        
+
         let args = vec![
-            "-p".to_string(), "foo".to_string(),
+            "-p".to_string(),
+            "foo".to_string(),
             "--profile=bar".to_string(),
             "--safe-mode".to_string(),
-            "-c".to_string(), "val".to_string(),
-            "-c".to_string(), "-x".to_string(), // next is flag, shouldn't consume
-            "--custom".to_string(), "value".to_string(),
+            "-c".to_string(),
+            "val".to_string(),
+            "-c".to_string(),
+            "-x".to_string(), // next is flag, shouldn't consume
+            "--custom".to_string(),
+            "value".to_string(),
         ];
-        
+
         let filtered = filter_custom_args(&args, &blocked);
         assert_eq!(filtered, vec!["-x", "--custom", "value"]);
     }

@@ -1,0 +1,102 @@
+   Compiling hub-rs v0.1.0 (D:\桌面\gitai\superagent)
+error[E0252]: the name `json` is defined multiple times
+  --> src\services\protocol_converter\openai_responses\mod.rs:38:9
+   |
+34 |     use serde_json::json;
+   |         ---------------- previous import of the macro `json` here
+...
+38 |     use serde_json::json;
+   |         ^^^^^^^^^^^^^^^^ `json` reimported here
+   |
+   = note: `json` must be defined only once in the macro namespace of this module
+
+error[E0599]: `Pin<Box<dyn Stream<Item = Result<Bytes, Error>> + Send>>` is not an iterator
+   --> src\services\protocol_converter\openai_responses\mod.rs:121:14
+    |
+119 |           let rendered = super::OpenAiResponsesConverter
+    |  ________________________-
+120 | |             .standard_to_response_stream(Box::pin(input))
+121 | |             .collect::<Vec<_>>()
+    | |             -^^^^^^^ `Pin<Box<dyn Stream<Item = Result<Bytes, Error>> + Send>>` is not an iterator
+    | |_____________|
+    |
+    |
+   ::: C:\Users\刘本录\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\futures-core-0.3.33\src\stream.rs:37:1
+    |
+ 37 |   pub trait Stream {
+    |   ---------------- doesn't satisfy `_: Iterator`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Pin<Box<(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static)>>: Iterator`
+            which is required by `&mut Pin<Box<(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static)>>: Iterator`
+            `(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static): Iterator`
+            which is required by `&mut (dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static): Iterator`
+    = help: items from traits can only be used if the trait is in scope
+    = note: the full name for the type has been written to 'D:\桌面\gitai\superagent\target\debug\deps\hub_rs-c4c53ed4352e967d.long-type-15510664325818366617.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: trait `StreamExt` which provides `collect` is implemented but not in scope; perhaps you want to import it
+    |
+ 33 +     use futures::StreamExt;
+    |
+
+error[E0599]: `Pin<Box<dyn Stream<Item = Result<Bytes, Error>> + Send>>` is not an iterator
+   --> src\services\protocol_converter\openai_responses\mod.rs:147:14
+    |
+145 |           let rendered = super::OpenAiResponsesConverter
+    |  ________________________-
+146 | |             .standard_to_response_stream(Box::pin(input))
+147 | |             .collect::<Vec<_>>()
+    | |             -^^^^^^^ `Pin<Box<dyn Stream<Item = Result<Bytes, Error>> + Send>>` is not an iterator
+    | |_____________|
+    |
+    |
+   ::: C:\Users\刘本录\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\futures-core-0.3.33\src\stream.rs:37:1
+    |
+ 37 |   pub trait Stream {
+    |   ---------------- doesn't satisfy `_: Iterator`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Pin<Box<(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static)>>: Iterator`
+            which is required by `&mut Pin<Box<(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static)>>: Iterator`
+            `(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static): Iterator`
+            which is required by `&mut (dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static): Iterator`
+    = help: items from traits can only be used if the trait is in scope
+    = note: the full name for the type has been written to 'D:\桌面\gitai\superagent\target\debug\deps\hub_rs-c4c53ed4352e967d.long-type-15510664325818366617.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: trait `StreamExt` which provides `collect` is implemented but not in scope; perhaps you want to import it
+    |
+ 33 +     use futures::StreamExt;
+    |
+
+error[E0599]: `Pin<Box<dyn Stream<Item = Result<Bytes, Error>> + Send>>` is not an iterator
+   --> src\services\protocol_converter\openai_responses\mod.rs:171:14
+    |
+169 |           let rendered = super::OpenAiResponsesConverter
+    |  ________________________-
+170 | |             .standard_to_response_stream(Box::pin(input))
+171 | |             .collect::<Vec<_>>()
+    | |             -^^^^^^^ `Pin<Box<dyn Stream<Item = Result<Bytes, Error>> + Send>>` is not an iterator
+    | |_____________|
+    |
+    |
+   ::: C:\Users\刘本录\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\futures-core-0.3.33\src\stream.rs:37:1
+    |
+ 37 |   pub trait Stream {
+    |   ---------------- doesn't satisfy `_: Iterator`
+    |
+    = note: the following trait bounds were not satisfied:
+            `Pin<Box<(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static)>>: Iterator`
+            which is required by `&mut Pin<Box<(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static)>>: Iterator`
+            `(dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static): Iterator`
+            which is required by `&mut (dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + std::marker::Send + 'static): Iterator`
+    = help: items from traits can only be used if the trait is in scope
+    = note: the full name for the type has been written to 'D:\桌面\gitai\superagent\target\debug\deps\hub_rs-c4c53ed4352e967d.long-type-15510664325818366617.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+help: trait `StreamExt` which provides `collect` is implemented but not in scope; perhaps you want to import it
+    |
+ 33 +     use futures::StreamExt;
+    |
+
+Some errors have detailed explanations: E0252, E0599.
+For more information about an error, try `rustc --explain E0252`.
+error: could not compile `hub-rs` (lib test) due to 4 previous errors

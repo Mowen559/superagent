@@ -91,7 +91,10 @@ async fn main() {
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::fs::MultiReplaceTool::new(cwd_path.clone()),
     ));
-    engine.register_tool(Box::new(RunCommandTool::new(shell_provider, cwd_path.clone())));
+    engine.register_tool(Box::new(RunCommandTool::new(
+        shell_provider,
+        cwd_path.clone(),
+    )));
     engine.register_tool(Box::new(WebFetchTool));
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::web::HeadlessBrowserTool,

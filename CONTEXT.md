@@ -46,6 +46,13 @@
 - **Workspace Capability**：Run 获得的、绑定一个已规范化项目根目录的本地授权；文件、Git、QA、Agent cwd 与知识读取只能消费该能力，调用方提交的路径本身不是授权。
 - **Sequenced Task Event**：Task 事件日志中的单调序号事件；历史快照与实时订阅必须在同一同步边界建立，客户端可用序号检测缺口并恢复。
 - **Verification Receipt**：由明确质量门禁产生的结构化验证事实；普通进程控制成功不等于代码行为已验证。
+- **Project Analysis Receipt**：一次项目分析的规范化结果；绑定项目规范路径与源码指纹，包含图数据库验证、结构概览、文件清单、构建/测试/文档入口、告警和可选 LLM 概览状态。
+- **Workspace Readiness**：用户显式打开 Workspace 后生成的有界资格事实；区分可访问目录、可分析代码项目、空目录/非代码目录、图谱是否可用与 Agent 是否可执行。
+- **Change Set Receipt**：隔离运行目录与原 Workspace 的结构化差异；逐文件标记 `added | modified | deleted`，只允许经过用户选择、路径校验和验证门禁的条目进入 Apply。
+- **Visual Pipeline**：由 Screenshot、OCR、Translation 三个可独立替换阶段组成的显式本地执行链；编排层只能依赖 Provider Interface。
+- **Visual Provider**：实现单一视觉阶段稳定契约的内置 Adapter 或外部插件；其身份、能力、配置要求和就绪状态必须可发现。
+- **Visual Artifact**：保存在 Hub 数据目录、通过不透明 UUID 引用的截图文件；调用方不得提交任意文件系统路径作为 Artifact。
+- **Visual Pipeline Receipt**：记录每个阶段的 Provider、状态、耗时、告警与输出引用的结构化事实，不保存翻译密钥或模型原始凭据。
 
 ## 不变量
 
@@ -92,3 +99,15 @@
 41. Task 历史快照与实时事件订阅必须原子建立；每个事件具有 Task 内单调序号，断连、lag 或重连后必须能从最后确认序号继续，禁止静默跳过。
 42. Execution Run 的 Verify 只能由 Verification Receipt 推进；普通 Shell、进程启动、目录读取或无断言命令不得关闭 Verify 步骤。
 43. Native Brain、外部 Agent Adapter、HTTP 与 CLI 必须消费同一个 Run Workspace；`--project` 不得在 Adapter Seam 丢失，也不得通过修改进程全局 cwd 影响其他并发 Run。
+44. Project Analysis Task 只有在索引进程成功、图数据库 Schema 可读且 Project Analysis Receipt 已持久化后才能进入 `completed`；索引进程退出码本身不是完成证据。
+45. Project Analysis Receipt 必须记录有界源码指纹和扫描截断事实；可选 LLM 概览失败只能形成告警，不能抹去确定性图谱与清单结果，也不能被宣称为已生成。
+46. `/api/projects/analyze` 与 `/api/workspaces/analyze` 必须使用进程内共享 TaskManager；取消、终态、事件流和结果读取不得因临时 TaskManager 分叉。
+47. Workspace 控制面必须在用户显式 Open 后登记规范路径；分析、Agent cwd、知识文档与 Apply 只能消费已打开 Workspace 或受管项目根目录，不得把请求中的任意绝对路径直接当成授权。
+48. Agent Change Set 只能在 Task 进入成功终态后生成；Apply 只能处理 Change Set Receipt 中的规范相对路径，必须正确区分新增、修改和删除，禁止通过遍历隔离目录覆盖整个原 Workspace。
+49. Apply 默认要求成功的 Verification Receipt；无可用验证计划或验证失败时，只能由用户显式 `force`，并在 Apply Receipt 与超级记忆中记录绕过事实。
+50. Workspace Intelligence UI 必须在切换 Workspace 时自动 Open 并加载快照；Task 状态、事件序号、交互请求、取消、Receipt、知识 Citation 和 Apply 结果不得只存在于日志或 Toast 中。
+51. Visual Pipeline 的三个阶段必须分别经过可发现的 Provider Interface；内置 SDK 与外部命令插件不得泄漏到路由或前端契约。
+52. 截图、OCR 和联网翻译只能由用户显式请求触发；能力发现、就绪检查和页面加载不得截图、上传 Artifact 或产生外部模型费用。
+53. Visual Artifact 只能从 Hub 数据目录按 UUID 解析，具有数量和生命周期上限；HTTP 请求不得提供任意图片绝对路径。
+54. 视觉设置只能持久化 Provider 身份与非秘密配置。DeepL/Google 密钥只能从环境或安全凭据存储读取，LLM 翻译必须复用 Canonical Model Gateway。
+55. OCR 模型不得由运行时隐式下载；模型缺失必须表现为 Provider `notReady` 并返回可操作的配置要求。

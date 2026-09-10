@@ -28,7 +28,11 @@ pub fn is_api_key(token: &str) -> bool {
 
 /// Validate the given OAuth token against the deepcloud/supermemory SSO endpoint.
 /// If valid, returns the real underlying LLM API key.
-pub async fn validate_oauth_token(client: &Client, token: &str, sso_api_url: &str) -> Result<String, String> {
+pub async fn validate_oauth_token(
+    client: &Client,
+    token: &str,
+    sso_api_url: &str,
+) -> Result<String, String> {
     // 1. Check local cache first
     {
         let cache = token_cache().read().await;
@@ -40,8 +44,11 @@ pub async fn validate_oauth_token(client: &Client, token: &str, sso_api_url: &st
     }
 
     // 2. Introspect via remote server
-    let endpoint = format!("{}/v3/mcp/session-with-key", sso_api_url.trim_end_matches('/'));
-    
+    let endpoint = format!(
+        "{}/v3/mcp/session-with-key",
+        sso_api_url.trim_end_matches('/')
+    );
+
     let res = client
         .get(&endpoint)
         .header("Authorization", format!("Bearer {}", token))
@@ -55,7 +62,8 @@ pub async fn validate_oauth_token(client: &Client, token: &str, sso_api_url: &st
         return Err(format!("Token validation failed ({}): {}", status, body));
     }
 
-    let session_data: SessionResponse = res.json()
+    let session_data: SessionResponse = res
+        .json()
         .await
         .map_err(|e| format!("Failed to parse session response: {}", e))?;
 
@@ -67,8 +75,8 @@ pub async fn validate_oauth_token(client: &Client, token: &str, sso_api_url: &st
         // 3. Update cache (TTL = 10 minutes)
         let mut cache = token_cache().write().await;
         cache.insert(
-            token.to_string(), 
-            (api_key.clone(), Instant::now() + Duration::from_secs(600))
+            token.to_string(),
+            (api_key.clone(), Instant::now() + Duration::from_secs(600)),
         );
         Ok(api_key)
     } else {

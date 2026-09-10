@@ -1,39 +1,41 @@
-pub mod task_manager;
+pub mod agent;
+pub mod analysis_service;
+pub mod architecture_analyzer;
+pub mod brain;
+pub mod change_set;
+pub mod claude_cli;
+pub mod cost_calculator;
+pub mod domain_analyzer;
 pub mod file_service;
 pub mod git_service;
 pub mod graph_service;
-pub mod analysis_service;
-pub mod claude_cli;
-pub mod agent;
-pub mod llm_provider;
-pub mod supermemory_store;
-pub mod vector_service;
-pub mod understand_service;
-pub mod token_filter;
-pub mod understanding_cache;
-pub mod brain;
-pub mod architecture_analyzer;
-pub mod domain_analyzer;
-pub mod tour_builder;
 pub mod impact_analyzer;
-pub mod requirement_analyzer;
 pub mod progress;
 pub mod project_context;
-pub mod cost_calculator;
+pub mod project_inventory;
+pub mod requirement_analyzer;
+pub mod supermemory_store;
+pub mod task_manager;
+pub mod token_filter;
+pub mod tour_builder;
+pub mod understand_service;
+pub mod understanding_cache;
+pub mod vector_service;
+pub mod visual_pipeline;
+pub use snow_ui_selector as ui_selector;
 
-pub mod protocol_converter;
 
-pub mod workspace_guard;
+pub mod auth_validator;
+pub mod cli_auth;
 pub mod code_intelligence;
 pub mod destructive_ops;
-pub mod auth_validator;
-pub mod cli_auth;pub mod provider_presets;
+pub mod provider_presets;
+pub mod workspace_capability;
+pub mod workspace_guard;
 
-
-
+pub mod i18n;
 pub mod keyring_auth;
 pub mod subscription;
 pub mod usage_tracker;
-pub mod i18n;
 
 pub mod openclaw_adapter;

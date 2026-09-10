@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use super::context_budget::estimate_json_tokens;
+use crate::services::brain::context_budget::estimate_json_tokens;
 use super::events::SessionEvent;
 
 const DEFAULT_TRIGGER_PERCENT: usize = 55;

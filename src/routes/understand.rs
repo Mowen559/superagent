@@ -11,7 +11,7 @@
 //! not burn tokens. `refresh=true` bypasses the cache; `cacheOnly=true` never
 //! calls the LLM (used by the frontend to probe for a pre-generated overview).
 
-use crate::services::llm_provider::{self, LlmProvider};
+use crate::domains::model_gateway::providers::{self, LlmProvider};
 use crate::services::token_filter::FilterLevel;
 use crate::services::understanding_cache::UnderstandingCache;
 use crate::services::{claude_cli, file_service, token_filter, understand_service};
@@ -346,7 +346,7 @@ async fn understand_project(
 /// The model is told to answer from the supplied stats only, so the run stays
 /// a fast single-shot completion rather than an agentic exploration.
 fn build_project_prompt(structure: &str, lang: &str) -> String {
-    let (directive, _) = llm_provider::lang_directive(lang);
+    let (directive, _) = crate::domains::model_gateway::providers::lang_directive(lang);
     format!(
         "\u{4f60}\u{662f}\u{8d44}\u{6df1}\u{8f6f}\u{4ef6}\u{67b6}\u{6784}\u{5206}\u{6790}\u{5e08}\u{3002}\u{8bf7}\u{76f4}\u{63a5}\u{57fa}\u{4e8e}\u{4e0b}\u{9762}\u{63d0}\u{4f9b}\u{7684}\u{7edf}\u{8ba1}\u{4fe1}\u{606f}\u{56de}\u{7b54}\u{ff0c}\u{4e0d}\u{8981}\u{8bfb}\u{53d6}\u{6587}\u{4ef6}\u{6216}\u{8c03}\u{7528}\u{4efb}\u{4f55}\u{5de5}\u{5177}\u{3002}\u{8f93}\u{51fa}\u{7b80}\u{6d01}\u{7684} Markdown\u{ff0c}\u{5305}\u{542b}\u{ff1a}\n1) \u{9879}\u{76ee}\u{6982}\u{8ff0}\u{ff1b}\n2) \u{4e3b}\u{8981}\u{6a21}\u{5757}\u{ff1b}\n3) \u{6280}\u{672f}\u{6808}\u{ff1b}\n4) \u{6838}\u{5fc3}\u{7b26}\u{53f7}\u{3002}\n{}\n\n\u{9879}\u{76ee}\u{7edf}\u{8ba1}(\u{6765}\u{81ea}\u{4ee3}\u{7801}\u{56fe}\u{8c31})\u{ff1a}\n{}",
         directive, structure
@@ -356,7 +356,7 @@ fn build_project_prompt(structure: &str, lang: &str) -> String {
 /// Build a single self-contained prompt for a file-level comprehension,
 /// mirroring `LlmProvider::explain_file` for `claude -p`.
 fn build_file_prompt(file_path: &str, skeleton: &str, structure: &str, lang: &str) -> String {
-    let (directive, _) = llm_provider::lang_directive(lang);
+    let (directive, _) = crate::domains::model_gateway::providers::lang_directive(lang);
     let skeleton_block = if skeleton.trim().is_empty() {
         String::from("(\u{6e90}\u{7801}\u{4e0d}\u{53ef}\u{7528}\u{ff0c}\u{4ec5}\u{4f9d}\u{636e}\u{4ee3}\u{7801}\u{56fe}\u{8c31}\u{7ed3}\u{6784}\u{4fe1}\u{606f}\u{5206}\u{6790})")
     } else {

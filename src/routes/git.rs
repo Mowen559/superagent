@@ -162,7 +162,17 @@ async fn git_restore(
     };
     let kind = RepoKind::parse(body.repo.as_deref());
 
-    let guard = match WorkspaceGuard::new(&project) {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
+    };
+    let guard = match WorkspaceGuard::new(&safe_project) {
         Ok(g) => g,
         Err(e) => {
             return (
@@ -174,7 +184,7 @@ async fn git_restore(
     };
     let ops = DestructiveOps::new(&guard);
 
-    match ops.git_restore(&project, &file_path, body.hash.as_deref(), kind) {
+    match ops.git_restore(&file_path, body.hash.as_deref(), kind) {
         Ok(()) => Json(json!({ "success": true, "path": file_path })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -343,7 +353,17 @@ async fn shadow_rollback(
         }
     };
 
-    let guard = match WorkspaceGuard::new(&project) {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
+    };
+    let guard = match WorkspaceGuard::new(&safe_project) {
         Ok(g) => g,
         Err(e) => {
             return (
@@ -355,7 +375,7 @@ async fn shadow_rollback(
     };
     let ops = DestructiveOps::new(&guard);
 
-    match ops.shadow_rollback(&project, &hash) {
+    match ops.shadow_rollback(&hash) {
         Ok(_) => Json(json!({ "success": true, "hash": hash })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -390,7 +410,17 @@ async fn apply_patch(
         }
     };
 
-    let guard = match WorkspaceGuard::new(&project) {
+    let safe_project = match state.workspace_capabilities.resolve(&project) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
+        }
+    };
+    let guard = match WorkspaceGuard::new(&safe_project) {
         Ok(g) => g,
         Err(e) => {
             return (
@@ -402,7 +432,7 @@ async fn apply_patch(
     };
     let ops = DestructiveOps::new(&guard);
 
-    match ops.apply_patch(&project, &patch) {
+    match ops.apply_patch(&patch) {
         Ok(()) => Json(json!({ "success": true })).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,

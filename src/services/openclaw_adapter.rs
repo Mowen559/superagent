@@ -1,4 +1,3 @@
-
 pub mod openclaw_adapter {
     use serde::{Deserialize, Serialize};
     use serde_json::Value;
@@ -14,9 +13,12 @@ pub mod openclaw_adapter {
     pub fn emit_event(event: &OpenclawEvent) {
         // True Openclaw Event Stream Adapter
         if let Ok(json_str) = serde_json::to_string(event) {
-            eprintln!("data: {}
+            eprintln!(
+                "data: {}
 
-", json_str);
+",
+                json_str
+            );
         }
     }
 }

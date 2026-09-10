@@ -1,12 +1,12 @@
-use serde_json::{json, Value};
+use super::rules;
 use crate::config::runtime::RuntimeConfig;
 use crate::models::memory::SupermemoryRecord;
 use crate::models::reverse::*;
-use crate::services::llm_provider::{self, LlmProvider};
+use crate::domains::model_gateway::providers::{self, LlmProvider};
+use crate::services::progress::{ProgressReporter, StepStatus};
 use crate::services::supermemory_store::SupermemoryStore;
 use crate::services::understand_service;
-use crate::services::progress::{ProgressReporter, StepStatus};
-use super::rules;
+use serde_json::{json, Value};
 
 /// Execute the full reverse engineering pipeline:
 /// extraction → project context enrichment → blueprint → tasks → persistence.
@@ -23,7 +23,9 @@ pub async fn execute(
     let started = chrono::Utc::now();
     let mut trace_steps: Vec<TraceStep> = Vec::new();
 
-    if let Some(r) = &reporter { r.report("Extracting requirement schema", StepStatus::InProgress); }
+    if let Some(r) = &reporter {
+        r.report("Extracting requirement schema", StepStatus::InProgress);
+    }
 
     // Step 1: Extract requirement schema. Failures fall back to a default
     // schema but are reported honestly (status=fallback + warning).
@@ -41,7 +43,10 @@ pub async fn execute(
             }
         }
     } else {
-        let llm = LlmProvider::new(http_client.clone());
+        let llm = LlmProvider::with_model_override(
+            http_client.clone(),
+            options.and_then(|option| option.model.clone()),
+        );
         if llm.is_available() && !requirement.is_empty() {
             match extract_schema_via_llm(&llm, requirement, language, project).await {
                 Ok(s) => s,
@@ -75,11 +80,20 @@ pub async fn execute(
         warnings: extraction_warnings,
     });
 
-    if let Some(r) = &reporter { 
-        r.report("Extracting requirement schema", if extraction_status == "ok" { StepStatus::Completed } else { StepStatus::Failed }); 
+    if let Some(r) = &reporter {
+        r.report(
+            "Extracting requirement schema",
+            if extraction_status == "ok" {
+                StepStatus::Completed
+            } else {
+                StepStatus::Failed
+            },
+        );
     }
 
-    if let Some(r) = &reporter { r.report("Querying project context", StepStatus::InProgress); }
+    if let Some(r) = &reporter {
+        r.report("Querying project context", StepStatus::InProgress);
+    }
 
     // Step 2: Enrich with project context (graph modules + supermemory).
     let context_started = chrono::Utc::now();
@@ -105,11 +119,14 @@ pub async fn execute(
                     .and_then(|m| m.as_array())
                     .map(|arr| {
                         arr.iter()
-                            .filter_map(|m| m.get("name").and_then(|n| n.as_str()).map(String::from))
+                            .filter_map(|m| {
+                                m.get("name").and_then(|n| n.as_str()).map(String::from)
+                            })
                             .collect()
                     })
                     .unwrap_or_default();
-                context.existing_modules = match_existing_modules(&schema, &graph_modules, existing_module_limit);
+                context.existing_modules =
+                    match_existing_modules(&schema, &graph_modules, existing_module_limit);
                 context_evidence.push(TraceEvidence {
                     source: "codebase-memory".into(),
                     label: "Top-level graph modules".into(),
@@ -117,13 +134,19 @@ pub async fn execute(
                     value: Some(json!(graph_modules)),
                 });
             }
-            Ok(_) => context_warnings.push("Project graph not indexed; module matching skipped.".into()),
+            Ok(_) => {
+                context_warnings.push("Project graph not indexed; module matching skipped.".into())
+            }
             Err(e) => context_warnings.push(format!("Graph lookup failed: {}", e)),
         }
 
         // Related memories feed the project context for downstream agents.
         let store = SupermemoryStore::new(runtime_config, Some(project_path));
-        let query = format!("{} {}", schema.requirement_summary, schema.features.join(" "));
+        let query = format!(
+            "{} {}",
+            schema.requirement_summary,
+            schema.features.join(" ")
+        );
         context.supermemory = store.search(&query, supermemory_limit);
         if !context.supermemory.is_empty() {
             context_evidence.push(TraceEvidence {
@@ -149,9 +172,13 @@ pub async fn execute(
         warnings: context_warnings,
     });
 
-    if let Some(r) = &reporter { r.report("Querying project context", StepStatus::Completed); }
+    if let Some(r) = &reporter {
+        r.report("Querying project context", StepStatus::Completed);
+    }
 
-    if let Some(r) = &reporter { r.report("Building architecture blueprint", StepStatus::InProgress); }
+    if let Some(r) = &reporter {
+        r.report("Building architecture blueprint", StepStatus::InProgress);
+    }
 
     // Step 3: Build architecture blueprint
     let blueprint = build_blueprint(&schema, &context);
@@ -168,9 +195,13 @@ pub async fn execute(
         warnings: vec![],
     });
 
-    if let Some(r) = &reporter { r.report("Building architecture blueprint", StepStatus::Completed); }
+    if let Some(r) = &reporter {
+        r.report("Building architecture blueprint", StepStatus::Completed);
+    }
 
-    if let Some(r) = &reporter { r.report("Generating development tasks", StepStatus::InProgress); }
+    if let Some(r) = &reporter {
+        r.report("Generating development tasks", StepStatus::InProgress);
+    }
 
     // Step 4: Generate development tasks
     let tasks = generate_tasks(&schema, &blueprint);
@@ -187,9 +218,13 @@ pub async fn execute(
         warnings: vec![],
     });
 
-    if let Some(r) = &reporter { r.report("Generating development tasks", StepStatus::Completed); }
+    if let Some(r) = &reporter {
+        r.report("Generating development tasks", StepStatus::Completed);
+    }
 
-    if let Some(r) = &reporter { r.report("Persisting blueprint and tasks", StepStatus::InProgress); }
+    if let Some(r) = &reporter {
+        r.report("Persisting blueprint and tasks", StepStatus::InProgress);
+    }
 
     // Step 5: Persist the blueprint + tasks into supermemory so later runs
     // (and the chat endpoint) can retrieve them.
@@ -216,10 +251,16 @@ pub async fn execute(
             updated_at: chrono::Utc::now().to_rfc3339(),
             embedding: None,
         });
-        store.add_log("sync", Some(format!("Blueprint generated for: {}", title)), None);
+        store.add_log(
+            "sync",
+            Some(format!("Blueprint generated for: {}", title)),
+            None,
+        );
     }
 
-    if let Some(r) = &reporter { r.report("Persisting blueprint and tasks", StepStatus::Completed); }
+    if let Some(r) = &reporter {
+        r.report("Persisting blueprint and tasks", StepStatus::Completed);
+    }
 
     Ok(ReverseEngineeringResult {
         trace_id: trace_id.to_string(),
@@ -238,7 +279,7 @@ async fn extract_schema_via_llm(
     language: Option<&str>,
     project: Option<&str>,
 ) -> Result<RequirementSchema, String> {
-    let (directive, _) = llm_provider::lang_directive(language.unwrap_or("zh-CN"));
+    let (directive, _) = crate::domains::model_gateway::providers::lang_directive(language.unwrap_or("zh-CN"));
     let messages = vec![json!({
         "role": "user",
         "content": format!(
@@ -247,15 +288,22 @@ async fn extract_schema_via_llm(
         )
     })];
 
-    let mut system_prompt = "You are a software architect. Return only valid JSON, without markdown code fences.".to_string();
+    let mut system_prompt =
+        "You are a software architect. Return only valid JSON, without markdown code fences."
+            .to_string();
     if let Some(project) = project {
-        if let Some(instructions) = crate::services::project_context::load_project_instructions(Some(std::path::Path::new(project))) {
-            system_prompt.push_str(&format!("\n\n[Project Instructions from .deepcloud.md]:\n{}", instructions));
+        if let Some(instructions) = crate::services::project_context::load_project_instructions(
+            Some(std::path::Path::new(project)),
+        ) {
+            system_prompt.push_str(&format!(
+                "\n\n[Project Instructions from .deepcloud.md]:\n{}",
+                instructions
+            ));
         }
     }
 
     let response = llm.chat(messages, Some(&system_prompt)).await?;
-    let cleaned = llm_provider::strip_code_fences(&response.0);
+    let cleaned = crate::domains::model_gateway::providers::strip_code_fences(&response.0);
     serde_json::from_str(&cleaned).map_err(|e| format!("Failed to parse LLM schema: {}", e))
 }
 
@@ -265,7 +313,10 @@ fn default_schema(requirement: &str) -> RequirementSchema {
         business_domain: "general".into(),
         actors: vec!["user".into()],
         engineering_constraints: EngineeringConstraints::default(),
-        business_flow: rules::default_business_flow().into_iter().map(String::from).collect(),
+        business_flow: rules::default_business_flow()
+            .into_iter()
+            .map(String::from)
+            .collect(),
         missing_questions: vec!["Please provide more specific requirements.".into()],
         ..Default::default()
     }
@@ -295,14 +346,15 @@ fn match_existing_modules(
         for gm in graph_modules {
             let gm_lc = gm.to_lowercase();
             if keywords.iter().any(|k| gm_lc.contains(k.as_str()))
-                && !matches.iter().any(|m| m.name == *gm) {
-                    matches.push(ProjectContextMatch {
-                        name: gm.clone(),
-                        kind: "module".into(),
-                        file_path: gm.clone(),
-                        matched_from: want.clone(),
-                    });
-                }
+                && !matches.iter().any(|m| m.name == *gm)
+            {
+                matches.push(ProjectContextMatch {
+                    name: gm.clone(),
+                    kind: "module".into(),
+                    file_path: gm.clone(),
+                    matched_from: want.clone(),
+                });
+            }
         }
         if matches.len() >= limit {
             break;
@@ -314,25 +366,35 @@ fn match_existing_modules(
 }
 
 fn build_blueprint(schema: &RequirementSchema, context: &ProjectContext) -> ArchitectureBlueprint {
-    let modules: Vec<BlueprintModule> = schema.modules.iter().map(|m| {
-        // Modules matched to existing code become extend_existing.
-        let existing = context
-            .existing_modules
-            .iter()
-            .find(|em| em.matched_from == *m);
-        match existing {
-            Some(em) => BlueprintModule {
-                name: m.clone(),
-                action: "extend_existing".into(),
-                evidence: vec![format!("Matched existing module '{}' in project graph", em.name)],
-            },
-            None => BlueprintModule {
-                name: m.clone(),
-                action: "create_new".into(),
-                evidence: vec![format!("Derived from requirement: {}", schema.requirement_summary)],
-            },
-        }
-    }).collect();
+    let modules: Vec<BlueprintModule> = schema
+        .modules
+        .iter()
+        .map(|m| {
+            // Modules matched to existing code become extend_existing.
+            let existing = context
+                .existing_modules
+                .iter()
+                .find(|em| em.matched_from == *m);
+            match existing {
+                Some(em) => BlueprintModule {
+                    name: m.clone(),
+                    action: "extend_existing".into(),
+                    evidence: vec![format!(
+                        "Matched existing module '{}' in project graph",
+                        em.name
+                    )],
+                },
+                None => BlueprintModule {
+                    name: m.clone(),
+                    action: "create_new".into(),
+                    evidence: vec![format!(
+                        "Derived from requirement: {}",
+                        schema.requirement_summary
+                    )],
+                },
+            }
+        })
+        .collect();
 
     ArchitectureBlueprint {
         summary: format!("Architecture for: {}", schema.requirement_summary),
@@ -349,7 +411,10 @@ fn build_blueprint(schema: &RequirementSchema, context: &ProjectContext) -> Arch
     }
 }
 
-fn generate_tasks(_schema: &RequirementSchema, blueprint: &ArchitectureBlueprint) -> Vec<DevelopmentTask> {
+fn generate_tasks(
+    _schema: &RequirementSchema,
+    blueprint: &ArchitectureBlueprint,
+) -> Vec<DevelopmentTask> {
     let mut tasks = Vec::new();
     let mut idx = 0;
 
@@ -369,7 +434,12 @@ fn generate_tasks(_schema: &RequirementSchema, blueprint: &ArchitectureBlueprint
         tasks.push(DevelopmentTask {
             id: format!("task-{}", idx),
             title: format!("Implement module: {}", module.name),
-            task_type: if module.action == "extend_existing" { "extend" } else { "create" }.into(),
+            task_type: if module.action == "extend_existing" {
+                "extend"
+            } else {
+                "create"
+            }
+            .into(),
             target: Some(module.name.clone()),
             reason: format!("Required by architecture blueprint ({})", module.action),
             depends_on: vec![format!("task-{}", idx - 1)],

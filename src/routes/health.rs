@@ -31,7 +31,7 @@ async fn health_check(
         .iter()
         .any(|s| s.state == crate::config::runtime::HealthState::Warning);
     let llm_settings = crate::config::llm_settings::read_llm_settings();
-    let gateway_eval = crate::services::brain::gateway_eval_runtime::GatewayEvalRuntime
+    let gateway_eval = crate::domains::model_gateway::capabilities::eval::GatewayEvalRuntime
         .evaluate_global(&llm_settings);
 
     let overall = if has_error {
@@ -44,7 +44,7 @@ async fn health_check(
     let data = serde_json::json!({
         "overall": overall,
         "statuses": statuses,
-        "providerHealth": crate::services::brain::provider_health_runtime::ProviderHealthRuntime::global().snapshots(),
+        "providerHealth": crate::domains::model_gateway::health::ProviderHealthRuntime::global().snapshots(),
         "gatewayEval": gateway_eval,
         "checkedAt": chrono::Utc::now().to_rfc3339(),
     });

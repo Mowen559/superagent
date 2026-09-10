@@ -1,0 +1,12 @@
+[package]
+name = "snow-stitch-images-c"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+png.workspace = true
+snow-stitch-images = { path = "../snow-stitch-images", default-features = false }
+tempfile.workspace = true

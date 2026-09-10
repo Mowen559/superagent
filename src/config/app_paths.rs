@@ -10,16 +10,15 @@ pub struct AppPaths {
 
 impl AppPaths {
     pub fn new() -> Self {
-        let bundle_root = Self::resolve_env_path("HUB_BUNDLE_ROOT")
-            .unwrap_or_else(|| {
-                std::env::current_dir()
-                    .unwrap_or_else(|_| PathBuf::from("."))
-                    .join("..")
-                    .join("..")
-            });
+        let bundle_root = Self::resolve_env_path("HUB_BUNDLE_ROOT").unwrap_or_else(|| {
+            std::env::current_dir()
+                .unwrap_or_else(|_| PathBuf::from("."))
+                .join("..")
+                .join("..")
+        });
 
-        let app_data_root = Self::resolve_env_path("HUB_APP_DATA_ROOT")
-            .unwrap_or_else(Self::default_app_data_root);
+        let app_data_root =
+            Self::resolve_env_path("HUB_APP_DATA_ROOT").unwrap_or_else(Self::default_app_data_root);
 
         Self {
             bundle_root,
@@ -69,7 +68,11 @@ impl AppPaths {
         if legacy_llm.exists() && !new_llm.exists() {
             self.ensure_data_dir(&["settings"]);
             match std::fs::copy(&legacy_llm, &new_llm) {
-                Ok(_) => tracing::info!("Migrated LLM settings from {} to {}", legacy_llm.display(), new_llm.display()),
+                Ok(_) => tracing::info!(
+                    "Migrated LLM settings from {} to {}",
+                    legacy_llm.display(),
+                    new_llm.display()
+                ),
                 Err(e) => tracing::warn!("Failed to migrate LLM settings: {}", e),
             }
         }

@@ -91,7 +91,7 @@ async fn analyze_requirement(
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
     let db_path_str = db_path.to_string_lossy().to_string();
 
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::requirement_analyzer::RequirementAnalyzer::new(llm);
 
     let reporter = std::sync::Arc::new(crate::services::progress::ConsoleReporter::new());
@@ -145,7 +145,7 @@ async fn plan_requirement(
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
     let db_path_str = db_path.to_string_lossy().to_string();
 
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     let analyzer = crate::services::requirement_analyzer::RequirementAnalyzer::new(llm);
 
     let reporter = std::sync::Arc::new(crate::services::progress::ConsoleReporter::new());

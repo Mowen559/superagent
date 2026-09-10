@@ -41,7 +41,10 @@ impl ProgressReporter for ConsoleReporter {
                         // Move cursor up 1 line (\x1b[1A) and clear entire line (\x1b[2K)
                         print!("\x1b[1A\x1b[2K\r");
                         let elapsed = start_time.elapsed().as_millis();
-                        println!("\x1b[32m[x]\x1b[0m \x1b[90m{} ({}ms)\x1b[0m", step_name, elapsed);
+                        println!(
+                            "\x1b[32m[x]\x1b[0m \x1b[90m{} ({}ms)\x1b[0m",
+                            step_name, elapsed
+                        );
                     } else {
                         println!("\x1b[32m[x]\x1b[0m \x1b[90m{}\x1b[0m", step_name);
                     }
@@ -54,7 +57,10 @@ impl ProgressReporter for ConsoleReporter {
                     if name == step_name {
                         print!("\x1b[1A\x1b[2K\r");
                         let elapsed = start_time.elapsed().as_millis();
-                        println!("\x1b[31m[!] {}\x1b[0m \x1b[90m({}ms)\x1b[0m", step_name, elapsed);
+                        println!(
+                            "\x1b[31m[!] {}\x1b[0m \x1b[90m({}ms)\x1b[0m",
+                            step_name, elapsed
+                        );
                     } else {
                         println!("\x1b[31m[!]\x1b[0m \x1b[90m{}\x1b[0m", step_name);
                     }

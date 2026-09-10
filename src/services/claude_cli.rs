@@ -6,14 +6,14 @@
 //! as background tasks (TaskManager) because agentic runs can take minutes;
 //! output is streamed into the task log.
 
+use crate::config::claude_settings;
+use crate::models::task::TaskStatus;
+use crate::services::task_manager::TaskManager;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use crate::config::claude_settings;
-use crate::models::task::TaskStatus;
-use crate::services::task_manager::TaskManager;
 
 /// Hard cap for a single headless run.
 const RUN_TIMEOUT_SECS: u64 = 20 * 60;
@@ -71,7 +71,11 @@ pub async fn detect_version() -> Option<String> {
         return None;
     }
     let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if version.is_empty() { None } else { Some(version) }
+    if version.is_empty() {
+        None
+    } else {
+        Some(version)
+    }
 }
 
 /// Run a headless `claude -p` prompt and return its final text answer
@@ -123,8 +127,20 @@ pub async fn run_and_capture(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let tail: String = stderr.lines().rev().take(6).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n");
-        return Err(format!("claude exited with {}: {}", output.status, tail.trim()));
+        let tail: String = stderr
+            .lines()
+            .rev()
+            .take(6)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(format!(
+            "claude exited with {}: {}",
+            output.status,
+            tail.trim()
+        ));
     }
 
     let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -167,17 +183,27 @@ pub fn run_prompt(
         #[cfg(windows)]
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
 
-        if let Some(dir) = project.as_deref().filter(|p| std::path::Path::new(p).is_dir()) {
+        if let Some(dir) = project
+            .as_deref()
+            .filter(|p| std::path::Path::new(p).is_dir())
+        {
             cmd.current_dir(dir);
         }
 
-        tm.append_log(&tid, "[Claude] Starting headless run (claude -p --settings claude.json)");
+        tm.append_log(
+            &tid,
+            "[Claude] Starting headless run (claude -p --settings claude.json)",
+        );
 
         let mut child = match cmd.spawn() {
             Ok(c) => c,
             Err(e) => {
                 tm.append_log(&tid, &format!("[Claude] Failed to launch CLI: {}", e));
-                tm.update_status(&tid, TaskStatus::Failed, Some(format!("Failed to launch claude CLI: {}", e)));
+                tm.update_status(
+                    &tid,
+                    TaskStatus::Failed,
+                    Some(format!("Failed to launch claude CLI: {}", e)),
+                );
                 return;
             }
         };
@@ -209,7 +235,12 @@ pub fn run_prompt(
             });
         }
 
-        match tokio::time::timeout(std::time::Duration::from_secs(RUN_TIMEOUT_SECS), child.wait()).await {
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(RUN_TIMEOUT_SECS),
+            child.wait(),
+        )
+        .await
+        {
             Ok(Ok(status)) if status.success() => {
                 tm.append_log(&tid, "[Claude] Run completed.");
                 tm.update_status(&tid, TaskStatus::Completed, None);

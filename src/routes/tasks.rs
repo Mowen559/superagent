@@ -14,6 +14,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/tasks", get(list_tasks))
         .route("/api/tasks/{task_id}", get(get_task))
         .route("/api/tasks/{task_id}/logs", get(get_task_logs))
+        .route(
+            "/api/tasks/{task_id}/events",
+            get(crate::routes::agents::stream_events),
+        )
         .route("/api/tasks/{task_id}/cancel", post(cancel_task))
 }
 

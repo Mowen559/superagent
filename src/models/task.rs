@@ -79,7 +79,7 @@ pub struct Task {
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload: Option<serde_json::Value>,
-    
+
     // -- Development Run Extensions --
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workspace_baseline: Option<String>, // e.g., git commit hash

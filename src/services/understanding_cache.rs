@@ -6,11 +6,11 @@
 //! content signature (source xxh3 for files, DB mtime + node count for the
 //! project) so any relevant change naturally invalidates the entry.
 
-use std::path::{Path, PathBuf};
+use crate::config::app_paths::AppPaths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::path::{Path, PathBuf};
 use xxhash_rust::xxh3::xxh3_64;
-use crate::config::app_paths::AppPaths;
 
 const MAX_ENTRIES: usize = 500;
 
@@ -41,14 +41,21 @@ impl UnderstandingCache {
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| "default".to_string());
         let dir = app_paths.ensure_data_dir(&["cache", "understanding"]);
-        Self { path: dir.join(format!("{}.json", stem)) }
+        Self {
+            path: dir.join(format!("{}.json", stem)),
+        }
     }
 
     /// File-level key: language + relative path + source content hash.
     /// When the source is unavailable the caller passes the structural
     /// signature instead, which still tracks the indexed graph state.
     pub fn file_key(lang: &str, rel_path: &str, content: &str) -> String {
-        format!("file:{}:{}:{:016x}", lang, rel_path, xxh3_64(content.as_bytes()))
+        format!(
+            "file:{}:{}:{:016x}",
+            lang,
+            rel_path,
+            xxh3_64(content.as_bytes())
+        )
     }
 
     /// Project-level key: language + graph DB mtime + total node count, so any
@@ -61,6 +68,22 @@ impl UnderstandingCache {
             .map(|d| d.as_secs())
             .unwrap_or(0);
         format!("project:{}:{}:{}", lang, mtime, nodes)
+    }
+
+    /// Project-level key additionally bound to the analyzed source snapshot.
+    /// DB mtime alone has one-second granularity on some filesystems and can
+    /// otherwise return a stale overview after a fast incremental re-index.
+    pub fn project_key_with_source(
+        lang: &str,
+        db_path: &str,
+        nodes: i64,
+        source_fingerprint: &str,
+    ) -> String {
+        format!(
+            "{}:{}",
+            Self::project_key(lang, db_path, nodes),
+            source_fingerprint
+        )
     }
 
     pub fn get(&self, key: &str) -> Option<Value> {
@@ -101,7 +124,10 @@ impl UnderstandingCache {
         std::fs::read_to_string(&self.path)
             .ok()
             .and_then(|content| serde_json::from_str(&content).ok())
-            .unwrap_or(CacheData { version: 1, entries: Vec::new() })
+            .unwrap_or(CacheData {
+                version: 1,
+                entries: Vec::new(),
+            })
     }
 
     fn save(&self, data: &CacheData) {

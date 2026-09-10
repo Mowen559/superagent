@@ -55,7 +55,10 @@ pub fn ensure_shim(app_paths: &AppPaths) -> PathBuf {
         Err(e) => {
             // A locked destination usually means a previous copy is fine to use.
             if dst.exists() {
-                tracing::warn!("rtk shim copy failed ({e}); reusing existing {}", dst.display());
+                tracing::warn!(
+                    "rtk shim copy failed ({e}); reusing existing {}",
+                    dst.display()
+                );
                 dst
             } else {
                 tracing::warn!("rtk shim copy failed ({e}); falling back to current exe");

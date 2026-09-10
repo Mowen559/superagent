@@ -1,21 +1,30 @@
-﻿use async_trait::async_trait;
 use crate::services::agent::backend::{AgentBackend, BackendResult};
 use crate::services::agent::json_lines::{self, JsonSpec};
 use crate::services::agent::types::AgentMessage;
 use crate::services::agent::types::{AgentSession, ExecOptions};
+use async_trait::async_trait;
 
 pub struct SuperAgentBackend;
 
 #[async_trait]
 impl AgentBackend for SuperAgentBackend {
-    async fn execute(&self, prompt: String, opts: ExecOptions, cancel_rx: tokio::sync::watch::Receiver<bool>, _control_rx: Option<tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>>) -> BackendResult<AgentSession> {
-        let current_exe = std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("hub"));
+    async fn execute(
+        &self,
+        prompt: String,
+        opts: ExecOptions,
+        cancel_rx: tokio::sync::watch::Receiver<bool>,
+        _control_rx: Option<
+            tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+        >,
+    ) -> BackendResult<AgentSession> {
+        let current_exe =
+            std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("hub"));
         let mut args = vec![
             "superagent-worker".to_string(),
             "--prompt".to_string(),
             prompt,
         ];
-        
+
         json_lines::run(
             JsonSpec {
                 command: current_exe.to_string_lossy().to_string(),
@@ -26,10 +35,15 @@ impl AgentBackend for SuperAgentBackend {
                         if t == "text" {
                             if let Some(c) = evt.get("content").and_then(|v| v.as_str()) {
                                 st.output.push_str(c);
-                                out.push(AgentMessage::Text { content: c.to_string() });
+                                out.push(AgentMessage::Text {
+                                    content: c.to_string(),
+                                });
                             }
                         } else if t == "tool_call" {
-                            if let (Some(tool), Some(args)) = (evt.get("tool").and_then(|v| v.as_str()), evt.get("arguments")) {
+                            if let (Some(tool), Some(args)) = (
+                                evt.get("tool").and_then(|v| v.as_str()),
+                                evt.get("arguments"),
+                            ) {
                                 out.push(AgentMessage::ToolUse {
                                     call_id: "".to_string(),
                                     tool: tool.to_string(),
@@ -37,7 +51,9 @@ impl AgentBackend for SuperAgentBackend {
                                 });
                             }
                         } else if t == "tool_result" {
-                            if let (Some(tool), Some(res)) = (evt.get("tool").and_then(|v| v.as_str()), evt.get("result")) {
+                            if let (Some(tool), Some(res)) =
+                                (evt.get("tool").and_then(|v| v.as_str()), evt.get("result"))
+                            {
                                 out.push(AgentMessage::ToolResult {
                                     call_id: "".to_string(),
                                     tool: tool.to_string(),
@@ -47,7 +63,9 @@ impl AgentBackend for SuperAgentBackend {
                         } else if t == "error" || t == "failed" {
                             st.forced_status = Some("failed".to_string());
                             if let Some(c) = evt.get("content").and_then(|v| v.as_str()) {
-                                out.push(AgentMessage::Error { content: c.to_string() });
+                                out.push(AgentMessage::Error {
+                                    content: c.to_string(),
+                                });
                             }
                         } else if t == "status" {
                             if let Some(s) = evt.get("status").and_then(|v| v.as_str()) {
@@ -55,9 +73,18 @@ impl AgentBackend for SuperAgentBackend {
                             }
                         } else if t == "AskUser" {
                             if let Some(payload) = evt.get("payload") {
-                                if let (Some(req_id), Some(q)) = (payload.get("request_id").and_then(|v| v.as_str()), payload.get("question").and_then(|v| v.as_str())) {
-                                    let choices = payload.get("choices").and_then(|v| v.as_array())
-                                        .map(|arr| arr.iter().filter_map(|c| c.as_str().map(|s| s.to_string())).collect())
+                                if let (Some(req_id), Some(q)) = (
+                                    payload.get("request_id").and_then(|v| v.as_str()),
+                                    payload.get("question").and_then(|v| v.as_str()),
+                                ) {
+                                    let choices = payload
+                                        .get("choices")
+                                        .and_then(|v| v.as_array())
+                                        .map(|arr| {
+                                            arr.iter()
+                                                .filter_map(|c| c.as_str().map(|s| s.to_string()))
+                                                .collect()
+                                        })
                                         .unwrap_or_default();
                                     out.push(AgentMessage::InteractionRequest {
                                         request_id: req_id.to_string(),
@@ -72,7 +99,11 @@ impl AgentBackend for SuperAgentBackend {
                 }),
                 map_raw: None,
             },
-            opts, cancel_rx, _control_rx).await
+            opts,
+            cancel_rx,
+            _control_rx,
+        )
+        .await
     }
 
     async fn sync_config(

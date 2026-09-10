@@ -118,7 +118,7 @@ impl CliConfigAdapter for ClaudeConfigAdapter {
             // Resolve credential via ProviderStore
             let provider = crate::services::agent::provider_store::global_provider_store()
                 .get_provider(&request.provider_id);
-                
+
             let mut env_obj = obj
                 .get("env")
                 .cloned()
@@ -129,7 +129,7 @@ impl CliConfigAdapter for ClaudeConfigAdapter {
                     if p.is_local_proxy {
                         let auth_token = crate::services::agent::provider_store::global_provider_store()
                             .generate_proxy_token(&p.provider_id);
-                            
+
                         env_obj.remove("ANTHROPIC_API_KEY");
                         // Format the base_url. Claude uses anthropic API, so if the upstream is deepcloud, we point to hub_base_url/anthropic
                         env_obj.insert(
@@ -175,7 +175,7 @@ impl CliConfigAdapter for ClaudeConfigAdapter {
                 network_probe: "SKIPPED".to_string(),
             });
         }
-        
+
         // CLI Probe
         let cli_probe = match std::process::Command::new(&install.executable)
             .arg("--version")

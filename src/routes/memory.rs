@@ -94,7 +94,7 @@ async fn supermemory_chat(
     .unwrap_or_default();
 
     // Try LLM
-    let llm = crate::services::llm_provider::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
     let response = if llm.is_available() && !message.is_empty() {
         let memory_ctx: Vec<String> = memories
             .iter()

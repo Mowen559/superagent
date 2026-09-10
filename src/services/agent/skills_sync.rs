@@ -1,9 +1,9 @@
-use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 
-use super::AgentKind;
-use super::skills::{AgentsLockInfo, DetectedSkill};
 use super::discovery::get_agent_discovery_spec;
+use super::skills::{AgentsLockInfo, DetectedSkill};
+use super::AgentKind;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -58,7 +58,11 @@ pub async fn install_or_update_skill_for_agent(
 ) -> Result<LocalSkillInstallResult, String> {
     let spec = get_agent_discovery_spec(kind);
     // Use the first skill path as the target install directory
-    let skills_root = spec.skill_paths.first().ok_or("No skill path found for this agent")?.clone();
+    let skills_root = spec
+        .skill_paths
+        .first()
+        .ok_or("No skill path found for this agent")?
+        .clone();
 
     std::fs::create_dir_all(&skills_root)
         .map_err(|e| format!("failed to create skills dir: {e}"))?;
@@ -103,8 +107,9 @@ pub async fn install_or_update_skill_for_agent(
 
     // Attempt to parse the skill we just installed
     let mut cache = super::skills::ScannerCache::new();
-    let detected_skills = super::skills::scan_skills_for_agent(kind.info().slug, &spec.skill_paths, &mut cache);
-    
+    let detected_skills =
+        super::skills::scan_skills_for_agent(kind.info().slug, &spec.skill_paths, &mut cache);
+
     let skill = detected_skills.into_iter().find(|skill| {
         skill.directory.eq_ignore_ascii_case(&target_name)
             || skill.name.eq_ignore_ascii_case(&target_name)
@@ -130,14 +135,16 @@ pub async fn uninstall_skill(
     req: UninstallSkillRequest,
 ) -> Result<LocalSkillUninstallResult, String> {
     let spec = get_agent_discovery_spec(kind);
-    let skills_root = spec.skill_paths.first().ok_or("No skill path found for this agent")?;
+    let skills_root = spec
+        .skill_paths
+        .first()
+        .ok_or("No skill path found for this agent")?;
     let target_dir = skills_root.join(&req.skill_name);
 
     let mut removed = false;
     if target_dir.exists() && target_dir.is_dir() {
-        std::fs::remove_dir_all(&target_dir).map_err(|e| {
-            format!("failed to remove skill directory: {}", e)
-        })?;
+        std::fs::remove_dir_all(&target_dir)
+            .map_err(|e| format!("failed to remove skill directory: {}", e))?;
         removed = true;
     }
 
@@ -178,9 +185,8 @@ async fn resolve_install_source(
             sync_git_repo(git_url, git_ref, &cache_dir).await?;
             let commit_hash = git_commit_hash(&cache_dir).await.ok();
 
-            let source = source_slug_from_git_url(git_url).ok_or_else(|| {
-                "git_url must be a GitHub URL or owner/repo slug".to_string()
-            })?;
+            let source = source_slug_from_git_url(git_url)
+                .ok_or_else(|| "git_url must be a GitHub URL or owner/repo slug".to_string())?;
             let _source_url = canonical_git_url(git_url);
             let skill_path = req.skill_path.clone().unwrap_or_default();
             let now = chrono::Utc::now().to_rfc3339();
@@ -340,12 +346,9 @@ fn replace_directory_with_backup(source: &Path, target: &Path) -> Result<(), Str
 }
 
 fn copy_dir_recursive(source: &Path, target: &Path) -> Result<(), String> {
-    std::fs::create_dir_all(target)
-        .map_err(|e| format!("failed to create target dir: {e}"))?;
+    std::fs::create_dir_all(target).map_err(|e| format!("failed to create target dir: {e}"))?;
 
-    for entry in std::fs::read_dir(source)
-        .map_err(|e| format!("failed to read source dir: {e}"))?
-    {
+    for entry in std::fs::read_dir(source).map_err(|e| format!("failed to read source dir: {e}"))? {
         let entry = entry.map_err(|e| format!("failed to read entry: {e}"))?;
         let source_path = entry.path();
         let target_path = target.join(entry.file_name());
@@ -410,10 +413,14 @@ fn remove_skill_from_json(skills_dir: &Path, skill_name: &str) -> bool {
 }
 
 fn git_cache_dir(git_url: &str) -> PathBuf {
-    let mut cache_dir = crate::config::app_paths::AppPaths::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let mut cache_dir =
+        crate::config::app_paths::AppPaths::home_dir().unwrap_or_else(|| PathBuf::from("."));
     cache_dir.push(".ai-service-repository");
     cache_dir.push("skill-cache");
-    cache_dir.push(format!("{:x}", xxhash_rust::xxh3::xxh3_64(git_url.as_bytes())));
+    cache_dir.push(format!(
+        "{:x}",
+        xxhash_rust::xxh3::xxh3_64(git_url.as_bytes())
+    ));
     cache_dir
 }
 

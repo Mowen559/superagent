@@ -11,10 +11,10 @@ pub struct RunLedger {
 impl RunLedger {
     pub fn new(db_path: PathBuf) -> Result<Self> {
         let conn = Connection::open(db_path)?;
-        
+
         // Enable WAL mode for concurrent readers
         conn.pragma_update(None, "journal_mode", "WAL")?;
-        
+
         // Create tables
         conn.execute(
             "CREATE TABLE IF NOT EXISTS sessions (
@@ -82,13 +82,13 @@ impl RunLedger {
     pub fn search_messages(&self, query: &str) -> Result<Vec<(String, String, String)>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT m.session_id, m.role, m.content 
-             FROM messages_fts f 
-             JOIN messages m ON f.rowid = m.id 
-             WHERE messages_fts MATCH ?1 
+            "SELECT m.session_id, m.role, m.content
+             FROM messages_fts f
+             JOIN messages m ON f.rowid = m.id
+             WHERE messages_fts MATCH ?1
              ORDER BY m.timestamp DESC LIMIT 20"
         )?;
-        
+
         let rows = stmt.query_map(params![query], |row| {
             Ok((row.get(0)?, row.get(1)?, row.get(2)?))
         })?;

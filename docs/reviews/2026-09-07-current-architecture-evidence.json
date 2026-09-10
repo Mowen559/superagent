@@ -1,0 +1,1701 @@
+{
+  "revision": "1d267bfec29f53bbb6a0f7e91ea14082caca336a",
+  "scope": "src/*.rs recursively; inventory only, no semantic graph or runtime proof",
+  "rustSourceFiles": 274,
+  "files": [
+    {
+      "path": "src/bin/hub.rs",
+      "lines": 7,
+      "sha256": "3cab46d48a5efffe940b52611a1acf9c5e4c8ea959b72d4314f8060e9d4e6a45",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/bin/superagent.rs",
+      "lines": 225,
+      "sha256": "a648c39a58bac5569ab8f13724b76d2d8fb1770949113985fed1b154d0c76706",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/cli.rs",
+      "lines": 289,
+      "sha256": "fcfe9853d0a0cc37d3cfc70f2e2953ba605addf4cdc304d42c2ecbaedd6b9dcf",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/cli_commands.rs",
+      "lines": 545,
+      "sha256": "432006d546301285083c8228a7383039f76efdb12b83387263b9fa2e83268d96",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/config/app_paths.rs",
+      "lines": 122,
+      "sha256": "a807420bc49d5879ea47817dce7dc219fed28439257be568408d110021329e3c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/config/claude_settings.rs",
+      "lines": 244,
+      "sha256": "6830f61cfca2e47ebab6a57defa4e8d7b1b5d8defea3e2d3047453b6e2a09e63",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/config/llm_settings.rs",
+      "lines": 324,
+      "sha256": "9d8efb939300315458ba2239e0609e9f1e25481adce3a2437d9250201ac3967d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/config/mod.rs",
+      "lines": 5,
+      "sha256": "585e4ee6ba5e1e94a1151b47566f5de92d79176a35c4785f8d5fd10ea2791480",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/config/rtk_shim.rs",
+      "lines": 77,
+      "sha256": "65e49318310f2c3c597bd385727dc4411ba4ba3e67717cb94ed981c81b8dda84",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/config/runtime.rs",
+      "lines": 391,
+      "sha256": "f678316e6275766b13ecfbf5ec3fac4dab2e2c8909e4a1147898620ebb17b035",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/lib.rs",
+      "lines": 29,
+      "sha256": "79ae936c95f378d47161b7b23e8ad4e22d287534e1c013fdabd6ce426bf15929",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/mcp_server.rs",
+      "lines": 442,
+      "sha256": "516f8e5fa22fb859f869570dac47f7f384c49a4ddc70105542b8c3e87fcf4942",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/models/api.rs",
+      "lines": 63,
+      "sha256": "114f42bea04a2fadd32067d91befbbfaa46b194377454352fd05ebb975f6b069",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/models/graph.rs",
+      "lines": 36,
+      "sha256": "636d0ce8d7f27f02a7333c27dcd5af63e0dca985bb0eab75a1ff5e10eeeccd3d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/models/memory.rs",
+      "lines": 138,
+      "sha256": "761fd79e4016fe82e967387050fb62b3924178c2bc8e742367b85e62b4d41316",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/models/mod.rs",
+      "lines": 5,
+      "sha256": "42b9bcdc86d49077b330d1d3155c87cf1a71404b24eacc7318156e7ca80ae18d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/models/reverse.rs",
+      "lines": 257,
+      "sha256": "66fb4004ef2838a6400c8437b9185453e99538b952908fbac8f0322749fd8d65",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/models/task.rs",
+      "lines": 96,
+      "sha256": "c7d08a8e270aaace604df454737dfd2c7fb4d8f36b71847f220f68843b8159aa",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/repl.rs",
+      "lines": 110,
+      "sha256": "cd5f76f937d29a7ee2460bc29d7ac3074ae496335a34ca39ad3df139249361d5",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/reverse_engineering/engine.rs",
+      "lines": 461,
+      "sha256": "85362d28bf001cb6118593406a5fa01b581af6e9a943743c238f55a8160ed31d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/reverse_engineering/mod.rs",
+      "lines": 2,
+      "sha256": "0ffb5ddb3b8e3f38e5060b9cf288b7678cefc5f8d22d984952502033bc82a9df",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/reverse_engineering/rules.rs",
+      "lines": 27,
+      "sha256": "b0f0546198778bea496439b65ae2ecf633bbf08169acc2646a6bada76b791241",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/agents/config.rs",
+      "lines": 159,
+      "sha256": "cc3dc59ad7efd657663964be5d08d86396d968b023bb1d07cb1a92616c8b8db2",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/agents/diff.rs",
+      "lines": 468,
+      "sha256": "7ab54d51735d8d350fd3b447bee37a88ef48d46e164d867264fec82c550fd975",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/agents/interact.rs",
+      "lines": 112,
+      "sha256": "812727f704c4979094a63264ad0289489f04c20b01f7121ba4ba634120adfb83",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/agents/mod.rs",
+      "lines": 87,
+      "sha256": "28d67a8b99c2e2d327a55f73e83cb0d577a3a73820bb3966eb582c04535895b2",
+      "globReexportLines": [
+        35,
+        37,
+        39,
+        41,
+        43,
+        45
+      ]
+    },
+    {
+      "path": "src/routes/agents/models.rs",
+      "lines": 60,
+      "sha256": "f0ca43c28e650380a17cef4b71e0663fad0582f471b3a776de12360bdabb1f52",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/agents/run.rs",
+      "lines": 375,
+      "sha256": "aef542dc99a2bbf3c0e4f3b01074bb9f9660485a724fb5718cc5901540610c02",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/agents/skills.rs",
+      "lines": 169,
+      "sha256": "abe65ef0bf42ed74be3ccd9d2f248322ac4f010f3ea5e1faa0f8141eb139daa3",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/analyze.rs",
+      "lines": 390,
+      "sha256": "8b8aa561e79d4665ac47d7b17b76cdc275ad0f80c0920b58707650ee7faae5cb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/capabilities.rs",
+      "lines": 49,
+      "sha256": "5fafcb57ab010c233abfc4254774fcc1f26a7199192387d75e654a870ceb6a86",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/claude.rs",
+      "lines": 161,
+      "sha256": "2deb96274af60679316074508e88cd976c06be91a0b90bfb3498f6f569aa00eb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/compress.rs",
+      "lines": 79,
+      "sha256": "8ffb42b348067bbbf9d5d073472e810dac8536cb1e75380628bfc825c76efe1c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/context.rs",
+      "lines": 169,
+      "sha256": "3fa7a59ceccc56e66411ae46e13dfbc53684a093f006c67e4b376b05d44bf3ab",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/evolution.rs",
+      "lines": 39,
+      "sha256": "5fdaab7fee63f79ad8b80079fc6e8ea277a748071601334e3c518ce7356f0bff",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/files.rs",
+      "lines": 313,
+      "sha256": "ac1cdb50edb0dfe22c61978a97de738d22968a12e948d9f7b19e3b2b11a9a0d4",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/git.rs",
+      "lines": 509,
+      "sha256": "260cf576bb0964cd215efcc6dd1e2f835b886760684c20f0a6767a551129446d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/health.rs",
+      "lines": 54,
+      "sha256": "1fb681575a5b0d648097e51fe8b1da6559580156771d1e7fecc279c574414781",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/mcp.rs",
+      "lines": 44,
+      "sha256": "1942db6f5132f22d485aaebd7a9ad0112869dfe4c53c499debf77c77d138ebe4",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/mcp_skills.rs",
+      "lines": 122,
+      "sha256": "e6f52d01b74b09f4f5324ffbc2398fd0e038caada8748551870c2db7278c687b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/memory.rs",
+      "lines": 147,
+      "sha256": "679fd32c27af364ccb71a3409dc33d8fb4ecb2c1eeb26603c959fed1f57462de",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/mod.rs",
+      "lines": 25,
+      "sha256": "3acbe4f45a3814af3499b6aa223a7aa9a3f2bcac18732b6da420197d70386e63",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/projects.rs",
+      "lines": 56,
+      "sha256": "ac2b7d625572262403c68fdf4a4029abebccfb05ac5ceab11f40db0e8b4688c3",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/proxy/audit.rs",
+      "lines": 222,
+      "sha256": "8168c723ecf255d69e6541efb7033fba9d3ca40621a017c6cbbcea4d9bec8ab1",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/proxy/dispatch.rs",
+      "lines": 925,
+      "sha256": "599d404bf9d5773b5a46ad87f1c5857c4b8a587d2230384a6d8a1f42f3284568",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/proxy/health_check.rs",
+      "lines": 137,
+      "sha256": "6fe693446481997bd200f788cb02651680500aa56e6ccdbecf53a14b7e25e894",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/proxy/mod.rs",
+      "lines": 12,
+      "sha256": "8d951f41f1ede7d70bd502b67bf6fb02bba10f789265605702d77f62f8cd3b4f",
+      "globReexportLines": [
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "path": "src/routes/proxy/router.rs",
+      "lines": 47,
+      "sha256": "5e0ac6da0f79b614edb422e7055d950dcc2cfc69153fa7517a7cbaa661c09e81",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/proxy/tests.rs",
+      "lines": 62,
+      "sha256": "38ec7b02cd37371f0217237814f03dc5e250845ab77d32c247d49e265cbcc5d8",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/qa.rs",
+      "lines": 186,
+      "sha256": "31afb88d7d6c80e8fbd41cd93e8142309596bec4765aa244fe9fad0b91c73bfb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/reverse.rs",
+      "lines": 171,
+      "sha256": "b3b876483aa74d0bcdcb2abfb66362d774c122cd75752d5c179e8c76553e9f00",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/settings/accounts.rs",
+      "lines": 113,
+      "sha256": "cf80dfef380eff6e3604fcecf61d3ed9fa66b9db9a4930dbfafd79cbf5d90e1b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/settings/capabilities.rs",
+      "lines": 84,
+      "sha256": "7fcbafc920105d2eee5e80fff141cd1ecdbd3812c57ab738d493e94949749570",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/settings/llm.rs",
+      "lines": 513,
+      "sha256": "710e6ce366ac23303463f4e532c1271fbd9528e9bc85f7bf4d67dd3f09d26968",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/settings/mod.rs",
+      "lines": 60,
+      "sha256": "8116631febccd18acc0dc1227ea349572b92c6f6ea7e7710b9951b0afa76e480",
+      "globReexportLines": [
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ]
+    },
+    {
+      "path": "src/routes/settings/oauth.rs",
+      "lines": 65,
+      "sha256": "e79482e1d906607808819ad75c194e1b98bc2c4df0b58805c294122f5aa479a4",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/settings/routing.rs",
+      "lines": 39,
+      "sha256": "cf711564b7c00a0afc27c06f94c929907fdc8887e14b79e055d251f6c92bacc5",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/settings/tests.rs",
+      "lines": 36,
+      "sha256": "c1e5e4acca7efe79d9ab54d2e064a601c4721a9fac51a51ee982a0ff179d76ca",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/settings/types.rs",
+      "lines": 94,
+      "sha256": "91f02e6ff2369a59d660b093901e11ba7b710350bfa1d62d57ba3c9b0b468b64",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/skills.rs",
+      "lines": 68,
+      "sha256": "f9a3dc47ff11e3e244c8a2a2fed027a658830dc7f7436778e7683656091d585e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/stats.rs",
+      "lines": 51,
+      "sha256": "24e9f9679ceacba1b18c65ba637cd63bee68c3a7aabd6b496303d0763f6bed0c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/tasks.rs",
+      "lines": 73,
+      "sha256": "6ad55d2d21828758434163e59623d4f87509f0d3aa8d14e59d0691ba3e7a0500",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/tool_approvals.rs",
+      "lines": 164,
+      "sha256": "935f895a30d1bba44f2cd573315b1e87ed062ffc8dfaff849995d2b4ac9d7a59",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/understand.rs",
+      "lines": 372,
+      "sha256": "b8335dfde7a308d634fe30d53c4755b90125dfe15aa56b07ad5cad7125448fe7",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/vision.rs",
+      "lines": 491,
+      "sha256": "99a9e12fa2f21584230384f0d69831e9eefa94e99fd2c0f00a0bffd31f7347cd",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/routes/workspaces.rs",
+      "lines": 682,
+      "sha256": "af7aefc345b40f2c6f1fe25d2db68f1a74a29a405ae42df9b39ec81fbe513695",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/server.rs",
+      "lines": 277,
+      "sha256": "465c56d49df23a61ff80a03b4d6dc6e03541c880a6341549b0907a12f41cd4bf",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/acp/discovery.rs",
+      "lines": 251,
+      "sha256": "22f05ded7e26bee572531bf390a2e73b5c8b76a7c9d257c042b1f83e70b10153",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/acp/mod.rs",
+      "lines": 14,
+      "sha256": "ce76dee69b90528f05bd2d3ab3656ca3f1d47dc06656cedf0595818e90dbd88c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/acp/runner.rs",
+      "lines": 566,
+      "sha256": "8b216e78c470f5381c4c3fd2abba090a42c084acc58be313629404d8ac8321d7",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/app_server.rs",
+      "lines": 462,
+      "sha256": "f39995c9c4952bfa50598ee28ac34163e69fa133cfd5df1cdf8668c7d252b4f4",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/args.rs",
+      "lines": 140,
+      "sha256": "b2c5960639a622403a857c8208a03dd084b978195336694d8b8951d058ee9cfe",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backend.rs",
+      "lines": 75,
+      "sha256": "be3b71cde6e89970ec3288bd9b92c91fb40195b952f3421c73d8d802c21f9496",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/antigravity.rs",
+      "lines": 93,
+      "sha256": "8460e82828d2578b3c076104edf286ce63ac86728ab4438bcd09979123876b56",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/claude.rs",
+      "lines": 200,
+      "sha256": "46555ca9ab9a65c6a4cfc3ce42cf739832ea64b2449baef112319fa53a52de47",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/codebuddy.rs",
+      "lines": 149,
+      "sha256": "8fbea33815af44aca4fe5f9a86af0405e25ecdf7ff373abdae6a52a4acf38730",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/copilot.rs",
+      "lines": 122,
+      "sha256": "1238c263f00b921f1baad0d829c48bbb206b0f5446b7e43133f5ff6cbc2b644c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/cursor.rs",
+      "lines": 151,
+      "sha256": "a0111c3e1a745f85fa0978aab590c95cbae489ce2dfa3297eb22d7710963367a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/deveco.rs",
+      "lines": 93,
+      "sha256": "c8746ac242b90d7d08fd75cff5650604fde3723adfe63f8637e24e4264fa538a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/grok.rs",
+      "lines": 105,
+      "sha256": "c77cc54ee158eff423d8c0e324d68ff0c563d75d3684c0e8890007e0d4653494",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/hermes.rs",
+      "lines": 100,
+      "sha256": "d1bec5f82deef34798bd83191df3d6d7dbe29fd7e71d1580c9ad4fcd7d1463bf",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/kimi.rs",
+      "lines": 100,
+      "sha256": "d38b1443aa1af8c75e8e238e15c323be8a0f888584b6e3c8823d65049ae2c5d4",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/kiro.rs",
+      "lines": 100,
+      "sha256": "4f27708e6408d02b11eaf02edcbcfd11162bae6e010fd9b1e0198aced4839288",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/mod.rs",
+      "lines": 18,
+      "sha256": "5a839200bd4e592a0fccda5ef050dc898d6740477cf11bdfa4760870719bc41f",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/openclaw.rs",
+      "lines": 122,
+      "sha256": "160a545ee235ad1564900bac224d594ec6eb1150f3eb67bddbe703ecd03a0de1",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/opencode.rs",
+      "lines": 88,
+      "sha256": "aae10094e1f395fad1dfd841b1f4a3c72e3e582e382aea69f01da02df99f0c22",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/pi.rs",
+      "lines": 88,
+      "sha256": "6cec5d3109d50d3577540ad272044d506605791ffec126c9840777b599eff0f9",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/qoder.rs",
+      "lines": 100,
+      "sha256": "14d6357fab170be33f43d0f58e828611cc1e71391ba0de043769f991f6bf102b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/qwen.rs",
+      "lines": 81,
+      "sha256": "4eb7729884d2aa86991238d3b771ba49001e2c2115e69d3b4aa79a175e283bfd",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/superagent.rs",
+      "lines": 116,
+      "sha256": "78cbc024293fe966a0bbb9fbdd3e1ec21ca3cf7da4f2661a057968ba83e320c2",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/backends/traecli.rs",
+      "lines": 104,
+      "sha256": "9cb983920a79ccd0fff27c685712fde0e1134a263d0c48ddb16daf0a1bebad6d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/adapter.rs",
+      "lines": 129,
+      "sha256": "3935814c816932afca31d5e809d23e51b74ab9cd5a0dab0a45c7dbd6c88e410b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/adapters/claude.rs",
+      "lines": 206,
+      "sha256": "d2bd5fd9608aa5d0bb6ed6c85ada433bd516f4aa6c76631673fa160e31282aa5",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/adapters/codex.rs",
+      "lines": 227,
+      "sha256": "4c85620a278a5cc331d7541ab5e6fe043407557a18e4064914e1376caa7e3cf9",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/adapters/mod.rs",
+      "lines": 2,
+      "sha256": "6c8a5c5dcab98624d8bddc6eeeb75a3871e072231a6441ac49ae9a087b249f99",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/coordinator.rs",
+      "lines": 157,
+      "sha256": "43a68194a6fa5f2da3f6aaf632a1e6d44c1ddf347e9f8cef0641a62632241e54",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/history.rs",
+      "lines": 125,
+      "sha256": "52359eb68c5229e2c819c8d93d4149189101794493483cfe6e0f6142930cf404",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/mod.rs",
+      "lines": 19,
+      "sha256": "61c46ffcf3ea8f052418b4cba29a3eb89d49b4a432e58bcc8dfbf6f649090236",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/config_sync/transaction.rs",
+      "lines": 210,
+      "sha256": "4c9668bcd0a712bbde17c48c562b70f4e04d3e4985250bd85d49f63fb866d547",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/discovery.rs",
+      "lines": 78,
+      "sha256": "a3a1ec38b6648cddbda0ccc00b079d09a0b989b943d6853bf83a859e00e4b41c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/installer.rs",
+      "lines": 212,
+      "sha256": "3dfdf6f473daccbac48f8d7035d5ecd89555c094a17f0f3f2c20d70378e3ae3e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/json_lines.rs",
+      "lines": 339,
+      "sha256": "4d42887868dc0604a7df656d20752d1eddddcca24b42e95cfc11b1723f24f18d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/mcp.rs",
+      "lines": 48,
+      "sha256": "c8f253073d36d079553c157ce0db51bc81ba22c18ec8c093cd9854c387ba313e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/mod.rs",
+      "lines": 35,
+      "sha256": "167557bf25d9df1c8619412b57bc3e965a0e08b504666bb4b77f4d2db79691a7",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/models.rs",
+      "lines": 143,
+      "sha256": "0ccccf69c81ae45c522003ca862b178af20c25ac6fd12cafff743a0487713ed8",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/proc.rs",
+      "lines": 101,
+      "sha256": "7a062c7b1db0749eb95d0395cdb26aceba3577c30a9b7c91eaec5222533d60fa",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/provider_store.rs",
+      "lines": 65,
+      "sha256": "1a65a4812bf8a94f0c776b3e85be485e85808a1a294c6a8dee51e3cdc8ff6aaf",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/registry.rs",
+      "lines": 448,
+      "sha256": "fbf156d58511475234848212678c1c72052934ba29426f0eb527bd5e7e4cc515",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/registry_db.rs",
+      "lines": 215,
+      "sha256": "7a66ffbf46891c2565d477014e4f70bdf0f0f5fa0b668eea4504c3f509fc3d34",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/run_ledger.rs",
+      "lines": 102,
+      "sha256": "673806578de0cb1f53476153cfb57f3dd11d37e106884a75d5a90f4a02ae53d8",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/skills.rs",
+      "lines": 473,
+      "sha256": "9188edad40efe026aa4e661c3f375029c4bb1591f1ea709bfb2ec60cb855f024",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/skills_sync.rs",
+      "lines": 502,
+      "sha256": "848baf548690de6e2d6f8d76ba56c84ffe72355ba95943444ae5c0f6eb72e32a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/stream_json.rs",
+      "lines": 526,
+      "sha256": "068c75308a18d4d2145570b428652470a00ccc3ffd2b8a08f3ed18fe2c737825",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/sync_utils.rs",
+      "lines": 352,
+      "sha256": "b1b0501761739555a835e000484f2dfef7a171dfbb8a2b2f1dd6af8f280c0f22",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/agent/types.rs",
+      "lines": 149,
+      "sha256": "c5e24a43980b9cea068c5ac858ddf7d6d9d135ee1074149989f9e22c469f9a56",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/analysis_service.rs",
+      "lines": 784,
+      "sha256": "b72395f1b52e1a8beff2fbaaf1e25850d08d8596ab20c40a031b097ff890aba5",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/architecture_analyzer.rs",
+      "lines": 63,
+      "sha256": "444dd684884ae122de1bf3b460d4a3018160aae014d51a524c399c62f0ae2200",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/auth_validator.rs",
+      "lines": 85,
+      "sha256": "3759c55c051aa5f05d6bec20fddb39b52945a2301646f87434e2e0f40dbc589d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/capabilities/certification.rs",
+      "lines": 161,
+      "sha256": "b11ea0e6f383a6db0b345905d8dbb060bb6036e09ec58faa3a0c616cb45c77d9",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/capabilities/mod.rs",
+      "lines": 3,
+      "sha256": "bba6cfa08fe394bede791b4858c5ffc0c39b23a430e017ad1e46cc7a76956805",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/capabilities/shadow_git.rs",
+      "lines": 35,
+      "sha256": "7eb892f4b9bf3a04c505943772351b234b12c3fb37ff52f8b72db7d7cc1499b1",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/capabilities/shell.rs",
+      "lines": 63,
+      "sha256": "da80a3e8e92cb6643484dd5644d054753608db483e11eb7b48490ce67b6f06b1",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/cognitive_runtime.rs",
+      "lines": 327,
+      "sha256": "65dc4ce349778d8e4a876d6bb3c1984cc2739244738dc80a9b465563758a651e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/compaction_runtime.rs",
+      "lines": 329,
+      "sha256": "281f2f91be3b2a58c5bcef490399a69ba7ee9a8f98e1cde5cf34634a8dbf45be",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/context.rs",
+      "lines": 44,
+      "sha256": "ffb4376c7c7e929e3064271542f098346f5fbc576b379a1b4eabf760b9e10a73",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/context_budget.rs",
+      "lines": 133,
+      "sha256": "4f247086253c00ba96c04668901d28f91518c0aa76ebc4641f96102997c24913",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/contextual_chunker.rs",
+      "lines": 282,
+      "sha256": "057decede4cc1f049cf28c74b06eb91fa06cac4983a9edd4e94901355abe7c64",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/embedding_service.rs",
+      "lines": 100,
+      "sha256": "ef265f200200504a725e52ce2e23df8f38e35d9c6c59a4e6d961135cc4f0b732",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/events.rs",
+      "lines": 169,
+      "sha256": "c9855d64d4c609b2b82e6758d26d7660d74a31378472bdbb956260d98e9a1ff8",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/evolution_memory.rs",
+      "lines": 319,
+      "sha256": "d42f52583a5420cda3963e7c3b0534f90cdbb4435f86834615d1e9b883f9a3fa",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/executor.rs",
+      "lines": 628,
+      "sha256": "4f22f9f6c02b31b9ed740946a11a340c8a8ff7b25bec48437203790a07ddfe4c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/gateway_eval_runtime.rs",
+      "lines": 380,
+      "sha256": "1210cbc398a4ce6a8f02b375e5295e1c260e51a2d75b2b260d1b6dea289b0cd2",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/interaction_runtime.rs",
+      "lines": 258,
+      "sha256": "91974263161d5372c5fe4d72f0baac57bdbcf3b4485f6b016510acb21f7202cf",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/ipc.rs",
+      "lines": 178,
+      "sha256": "3d706d0834372f994fb92604f3049f0647a6d863754f1e1d9b938b6138a217fa",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/knowledge_corpus/extractors.rs",
+      "lines": 255,
+      "sha256": "e88d404bd86075adc119104f968be6321be8c0da2afceee15bc4b4090417def7",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/knowledge_corpus/mod.rs",
+      "lines": 10,
+      "sha256": "7003931053b13f96f2ec2a58834ed7669b1ec9c78510c859dee31840502edd86",
+      "globReexportLines": [
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "path": "src/services/brain/knowledge_corpus/runtime.rs",
+      "lines": 486,
+      "sha256": "9fadd3a6a13d29fa601d1591dd84f7dffbf43cf587bd3a5f02b5ab1bf56a2957",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/knowledge_corpus/tests.rs",
+      "lines": 158,
+      "sha256": "f5f1c7e212898f4134d32edede7634cb16f27a41c4916ebece3bf6825ad8a64e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/knowledge_corpus/types.rs",
+      "lines": 142,
+      "sha256": "d75b6e0107ece0712eb4583948e66159161dc2bd372e36053d040ab97e8ab303",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/mod.rs",
+      "lines": 36,
+      "sha256": "2d5eef0b22644d87febec2e20fb6bc5948a07d896be99ef9116efa91b8c5e686",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/model_attempt_router.rs",
+      "lines": 125,
+      "sha256": "ff298eb0d6a63f28d26f815d730f547279f6f67def6ec40533dc3ec2e5994f58",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/model_route_runtime.rs",
+      "lines": 740,
+      "sha256": "946f6e9e360684c568960dbf2c44a17c13c90a1dfadfc15238bb6df8facafccb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/new_executor.rs",
+      "lines": 604,
+      "sha256": "afc1cf1dddebe7a8a65aa442f7a714d13f45fa1777d5d8c492bcd56d4114880e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/assessment.rs",
+      "lines": 378,
+      "sha256": "552048b0a8c7e29175617aa8666f18a86248fc49314ac8d633a5a6e4efd742f9",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/catalog.rs",
+      "lines": 331,
+      "sha256": "a1c387ea527fbc172f7350f304caf8b92c2b3a9eb347c85a4bd7b113dc20c256",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/discovery.rs",
+      "lines": 290,
+      "sha256": "d752f6cd9a8abf300740eedd6cf1e786c36a4dbe7d5a1b7edd7fb2781bf0a934",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/mod.rs",
+      "lines": 323,
+      "sha256": "bf4139d2d92585a8ebb886f880ea677a4a9de68c4576a26d2a2c8936783ec4a4",
+      "globReexportLines": [
+        33,
+        35,
+        37,
+        39,
+        41,
+        43
+      ]
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/probe.rs",
+      "lines": 183,
+      "sha256": "e02caca338bdf9d11b951913911f4e85d2ab2f1224716dabb857e55b8be72dcb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/tests.rs",
+      "lines": 481,
+      "sha256": "5c8973f714fe8a3d29beb7682cf09cb4c4bab92217ee3dea04efa8c2ae4c464f",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/types.rs",
+      "lines": 174,
+      "sha256": "4e61a09b982dda04411f8fb2069ac9578b263269d38b38417a697870c93326ee",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_capability_runtime/utils.rs",
+      "lines": 95,
+      "sha256": "bc88156ff9ad7e807345967d8928d06918f71681b9f95078abbf97c07ea18ca2",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/provider_health_runtime.rs",
+      "lines": 430,
+      "sha256": "cd02af8c5bc57e6354df190ca0c19e60589d6f4547ab7b4b5a50e75cba84a2c7",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/run_plan.rs",
+      "lines": 288,
+      "sha256": "f2f65bc5d5c9bcd5c1fd8ac724d9ac813f805e790ae80a7f0e061fa597e0523c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/run_prelude.rs",
+      "lines": 258,
+      "sha256": "7f1475136e51714917653250adefb1fc19ac5fd07964f160712c8aed5c4b471d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/session_ledger.rs",
+      "lines": 311,
+      "sha256": "76bec963c29a497402c3907457f565e80bc18f4605fc7dda4b571b6d7743a162",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/session_lifecycle.rs",
+      "lines": 80,
+      "sha256": "76716ed166c143acc5c74b003c2010c5368987cfe4d0fd2583257cb83b3c0089",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/steering_queue.rs",
+      "lines": 423,
+      "sha256": "d8d2582874c5e8f7bdf2e53ac3540b583e40cd6f8a4085388a7e180e9b93ec19",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/subagent_runtime.rs",
+      "lines": 667,
+      "sha256": "079c9a0a53f13ac2dfbac3f55ecf97179cbe93f5cfdae4b6efea00d969d795ee",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/supervisor.rs",
+      "lines": 320,
+      "sha256": "e3f87cd21007683ea1f8efa47251fd38872e1795f3eed3ac52d5b74bb583ec28",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/terminal_receipt.rs",
+      "lines": 105,
+      "sha256": "fb127b191b2a74e6dba32c4cc6778726c375d8b614d894a33b582f307de8582b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tool_approval_store.rs",
+      "lines": 347,
+      "sha256": "204908f0b1f5f0773982bcda3be1866f520b826bf0a14c0c63fa23a4bd1708ce",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tool_call_identity.rs",
+      "lines": 48,
+      "sha256": "4d5e863d2894d3bff45ebb2849bfd6fca5c44854fa0afdc58b02d344ae2a0671",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tool_execution_gateway.rs",
+      "lines": 518,
+      "sha256": "70d19b0b834776d5670d3e75370c5518eaf8bf84a2bb6f130d0d771bc020055e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tool_loop_guard.rs",
+      "lines": 125,
+      "sha256": "4c8d5b31b76f689c1c2fd72b871ddeee5d38ae749b93d166bc8c35f545878c94",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tool_pairing.rs",
+      "lines": 103,
+      "sha256": "d6ca2678e33f98e196866b388641e81dd4d857de9cb7f20a88d40eb0bc42fc36",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tool_policy.rs",
+      "lines": 189,
+      "sha256": "8023c866adffeeeb870ef6cfbae83df0aa6977c7782d61cc1b245c53b395fc6d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tool_result_store.rs",
+      "lines": 183,
+      "sha256": "ada324ef4ad2e952c4fa68868fabece6723eab1c9e81f160fbe1546dfe6a6ad7",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/dynamic_tool.rs",
+      "lines": 300,
+      "sha256": "c596bbe22422db7ce8243f40493dc769f67914474d5b0d042dbb0e547cd8258b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/fs.rs",
+      "lines": 693,
+      "sha256": "9cf21af39533a0b1328204f3ab03e9f6db7b2eb76849b0c855757c4d3f2738c8",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/harness_acp.rs",
+      "lines": 435,
+      "sha256": "92acc40bfbaca6b22f76208c849d41492c9e34270698cb2878a4565b057e59fe",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/hermes.rs",
+      "lines": 55,
+      "sha256": "1a609b0f15b1ac96f96b05607574fd3badefa6b1c17d1a6231d91722752af7da",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/interaction.rs",
+      "lines": 77,
+      "sha256": "859d2e19ed1395414c8753d3940975f38ab9a8aa015fd838b0725402319dd7e3",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/knowledge.rs",
+      "lines": 220,
+      "sha256": "1381f222ed42f3ea6d86e94ff9442eb10b86ad6ed9b7f8afac427ac282c832bc",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/lsp_client.rs",
+      "lines": 163,
+      "sha256": "92ef1b04ed1b26aa4754c769550981a65650fdbb3b8593aa2886ec841b8b9a2f",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/lsp_tool.rs",
+      "lines": 145,
+      "sha256": "1fbbfad23a387d98706a4bf3435d7d3d54fbe376ebe3ef6e8c5ce8ec587fe312",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/manage_process.rs",
+      "lines": 99,
+      "sha256": "c80d1a0e150aa21abbd6551dae3dbf6c57ca28c0e16ac97b183174c0b112dc45",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/mcp_client.rs",
+      "lines": 262,
+      "sha256": "9279d6aa6d43258102c8294bef871a04c6d8b24417271bcf0b7ba85335486936",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/mod.rs",
+      "lines": 26,
+      "sha256": "c533091ff8c1b9e212236cb793e6ab93d0e826a9c7e5d36c6ca3b231d617ddbd",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/native_graph.rs",
+      "lines": 119,
+      "sha256": "4dab31b75cfda9154f9cfbae42c6864565b4b4e47b1368c75097ef8bdd1d6d36",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/native_harness.rs",
+      "lines": 95,
+      "sha256": "962aaf9f64810b0eaddbfa901d557e02adb46c0ad9ce7d69028090960a360f09",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/native_memory.rs",
+      "lines": 123,
+      "sha256": "4a0566c99c0691dda47eb1a20e809754fddcaab532afcff51f903d11fe5abc7f",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/openclaw.rs",
+      "lines": 78,
+      "sha256": "45e4fff59a655bbaf6536d5e28e78d9d044c51b57ffb7a5df957799d40fd852b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/process_manager.rs",
+      "lines": 170,
+      "sha256": "ceb8ba6ead3947c7feb7486a3b16ad1463b038747267bee59fdbf0f76778d375",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/registry.rs",
+      "lines": 50,
+      "sha256": "2e04cdbb478bcf68150fdc52176f87b1de1dc8bf4de55e3e48ec6f49f0576f21",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/reload_plugins.rs",
+      "lines": 133,
+      "sha256": "a4516a0f9798cf9afb337023e6624db54f382f2f911bb7f7ec5bcc281d83e730",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/self_evolve.rs",
+      "lines": 50,
+      "sha256": "9dfea701334ceb08d9c1164fe8b2138f0f2ab1019fe3f7c2a4ee97a876cbf945",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/shadow_git_tool.rs",
+      "lines": 77,
+      "sha256": "a3afacae9e1584c97549cce659d2204050c3285a0ab3882f63c32b7bfb6bcaeb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/shell.rs",
+      "lines": 196,
+      "sha256": "7aa6e5650d3c0eb8bca460516d58cfe0303c9dfddc0d781b262176ef2018ac10",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/skill_tool.rs",
+      "lines": 174,
+      "sha256": "ce6436016832929528638f3852088316805baa5ad694aea42b1cf23f8f3a03d6",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/subagent.rs",
+      "lines": 221,
+      "sha256": "be7fb45f798e5efa370e6f93118af2b5d45a25eee7cd2140c0e974e1c329a798",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/todo.rs",
+      "lines": 82,
+      "sha256": "51804d1b7ee219e92e959fef7b3b080309a103672bcb2a90622632d72748df55",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/tool_result.rs",
+      "lines": 79,
+      "sha256": "870cff15775a790d54479620e4167eca9032652ca0346066fa6fa724a3e551db",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/tools/web.rs",
+      "lines": 132,
+      "sha256": "2a9674af6bfdc7bbf460c94028388ddbf5f41ccf7f52ba840462fddfa83a5ae2",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/brain/worker.rs",
+      "lines": 79,
+      "sha256": "080cf3d8b5455579b7cad4abd3fdfeba727e9a40068359f1853d515f031b2664",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/change_set.rs",
+      "lines": 448,
+      "sha256": "80fc7d254f7f93af201fedec4375713f22331a6750d432002b99b24de803526c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/claude_cli.rs",
+      "lines": 268,
+      "sha256": "b98d1bf31336de3730c075486ed64729fdc731ccdbb2188e0bec3fa045e5e8dd",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/cli_auth/flow.rs",
+      "lines": 738,
+      "sha256": "faa04de5990449e16de3681f4cf06989858e0bd36bccc64ae3d6a0e16614b8b6",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/cli_auth/mod.rs",
+      "lines": 24,
+      "sha256": "f5ee9372c715d2ac352af41ab8dbbf0153bf4a8485fb59e4ff0dd4835f4eb4ac",
+      "globReexportLines": [
+        20,
+        22,
+        24
+      ]
+    },
+    {
+      "path": "src/services/cli_auth/server.rs",
+      "lines": 280,
+      "sha256": "8075020b214975354bec13fc51be051ec1295633da950a3a8e23c20139a02861",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/cli_auth/ui.rs",
+      "lines": 316,
+      "sha256": "d1797cff6793c0981571031c024d04d5fbedeb6bc1843eda0afa6d5a5073368b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/code_intelligence.rs",
+      "lines": 51,
+      "sha256": "44b625ad53cc82ad2bdb9af607495069d5bf18cbb185dbbca73294794d34491d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/cost_calculator.rs",
+      "lines": 73,
+      "sha256": "22bf4218f3949c9a069ad102c20c3df1b3b26710b095789ef0ff0fb3e93c8126",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/destructive_ops.rs",
+      "lines": 53,
+      "sha256": "ab0b0d673b10fd086b6dfa968f348ed37be7b4eb3a1667ca8f1599881af50d45",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/domain_analyzer.rs",
+      "lines": 114,
+      "sha256": "4a93db9692a98ae98c6ad3974e5d3d68cd27e94ea1f99bb34c94f5255bef37dc",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/file_service.rs",
+      "lines": 143,
+      "sha256": "9cac91058bd42cb43ee877e21b11fadc2aa6c49eb7ef60c3f8cb60e42160a8f4",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/git_service.rs",
+      "lines": 520,
+      "sha256": "91b8d9f57eda1fba3267a3a4240e248e501b8320c766a4845b6f820aa004e96a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/graph_service.rs",
+      "lines": 321,
+      "sha256": "902d0c65026fb183dbcb4e440caa19d1ba730d2bf7b1601c62b437294dd1d016",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/i18n.rs",
+      "lines": 25,
+      "sha256": "3f8ea06846d20e34eaf7fbcceacf57984b13cfa0c05e60d09c15f7650f761d7b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/impact_analyzer.rs",
+      "lines": 187,
+      "sha256": "ae14bb96f1a4733f7bf5d3bc135fdcfef00e80508509ab593748d7a6188a4e37",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/keyring_auth.rs",
+      "lines": 189,
+      "sha256": "10f861aaada7c35010c02862eaa664f1bf0912aaab725837c5953dbe43d06f54",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/llm_provider/analysis.rs",
+      "lines": 200,
+      "sha256": "242332bd9fd4b3e73fdd507fa8c5314ef47f38d857035a26250f49a76c52fe53",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/llm_provider/mod.rs",
+      "lines": 506,
+      "sha256": "8e95dc3e6c02010a391e6d059662f7cbb9b11e1d66e9bea26e0ba293a8e67321",
+      "globReexportLines": [
+        27,
+        28
+      ]
+    },
+    {
+      "path": "src/services/llm_provider/tests.rs",
+      "lines": 165,
+      "sha256": "166a32b8a2850568a5ea5d792dbc7e24e986b2c7195193a7fabf4c2e419afb0b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/llm_provider/types.rs",
+      "lines": 146,
+      "sha256": "f39df52ec5a1cdc7c939ec84062ff8d1fa40014e3ccaebbae19701326563189b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/mod.rs",
+      "lines": 43,
+      "sha256": "bd1415ec4d50d70668062044f63d4ea5a01819a2bcda90ab3c1feb9ebb2196a1",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/openclaw_adapter.rs",
+      "lines": 24,
+      "sha256": "8f3ff858b1d00f5db62629ad8d5180a08699ae7501a5105094605b695dc3390a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/progress.rs",
+      "lines": 76,
+      "sha256": "8d12a67170f6572be55fa76fbc978723ac0819a12b215f2b9e66929d3f3eba63",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/project_context.rs",
+      "lines": 24,
+      "sha256": "84b335d70534a49a6b002c8042fb42b9f36522a7aceaec675fde39d8c21da673",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/project_inventory.rs",
+      "lines": 420,
+      "sha256": "e2e6a1d52da65026ba635efad61622dff97ec7b47d34abe984be0d393221fa3c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/anthropic.rs",
+      "lines": 428,
+      "sha256": "3746e44a335e4f58bb30ceb3c9835b32c635109556b0875509862fdaee034d34",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/anthropic_upstream.rs",
+      "lines": 628,
+      "sha256": "1fce36f907fc4532f5abe329b12d5f0bd9b185e8e4f9685783c731998e14d8f9",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/gemini.rs",
+      "lines": 234,
+      "sha256": "e6ad4d95ad3aa650cb7e2def52fda5a7486d24ba30a857866b307767f100b0c0",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/gemini_internal_upstream.rs",
+      "lines": 522,
+      "sha256": "62389a03313b73f08735e2730db416d002906edd94e5990eb85e1b4649e69a6c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/mod.rs",
+      "lines": 28,
+      "sha256": "52884087983f0b1c41f368fe92e7a50f90a162580434abeb298be8e7f697b8c1",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/openai.rs",
+      "lines": 29,
+      "sha256": "267b402c5033104218c5f81ec03797f98079583008176e56312e7331bf5d219b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/openai_completions.rs",
+      "lines": 74,
+      "sha256": "0361bfb10f8d6f9979cafee69943a2ce00cbd8d25163d2552e5ab4e0a467d5ef",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/openai_responses/mod.rs",
+      "lines": 183,
+      "sha256": "925ae3d1239600abc703c104f556869cc70337c4a4365d967a4ad7bb4582e2ed",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/openai_responses/request.rs",
+      "lines": 199,
+      "sha256": "05fddd394e938c7a4a97aa6f5ce8090bb816d7f0d788cfdcadc2c09a888d7f4d",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/openai_responses/response.rs",
+      "lines": 92,
+      "sha256": "a9eb0384c1acc75ceb16d3f659f760883f35d16c08685c43d53e7d7d46cea9c6",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/openai_responses/stream.rs",
+      "lines": 422,
+      "sha256": "0a549a0746371062829b52a53b49f37749a0c7da0ed5e68442a8cbca4d168d06",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/sse.rs",
+      "lines": 345,
+      "sha256": "e04baa4a33c7fb9925591d533ae04c36e8af5ce38785eb69f43f60bd89580863",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/streaming/anthropic.rs",
+      "lines": 1188,
+      "sha256": "ff54b3416a5f5d78c4b54a0a296bdc0800c3b3546b06bd63934cd7fb9012fb80",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/streaming/gemini.rs",
+      "lines": 87,
+      "sha256": "6ef15b43a6611bcd62692eafd87ad9ec85a8c16bf51d05d701b3046880617570",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/streaming/mod.rs",
+      "lines": 10,
+      "sha256": "58d4e38d1632fbebf0071e212618dcad7357c3b3272f4d00892f3aa5b3c05d05",
+      "globReexportLines": [
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "path": "src/services/protocol_converter/streaming/tests.rs",
+      "lines": 664,
+      "sha256": "a5a8837f4a9fe8f2ded6a3f12d77f1b910185511ff9fbe36af8ed7373b7dc441",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/streaming/types.rs",
+      "lines": 148,
+      "sha256": "e7ae8d81ab8c393286d86b14ba5668e923b104d5366212fe318a5191585c6864",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/protocol_converter/upstream.rs",
+      "lines": 319,
+      "sha256": "dfa75bf40a1c237935536c1560dfde4188aef5f506ed6ec91f4e2418373bcf94",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/provider_presets.rs",
+      "lines": 964,
+      "sha256": "71fe2928083a756f9e1bb868541c09341aa7c3fe6c97e848814e7cf21dbf011c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/requirement_analyzer.rs",
+      "lines": 237,
+      "sha256": "277da17b1cb294eb5e5e4d7bfbdc18d9a5ae1802063b2b017227bb9aa429861f",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/subscription.rs",
+      "lines": 474,
+      "sha256": "c66828525c1b242b2120fea7ccd0ac3710811a4b35dba2d91c991fdbd2d1af78",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/supermemory_store.rs",
+      "lines": 521,
+      "sha256": "b6bde0913326bd30b1cdb2573187bb68254b371b57b85c7bafbc8cc98927182a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/task_manager.rs",
+      "lines": 685,
+      "sha256": "7ab966e33877a66e3bff4805f4729de912e9c6553f3238f51f5828962cd9fdda",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/token_filter.rs",
+      "lines": 248,
+      "sha256": "ccc42d710886853215f9c2c0a3d2a73ceabb995f562de3c779a4c21a6ca067ba",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/tour_builder.rs",
+      "lines": 92,
+      "sha256": "212e6ccb2e738e9343001544969ae216684072ca111c9e110d4000598cb099eb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/understand_service.rs",
+      "lines": 640,
+      "sha256": "8bc0aa0544a7bdd6417da13e3b02959c10c120ff6658e530396159756d99bb97",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/understanding_cache.rs",
+      "lines": 141,
+      "sha256": "3d537ba2a8f25bf4203124f681e475bffa9b6698b3d66df77f08cf351106a66a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/usage_tracker.rs",
+      "lines": 339,
+      "sha256": "2bec4d3eabee47afe61e68badca89646a17eb1007ecac170afd3fdbb621ecb2b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/vector_service.rs",
+      "lines": 296,
+      "sha256": "560e551ac295371d642b2269babeddeaf333bd8ffd8fb39ee98828c5c2f7572c",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/builtin/common.rs",
+      "lines": 40,
+      "sha256": "bdd3eeeef6974a7fbc647c1f094aae263376c6bc5a6fab369b20ee885a513971",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/builtin/mod.rs",
+      "lines": 12,
+      "sha256": "7463d8955c6be513e20d763d754e60e94aaf7a4dff0ad4835f27d794f6e6508e",
+      "globReexportLines": [
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "path": "src/services/visual_pipeline/builtin/ocr.rs",
+      "lines": 311,
+      "sha256": "17f9049f28fe1a3017f54890c7e1b691873c59bc08500713e2e4e3a16723727a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/builtin/screenshot.rs",
+      "lines": 357,
+      "sha256": "96f2bff878b4f9401ca96650aa56bbb2c3d84caedad431c95417d7950de64b9a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/builtin/tests.rs",
+      "lines": 9,
+      "sha256": "e303a0472c660026eb919663aaf7657f2cff23ff4cb4939a2a4db2021b638dd8",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/builtin/translation.rs",
+      "lines": 297,
+      "sha256": "144fa3f6a46309b11eea330af42af99df9ab6a2c2341f0586ab2a3bb2d24e53b",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/actions.rs",
+      "lines": 351,
+      "sha256": "84ab3e40614e52f9c37513d197ec69edead13b8e4526ee1a9a92e17798c0ebb5",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/analysis.rs",
+      "lines": 94,
+      "sha256": "d1e43955640a8cc7f272a64a14102beb4bcb71847648eb4327191a95713b8347",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/draw.rs",
+      "lines": 434,
+      "sha256": "71d1be2a2b5ee71ab1c9567bcec5d7638e69adffa4f4c7058f476a0a47258ff7",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/mod.rs",
+      "lines": 8,
+      "sha256": "de2a5ad743a95ba9332aab6fea4bdbfd5fc6fdb707f6fbbc0de0f5d5e4774475",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/pixels.rs",
+      "lines": 102,
+      "sha256": "0fd3e334910edcc7706a9f2e8c92b7b348a5f2e905c2e2d7b9251cbe6d9ef4ad",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/recording.rs",
+      "lines": 73,
+      "sha256": "42e5b2b032bc99f276a24dca25f19e61a62dc7c87fa8372718fff1f4ed8883cf",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/text_selection.rs",
+      "lines": 75,
+      "sha256": "e6ddd6284fae2beda0355f3f7eafbd868a238364195e39f1bd29d052ff31cfc3",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/toolbar.rs",
+      "lines": 429,
+      "sha256": "30504b2a8d6ff51112963687c1a1e9979201c53b039750cae17f502a6652ddf4",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/cropper/types.rs",
+      "lines": 257,
+      "sha256": "0866c06041498bebd2fd4d8d41ae2c12503fa2b00523b527cacfe7f0ba3e7c27",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/external.rs",
+      "lines": 350,
+      "sha256": "9080b239632e98b2e10d07940e3a9ed9dc1b751b83d53d02a3f249f26a5c961f",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/ffmpeg_engine.rs",
+      "lines": 443,
+      "sha256": "c889018c18e3bc91539b0c4ec8c7250190852cf9398a0b16f62cdd5ceceb43bb",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/mod.rs",
+      "lines": 728,
+      "sha256": "dace83b548d41ec5aaabe8ba76b4dff313f48bb39e387f964f5ad3aa0d91266a",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/native_cropper.rs",
+      "lines": 769,
+      "sha256": "b8e1e7ac0fb46169b6d75f452e1aa53a3e2f26b45fd7853d5780fd14263a4009",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/pin_window.rs",
+      "lines": 205,
+      "sha256": "92bdea2f360434352b7d82c5b1af74b138b28c84160140c2bdb78d1798676e31",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/record_manager.rs",
+      "lines": 201,
+      "sha256": "4cf6fee2bc0b2e98aa16076de6b1f8effb29ae8ce3d639bc29662b0fb99cba49",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/settings.rs",
+      "lines": 57,
+      "sha256": "e2ffa169ac154a4260a8545d8332debb0bfcdd195fcd0ce43f1184fa7716e6a6",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/tts.rs",
+      "lines": 56,
+      "sha256": "e11b6b18015bf394b289ed29091c20c1755d781ba8a9179637d802b592eefa7f",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/visual_pipeline/types.rs",
+      "lines": 332,
+      "sha256": "868a57fbbbfdcf5015784ca4184a1ae28a36d41c5fd97a3d71d6a9ea6be2d37e",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/workspace_capability.rs",
+      "lines": 94,
+      "sha256": "5d65a5ccec70c15de64b7d87b628176cea6dbe30a9d96b1433c83b7cf7d49aa5",
+      "globReexportLines": []
+    },
+    {
+      "path": "src/services/workspace_guard.rs",
+      "lines": 36,
+      "sha256": "a721427f5910c517a048541a98385ccbe5e22bfdac3372879af8ab2ace3b4e1c",
+      "globReexportLines": []
+    }
+  ],
+  "checks": {
+    "production": "cargo check --lib --bins --locked: exit 0",
+    "tests": "cargo test --lib --locked -- --test-threads=1: compile failed, E0252 + three E0599 in protocol_converter/openai_responses/mod.rs"
+  }
+}

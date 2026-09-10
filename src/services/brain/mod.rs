@@ -6,6 +6,7 @@ pub mod cognitive_runtime;
 pub mod compaction_runtime;
 pub mod context;
 pub mod context_budget;
+pub mod context_interceptor;
 pub mod contextual_chunker;
 pub mod embedding_service;
 pub mod events;

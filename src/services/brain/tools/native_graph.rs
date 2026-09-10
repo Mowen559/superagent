@@ -2,8 +2,14 @@ use crate::services::brain::executor::ToolExecutor;
 use serde_json::{json, Value};
 
 /// 原生图谱搜索中枢 (Native Graph Search Organ)
-pub struct NativeSearchGraphTool { pub workspace_root: std::path::PathBuf }
-impl NativeSearchGraphTool { pub fn new(w: std::path::PathBuf) -> Self { Self { workspace_root: w } } }
+pub struct NativeSearchGraphTool {
+    pub workspace_root: std::path::PathBuf,
+}
+impl NativeSearchGraphTool {
+    pub fn new(w: std::path::PathBuf) -> Self {
+        Self { workspace_root: w }
+    }
+}
 
 impl ToolExecutor for NativeSearchGraphTool {
     fn name(&self) -> &'static str {

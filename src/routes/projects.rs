@@ -12,7 +12,7 @@ pub struct AnalyzeRequest {
     path: Option<String>,
     #[serde(rename = "projectId")]
     project_id: Option<String>,
-    options: Option<serde_json::Value>,
+    options: Option<analysis_service::ProjectAnalysisOptions>,
 }
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -34,17 +34,14 @@ async fn analyze_project(
         }
     };
 
-    let task_manager = Arc::new(crate::services::task_manager::TaskManager::new(
-        &state.app_paths,
-    ));
-
     match analysis_service::start_analysis(
         &state.runtime_config,
         &state.app_paths,
-        task_manager,
+        state.task_manager.clone(),
         state.http_client.clone(),
         &target_path,
         body.project_id,
+        body.options.unwrap_or_default(),
     )
     .await
     {

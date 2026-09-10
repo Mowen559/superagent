@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "scap",
+  "kind": "screenshot",
+  "displayName": "scap screen capture",
+  "executable": "C:\\tools\\hub-scap-provider.exe",
+  "args": [],
+  "timeoutSeconds": 30,
+  "enabled": true
+}
