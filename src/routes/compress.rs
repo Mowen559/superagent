@@ -7,7 +7,7 @@ use crate::services::{file_service, token_filter};
 use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::{extract::State, routing::post, Json, Router};
+use axum::{extract::State, routing::{get, post}, Json, Router};
 use serde::Deserialize;
 use serde_json::json;
 use std::str::FromStr;
@@ -25,8 +25,68 @@ pub struct CompressRequest {
     level: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct CompressCommandRequest {
+    pub cmd: String,
+    pub output: String,
+}
+
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/api/compress", post(compress))
+    Router::new()
+        .route("/api/compress", post(compress))
+        .route("/api/compress/stats", get(get_compress_stats))
+        .route("/api/compress/command", post(compress_command))
+        .route("/api/compress/pipeline", post(compress_pipeline))
+}
+
+#[derive(Deserialize)]
+pub struct CompressPipelineRequest {
+    pub output: String,
+    pub rule_name: Option<String>,
+    pub custom_rule: Option<crate::services::pipeline_filter::PipelineRule>,
+}
+
+async fn compress_pipeline(
+    Json(body): Json<CompressPipelineRequest>,
+) -> Response {
+    let rule = if let Some(custom) = body.custom_rule {
+        custom
+    } else if let Some(ref name) = body.rule_name {
+        match crate::services::pipeline_filter::get_builtin_rules().iter().find(|r| r.name == *name) {
+            Some(r) => r.clone(),
+            None => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "error": format!("Built-in rule '{}' not found", name) })),
+                ).into_response();
+            }
+        }
+    } else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "Either rule_name or custom_rule must be specified" })),
+        ).into_response();
+    };
+
+    let filtered = crate::services::pipeline_filter::PipelineFilterEngine::filter(&body.output, &rule);
+    Json(json!({
+        "rule": rule.name,
+        "originalBytes": body.output.len(),
+        "compressedBytes": filtered.len(),
+        "content": filtered,
+    })).into_response()
+}
+
+async fn get_compress_stats() -> Response {
+    let stats = crate::services::token_filter::TokenSavingsTracker::global().get_stats();
+    Json(stats).into_response()
+}
+
+async fn compress_command(
+    Json(body): Json<CompressCommandRequest>,
+) -> Response {
+    let result = crate::services::token_filter::compress_by_command(&body.cmd, &body.output);
+    Json(result).into_response()
 }
 
 async fn compress(
@@ -77,3 +137,4 @@ async fn compress(
     let result = token_filter::compress(&content, &hint, level);
     Json(result).into_response()
 }
+

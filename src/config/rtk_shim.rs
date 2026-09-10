@@ -71,7 +71,9 @@ pub fn ensure_shim(app_paths: &AppPaths) -> PathBuf {
             if !current_path.contains(&*parent_str) {
                 let sep = if cfg!(windows) { ";" } else { ":" };
                 let new_path = format!("{}{}{}", parent_str, sep, current_path);
-                std::env::set_var("PATH", new_path);
+                unsafe {
+                    std::env::set_var("PATH", new_path);
+                }
             }
         }
     }

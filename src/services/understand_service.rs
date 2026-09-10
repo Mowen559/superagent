@@ -69,29 +69,54 @@ pub fn understand_project(db_path: &str) -> Result<Value, String> {
     }
 
     let summary = rt.get_project_summary().unwrap_or(None);
-    let mut files = rt.get_file_summaries(500).unwrap_or_default();
-    
-    // We do need some totals that code_intelligence doesn't have yet.
-    // Let's add them to code_intelligence or just use simple dummy if we don't need them.
-    // Actually, A7 requires all SQL out of understand_service.rs. 
-    // It's better to add a method to code_intelligence.rs `get_project_totals` that returns a JSON.
-    // Let's do that in a second step. For now, let's keep the connection here for totals and move it later?
-    // No, I'll add `get_project_stats` to code_intelligence.rs
-    
+    let files = rt.get_file_summaries(500).unwrap_or_default();
     let stats = rt.get_project_stats().unwrap_or_default();
-    
+
+    let (module_deps, connected_files, health) = if let Ok(conn) = rt.open_ro() {
+        let md = cross_module_dependencies(&conn).unwrap_or_default();
+        let cf = most_connected_files(&conn).unwrap_or_default();
+        let gh = graph_health(&conn).unwrap_or_else(|_| json!({
+            "isolatedFiles": 0,
+            "selfEdges": 0,
+            "danglingEdges": 0,
+        }));
+        (md, cf, gh)
+    } else {
+        (
+            Vec::new(),
+            Vec::new(),
+            json!({
+                "isolatedFiles": 0,
+                "selfEdges": 0,
+                "danglingEdges": 0,
+            }),
+        )
+    };
+
+    let total_nodes = stats.get("totalNodes").cloned().unwrap_or(json!(0));
+    let total_edges = stats.get("totalEdges").cloned().unwrap_or(json!(0));
+    let total_files = stats.get("totalFiles").cloned().unwrap_or(json!(0));
+
     Ok(json!({
         "indexed": true,
         "summary": summary,
-        "totalNodes": stats.get("totalNodes").unwrap_or(&json!(0)),
-        "totalEdges": stats.get("totalEdges").unwrap_or(&json!(0)),
-        "totalFiles": stats.get("totalFiles").unwrap_or(&json!(0)),
+        "totals": {
+            "nodes": total_nodes,
+            "edges": total_edges,
+            "files": total_files,
+        },
+        "totalNodes": total_nodes,
+        "totalEdges": total_edges,
+        "totalFiles": total_files,
         "labelDistribution": stats.get("labelDistribution").unwrap_or(&json!({})),
         "edgeDistribution": stats.get("edgeDistribution").unwrap_or(&json!({})),
         "primaryLanguage": detect_primary_language(db_path).unwrap_or_default(),
         "files": files,
         "hotSymbols": rt.get_hot_symbols(50).unwrap_or_default(),
         "modules": rt.get_modules(500).unwrap_or_default(),
+        "moduleDependencies": module_deps,
+        "connectedFiles": connected_files,
+        "graphHealth": health,
     }))
 }
 

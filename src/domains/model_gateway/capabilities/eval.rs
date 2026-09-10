@@ -118,10 +118,13 @@ impl GatewayEvalRuntime {
                 if assessment.expired {
                     expired_candidates += 1;
                 }
-                if health
+                let is_circuit_open = health
                     .snapshot(&candidate.health_key())
                     .is_some_and(|snapshot| snapshot.circuit != ProviderCircuitState::Closed)
-                {
+                    || health
+                        .snapshot(&candidate.account_health_key())
+                        .is_some_and(|snapshot| snapshot.circuit != ProviderCircuitState::Closed);
+                if is_circuit_open {
                     open_circuits += 1;
                 }
             }

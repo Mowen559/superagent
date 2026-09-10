@@ -39,3 +39,13 @@ pub mod subscription;
 pub mod usage_tracker;
 
 pub mod openclaw_adapter;
+pub mod onboard_service;
+pub mod diff_impact;
+pub mod adr_service;
+pub mod change_classifier;
+pub mod language_lesson;
+pub mod graph_freshness;
+pub mod code_complexity;
+pub mod code_similarity;
+pub mod project_manager;
+pub mod pipeline_filter;

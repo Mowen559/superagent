@@ -81,6 +81,11 @@ impl ToolExecutor for ReadFileTool {
                 "end_line": {
                     "type": "integer",
                     "description": "Optional. The 1-indexed line number to stop reading at. Used for pagination."
+                },
+                "filter_level": {
+                    "type": "string",
+                    "enum": ["none", "minimal", "aggressive"],
+                    "description": "Optional RTK compression filter level. 'minimal' removes comments & collapses blank lines. 'aggressive' preserves only type/function signatures and constants (API Skeleton Outline)."
                 }
             },
             "required": ["AbsolutePath"]
@@ -91,7 +96,7 @@ impl ToolExecutor for ReadFileTool {
         Some(r#"
 [Tool Projection: view_file]
 - Role: Sensory Organ (文件视神经)
-- Note: Do not worry about huge files consuming too many context tokens. The Engine's Context Interceptor will automatically compress massive files into crisp Skeleton Views using RTK when needed.
+- Usage: For large unfamiliar code files, set `filter_level: "aggressive"` to inspect type/function API skeletons with up to 90% token reduction.
 "#.trim().to_string())
     }
 
@@ -116,6 +121,13 @@ impl ToolExecutor for ReadFileTool {
             .and_then(|v| v.as_u64())
             .map(|v| v as usize);
 
+        let filter_level_str = args
+            .get("filter_level")
+            .and_then(|v| v.as_str())
+            .unwrap_or("none");
+        let filter_level = std::str::FromStr::from_str(filter_level_str)
+            .unwrap_or(crate::services::token_filter::FilterLevel::None);
+
         match fs::read_to_string(path) {
             Ok(full_content) => {
                 let mut content = full_content.clone();
@@ -130,11 +142,24 @@ impl ToolExecutor for ReadFileTool {
                     }
                 }
 
+                let mut rtk_metrics = json!({});
+                if filter_level != crate::services::token_filter::FilterLevel::None {
+                    let comp = crate::services::token_filter::compress(&content, path_str, filter_level);
+                    crate::services::token_filter::TokenSavingsTracker::global().record_savings(&comp);
+                    content = comp.content;
+                    rtk_metrics = json!({
+                        "level": comp.level,
+                        "reduction_percent": comp.reduction_percent,
+                        "tokens_saved_est": comp.original_tokens_est.saturating_sub(comp.compressed_tokens_est),
+                    });
+                }
+
                 Ok(json!({
                     "content": content,
                     "paginated": is_paginated,
                     "bytes": content.len(),
-                    "file_path": path_str
+                    "file_path": path_str,
+                    "rtk_metrics": rtk_metrics
                 }))
             }
             Err(e) => Err(format!("Failed to read file: {}", e)),

@@ -69,3 +69,6 @@ deploy-test/
 h u b - r s / * * / t a r g e t /  
 .cargo/
 patch_*.py
+Antigravity-Manager/
+hub-rs/
+snow-apps/
