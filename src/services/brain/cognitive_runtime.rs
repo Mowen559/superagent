@@ -3,6 +3,7 @@ use crate::services::brain::run_plan::RunPlan;
 pub use crate::services::brain::run_plan::TaskKind;
 use crate::services::brain::tool_execution_gateway::ToolExecutionStatus;
 use crate::services::brain::tool_policy::ToolRisk;
+pub use crate::domains::model_gateway::model_attempt_router::BrainTier;
 
 const DEFAULT_MAX_MODEL_TURNS: usize = 40;
 const MIN_COMPLEX_DRAFT_CHARS: usize = 24;
@@ -93,6 +94,16 @@ impl CognitiveRuntime {
 
     pub fn consecutive_failures(&self) -> usize {
         self.consecutive_failures
+    }
+
+    pub fn select_brain_tier(&self) -> BrainTier {
+        crate::domains::model_gateway::model_attempt_router::DualBrainRouter::select_tier(
+            self.mode,
+            self.task_kind,
+            self.tool_calls,
+            self.failed_tools,
+            self.consecutive_failures,
+        )
     }
 
     pub fn apply_promoted_guidance(&mut self, guidance: Vec<String>) {

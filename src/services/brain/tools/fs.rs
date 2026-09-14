@@ -334,22 +334,43 @@ impl ToolExecutor for ReplaceInFileTool {
             ),
         );
         content = content.replace(&actual_search, replace_text);
-
-        let cwd =
-            std::env::current_dir().unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
-        let _ = crate::services::git_service::record_ai_snapshot(
-            &cwd.to_string_lossy().to_string(),
-            &format!(
-                "[Shadow Backup] Auto-backup before multi_replace {}",
-                path_str
-            ),
-        );
         std::fs::write(path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
         let diagnostics = collect_file_diagnostics(path, &content);
 
-        Ok(
-            json!({"success": true, "message": format!("Successfully replaced text in {}{}", path.display(), repair_msg), "diagnostics": diagnostics}),
-        )
+        // 改前/改中符号波及面推演 (Call-Graph Impact Radar)
+        let impact_warning = if let Some(sym) = crate::services::diff_impact::extract_declared_symbol(&actual_search) {
+            let app_paths = crate::config::app_paths::AppPaths::new();
+            let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
+            let cwd_str = self.workspace_root.to_string_lossy().to_string();
+            let db_path = config.codebase_memory_db_path(Some(&cwd_str));
+            let db_path_str = db_path.to_string_lossy().to_string();
+            if let Ok(radar) = crate::services::diff_impact::DiffImpactAnalyzer::analyze_symbol_impact(
+                &self.workspace_root,
+                &db_path_str,
+                &sym,
+                Some(path),
+            ) {
+                if radar.total_callers > 0 {
+                    eprintln!(
+                        "\x1b[33m[Impact Radar] Warning: Modified symbol '{}' is referenced by {} external location(s): {:?}\x1b[0m",
+                        sym, radar.total_callers, radar.affected_files
+                    );
+                    Some(serde_json::to_value(radar).unwrap_or(Value::Null))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let mut res = json!({"success": true, "message": format!("Successfully replaced text in {}{}", path.display(), repair_msg), "diagnostics": diagnostics});
+        if let Some(impact) = impact_warning {
+            res["impact_radar"] = impact;
+        }
+        Ok(res)
     }
 }
 
@@ -456,12 +477,32 @@ impl ToolExecutor for MultiReplaceTool {
         std::fs::write(path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
         let diagnostics = collect_file_diagnostics(path, &content);
 
-        Ok(json!({
+        let mut res = json!({
             "status": "success",
             "blocks_replaced": replaced_count,
             "message": format!("Successfully applied {} refactoring blocks.", replaced_count),
             "diagnostics": diagnostics
-        }))
+        });
+
+        if let Some(sym) = crate::services::diff_impact::extract_declared_symbol(&content) {
+            let app_paths = crate::config::app_paths::AppPaths::new();
+            let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
+            let cwd_str = self.workspace_root.to_string_lossy().to_string();
+            let db_path = config.codebase_memory_db_path(Some(&cwd_str));
+            let db_path_str = db_path.to_string_lossy().to_string();
+            if let Ok(radar) = crate::services::diff_impact::DiffImpactAnalyzer::analyze_symbol_impact(
+                &self.workspace_root,
+                &db_path_str,
+                &sym,
+                Some(path),
+            ) {
+                if radar.total_callers > 0 {
+                    res["impact_radar"] = serde_json::to_value(radar).unwrap_or(Value::Null);
+                }
+            }
+        }
+
+        Ok(res)
     }
 }
 

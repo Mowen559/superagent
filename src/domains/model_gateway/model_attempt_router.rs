@@ -9,6 +9,41 @@ pub enum ModelErrorClass {
     Permanent,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BrainTier {
+    Fast,
+    Slow,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DualBrainRouter;
+
+impl DualBrainRouter {
+    pub fn select_tier(
+        reasoning_mode: crate::services::brain::cognitive_runtime::ReasoningMode,
+        task_kind: crate::services::brain::cognitive_runtime::TaskKind,
+        tool_calls: usize,
+        failed_tools: usize,
+        consecutive_failures: usize,
+    ) -> BrainTier {
+        use crate::services::brain::cognitive_runtime::{ReasoningMode, TaskKind};
+        if reasoning_mode == ReasoningMode::Fast || task_kind == TaskKind::Conversational {
+            return BrainTier::Fast;
+        }
+        if reasoning_mode == ReasoningMode::Deliberate {
+            return BrainTier::Slow;
+        }
+        // Adaptive mode:
+        if failed_tools > 0 || consecutive_failures > 0 {
+            return BrainTier::Slow;
+        }
+        if task_kind == TaskKind::Execution && tool_calls > 0 {
+            return BrainTier::Slow;
+        }
+        BrainTier::Fast
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ModelAttemptRouter {
     max_attempts: u8,
@@ -121,5 +156,46 @@ mod tests {
             Some(Duration::from_millis(2_000))
         );
         assert!(router.retry_delay(3, "connection reset").is_none());
+    }
+
+    #[test]
+    fn dual_brain_routing_rules_test() {
+        use crate::services::brain::cognitive_runtime::{ReasoningMode, TaskKind};
+
+        // Fast mode always picks Fast Brain
+        assert_eq!(
+            DualBrainRouter::select_tier(ReasoningMode::Fast, TaskKind::Execution, 5, 1, 1),
+            BrainTier::Fast
+        );
+
+        // Conversational task always picks Fast Brain
+        assert_eq!(
+            DualBrainRouter::select_tier(ReasoningMode::Adaptive, TaskKind::Conversational, 0, 0, 0),
+            BrainTier::Fast
+        );
+
+        // Deliberate mode always picks Slow Brain
+        assert_eq!(
+            DualBrainRouter::select_tier(ReasoningMode::Deliberate, TaskKind::Conversational, 0, 0, 0),
+            BrainTier::Slow
+        );
+
+        // Adaptive exploration (tool_calls == 0, 0 failures) -> Fast Brain
+        assert_eq!(
+            DualBrainRouter::select_tier(ReasoningMode::Adaptive, TaskKind::Execution, 0, 0, 0),
+            BrainTier::Fast
+        );
+
+        // Adaptive execution (tool_calls > 0) -> Slow Brain
+        assert_eq!(
+            DualBrainRouter::select_tier(ReasoningMode::Adaptive, TaskKind::Execution, 1, 0, 0),
+            BrainTier::Slow
+        );
+
+        // Failure occurs -> Slow Brain for deep reflection
+        assert_eq!(
+            DualBrainRouter::select_tier(ReasoningMode::Adaptive, TaskKind::Investigative, 0, 1, 1),
+            BrainTier::Slow
+        );
     }
 }

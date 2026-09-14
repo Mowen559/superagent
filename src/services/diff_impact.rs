@@ -31,6 +31,26 @@ pub struct DownstreamImpact {
     pub via_call_chain: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SymbolImpactRadar {
+    pub symbol: String,
+    pub total_callers: usize,
+    pub callers: Vec<SymbolCallerInfo>,
+    pub affected_files: Vec<String>,
+    pub risk_level: String,
+    pub recommendation: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SymbolCallerInfo {
+    pub name: String,
+    pub file: String,
+    pub line: usize,
+    pub snippet: String,
+}
+
 pub struct DiffImpactAnalyzer;
 
 impl DiffImpactAnalyzer {
@@ -191,6 +211,269 @@ impl DiffImpactAnalyzer {
 
         files.into_iter().collect()
     }
+
+    /// Pre-edit symbol impact analysis (改前调用图谱影响雷达)
+    pub fn analyze_symbol_impact(
+        project_root: &Path,
+        db_path: &str,
+        symbol: &str,
+        exclude_file: Option<&Path>,
+    ) -> Result<SymbolImpactRadar, String> {
+        let mut callers = Vec::new();
+        let mut affected_files_set = HashSet::new();
+
+        let clean_symbol = symbol.trim();
+        if clean_symbol.is_empty() {
+            return Err("Symbol name cannot be empty".to_string());
+        }
+
+        // 1. 优先尝试从 CodeIntelligenceRuntime 图数据库获取调用者拓扑
+        let rt = CodeIntelligenceRuntime::new(db_path);
+        if rt.is_indexed() {
+            if let Ok(conn) = rt.open_ro() {
+                if let Ok(mut stmt) = conn.prepare("SELECT id, name, file_path, start_line FROM nodes WHERE name = ?1 LIMIT 10") {
+                    let matching_nodes: Vec<(i64, String, String, usize)> = stmt
+                        .query_map(rusqlite::params![clean_symbol], |row| {
+                            Ok((
+                                row.get::<_, i64>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, String>(2).unwrap_or_default(),
+                                row.get::<_, usize>(3).unwrap_or(1),
+                            ))
+                        })
+                        .map(|iter| iter.filter_map(|r| r.ok()).collect())
+                        .unwrap_or_default();
+
+                    for (id, _name, _def_file, _) in matching_nodes {
+                        if let Ok(graph_callers) = rt.get_callers(&id.to_string(), 30) {
+                            for c in graph_callers {
+                                let file = c.file_path.unwrap_or_default();
+                                if let Some(ex) = exclude_file {
+                                    let ex_str = ex.to_string_lossy().replace('\\', "/");
+                                    if file.ends_with(&ex_str) {
+                                        continue;
+                                    }
+                                }
+                                affected_files_set.insert(file.clone());
+                                callers.push(SymbolCallerInfo {
+                                    name: c.label,
+                                    file,
+                                    line: 1,
+                                    snippet: format!("Calls symbol '{}'", clean_symbol),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. 混合韧性回退：若图谱未索引或未查到调用方，使用快速全工程符号扫描
+        if callers.is_empty() && project_root.exists() {
+            let symbol_word = format!(r"\b{}\b", regex::escape(clean_symbol));
+            if let Ok(re) = regex::Regex::new(&symbol_word) {
+                let exclude_str = exclude_file
+                    .map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())
+                    .unwrap_or_default();
+
+                let walker = walkdir::WalkDir::new(project_root)
+                    .max_depth(8)
+                    .into_iter()
+                    .filter_entry(|e| {
+                        let name = e.file_name().to_string_lossy();
+                        !name.starts_with('.')
+                            && name != "target"
+                            && name != "node_modules"
+                            && name != "dist"
+                            && name != "build"
+                    });
+
+                for entry in walker.filter_map(|e| e.ok()) {
+                    if !entry.file_type().is_file() {
+                        continue;
+                    }
+                    let path = entry.path();
+                    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+
+                    // 排除定义文件自身
+                    if !exclude_str.is_empty() && file_name == exclude_str {
+                        continue;
+                    }
+
+                    // 过滤源代码文件后缀
+                    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+                    if !matches!(ext, "rs" | "java" | "ts" | "tsx" | "js" | "jsx" | "py" | "go" | "kt") {
+                        continue;
+                    }
+
+                    if let Ok(content) = std::fs::read_to_string(path) {
+                        for (idx, line) in content.lines().enumerate() {
+                            if re.is_match(line) {
+                                let rel_path = path
+                                    .strip_prefix(project_root)
+                                    .unwrap_or(path)
+                                    .to_string_lossy()
+                                    .replace('\\', "/");
+                                affected_files_set.insert(rel_path.clone());
+                                callers.push(SymbolCallerInfo {
+                                    name: file_name.to_string(),
+                                    file: rel_path,
+                                    line: idx + 1,
+                                    snippet: line.trim().chars().take(120).collect(),
+                                });
+                                if callers.len() >= 25 {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if callers.len() >= 25 {
+                        break;
+                    }
+                }
+            }
+        }
+
+        let total_callers = callers.len();
+        let affected_files: Vec<String> = affected_files_set.into_iter().collect();
+
+        let (risk_level, recommendation) = if total_callers >= 10 || affected_files.len() >= 4 {
+            (
+                "HIGH".to_string(),
+                format!(
+                    "High Impact: Symbol '{}' is referenced by {} external locations across {} files. Modifying signature or semantics will likely break downstream modules. Coordinated refactoring required.",
+                    clean_symbol, total_callers, affected_files.len()
+                ),
+            )
+        } else if total_callers > 0 {
+            (
+                "MEDIUM".to_string(),
+                format!(
+                    "Moderate Impact: Symbol '{}' is referenced by {} external caller(s) in {:?}. Ensure caller arguments and contracts are preserved.",
+                    clean_symbol, total_callers, affected_files
+                ),
+            )
+        } else {
+            (
+                "LOW".to_string(),
+                format!(
+                    "Isolated: No external references found for '{}'. Safe to modify locally.",
+                    clean_symbol
+                ),
+            )
+        };
+
+        Ok(SymbolImpactRadar {
+            symbol: clean_symbol.to_string(),
+            total_callers,
+            callers,
+            affected_files,
+            risk_level,
+            recommendation,
+        })
+    }
+}
+
+/// Helper to extract declared function/class/struct identifier from code snippet
+pub fn extract_declared_symbol(code: &str) -> Option<String> {
+    for line in code.lines() {
+        let trimmed = line.trim();
+        // Rust: pub fn func_name / fn func_name / pub struct Foo / struct Foo / enum Bar / trait Baz
+        if let Some(rest) = trimmed
+            .strip_prefix("pub fn ")
+            .or_else(|| trimmed.strip_prefix("fn "))
+            .or_else(|| trimmed.strip_prefix("pub async fn "))
+            .or_else(|| trimmed.strip_prefix("async fn "))
+        {
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+        if let Some(rest) = trimmed
+            .strip_prefix("pub struct ")
+            .or_else(|| trimmed.strip_prefix("struct "))
+            .or_else(|| trimmed.strip_prefix("pub enum "))
+            .or_else(|| trimmed.strip_prefix("enum "))
+            .or_else(|| trimmed.strip_prefix("pub trait "))
+            .or_else(|| trimmed.strip_prefix("trait "))
+        {
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+        // Java: public/protected/private class Foo / interface Foo / enum Foo
+        if let Some(pos) = trimmed
+            .find("class ")
+            .or_else(|| trimmed.find("interface "))
+            .or_else(|| trimmed.find("enum "))
+        {
+            let after = &trimmed[pos..];
+            let parts: Vec<&str> = after.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let name: String = parts[1]
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                if !name.is_empty() {
+                    return Some(name);
+                }
+            }
+        }
+        // Java method: public/protected Result<...> methodName(
+        if (trimmed.starts_with("public ") || trimmed.starts_with("protected "))
+            && trimmed.contains('(')
+        {
+            if let Some(paren_pos) = trimmed.find('(') {
+                let before_paren = &trimmed[..paren_pos];
+                if let Some(method_name) = before_paren.split_whitespace().last() {
+                    let clean: String = method_name
+                        .chars()
+                        .take_while(|c| c.is_alphanumeric() || *c == '_')
+                        .collect();
+                    if !clean.is_empty() && clean != "class" && clean != "interface" {
+                        return Some(clean);
+                    }
+                }
+            }
+        }
+        // TypeScript/JavaScript: export function name / export const name / function name
+        if let Some(rest) = trimmed
+            .strip_prefix("export function ")
+            .or_else(|| trimmed.strip_prefix("function "))
+            .or_else(|| trimmed.strip_prefix("export const "))
+        {
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+        // Python: def name( / class Name
+        if let Some(rest) = trimmed
+            .strip_prefix("def ")
+            .or_else(|| trimmed.strip_prefix("async def "))
+            .or_else(|| trimmed.strip_prefix("class "))
+        {
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -203,6 +486,52 @@ mod tests {
         let report = DiffImpactAnalyzer::detect_changes(dir.path(), "").unwrap();
         assert_eq!(report.risk_level, "LOW");
         assert_eq!(report.total_impact_count, 0);
+    }
+
+    #[test]
+    fn test_extract_declared_symbol() {
+        assert_eq!(
+            extract_declared_symbol("pub async fn execute_tool(args: Value) -> Result<Value, String> {"),
+            Some("execute_tool".to_string())
+        );
+        assert_eq!(
+            extract_declared_symbol("public Result<Long> createJob(@Valid @RequestBody CreateJobCmd cmd) {"),
+            Some("createJob".to_string())
+        );
+        assert_eq!(
+            extract_declared_symbol("export function useAgentTask(taskId: string) {"),
+            Some("useAgentTask".to_string())
+        );
+        assert_eq!(
+            extract_declared_symbol("def process_request(data: dict):"),
+            Some("process_request".to_string())
+        );
+        assert_eq!(
+            extract_declared_symbol("    let x = 42;"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_analyze_symbol_impact_workspace_fallback() {
+        let dir = tempfile::tempdir().unwrap();
+        let caller_file = dir.path().join("caller.rs");
+        let def_file = dir.path().join("def.rs");
+
+        std::fs::write(&def_file, "pub fn calculate_hash() -> u64 { 123 }").unwrap();
+        std::fs::write(&caller_file, "use crate::def::calculate_hash;\nfn run() { calculate_hash(); }").unwrap();
+
+        let radar = DiffImpactAnalyzer::analyze_symbol_impact(
+            dir.path(),
+            "",
+            "calculate_hash",
+            Some(&def_file),
+        ).unwrap();
+
+        assert_eq!(radar.symbol, "calculate_hash");
+        assert_eq!(radar.total_callers, 2); // 2 references in caller.rs
+        assert!(radar.affected_files.iter().any(|f| f.contains("caller.rs")));
+        assert_eq!(radar.risk_level, "MEDIUM");
     }
 }
 

@@ -57,6 +57,7 @@ pub fn is_read_only_tool(name: &str) -> bool {
             | "check_worker_status"
             | "knowledge_search"
             | "corpus_search"
+            | "impact_radar"
     )
 }
 
@@ -68,6 +69,7 @@ pub struct AgentLoop {
     pub event_bus: EventBus,
     system_prompt: String,
     llm_provider: LlmProvider,
+    fast_llm_provider: LlmProvider,
     pub steering_queue: Arc<SteeringQueue>,
     pub interaction_runtime: Arc<InteractionRuntime>,
     pub role: String,
@@ -177,6 +179,10 @@ impl AgentLoop {
             eprintln!("[Brain B] Failed to recover steering queue: {error}");
         }
 
+        let llm_settings = crate::config::llm_settings::read_llm_settings();
+        let fast_model = llm_settings.resolved_fast_model();
+        let fast_llm_provider = LlmProvider::with_model_override(client.clone(), Some(fast_model));
+
         Self {
             ctx: Context::new(),
             plugin_registry,
@@ -184,6 +190,7 @@ impl AgentLoop {
             event_bus,
             system_prompt,
             llm_provider: LlmProvider::new(client),
+            fast_llm_provider,
             steering_queue,
             interaction_runtime,
             role: "SuperAgent".to_string(),
@@ -484,15 +491,18 @@ impl AgentLoop {
                 }
             };
 
-            // 2. 灏嗕簨浠舵簮鎶曞奖涓?LLM 鍙娑堟伅
+            let brain_tier = cognition.select_brain_tier();
+
+            // 2. 将事件源投影为 LLM 可读消息
             let projected_messages = self.project_llm_messages();
 
-            // 3. 鍚?LLM 鍙戣捣璇锋眰
+            // 3. 向 LLM 发起请求 (快慢脑双模型协同编排)
             let llm_message = match self
                 .call_llm_api(
                     projected_messages,
                     &cognitive_guidance,
                     run_prelude.prompt_projection(),
+                    brain_tier,
                 )
                 .await
             {
@@ -679,7 +689,18 @@ impl AgentLoop {
         messages: Vec<Value>,
         cognitive_guidance: &str,
         run_prelude: &str,
+        brain_tier: crate::domains::model_gateway::model_attempt_router::BrainTier,
     ) -> Result<Value, String> {
+        let (provider, tier_label) = match brain_tier {
+            crate::domains::model_gateway::model_attempt_router::BrainTier::Fast => {
+                (&self.fast_llm_provider, "Fast Brain")
+            }
+            crate::domains::model_gateway::model_attempt_router::BrainTier::Slow => {
+                (&self.llm_provider, "Slow Brain")
+            }
+        };
+        eprintln!("\x1b[34m[Dual-Brain] Orchestrating turn with {}...\x1b[0m", tier_label);
+
         let mut dynamic_prompt = self.system_prompt.clone();
         dynamic_prompt.push_str("\n\n");
         dynamic_prompt.push_str(cognitive_guidance);
@@ -724,17 +745,25 @@ impl AgentLoop {
 
         let mut attempt = 1_u8;
         loop {
-            match self
-                .llm_provider
+            match provider
                 .chat_with_tools(messages.clone(), Some(&dynamic_prompt), tools_param.clone())
                 .await
             {
                 Ok((msg, usage)) => {
-                    eprintln!("\n\x1b[45;37m[Token Usage] Prompt: {}, Completion: {}, Cost: ${:.4}, Latency: {}ms\x1b[0m\n",
-                        usage.prompt_tokens, usage.completion_tokens, usage.cost, usage.duration_ms);
+                    eprintln!("\n\x1b[45;37m[Token Usage - {}] Prompt: {}, Completion: {}, Cost: ${:.4}, Latency: {}ms\x1b[0m\n",
+                        tier_label, usage.prompt_tokens, usage.completion_tokens, usage.cost, usage.duration_ms);
                     return Ok(msg);
                 }
                 Err(error) => {
+                    if brain_tier == crate::domains::model_gateway::model_attempt_router::BrainTier::Fast && attempt == 1 {
+                        eprintln!("[Dual-Brain] Fast Brain returned error ({error}); automatically escalating to Slow Brain...");
+                        return Box::pin(self.call_llm_api(
+                            messages,
+                            cognitive_guidance,
+                            run_prelude,
+                            crate::domains::model_gateway::model_attempt_router::BrainTier::Slow,
+                        )).await;
+                    }
                     let class = self.model_attempt_router.classify(&error);
                     let Some(delay) = self.model_attempt_router.retry_delay(attempt, &error) else {
                         return Err(format!(

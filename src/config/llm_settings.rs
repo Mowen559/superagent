@@ -77,6 +77,8 @@ pub struct LLMSettings {
     #[serde(default)]
     pub project_id: Option<String>,
     pub model: String,
+    #[serde(default)]
+    pub fast_model: Option<String>,
     pub temperature: f64,
     pub max_tokens: u32,
     pub ua_file_limit: u32,
@@ -85,6 +87,34 @@ pub struct LLMSettings {
     pub updated_at: String,
     #[serde(default = "default_routing_strategy")]
     pub routing_strategy: String,
+}
+
+impl LLMSettings {
+    /// Resolves the effective model name for Fast Brain operations
+    pub fn resolved_fast_model(&self) -> String {
+        if let Ok(env_model) = std::env::var("SUPERAGENT_FAST_MODEL") {
+            if !env_model.trim().is_empty() {
+                return env_model;
+            }
+        }
+        if let Some(ref fast) = self.fast_model {
+            if !fast.trim().is_empty() {
+                return fast.clone();
+            }
+        }
+        let lower = self.model.to_ascii_lowercase();
+        if lower.contains("r1") {
+            "deepseek-chat".to_string()
+        } else if lower.contains("sonnet") || lower.contains("opus") {
+            "claude-3-5-haiku".to_string()
+        } else if lower.contains("pro") {
+            "gemini-2.5-flash".to_string()
+        } else if lower.contains("o1") || lower.contains("o3") {
+            "gpt-4o-mini".to_string()
+        } else {
+            self.model.clone()
+        }
+    }
 }
 
 fn default_routing_strategy() -> String {
@@ -102,6 +132,7 @@ impl Default for LLMSettings {
             api_key: std::env::var("DEEPCLOUD_API_KEY").unwrap_or_default(),
             project_id: None,
             model: "gemini-3-flash".into(),
+            fast_model: None,
             temperature: 0.2,
             max_tokens: 16000,
             ua_file_limit: 48,
