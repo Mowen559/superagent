@@ -55,6 +55,8 @@ pub struct SubagentLaunchRequest {
     pub system_prompt: Option<String>,
     pub parent_depth: u8,
     pub timeout: Duration,
+    pub workspace_mode: Option<String>,
+    pub workspace_path: Option<String>,
 }
 
 impl SubagentLaunchRequest {
@@ -71,6 +73,8 @@ impl SubagentLaunchRequest {
             system_prompt: None,
             parent_depth: 0,
             timeout: Duration::from_secs(DEFAULT_TIMEOUT_SECONDS),
+            workspace_mode: None,
+            workspace_path: None,
         }
     }
 }
@@ -340,6 +344,39 @@ impl SubagentRuntime {
                 .clone()
         };
         let mut command = worker_command();
+
+        // 判定是否启用独立工作区隔离 (Ephemeral Worktree Isolation)
+        let worktree_dir = if request.workspace_mode.as_deref() == Some("worktree") {
+            let temp_dir = std::env::temp_dir().join(format!("subagent-worktree-{}", &handle.subagent_id[..8]));
+            let base_cwd = request.workspace_path.clone().unwrap_or_else(|| ".".to_string());
+            let status = std::process::Command::new("git")
+                .arg("worktree")
+                .arg("add")
+                .arg("--detach")
+                .arg(&temp_dir)
+                .arg("HEAD")
+                .current_dir(&base_cwd)
+                .output();
+
+            if let Ok(out) = status {
+                if out.status.success() {
+                    command.current_dir(&temp_dir);
+                    command.env("HUB_WORKSPACE_DIR", &temp_dir);
+                    Some((temp_dir, base_cwd))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else if let Some(ref path) = request.workspace_path {
+            command.current_dir(path);
+            command.env("HUB_WORKSPACE_DIR", path);
+            None
+        } else {
+            None
+        };
+
         command
             .env("HUB_AGENT_SESSION_ID", &handle.subagent_id)
             .env("HUB_PARENT_SESSION_ID", &handle.parent_session_id)
@@ -429,6 +466,30 @@ impl SubagentRuntime {
         }
         let _ = child.kill().await;
         let _ = child.wait().await;
+
+        // 如果使用了临时 worktree，抓取变更 diff 并安全回收
+        if let Some((ref wt_dir, ref base_dir)) = worktree_dir {
+            let diff_output = std::process::Command::new("git")
+                .arg("diff")
+                .arg("HEAD")
+                .current_dir(wt_dir)
+                .output();
+            if let Ok(d_out) = diff_output {
+                let diff_str = String::from_utf8_lossy(&d_out.stdout).to_string();
+                if !diff_str.trim().is_empty() {
+                    let mut guard = record.lock().unwrap_or_else(|p| p.into_inner());
+                    push_event(&mut guard, "worktree_diff", format!("Isolated changes detected:\n{diff_str}"));
+                }
+            }
+            let _ = std::process::Command::new("git")
+                .arg("worktree")
+                .arg("remove")
+                .arg("--force")
+                .arg(wt_dir)
+                .current_dir(base_dir)
+                .output();
+        }
+
         self.deliver_parent_result(&handle, &record);
     }
 

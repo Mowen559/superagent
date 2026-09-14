@@ -39,6 +39,7 @@ impl ToolExecutor for InvokeSubagentTool {
                 "Role": { "type": "string", "description": "Short specialist role." },
                 "SystemPrompt": { "type": "string", "description": "Optional isolated system instructions." },
                 "Correlation_ID": { "type": "string", "description": "Optional idempotency key within this parent session." },
+                "WorkspaceMode": { "type": "string", "enum": ["inherit", "worktree"], "description": "Optional workspace isolation: 'inherit' (default) shares parent workspace; 'worktree' spawns subagent in an isolated ephemeral Git worktree to eliminate concurrent file edit race conditions." },
                 "TimeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 }
             },
             "required": ["Prompt", "Role"]
@@ -52,6 +53,7 @@ impl ToolExecutor for InvokeSubagentTool {
         request.parent_depth = parent_depth();
         request.system_prompt = optional_string(&args, "SystemPrompt");
         request.correlation_id = optional_string(&args, "Correlation_ID");
+        request.workspace_mode = optional_string(&args, "WorkspaceMode");
         if let Some(seconds) = args.get("TimeoutSeconds").and_then(Value::as_u64) {
             request.timeout = Duration::from_secs(seconds);
         }

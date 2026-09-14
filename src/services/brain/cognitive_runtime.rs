@@ -53,6 +53,7 @@ pub struct CognitiveRuntime {
     max_model_turns: usize,
     plan: RunPlan,
     learned_guidance: Vec<String>,
+    anchor_constraints: Vec<String>,
 }
 
 impl CognitiveRuntime {
@@ -71,6 +72,11 @@ impl CognitiveRuntime {
                     "project", "source", "code", "file", "repo", "log", "error",
                 ],
             );
+        let default_anchors = vec![
+            "Strict Architecture: Return Result<T>, extend BaseController, use LambdaQueryWrapper (no JPA), and verify @RequirePermission.".to_string(),
+            "Surgical Edits: Use replace_in_file/multi_replace; preserve unedited comments, docstrings, and formatting.".to_string(),
+            "Verification Closed-Loop: Run compile/test checks before claiming completion; never fabricate tool output.".to_string(),
+        ];
         Self {
             objective: objective.chars().take(500).collect(),
             mode,
@@ -85,6 +91,7 @@ impl CognitiveRuntime {
             max_model_turns: DEFAULT_MAX_MODEL_TURNS,
             plan: RunPlan::for_task(task_kind),
             learned_guidance: Vec::new(),
+            anchor_constraints: default_anchors,
         }
     }
 
@@ -108,6 +115,14 @@ impl CognitiveRuntime {
 
     pub fn apply_promoted_guidance(&mut self, guidance: Vec<String>) {
         self.learned_guidance = guidance.into_iter().take(5).collect();
+    }
+
+    pub fn anchor_constraints(&self) -> &[String] {
+        &self.anchor_constraints
+    }
+
+    pub fn add_anchor_constraint(&mut self, constraint: impl Into<String>) {
+        self.anchor_constraints.push(constraint.into());
     }
 
     pub fn next_guidance(&mut self) -> Result<String, String> {
@@ -153,9 +168,17 @@ impl CognitiveRuntime {
                 self.learned_guidance.join("\n- ")
             )
         };
+        let anchor_block = if self.anchor_constraints.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\n[PINNED ANCHOR CONSTRAINTS - IMMUNE TO FORGETTING/DRIFT]\n- {}",
+                self.anchor_constraints.join("\n- ")
+            )
+        };
 
         Ok(format!(
-            "# Adaptive Cognitive State\nObjective: {}\nMode: {:?}; task: {:?}; model turn: {}; tools: {} succeeded / {} failed.\nRun plan:\n{}\nStrategy: {}{}{}{}{}\nAdvance the in-progress step using evidence. Do not claim completion without evidence. Never fabricate tool output.",
+            "# Adaptive Cognitive State\nObjective: {}\nMode: {:?}; task: {:?}; model turn: {}; tools: {} succeeded / {} failed.\nRun plan:\n{}\nStrategy: {}{}{}{}{}{}\nAdvance the in-progress step using evidence. Do not claim completion without evidence. Never fabricate tool output.",
             self.objective,
             self.mode,
             self.task_kind,
@@ -168,6 +191,7 @@ impl CognitiveRuntime {
             deadlock_warning,
             replan_note,
             learned_note,
+            anchor_block,
         ))
     }
 
@@ -374,4 +398,17 @@ mod tests {
         assert_eq!(runtime.consecutive_failures(), 0);
         assert!(!runtime.next_guidance().unwrap().contains("HYPOTHESIS DEADLOCK WARNING"));
     }
+
+    #[test]
+    fn test_anchor_constraints_persistence() {
+        let mut runtime = CognitiveRuntime::begin("重构用户模块");
+        assert!(!runtime.anchor_constraints().is_empty());
+
+        runtime.add_anchor_constraint("Custom Ironclad Rule: Do not modify schema.sql");
+        let guidance = runtime.next_guidance().unwrap();
+        assert!(guidance.contains("PINNED ANCHOR CONSTRAINTS"));
+        assert!(guidance.contains("Strict Architecture"));
+        assert!(guidance.contains("Custom Ironclad Rule: Do not modify schema.sql"));
+    }
 }
+

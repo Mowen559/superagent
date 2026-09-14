@@ -44,6 +44,45 @@ pub fn detect_interactive_prompt(output: &str) -> Option<&'static str> {
     }
 }
 
+/// 去除终端输出中的 ANSI / VT100 控制字符 (ANSI Escape Code Stripper)
+pub fn strip_ansi_escapes(input: &str) -> String {
+    let Ok(re) = regex::Regex::new(r"\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07|\x1b[()][AB012]") else {
+        return input.to_string();
+    };
+    re.replace_all(input, "").to_string()
+}
+
+/// 高危灾难性命令防护门禁 (Catastrophic Command Safety Guard)
+pub fn validate_command_safety(cmd: &str) -> Result<(), String> {
+    let lower = cmd.trim().to_lowercase();
+    let dangerous_patterns = [
+        "rm -rf /",
+        "rm -rf /*",
+        "rm -rf ~",
+        "rm -fr /",
+        "rmdir /s /q c:\\",
+        "rmdir /s /q c:/",
+        "rmdir /s /q /",
+        "format c:",
+        "mkfs.",
+        ":(){ :|:& };:",
+        "dd if=/dev/zero of=/dev/sd",
+        "dd if=/dev/urandom of=/dev/sd",
+        "> /dev/sda",
+    ];
+
+    for pattern in dangerous_patterns {
+        if lower.contains(pattern) {
+            return Err(format!(
+                "Command rejected by CommandSafetyGuard: Destructive command pattern detected ('{}'). Execution aborted for safety.",
+                pattern
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// 能力缝隙: 物理提供者 (Capability Seam: Provider)
 pub struct LocalShellProvider;
 
@@ -55,6 +94,9 @@ impl ShellService for LocalShellProvider {
         run_in_bg: bool,
         timeout_secs: u64,
     ) -> Result<Value, String> {
+        // 安全护栏前置过滤
+        validate_command_safety(cmd)?;
+
         eprintln!("[LocalShellProvider] Executing command: {}", cmd);
 
         let mut command = std::process::Command::new(if cfg!(target_os = "windows") {
@@ -152,8 +194,8 @@ impl ShellService for LocalShellProvider {
                         stderr_bytes.extend_from_slice(&chunk);
                     }
 
-                    let stdout_raw = String::from_utf8_lossy(&stdout_bytes).to_string();
-                    let stderr_raw = String::from_utf8_lossy(&stderr_bytes).to_string();
+                    let stdout_raw = strip_ansi_escapes(&String::from_utf8_lossy(&stdout_bytes));
+                    let stderr_raw = strip_ansi_escapes(&String::from_utf8_lossy(&stderr_bytes));
 
                     let stdout_res = crate::services::token_filter::compress_by_command(cmd, &stdout_raw);
                     let stderr_res = if stderr_raw.lines().count() > 20 || stderr_raw.len() > 1000 {
@@ -180,7 +222,7 @@ impl ShellService for LocalShellProvider {
                     }));
                 }
                 Ok(None) => {
-                    let current_stdout = String::from_utf8_lossy(&stdout_bytes);
+                    let current_stdout = strip_ansi_escapes(&String::from_utf8_lossy(&stdout_bytes));
                     // 交互式提示感知：若进程停顿超过 1.2s 且输出尾部匹配人机交互提示
                     if last_output_time.elapsed() >= Duration::from_millis(1200) {
                         if let Some(prompt_type) = detect_interactive_prompt(&current_stdout) {
@@ -199,7 +241,7 @@ impl ShellService for LocalShellProvider {
                                 "prompt_type": prompt_type,
                                 "process_id": proc_id,
                                 "prompt_line": current_stdout.lines().last().unwrap_or_default().trim(),
-                                "stdout": current_stdout.to_string(),
+                                "stdout": current_stdout,
                                 "message": format!(
                                     "Command paused at interactive prompt: '{}'. Process transferred to background as '{}'. Use manage_process(Action: 'send_input', ProcessId: '{}', Input: '...') to reply.",
                                     prompt_type, proc_id, proc_id
@@ -217,8 +259,8 @@ impl ShellService for LocalShellProvider {
                         let _ = child.kill();
                         let _ = child.wait(); // 完全停稳，杜绝孤儿僵尸进程
 
-                        let stdout_raw = String::from_utf8_lossy(&stdout_bytes).to_string();
-                        let stderr_raw = String::from_utf8_lossy(&stderr_bytes).to_string();
+                        let stdout_raw = strip_ansi_escapes(&String::from_utf8_lossy(&stdout_bytes));
+                        let stderr_raw = strip_ansi_escapes(&String::from_utf8_lossy(&stderr_bytes));
 
                         return Ok(serde_json::json!({
                             "status": "timed_out",
@@ -242,3 +284,33 @@ impl ShellService for LocalShellProvider {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_strip_ansi_escapes() {
+        let raw = "\x1b[31mError:\x1b[0m Failed to \x1b[1;32mcompile\x1b[0m";
+        let cleaned = strip_ansi_escapes(raw);
+        assert_eq!(cleaned, "Error: Failed to compile");
+    }
+
+    #[test]
+    fn test_validate_command_safety() {
+        assert!(validate_command_safety("cargo check --tests").is_ok());
+        assert!(validate_command_safety("git status").is_ok());
+
+        assert!(validate_command_safety("rm -rf /").is_err());
+        assert!(validate_command_safety("rmdir /s /q C:\\").is_err());
+        assert!(validate_command_safety("format c:").is_err());
+    }
+
+    #[test]
+    fn test_detect_interactive_prompt() {
+        assert!(detect_interactive_prompt("Do you want to continue? [y/N]").is_some());
+        assert!(detect_interactive_prompt("Password:").is_some());
+        assert!(detect_interactive_prompt("Compilation finished successfully.").is_none());
+    }
+}
+

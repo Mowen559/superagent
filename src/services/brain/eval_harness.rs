@@ -242,6 +242,125 @@ public class MyExtractComponent extends NodeComponent {
                 "while (true)".to_string(),
             ],
         },
+
+        // 用例 6: HashiCorp Vault 凭据安全存储与解析规范
+        GoldenBenchmarkCase {
+            id: "case_vault_credentials_safety".to_string(),
+            name: "Vault Credential Safety & No Plaintext".to_string(),
+            domain: "system-service/iam-service".to_string(),
+            description: "凭据存储在 HashiCorp Vault，禁止代码中硬编码明文密码、密钥或数据库凭据".to_string(),
+            sample_prompt: "编写读取 SMTP 端点凭据的 Vault 服务调用逻辑，避免明文硬编码".to_string(),
+            mock_code: r#"
+package com.deepcloud.system.infrastructure.vault;
+
+import org.springframework.vault.core.VaultTemplate;
+import org.springframework.vault.support.VaultResponse;
+
+public class VaultSecretService {
+    private final VaultTemplate vaultTemplate;
+
+    public VaultSecretService(VaultTemplate vaultTemplate) {
+        this.vaultTemplate = vaultTemplate;
+    }
+
+    public String resolveSecret(String secretRef) {
+        VaultResponse response = vaultTemplate.read(secretRef);
+        return response != null ? (String) response.getData().get("password") : null;
+    }
+}
+"#.trim().to_string(),
+            required_patterns: vec![
+                "VaultTemplate".to_string(),
+                "secretRef".to_string(),
+                "vaultTemplate.read".to_string(),
+            ],
+            forbidden_patterns: vec![
+                "password = \"123456\"".to_string(),
+                "root:password".to_string(),
+                "password = \"root\"".to_string(),
+                "secret = \"".to_string(),
+            ],
+        },
+
+        // 用例 7: RabbitMQ 消息幂等消费规范
+        GoldenBenchmarkCase {
+            id: "case_rabbitmq_idempotent_consumer".to_string(),
+            name: "RabbitMQ Idempotent Message Consumer".to_string(),
+            domain: "notification-service/social-service".to_string(),
+            description: "RabbitMQ 消费端幂等性规范：使用 @RabbitListener，必须基于 messageId 或 clientRequestId 校验幂等消费".to_string(),
+            sample_prompt: "编写消费通知事件的 RabbitMQ 监听器，确保消费幂等且无重复派发".to_string(),
+            mock_code: r##"
+package com.deepcloud.notification.infrastructure.mq;
+
+import com.deepcloud.common.annotation.Idempotent;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+@Component
+public class NotificationConsumer {
+    @RabbitListener(queues = "notification.event.queue")
+    @Idempotent(keyExpression = "#event.eventId", expireSeconds = 300)
+    public void onNotificationEvent(NotificationEvent event) {
+        processNotification(event);
+    }
+}
+"##.trim().to_string(),
+            required_patterns: vec![
+                "@RabbitListener".to_string(),
+                "@Idempotent".to_string(),
+                "expireSeconds = 300".to_string(),
+            ],
+            forbidden_patterns: vec![
+                "Thread.sleep".to_string(),
+                "System.out.println".to_string(),
+            ],
+        },
+
+        // 用例 8: 自研 PermissionVoter 职责链扩展规范
+        GoldenBenchmarkCase {
+            id: "case_permission_voter_chain".to_string(),
+            name: "Custom PermissionVoter Dimension Extension".to_string(),
+            domain: "iam-service/security".to_string(),
+            description: "自研 PermissionVoter 职责链扩展规范：实现 PermissionVoter 接口，返回 VoteResult.GRANTED / VoteResult.DENIED / VoteResult.ABSTAIN".to_string(),
+            sample_prompt: "实现一个自定义维度的 PermissionVoter 投票器，遵守职责链模式".to_string(),
+            mock_code: r#"
+package com.deepcloud.iam.security.voter;
+
+import com.deepcloud.common.security.PermissionContext;
+import com.deepcloud.common.security.PermissionVoter;
+import com.deepcloud.common.security.VoteResult;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+
+@Component
+@Order(3)
+public class CustomDimensionVoter implements PermissionVoter {
+    @Override
+    public VoteResult vote(PermissionContext ctx) {
+        if (!ctx.getPermission().startsWith("custom:")) {
+            return VoteResult.ABSTAIN;
+        }
+        return checkDimension(ctx) ? VoteResult.GRANTED : VoteResult.DENIED;
+    }
+
+    private boolean checkDimension(PermissionContext ctx) {
+        return true;
+    }
+}
+"#.trim().to_string(),
+            required_patterns: vec![
+                "implements PermissionVoter".to_string(),
+                "VoteResult.ABSTAIN".to_string(),
+                "VoteResult.GRANTED".to_string(),
+                "VoteResult.DENIED".to_string(),
+                "@Component".to_string(),
+                "@Order(3)".to_string(),
+            ],
+            forbidden_patterns: vec![
+                "hasRole(".to_string(),
+                "SecurityContextHolder.getContext()".to_string(),
+            ],
+        },
     ]
 }
 
@@ -382,6 +501,30 @@ pub fn run_golden_benchmark(
     }
 }
 
+/// 动态工作区健康诊断 (Dynamic Workspace Health Verification)
+pub fn verify_workspace_syntax(project_path: &std::path::Path) -> Result<String, String> {
+    if project_path.join("Cargo.toml").exists() {
+        let output = std::process::Command::new("cargo")
+            .arg("check")
+            .arg("--tests")
+            .current_dir(project_path)
+            .output()
+            .map_err(|e| format!("Failed to spawn cargo check: {e}"))?;
+        if output.status.success() {
+            Ok("Cargo check --tests passed: Rust workspace syntax & types verified.".to_string())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(format!("Cargo check verification failed:\n{stderr}"))
+        }
+    } else if project_path.join("pom.xml").exists() {
+        Ok("Maven workspace detected: Java Spring Boot 3.2 project ready for validation.".to_string())
+    } else if project_path.join("package.json").exists() {
+        Ok("Node.js/Next.js workspace detected: TypeScript types ready for validation.".to_string())
+    } else {
+        Ok("Generic project workspace detected.".to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -389,8 +532,8 @@ mod tests {
     #[test]
     fn test_golden_cases_all_pass() {
         let report = run_golden_benchmark(None, None);
-        assert_eq!(report.total_cases, 5);
-        assert_eq!(report.passed_cases, 5);
+        assert_eq!(report.total_cases, 8);
+        assert_eq!(report.passed_cases, 8);
         assert_eq!(report.failed_cases, 0);
         assert_eq!(report.pass_rate, 100.0);
     }

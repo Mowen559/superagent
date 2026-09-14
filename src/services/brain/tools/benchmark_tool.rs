@@ -1,4 +1,4 @@
-use crate::services::brain::eval_harness::run_golden_benchmark;
+use crate::services::brain::eval_harness::{run_golden_benchmark, verify_workspace_syntax};
 use crate::services::brain::executor::ToolExecutor;
 use serde_json::{json, Value};
 
@@ -29,6 +29,10 @@ impl ToolExecutor for GoldenBenchmarkTool {
                 "custom_code": {
                     "type": "string",
                     "description": "Optional code snippet to evaluate against the specified case instead of the default mock code."
+                },
+                "verify_workspace": {
+                    "type": "boolean",
+                    "description": "Optional flag to trigger dynamic project health & syntax verification for the workspace."
                 }
             }
         })
@@ -46,6 +50,7 @@ impl ToolExecutor for GoldenBenchmarkTool {
         let filter = args.get("filter").and_then(|v| v.as_str());
         let case_id = args.get("case_id").and_then(|v| v.as_str());
         let custom_code = args.get("custom_code").and_then(|v| v.as_str());
+        let verify_workspace = args.get("verify_workspace").and_then(|v| v.as_bool()).unwrap_or(false);
 
         let custom_target = match (case_id, custom_code) {
             (Some(cid), Some(code)) => Some((cid, code)),
@@ -53,6 +58,17 @@ impl ToolExecutor for GoldenBenchmarkTool {
         };
 
         let report = run_golden_benchmark(filter, custom_target);
-        serde_json::to_value(&report).map_err(|e| e.to_string())
+        let mut report_val = serde_json::to_value(&report).map_err(|e| e.to_string())?;
+
+        if verify_workspace {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let ws_status = verify_workspace_syntax(&cwd);
+            report_val["workspace_verification"] = match ws_status {
+                Ok(msg) => json!({ "status": "passed", "message": msg }),
+                Err(err) => json!({ "status": "failed", "error": err }),
+            };
+        }
+
+        Ok(report_val)
     }
 }
