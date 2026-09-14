@@ -7,7 +7,27 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/api/evolution/strategies", get(list_strategies))
+    Router::new()
+        .route("/api/evolution/strategies", get(list_strategies))
+        .route("/api/evolution/lessons", get(list_lessons))
+}
+
+async fn list_lessons(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let lessons = state.evolution_memory.list_lessons().map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "error": error.to_string(),
+                "kind": "evolution_store_error"
+            })),
+        )
+    })?;
+    Ok(Json(json!({
+        "total": lessons.len(),
+        "lessons": lessons,
+    })))
 }
 
 async fn list_strategies(

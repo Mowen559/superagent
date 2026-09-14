@@ -1,4 +1,5 @@
 use crate::services::brain::run_plan::TaskKind;
+use crate::services::brain::events::SessionEvent;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -29,6 +30,20 @@ pub struct EvolutionStrategy {
     pub updated_at: String,
 }
 
+/// Hermes 真实实战反思沉淀的经验单元 (Distilled Episodic Lesson)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DistilledLesson {
+    pub id: String,
+    pub domain: String,             // 领域/模块标签 (如 "engine-service", "iam", "controller", "mybatis", "rust")
+    pub trigger_scenario: String,   // 触发场景/任务特征
+    pub trap_pattern: String,       // 踩坑反模式
+    pub golden_solution: String,    // 经过工程验证的黄金解决方案
+    pub confidence_score: f32,      // 置信度 (0.0 - 1.0)
+    pub usage_count: u32,           // 命中复用次数
+    pub updated_at: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct EvolutionReport {
     pub task_kind: TaskKind,
@@ -42,11 +57,11 @@ pub struct EvolutionReport {
 struct EvolutionData {
     version: u32,
     strategies: Vec<EvolutionStrategy>,
+    #[serde(default)]
+    lessons: Vec<DistilledLesson>,
 }
 
-/// Evidence-gated strategy memory. It learns only bounded, predefined strategy
-/// families from normalized Run outcomes; it never writes source code, changes
-/// permissions, or injects unpromoted candidates into model context.
+/// 证据驱动与轨迹自省进化的核心经验记忆体 (Hermes Evolution Engine)
 #[derive(Debug, Clone)]
 pub struct EvolutionMemory {
     path: PathBuf,
@@ -60,6 +75,133 @@ impl EvolutionMemory {
 
     pub fn new(path: PathBuf) -> Self {
         Self { path }
+    }
+
+    /// 记录并持久化一条提炼出的实战经验
+    pub fn record_lesson(&self, lesson: DistilledLesson) -> io::Result<()> {
+        let mut data = self.load()?;
+        if let Some(existing) = data.lessons.iter_mut().find(|l| l.id == lesson.id || l.trigger_scenario == lesson.trigger_scenario) {
+            existing.confidence_score = (existing.confidence_score * 0.7 + lesson.confidence_score * 0.3).min(1.0);
+            existing.usage_count += 1;
+            existing.updated_at = chrono::Utc::now().to_rfc3339();
+        } else {
+            data.lessons.push(lesson);
+        }
+        self.save(&data)
+    }
+
+    /// 根据当前任务上下文，自适应检索关联度最高的实战经验 (Hermes Dynamic Recall)
+    pub fn retrieve_relevant_lessons(&self, query: &str) -> io::Result<Vec<DistilledLesson>> {
+        let q_lower = query.to_lowercase();
+        let words: Vec<&str> = q_lower.split_whitespace().filter(|w| w.len() > 2).collect();
+
+        let data = self.load()?;
+        let mut scored: Vec<(f32, DistilledLesson)> = data.lessons
+            .into_iter()
+            .filter_map(|lesson| {
+                let mut score = lesson.confidence_score;
+                let text = format!("{} {} {} {}", lesson.domain, lesson.trigger_scenario, lesson.trap_pattern, lesson.golden_solution).to_lowercase();
+                let mut matched_words = 0;
+                for w in &words {
+                    if text.contains(w) {
+                        matched_words += 1;
+                        score += 0.5;
+                    }
+                }
+                if matched_words > 0 || words.is_empty() {
+                    Some((score, lesson))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+        Ok(scored.into_iter().take(3).map(|(_, l)| l).collect())
+    }
+
+    /// 查阅所有已提炼沉淀的实战经验
+    pub fn list_lessons(&self) -> io::Result<Vec<DistilledLesson>> {
+        let mut lessons = self.load()?.lessons;
+        lessons.sort_by(|a, b| b.confidence_score.partial_cmp(&a.confidence_score).unwrap_or(std::cmp::Ordering::Equal));
+        Ok(lessons)
+    }
+
+    /// 基于会话真实执行轨迹提炼实战经验 (Hermes Trajectory Distillation)
+    pub fn distill_trajectory(
+        &self,
+        prompt: &str,
+        events: &[SessionEvent],
+        is_success: bool,
+    ) -> Option<DistilledLesson> {
+        if !is_success || events.is_empty() {
+            return None;
+        }
+
+        // 分析事件序列中是否存在错误纠偏（从失败到最终成功是最佳经验源）
+        let mut had_error = false;
+        let mut error_snippet = String::new();
+        let mut corrective_tools = Vec::new();
+
+        for event in events {
+            match event {
+                SessionEvent::ToolResult { result, .. } => {
+                    let res_str = result.to_string();
+                    if res_str.contains("error")
+                        || res_str.contains("failed")
+                        || res_str.contains("TargetContent not found")
+                        || res_str.contains("timed out")
+                        || res_str.contains("cannot find")
+                    {
+                        had_error = true;
+                        if error_snippet.is_empty() {
+                            error_snippet = res_str.chars().take(120).collect();
+                        }
+                    }
+                }
+                SessionEvent::ToolCall { name, .. } => {
+                    if had_error {
+                        corrective_tools.push(name.clone());
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if !had_error {
+            return None; // 顺畅一次性完成无需记录坑点
+        }
+
+        let domain = if prompt.contains("controller") || prompt.contains("api") {
+            "controller".to_string()
+        } else if prompt.contains("job") || prompt.contains("spider") || prompt.contains("engine") {
+            "engine-service".to_string()
+        } else if prompt.contains("user") || prompt.contains("iam") || prompt.contains("auth") {
+            "iam-service".to_string()
+        } else if prompt.contains("mybatis") || prompt.contains("sql") || prompt.contains("repository") {
+            "mybatis".to_string()
+        } else if prompt.contains("ui") || prompt.contains("page") || prompt.contains("frontend") {
+            "frontend".to_string()
+        } else {
+            "general".to_string()
+        };
+
+        let lesson = DistilledLesson {
+            id: format!("lesson-{}", &Uuid::new_v4().to_string()[..8]),
+            domain,
+            trigger_scenario: prompt.chars().take(100).collect(),
+            trap_pattern: format!("Encountered roadblock: {}", error_snippet.trim()),
+            golden_solution: format!(
+                "Pivoted strategy and resolved by leveraging tools: {:?}",
+                corrective_tools
+            ),
+            confidence_score: 0.85,
+            usage_count: 1,
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        };
+
+        let _ = self.record_lesson(lesson.clone());
+        Some(lesson)
     }
 
     pub fn observe(&self, report: &EvolutionReport) -> io::Result<()> {
@@ -120,6 +262,7 @@ impl EvolutionMemory {
             return Ok(EvolutionData {
                 version: 1,
                 strategies: Vec::new(),
+                lessons: Vec::new(),
             });
         };
         serde_json::from_slice(&fs::read(source)?)
@@ -315,5 +458,44 @@ mod tests {
         memory.observe(&report(true)).unwrap();
         fs::rename(&path, path.with_extension("json.bak")).unwrap();
         assert_eq!(memory.list().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_distill_and_retrieve_lesson() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("strategies.json");
+        let memory = EvolutionMemory::new(path);
+
+        let events = vec![
+            SessionEvent::UserInput("重构 spider job controller 接口".to_string()),
+            SessionEvent::ToolCall {
+                id: "1".to_string(),
+                name: "replace_in_file".to_string(),
+                arguments: serde_json::json!({ "file": "JobController.java" }),
+            },
+            SessionEvent::ToolResult {
+                id: "1".to_string(),
+                result: serde_json::json!({ "error": "TargetContent not found" }),
+            },
+            SessionEvent::ToolCall {
+                id: "2".to_string(),
+                name: "view_outline".to_string(),
+                arguments: serde_json::json!({ "file": "JobController.java" }),
+            },
+            SessionEvent::ToolResult {
+                id: "2".to_string(),
+                result: serde_json::json!({ "outline": "public Result<Long> createJob" }),
+            },
+        ];
+
+        let distilled = memory.distill_trajectory("重构 spider job controller 接口", &events, true);
+        assert!(distilled.is_some());
+        let lesson = distilled.unwrap();
+        assert_eq!(lesson.domain, "controller");
+        assert!(lesson.trap_pattern.contains("TargetContent not found"));
+
+        let retrieved = memory.retrieve_relevant_lessons("job controller").unwrap();
+        assert_eq!(retrieved.len(), 1);
+        assert_eq!(retrieved[0].id, lesson.id);
     }
 }

@@ -442,6 +442,18 @@ impl AgentLoop {
             Ok(guidance) => cognition.apply_promoted_guidance(guidance),
             Err(error) => eprintln!("[Brain B] Failed to load promoted strategies: {error}"),
         }
+        match self.evolution_memory.retrieve_relevant_lessons(prompt) {
+            Ok(lessons) => {
+                if !lessons.is_empty() {
+                    eprintln!(
+                        "[Hermes Evolution] Recalled {} distilled lessons for current task",
+                        lessons.len()
+                    );
+                    cognition.apply_distilled_lessons(lessons);
+                }
+            }
+            Err(error) => eprintln!("[Hermes Evolution] Failed to retrieve lessons: {error}"),
+        }
         let mut loop_count = 0;
 
         loop {
@@ -487,7 +499,7 @@ impl AgentLoop {
             let cognitive_guidance = match cognition.next_guidance() {
                 Ok(guidance) => guidance,
                 Err(error) => {
-                    self.record_evolution(&mut cognition, false);
+                    self.record_evolution(&mut cognition, prompt, false);
                     return Err(error);
                 }
             };
@@ -509,7 +521,7 @@ impl AgentLoop {
             {
                 Ok(message) => message,
                 Err(error) => {
-                    self.record_evolution(&mut cognition, false);
+                    self.record_evolution(&mut cognition, prompt, false);
                     return Err(error);
                 }
             };
@@ -664,7 +676,7 @@ impl AgentLoop {
                     continue;
                 }
                 self.save_session();
-                self.record_evolution(&mut cognition, true);
+                self.record_evolution(&mut cognition, prompt, true);
                 let _ = crate::services::brain::plan_reflection::ReflectionEngine::distill_and_persist(
                     &self.events,
                     &self.runtime_config,
@@ -673,15 +685,23 @@ impl AgentLoop {
                 return Ok(content.to_string());
             }
 
-            self.record_evolution(&mut cognition, false);
+            self.record_evolution(&mut cognition, prompt, false);
             return Err("Unexpected empty response from LLM".to_string());
         }
     }
 
-    fn record_evolution(&self, cognition: &mut CognitiveRuntime, completed: bool) {
+    fn record_evolution(&self, cognition: &mut CognitiveRuntime, prompt: &str, completed: bool) {
         let report = cognition.evolution_report(completed);
         if let Err(error) = self.evolution_memory.observe(&report) {
             eprintln!("[Brain B] Failed to record evolution evidence: {error}");
+        }
+        if completed {
+            if let Some(new_lesson) = self.evolution_memory.distill_trajectory(prompt, &self.events, true) {
+                eprintln!(
+                    "\x1b[32m[Hermes Distillation] Successfully distilled new lesson: [{}] {} (Trap: {})\x1b[0m",
+                    new_lesson.domain, new_lesson.golden_solution, new_lesson.trap_pattern
+                );
+            }
         }
     }
 

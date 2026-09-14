@@ -1,4 +1,4 @@
-use crate::services::brain::evolution_memory::EvolutionReport;
+use crate::services::brain::evolution_memory::{DistilledLesson, EvolutionReport};
 use crate::services::brain::run_plan::RunPlan;
 pub use crate::services::brain::run_plan::TaskKind;
 use crate::services::brain::tool_execution_gateway::ToolExecutionStatus;
@@ -54,6 +54,7 @@ pub struct CognitiveRuntime {
     plan: RunPlan,
     learned_guidance: Vec<String>,
     anchor_constraints: Vec<String>,
+    distilled_lessons: Vec<DistilledLesson>,
 }
 
 impl CognitiveRuntime {
@@ -92,6 +93,7 @@ impl CognitiveRuntime {
             plan: RunPlan::for_task(task_kind),
             learned_guidance: Vec::new(),
             anchor_constraints: default_anchors,
+            distilled_lessons: Vec::new(),
         }
     }
 
@@ -117,6 +119,10 @@ impl CognitiveRuntime {
         self.learned_guidance = guidance.into_iter().take(5).collect();
     }
 
+    pub fn apply_distilled_lessons(&mut self, lessons: Vec<DistilledLesson>) {
+        self.distilled_lessons = lessons.into_iter().take(5).collect();
+    }
+
     pub fn anchor_constraints(&self) -> &[String] {
         &self.anchor_constraints
     }
@@ -139,27 +145,35 @@ impl CognitiveRuntime {
                 "Answer directly. Use tools only when the answer depends on workspace or live evidence."
             }
             TaskKind::Investigative => {
-                "Form a small hypothesis-driven plan, inspect authoritative evidence, distinguish facts from inference, then answer with the decisive evidence."
+                "Form dynamic hypotheses, inspect authoritative evidence first, distinguish facts from inference, and pivot rapidly if assumptions fail."
             }
             TaskKind::Execution => {
-                "Maintain a short plan, inspect before changing, make the smallest coherent change, verify the outcome, and report residual risk."
+                "Plan fluently: inspect before changing, formulate precise edits, verify immediately, and self-correct with 'Aha' reflections whenever a barrier appears."
             }
         };
-        let failure_note = if self.failed_tools > 0 {
-            " A prior tool failed: diagnose the cause and change approach; do not blindly repeat it."
+
+        let failure_note = if self.consecutive_failures > 0 {
+            format!(
+                "\n[META-COGNITIVE REFLECTION / AHA-MOMENT REQUIRED]\nWait, a previous tool attempt failed! Do not blindly repeat the same command or edit. Explicitly reflect: Why did it fail? Was the path incorrect, did the file content change, or was the assumption wrong? Adjust your hypothesis and take a different approach."
+            )
+        } else if self.failed_tools > 0 {
+            "\n[AWARENESS] Earlier tools encountered failures. Ensure current steps address residual risks and verify outcomes carefully.".to_string()
         } else {
-            ""
+            String::new()
         };
+
         let deadlock_warning = if self.consecutive_failures >= 3 {
-            "\n[HYPOTHESIS DEADLOCK WARNING] 3 or more consecutive tool actions failed. Your current hypothesis or approach is likely fundamentally flawed or stuck in a dead-end. Consider discarding this branch: use `revert_to_checkpoint` to restore workspace to a clean state, formulate an entirely alternative strategy, and start anew."
+            "\n[HYPOTHESIS DEADLOCK WARNING] 3 or more consecutive tool actions failed! Your current mental model is stuck in a dead-end. Consider discarding this branch: use `revert_to_checkpoint` to restore workspace to a clean state, formulate an entirely alternative strategy, or use `synthesize_tool` to synthesize a dedicated tool/script to diagnose the problem."
         } else {
             ""
         };
+
         let replan_note = self
             .plan
             .take_replan_notice()
             .map(|notice| format!("\n{notice}"))
             .unwrap_or_default();
+
         let learned_note = if self.learned_guidance.is_empty() {
             String::new()
         } else {
@@ -168,6 +182,26 @@ impl CognitiveRuntime {
                 self.learned_guidance.join("\n- ")
             )
         };
+
+        let lessons_block = if self.distilled_lessons.is_empty() {
+            String::new()
+        } else {
+            let mut buf = String::from("\n[HERMES DISTILLED LESSONS - RETRIEVED FROM PAST RUNS]");
+            for (idx, lesson) in self.distilled_lessons.iter().enumerate() {
+                buf.push_str(&format!(
+                    "\n{}. Scenario: {}\n   Trap: {}\n   Golden Solution: {}\n   (Domain: {}, Confidence: {:.2})",
+                    idx + 1,
+                    lesson.trigger_scenario,
+                    lesson.trap_pattern,
+                    lesson.golden_solution,
+                    lesson.domain,
+                    lesson.confidence_score
+                ));
+            }
+            buf.push_str("\nAdopt these golden solutions directly to prevent repeated traps!");
+            buf
+        };
+
         let anchor_block = if self.anchor_constraints.is_empty() {
             String::new()
         } else {
@@ -178,7 +212,7 @@ impl CognitiveRuntime {
         };
 
         Ok(format!(
-            "# Adaptive Cognitive State\nObjective: {}\nMode: {:?}; task: {:?}; model turn: {}; tools: {} succeeded / {} failed.\nRun plan:\n{}\nStrategy: {}{}{}{}{}{}\nAdvance the in-progress step using evidence. Do not claim completion without evidence. Never fabricate tool output.",
+            "# Adaptive Meta-Cognitive State (DeepSeek-R1 Fluid Reasoning)\nObjective: {}\nMode: {:?}; Task Kind: {:?}; Model Turn: {}; Tool Stats: {} succeeded / {} failed.\nDynamic Plan:\n{}\nReasoning Guide: {}{}{}{}{}{}{}\nAdvance the in-progress step using live evidence. Do not claim completion without verification. Synthesize tools (`synthesize_tool`) if missing capabilities arise.",
             self.objective,
             self.mode,
             self.task_kind,
@@ -191,6 +225,7 @@ impl CognitiveRuntime {
             deadlock_warning,
             replan_note,
             learned_note,
+            lessons_block,
             anchor_block,
         ))
     }
@@ -409,6 +444,27 @@ mod tests {
         assert!(guidance.contains("PINNED ANCHOR CONSTRAINTS"));
         assert!(guidance.contains("Strict Architecture"));
         assert!(guidance.contains("Custom Ironclad Rule: Do not modify schema.sql"));
+    }
+
+    #[test]
+    fn test_distilled_lessons_injection() {
+        use crate::services::brain::evolution_memory::DistilledLesson;
+        let mut runtime = CognitiveRuntime::begin("修改配置");
+        runtime.apply_distilled_lessons(vec![DistilledLesson {
+            id: "les_1".into(),
+            updated_at: "2026-09-14T10:00:00Z".into(),
+            domain: "config".into(),
+            trigger_scenario: "updating yaml".into(),
+            trap_pattern: "tab character indentation error".into(),
+            golden_solution: "use 2 spaces instead of tabs".into(),
+            confidence_score: 0.95,
+            usage_count: 1,
+        }]);
+
+        let guidance = runtime.next_guidance().unwrap();
+        assert!(guidance.contains("HERMES DISTILLED LESSONS"));
+        assert!(guidance.contains("tab character indentation error"));
+        assert!(guidance.contains("use 2 spaces instead of tabs"));
     }
 }
 

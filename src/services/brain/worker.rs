@@ -23,6 +23,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
     };
     use crate::services::brain::tools::impact_radar::ImpactRadarTool;
     use crate::services::brain::tools::benchmark_tool::GoldenBenchmarkTool;
+    use crate::services::brain::tools::synthesize_tool::SynthesizeTool;
     use crate::services::brain::tools::todo::ManageTaskTool;
     use crate::services::brain::tools::tool_result::ReadToolResultTool;
     use crate::services::brain::tools::web::WebFetchTool;
@@ -81,6 +82,10 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
     agent.register_tool(Box::new(RevertToCheckpointTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(ImpactRadarTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(GoldenBenchmarkTool));
+    agent.register_tool(Box::new(SynthesizeTool::new(
+        agent.get_tools_ref(),
+        cwd_path.clone(),
+    )));
 
     // 自动扫描与装载动态插件与 MCP 工具
     agent.plugin_registry.load_dynamic_plugins();

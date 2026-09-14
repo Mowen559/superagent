@@ -182,6 +182,12 @@ async fn main() {
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::benchmark_tool::GoldenBenchmarkTool,
     ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::synthesize_tool::SynthesizeTool::new(
+            engine.get_tools_ref(),
+            cwd_path.clone(),
+        ),
+    ));
 
     // 自动扫描与装载动态插件工具
     engine.plugin_registry.load_dynamic_plugins();

@@ -28,3 +28,4 @@ pub mod dynamic_mcp;
 pub mod checkpoint;
 pub mod impact_radar;
 pub mod benchmark_tool;
+pub mod synthesize_tool;
