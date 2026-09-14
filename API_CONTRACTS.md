@@ -242,3 +242,34 @@ Creates a new shadow Git snapshot for the current workspace state.
 ```
 
 Hub 向插件 stdin 写入单个 JSON 请求，插件在 stdout 返回单个 JSON 对象。Screenshot 插件把 PNG 写入请求给定的 `outputPath`；OCR 插件接收 `imagePath` 并返回 `{ text, blocks? }`；Translation 插件接收语言与文本并返回 `{ translatedText }`。超时、非零退出、过大输出或非法 JSON 均返回带失败阶段的 Provider 错误，不生成成功 Receipt，也不回退到未经用户选择的联网 Provider。
+
+## SuperAgent SDK 协议规范与契约基线
+
+SuperAgent 采用 **“Sidecar/守护进程 (Rust Hub-RS) + 标准开放契约 (OpenAPI 3.1 & MCP) + 多语言客户端 SDK”** 架构，为 DeepCloud 微服务、前端及外部系统提供统一调用契约。
+
+### 1. OpenAPI 规范与文档端点
+- `GET /api/openapi.json`: 输出标准 OpenAPI 3.1 规范定义，供 Java (openapi-generator)、TypeScript (Orval)、Python (openapi-python-client) 自动生成强类型 SDK 代码。
+- `GET /api/docs`: 内置轻量交互式 API 浏览器（基于 Scalar API Reference），支持本地在线调试与接口查看。
+
+### 2. 五大 SDK 核心能力面契约
+1. **ModelGateway**:
+   - `POST /v1/chat/completions`: 兼容 OpenAI Chat 格式，支持流式 SSE、多 Provider 故障转移与 Token 计量。
+   - `GET /v1/models`: 查询当前 Hub 实例所有有效模型。
+2. **AgentExecution**:
+   - `POST /api/agents/run`: 异步分派自主智能体任务，返回 `taskId` 与 `eventsUrl`。
+   - `GET /api/agents/tasks/{task_id}/events`: 标准 SSE 长连接，按序列推送 Agent 决策、思考、工具调用与步骤状态。
+   - `POST /api/agents/tasks/{task_id}/interact`: 提交人类在环 (HITL) 决策令牌审批，或向运行中的任务实时插队追加 Steering 指令。
+   - `POST /api/tasks/{task_id}/cancel`: 优雅终止运行中任务并回收进程与工作区资源。
+3. **DiffAndVerification**:
+   - `GET /api/agents/tasks/{task_id}/diff`: 获取影子沙盒（`.shadow-git`）中的变更文件列表与 Unified Diff 补丁。
+   - `POST /api/agents/tasks/{task_id}/verify`: 执行自动化质量计划（包含阿里 OCR 确定性规则质检）。
+   - `POST /api/agents/tasks/{task_id}/apply`: 创建预应用快照并安全打入宿主工作区。
+4. **WorkspaceIntelligence**:
+   - `POST /api/workspaces/open`: 打开并校验工作区根路径。
+   - `POST /api/workspaces/analyze`: 触发项目代码知识图谱与依赖关系索引。
+   - `GET /api/workspaces/intelligence`: 获取工作区全景快照、AST 符号拓扑与爆炸半径分析。
+   - `GET /api/workspaces/knowledge`: 语义检索项目 Wiki 与规范语料（带 Citation 溯源）。
+5. **SystemAndHealth**:
+   - `GET /api/health`: 探测服务存活、内存负载与上游 Provider 延迟。
+   - `GET /api/capabilities`: 动态发现当前 Hub 启用的功能模块。
+

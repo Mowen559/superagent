@@ -11,6 +11,7 @@ pub mod health;
 pub mod mcp;
 pub mod mcp_skills;
 pub mod memory;
+pub mod openapi;
 pub mod projects;
 pub mod proxy;
 pub mod qa;

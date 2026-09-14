@@ -1,0 +1,805 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SuperAgent Hub-RS SDK API",
+    "version": "1.0.0",
+    "description": "Standardized SuperAgent Runtime SDK interface for DeepCloud multi-language clients (Java Spring Boot, TypeScript/React, Python) and external applications. Provides unified model calling, autonomous agent loop, shadow workspace diff verification, understand graph intelligence, and tool bridges."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3001",
+      "description": "Local SuperAgent Hub Daemon"
+    }
+  ],
+  "tags": [
+    {
+      "name": "ModelGateway",
+      "description": "Unified LLM multi-provider gateway (OpenAI / Anthropic / Gemini / Ollama) with credential resolution, failover, and token metering."
+    },
+    {
+      "name": "AgentExecution",
+      "description": "Autonomous Agent task execution, SSE event streaming, human-in-the-loop (HITL) steering, and cancellation."
+    },
+    {
+      "name": "DiffAndVerification",
+      "description": "Shadow Git diff inspection, automated quality verification, and safe workspace changeset application."
+    },
+    {
+      "name": "WorkspaceIntelligence",
+      "description": "Workspace registration, Understand code knowledge graph indexing, blast radius analysis, and Supermemory citations."
+    },
+    {
+      "name": "SystemAndHealth",
+      "description": "Hub system health, multi-provider latency probes, and dynamic capabilities discovery."
+    }
+  ],
+  "paths": {
+    "/v1/chat/completions": {
+      "post": {
+        "tags": ["ModelGateway"],
+        "summary": "Create chat completion (OpenAI compatible)",
+        "description": "Routes chat completion request through SuperAgent Model Gateway with automatic credential retrieval, failover, and streaming SSE support.",
+        "operationId": "createChatCompletion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful completion or active SSE stream",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "OpenAI-compatible server-sent events stream chunks"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid model request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "tags": ["ModelGateway"],
+        "summary": "List available models",
+        "description": "Returns all configured and discovered models across configured provider accounts.",
+        "operationId": "listModels",
+        "responses": {
+          "200": {
+            "description": "List of available models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/run": {
+      "post": {
+        "tags": ["AgentExecution"],
+        "summary": "Launch autonomous agent task",
+        "description": "Spawns an agent task in background. Emits structured events to {task_id}.events.jsonl and publishes to event bus.",
+        "operationId": "runAgentTask",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task created and queued/running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/tasks/{task_id}/events": {
+      "get": {
+        "tags": ["AgentExecution"],
+        "summary": "Stream agent execution events (SSE)",
+        "description": "Replays past persisted sequenced events for the task, then follows live SSE broadcast until completion.",
+        "operationId": "streamAgentEvents",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the agent task",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream of TaskEvents",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "SSE stream of TaskEvent JSON strings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/tasks/{task_id}/interact": {
+      "post": {
+        "tags": ["AgentExecution"],
+        "summary": "Interact with running task or submit HITL decision",
+        "description": "Approves/rejects a paused HITL gatekeeper token, or queues a steering prompt into the running agent loop.",
+        "operationId": "interactWithTask",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskInteractionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Interaction receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskInteractionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{task_id}/cancel": {
+      "post": {
+        "tags": ["AgentExecution"],
+        "summary": "Cancel agent or background task",
+        "description": "Terminates agent subprocess and marks task status as cancelled.",
+        "operationId": "cancelTask",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task cancellation response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": { "type": "string" },
+                    "status": { "type": "string", "example": "cancelled" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/tasks/{task_id}/diff": {
+      "get": {
+        "tags": ["DiffAndVerification"],
+        "summary": "Inspect shadow git changeset diff",
+        "description": "Retrieves file changes, unified diff content, and conflict status for completed agent task.",
+        "operationId": "getTaskDiff",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shadow changeset diff details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDiffResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/tasks/{task_id}/verify": {
+      "post": {
+        "tags": ["DiffAndVerification"],
+        "summary": "Run automated verification plan",
+        "description": "Executes automated tests / linter in the isolated shadow workspace and records a VerificationReceipt.",
+        "operationId": "verifyTaskChanges",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification plan receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationReceipt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/tasks/{task_id}/apply": {
+      "post": {
+        "tags": ["DiffAndVerification"],
+        "summary": "Apply shadow changeset to workspace",
+        "description": "Safely copies verified changes from shadow workspace into the actual workspace directory.",
+        "operationId": "applyTaskChanges",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyChangesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Apply changeset receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyReceipt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspaces/open": {
+      "post": {
+        "tags": ["WorkspaceIntelligence"],
+        "summary": "Register and open a project workspace",
+        "description": "Validates workspace path, derives shadow git and supermemory locations, and scans project readiness.",
+        "operationId": "openWorkspace",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["path"],
+                "properties": {
+                  "path": { "type": "string", "example": "D:\\抖音\\deepcloud" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opened workspace descriptor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceOpenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspaces/intelligence": {
+      "get": {
+        "tags": ["WorkspaceIntelligence"],
+        "summary": "Get workspace intelligence snapshot",
+        "description": "Retrieves graph index, blast radius, recent tasks, supermemory wiki, and git shadow history.",
+        "operationId": "getWorkspaceIntelligence",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 24 }
+          },
+          {
+            "name": "refresh",
+            "in": "query",
+            "schema": { "type": "boolean", "default": false }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace intelligence snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceIntelligenceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workspaces/knowledge": {
+      "get": {
+        "tags": ["WorkspaceIntelligence"],
+        "summary": "Query workspace knowledge corpus",
+        "description": "Searches indexed documentation and rules in Supermemory with citation references.",
+        "operationId": "queryKnowledgeCorpus",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Knowledge corpus hits and documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeQueryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["SystemAndHealth"],
+        "summary": "Health and provider status check",
+        "description": "Checks Hub daemon health, memory, active task counts, and provider latency benchmarks.",
+        "operationId": "checkHealth",
+        "responses": {
+          "200": {
+            "description": "Hub health information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/capabilities": {
+      "get": {
+        "tags": ["SystemAndHealth"],
+        "summary": "Discover Hub runtime capabilities",
+        "description": "Lists supported features, tools, execution backends, and active gatekeepers.",
+        "operationId": "discoverCapabilities",
+        "responses": {
+          "200": {
+            "description": "Hub runtime capabilities list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "tags": ["SystemAndHealth"],
+        "summary": "Export canonical OpenAPI 3.1 specification",
+        "description": "Provides the complete machine-readable OpenAPI specification for SDK code generation.",
+        "operationId": "getOpenApiSpec",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1 Specification JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": ["messages"],
+        "properties": {
+          "model": { "type": "string", "example": "gpt-4o" },
+          "messages": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ChatMessage" }
+          },
+          "temperature": { "type": "number", "default": 0.7 },
+          "stream": { "type": "boolean", "default": false },
+          "max_tokens": { "type": "integer" }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["system", "user", "assistant", "tool"] },
+          "content": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      },
+      "ChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "object": { "type": "string", "example": "chat.completion" },
+          "created": { "type": "integer" },
+          "model": { "type": "string" },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": { "type": "integer" },
+                "message": { "$ref": "#/components/schemas/ChatMessage" },
+                "finish_reason": { "type": "string" }
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "prompt_tokens": { "type": "integer" },
+              "completion_tokens": { "type": "integer" },
+              "total_tokens": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "ModelListResponse": {
+        "type": "object",
+        "properties": {
+          "object": { "type": "string", "example": "list" },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "object": { "type": "string", "example": "model" },
+                "owned_by": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "AgentRunRequest": {
+        "type": "object",
+        "required": ["prompt"],
+        "properties": {
+          "prompt": { "type": "string", "description": "The goal description or user instruction" },
+          "backend": { "type": "string", "default": "superagent", "description": "Agent loop runtime engine" },
+          "projectPath": { "type": "string", "description": "Canonical root path of workspace" },
+          "mode": { "type": "string", "enum": ["agent", "plan", "review", "ask"], "default": "agent" },
+          "model": { "type": "string", "description": "Target model override" },
+          "contextPills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "title": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "AgentRunResponse": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string" },
+          "status": { "type": "string", "example": "running" },
+          "backend": { "type": "string" },
+          "projectPath": { "type": "string" },
+          "eventsUrl": { "type": "string", "example": "/api/agents/tasks/{taskId}/events" }
+        }
+      },
+      "TaskInteractionRequest": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "description": "Approval token for HITL gatekeeper" },
+          "approve": { "type": "boolean", "description": "Whether to approve the action" },
+          "steeringPrompt": { "type": "string", "description": "Mid-execution steering instruction" }
+        }
+      },
+      "TaskInteractionResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" }
+        }
+      },
+      "TaskDiffResponse": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string" },
+          "diff": { "type": "string", "description": "Unified Git diff content" },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" },
+                "kind": { "type": "string", "enum": ["modified", "added", "deleted"] }
+              }
+            }
+          },
+          "conflicts": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "VerificationReceipt": {
+        "type": "object",
+        "properties": {
+          "passed": { "type": "boolean" },
+          "summary": { "type": "string" },
+          "testsRun": { "type": "integer" },
+          "failures": { "type": "integer" },
+          "ruleViolations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rule": { "type": "string" },
+                "file": { "type": "string" },
+                "line": { "type": "integer" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "ApplyChangesRequest": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Specific files to apply. Omit for all files."
+          },
+          "force": { "type": "boolean", "default": false }
+        }
+      },
+      "ApplyReceipt": {
+        "type": "object",
+        "properties": {
+          "applied": { "type": "boolean" },
+          "filesChanged": { "type": "integer" },
+          "preApplySnapshot": { "type": "string" }
+        }
+      },
+      "WorkspaceOpenResponse": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "type": "object",
+            "properties": {
+              "path": { "type": "string" },
+              "readiness": {
+                "type": "object",
+                "properties": {
+                  "kind": { "type": "string" },
+                  "canAnalyze": { "type": "boolean" },
+                  "canRunAgent": { "type": "boolean" },
+                  "filesScanned": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "WorkspaceIntelligenceResponse": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "type": "object",
+            "properties": {
+              "path": { "type": "string" },
+              "graphDbPath": { "type": "string" },
+              "shadowGitPath": { "type": "string" }
+            }
+          },
+          "graph": {
+            "type": "object",
+            "properties": {
+              "indexed": { "type": "boolean" },
+              "fileCount": { "type": "integer" },
+              "symbolCount": { "type": "integer" }
+            }
+          },
+          "supermemory": {
+            "type": "object",
+            "properties": {
+              "documents": { "type": "array", "items": { "type": "object" } },
+              "wiki": { "type": "string" }
+            }
+          },
+          "git": {
+            "type": "object",
+            "properties": {
+              "clean": { "type": "boolean" },
+              "branch": { "type": "string" }
+            }
+          }
+        }
+      },
+      "KnowledgeQueryResponse": {
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "path": { "type": "string" }
+              }
+            }
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "documentId": { "type": "string" },
+                "snippet": { "type": "string" },
+                "score": { "type": "number" },
+                "citation": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "healthy" },
+          "version": { "type": "string", "example": "1.0.0" },
+          "uptimeSeconds": { "type": "integer" },
+          "activeTasks": { "type": "integer" },
+          "providerHealth": { "type": "object" },
+          "gatewayEval": { "type": "object" }
+        }
+      },
+      "CapabilitiesResponse": {
+        "type": "object",
+        "properties": {
+          "version": { "type": "string" },
+          "features": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string" },
+              "type": { "type": "string" },
+              "code": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
