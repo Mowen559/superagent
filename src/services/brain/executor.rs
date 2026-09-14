@@ -58,6 +58,7 @@ pub fn is_read_only_tool(name: &str) -> bool {
             | "knowledge_search"
             | "corpus_search"
             | "impact_radar"
+            | "run_benchmark"
     )
 }
 

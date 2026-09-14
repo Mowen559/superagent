@@ -179,6 +179,9 @@ async fn main() {
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::impact_radar::ImpactRadarTool::new(cwd_path.clone()),
     ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::benchmark_tool::GoldenBenchmarkTool,
+    ));
 
     // 自动扫描与装载动态插件工具
     engine.plugin_registry.load_dynamic_plugins();

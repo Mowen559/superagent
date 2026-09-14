@@ -27,3 +27,4 @@ pub mod shadow_git_tool;
 pub mod dynamic_mcp;
 pub mod checkpoint;
 pub mod impact_radar;
+pub mod benchmark_tool;

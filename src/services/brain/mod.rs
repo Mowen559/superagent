@@ -9,6 +9,7 @@ pub mod context_budget;
 pub mod context_interceptor;
 pub mod contextual_chunker;
 pub mod embedding_service;
+pub mod eval_harness;
 pub mod events;
 pub mod evolution_memory;
 pub mod executor;
