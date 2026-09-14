@@ -84,6 +84,9 @@ async fn main() {
 
     // 注册基础工具
     engine.register_tool(Box::new(ReadFileTool::new(cwd_path.clone())));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::fs::ViewOutlineTool::new(cwd_path.clone()),
+    ));
     engine.register_tool(Box::new(WriteFileTool::new(cwd_path.clone())));
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::fs::ReplaceInFileTool::new(cwd_path.clone()),

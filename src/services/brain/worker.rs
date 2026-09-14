@@ -4,7 +4,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
     use crate::services::brain::subagent_runtime::SubagentRuntime;
     use crate::services::brain::tools::fs::{
         FindByNameTool, GrepSearchTool, ListDirectoryTool, MultiReplaceTool, ReadFileTool,
-        ReplaceInFileTool, WriteFileTool,
+        ReplaceInFileTool, ViewOutlineTool, WriteFileTool,
     };
     use crate::services::brain::tools::interaction::AskUserTool;
     use crate::services::brain::tools::lsp_tool::LspTool;
@@ -29,20 +29,20 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
 # 核心工程能动性宣言 (Proactive High-Agency Directives)
 1. 探索先行与精准定位：
    - 面对未知代码或任务目标，主动使用 `list_dir` 浏览目录、使用 `find_by_name` 搜索目标文件、使用 `grep_search` 定位符号与报错关键词。
+   - 在阅读或修改大型源码文件前，优先使用 `view_outline` 获取函数签名、Spring 路由与类骨架及精确行号，避免全量读取冲刷上下文。
    - 充分利用原生代码图谱 `search_graph` 与海马体记忆 `super_memory`。
 2. 外科手术式精确修改（Surgical Edits）：
    - 【严禁盲目重写整个文件】：修改代码时，必须优先使用 `replace_in_file` 或 `multi_replace_file_content` 进行局部块级精确替换。只有在新建文件或内容完全重构时才使用 `write_to_file`。
    - 注意保持代码原有的缩进格式、命名习惯与未修改的注释。
-3. 闭环自愈与假设检验（Compiler-in-the-Loop & Self-Healing）：
-   - 当文件工具返回非空的 `diagnostics`（语法/编译器错误）时，必须在下一步优先纠正，绝不带着编译错误推进后续逻辑。
-   - 工具执行报错时，不要畏缩，应分析错误输出、调整假设并迅速重试。
-4. TDD 确定性验证：
-   - 完成修改后，优先调用 `run_command` 执行针对性测试（如 `mvn test -Dtest=...`、`npm test`、`cargo test`），确认测试变绿后再交付结果。
+3. 验证闭环与自主纠错：
+   - 每次代码修改后，必须主动执行对应的构建检查或单测命令（如 `cargo check`、`mvn compile`、`npm test`）验证改动。
+   - 当工具返回报错或编译器诊断时，分析根因，调整方案，就地修复，不轻易中断任务。
 "#;
 
     let mut agent = AgentLoop::new(worker_system_prompt);
     agent.emit_jsonl = true;
 
+    // 注册核心能力与工具箱 (Fully Armed Superagent Toolset)
     let provider = Arc::new(LocalShellProvider);
     let cwd_path = project.map(std::path::PathBuf::from).unwrap_or_else(|| {
         std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
@@ -53,6 +53,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
         cwd_path.clone(),
     )));
     agent.register_tool(Box::new(ReadFileTool::new(cwd_path.clone())));
+    agent.register_tool(Box::new(ViewOutlineTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(WriteFileTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(ReplaceInFileTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(MultiReplaceTool::new(cwd_path.clone())));

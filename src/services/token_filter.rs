@@ -191,14 +191,87 @@ pub fn compress(content: &str, path_or_ext: &str, level: FilterLevel) -> Compres
     }
 }
 
+/// Helper: Checks if a line is pure terminal/build noise that should be discarded
+pub fn is_terminal_noise(line: &str) -> bool {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    // Maven / Gradle download progress
+    if trimmed.starts_with("[INFO] Downloading from ")
+        || trimmed.starts_with("[INFO] Downloaded from ")
+        || trimmed.starts_with("Progress (")
+        || trimmed.starts_with("Downloading: ")
+        || trimmed.starts_with("Downloaded: ")
+        || trimmed.starts_with("Downloading from ")
+    {
+        return true;
+    }
+
+    // NPM / Yarn / PNPM / Pip progress bars
+    if trimmed.contains("[===")
+        || trimmed.contains("npm http fetch GET")
+        || trimmed.contains("fetching packages")
+        || trimmed.starts_with("⸨===")
+        || (trimmed.starts_with('[') && trimmed.contains("#####"))
+        || (trimmed.starts_with('[') && trimmed.contains("░░░"))
+    {
+        return true;
+    }
+
+    // Docker layer downloads
+    if (trimmed.contains("Downloading [") || trimmed.contains("Extracting ["))
+        && trimmed.contains(']')
+    {
+        return true;
+    }
+
+    // Harmless verbose compiler/build progress lines when there's no error on that line
+    if trimmed.starts_with("Compiling ")
+        && !trimmed.contains("error")
+        && !trimmed.contains("warning")
+    {
+        return true;
+    }
+
+    false
+}
+
+/// Helper: Checks if a line is a critical failure anchor
+pub fn is_critical_error_anchor(line: &str) -> bool {
+    let l = line.to_lowercase();
+    l.contains("caused by:")
+        || l.contains("build failure")
+        || l.contains("assertion failed")
+        || l.contains("exception in thread")
+        || l.contains("stack backtrace:")
+        || l.contains("traceback (most recent call last):")
+        || l.contains("panic:")
+        || l.contains("panic at")
+        || l.contains("error[e") // rustc error code e.g. error[E0308]
+        || l.contains("error ts") // typescript error code e.g. error TS2304
+        || l.contains("failures:")
+        || l.contains("fatal:")
+        || l.contains("syntaxerror:")
+        || l.contains("typeerror:")
+        || l.contains("referenceerror:")
+        || (l.starts_with("error:") || l.starts_with("error :") || l.contains(" error: "))
+        || (l.starts_with("failed:") || l.starts_with("fail:"))
+        || l.contains("failed (failures=")
+        || (l.starts_with("[error]") && !l.contains("0 error"))
+}
+
 /// Compress raw terminal output / build logs while preserving error tracebacks, panic messages,
-/// compiler warnings and key status lines.
+/// compiler warnings and key status lines, while aggressively filtering download and progress bar noise.
 pub fn compress_terminal_output(content: &str, max_lines: usize) -> CompressionResult {
     let lines: Vec<&str> = content.lines().collect();
     let original_bytes = content.len();
     let original_lines = lines.len();
 
-    if original_lines <= max_lines {
+    let has_noise = lines.iter().any(|l| is_terminal_noise(l));
+
+    if original_lines <= max_lines && !has_noise {
         return CompressionResult {
             original_lines,
             compressed_lines: original_lines,
@@ -215,27 +288,40 @@ pub fn compress_terminal_output(content: &str, max_lines: usize) -> CompressionR
 
     let mut keep_mask = vec![false; original_lines];
 
-    // Always keep top N lines (command & initial context) and bottom N lines (summary / exit status)
+    // Always keep top N lines (command & initial context) and bottom N lines (summary / exit status),
+    // unless the line is pure noise
     let head_count = (max_lines / 4).max(10).min(original_lines);
     let tail_count = (max_lines / 3).max(15).min(original_lines.saturating_sub(head_count));
 
     for i in 0..head_count {
-        keep_mask[i] = true;
+        if !is_terminal_noise(lines[i]) {
+            keep_mask[i] = true;
+        }
     }
     for i in (original_lines.saturating_sub(tail_count))..original_lines {
-        keep_mask[i] = true;
+        if !is_terminal_noise(lines[i]) {
+            keep_mask[i] = true;
+        }
     }
 
-    // Keep error stack lines and context (1 line before & after error lines)
+    // Keep error stack lines and context (3 lines before & after for critical errors)
     for (i, line) in lines.iter().enumerate() {
-        let l = line.to_lowercase();
-        if l.contains("error") || l.contains("panic") || l.contains("fail")
-            || l.contains("exception") || l.contains("traceback") || l.contains("caused by")
-            || l.contains("warning") || l.contains("at line") || l.contains("-->")
-        {
-            if i > 0 { keep_mask[i - 1] = true; }
-            keep_mask[i] = true;
-            if i + 1 < original_lines { keep_mask[i + 1] = true; }
+        if is_critical_error_anchor(line) {
+            let start = i.saturating_sub(3);
+            let end = (i + 3).min(original_lines.saturating_sub(1));
+            for j in start..=end {
+                keep_mask[j] = true;
+            }
+        } else {
+            let l = line.to_lowercase();
+            if l.contains("error") || l.contains("panic") || l.contains("fail")
+                || l.contains("exception") || l.contains("traceback")
+                || l.contains("warning") || l.contains("at line") || l.contains("-->")
+            {
+                if i > 0 { keep_mask[i - 1] = true; }
+                keep_mask[i] = true;
+                if i + 1 < original_lines { keep_mask[i + 1] = true; }
+            }
         }
     }
 
@@ -260,7 +346,7 @@ pub fn compress_terminal_output(content: &str, max_lines: usize) -> CompressionR
     let filtered = filtered_lines.join("\n");
     let compressed_bytes = filtered.len();
     let reduction_percent = if original_bytes > 0 {
-        ((original_bytes - compressed_bytes) as f64 / original_bytes as f64) * 100.0
+        ((original_bytes.saturating_sub(compressed_bytes)) as f64 / original_bytes as f64) * 100.0
     } else {
         0.0
     };
@@ -820,6 +906,16 @@ pub fn compress_by_command(cmd: &str, output: &str) -> CompressionResult {
             level: "pipeline".to_string(),
             language: rule.name.clone(),
         }
+    } else if trimmed_cmd.contains("mvn ")
+        || trimmed_cmd.starts_with("mvn")
+        || trimmed_cmd.contains("gradle")
+        || trimmed_cmd.contains("cargo build")
+        || trimmed_cmd.contains("cargo check")
+        || trimmed_cmd.contains("npm run build")
+        || trimmed_cmd.contains("pnpm build")
+        || trimmed_cmd.contains("yarn build")
+    {
+        compress_terminal_output(output, 80)
     } else if output.lines().count() > 30 || output.len() > 1500 {
         compress_terminal_output(output, 80)
     } else {
@@ -999,6 +1095,33 @@ mod tests {
         assert!(res.content.contains("at src/db/connect.rs:42"));
         assert!(res.content.contains("[RTK SmartLog omitted"));
         assert!(res.reduction_percent > 0.0);
+    }
+
+    #[test]
+    fn test_terminal_folding_strips_maven_downloads_and_pins_caused_by() {
+        let mut log = String::new();
+        log.push_str("[INFO] Scanning for projects...\n");
+        log.push_str("[INFO] -------------------< com.example:demo >--------------------\n");
+        for i in 0..50 {
+            log.push_str(&format!("[INFO] Downloading from central: https://repo.maven.apache.org/maven2/org/dep{}/1.0/dep{}-1.0.jar\n", i, i));
+            log.push_str(&format!("Progress (1): {} KB\n", i * 10));
+            log.push_str(&format!("[INFO] Downloaded from central: https://repo.maven.apache.org/maven2/org/dep{}/1.0/dep{}-1.0.jar\n", i, i));
+        }
+        log.push_str("[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:run\n");
+        log.push_str("[ERROR] org.springframework.beans.factory.BeanCreationException: Error creating bean\n");
+        log.push_str("[ERROR] Caused by: java.lang.NullPointerException: datasource url is required\n");
+        log.push_str("    at com.example.demo.config.DbConfig.setup(DbConfig.java:45)\n");
+        log.push_str("[INFO] ------------------------------------------------------------------------\n");
+        log.push_str("[INFO] BUILD FAILURE\n");
+        log.push_str("[INFO] Total time: 12.345 s\n");
+
+        let res = compress_terminal_output(&log, 40);
+        assert!(!res.content.contains("Downloading from central"));
+        assert!(!res.content.contains("Progress (1):"));
+        assert!(res.content.contains("Caused by: java.lang.NullPointerException"));
+        assert!(res.content.contains("BUILD FAILURE"));
+        assert!(res.content.contains("[RTK SmartLog omitted"));
+        assert!(res.reduction_percent > 50.0);
     }
 
     #[test]

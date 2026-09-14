@@ -925,3 +925,345 @@ impl ToolExecutor for GrepSearchTool {
         Ok(json!({ "matches": results }))
     }
 }
+
+/// 语义符号骨架大纲工具 (View Outline)
+/// 为智能体提供轻量级源码符号与路由轮廓提取，免去阅读数百行函数体造成的上下文冲刷
+pub struct ViewOutlineTool {
+    pub workspace_root: PathBuf,
+}
+
+impl ViewOutlineTool {
+    pub fn new(workspace_root: PathBuf) -> Self {
+        Self { workspace_root }
+    }
+}
+
+pub fn extract_symbol_outline(content: &str, ext: &str) -> Vec<String> {
+    let lines: Vec<&str> = content.lines().collect();
+    let mut outline = Vec::new();
+    let ext_lower = ext.to_lowercase();
+
+    match ext_lower.as_str() {
+        "java" => {
+            let mut pending_annotations = Vec::new();
+            for (idx, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                let line_num = idx + 1;
+
+                if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') {
+                    continue;
+                }
+
+                if trimmed.starts_with("package ") || trimmed.starts_with("import ") {
+                    if trimmed.starts_with("package ") {
+                        outline.push(format!("L{:4}: {}", line_num, trimmed));
+                    }
+                    continue;
+                }
+
+                // Annotations like @RestController, @PostMapping, @Override, etc.
+                if trimmed.starts_with('@') {
+                    pending_annotations.push(format!("L{:4}:   {}", line_num, trimmed));
+                    continue;
+                }
+
+                // Class, Interface, Record, Enum declarations
+                let is_type_decl = trimmed.contains("class ")
+                    || trimmed.contains("interface ")
+                    || trimmed.contains("enum ")
+                    || trimmed.contains("record ");
+
+                // Method declarations (public/protected/private ... (...))
+                let is_method_decl = (trimmed.starts_with("public ")
+                    || trimmed.starts_with("protected ")
+                    || trimmed.starts_with("private ")
+                    || trimmed.starts_with("static "))
+                    && trimmed.contains('(')
+                    && (trimmed.ends_with('{') || trimmed.ends_with(';') || trimmed.contains(')'));
+
+                if is_type_decl || is_method_decl {
+                    for ann in pending_annotations.drain(..) {
+                        outline.push(ann);
+                    }
+                    let clean_sig = trimmed.trim_end_matches('{').trim();
+                    let indent = if is_type_decl { "" } else { "  " };
+                    outline.push(format!("L{:4}: {}{}", line_num, indent, clean_sig));
+                } else {
+                    pending_annotations.clear();
+                }
+            }
+        }
+        "rs" => {
+            let mut pending_attrs = Vec::new();
+            for (idx, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                let line_num = idx + 1;
+
+                if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') {
+                    continue;
+                }
+
+                if trimmed.starts_with("#[") {
+                    pending_attrs.push(format!("L{:4}:   {}", line_num, trimmed));
+                    continue;
+                }
+
+                let is_mod = trimmed.starts_with("pub mod ") || trimmed.starts_with("mod ");
+                let is_type_decl = trimmed.starts_with("pub struct ")
+                    || trimmed.starts_with("struct ")
+                    || trimmed.starts_with("pub enum ")
+                    || trimmed.starts_with("enum ")
+                    || trimmed.starts_with("pub trait ")
+                    || trimmed.starts_with("trait ")
+                    || trimmed.starts_with("impl ")
+                    || trimmed.starts_with("pub type ")
+                    || trimmed.starts_with("type ");
+
+                let is_fn_decl = (trimmed.starts_with("pub fn ")
+                    || trimmed.starts_with("pub async fn ")
+                    || trimmed.starts_with("fn ")
+                    || trimmed.starts_with("async fn "))
+                    && trimmed.contains('(');
+
+                if is_mod || is_type_decl || is_fn_decl {
+                    for attr in pending_attrs.drain(..) {
+                        outline.push(attr);
+                    }
+                    let clean_sig = trimmed.trim_end_matches('{').trim();
+                    let indent = if is_fn_decl && !trimmed.starts_with("pub ") { "  " } else { "" };
+                    outline.push(format!("L{:4}: {}{}", line_num, indent, clean_sig));
+                } else {
+                    pending_attrs.clear();
+                }
+            }
+        }
+        "ts" | "tsx" | "js" | "jsx" => {
+            for (idx, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                let line_num = idx + 1;
+
+                if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') {
+                    continue;
+                }
+
+                let is_export = trimmed.starts_with("export default ")
+                    || trimmed.starts_with("export function ")
+                    || trimmed.starts_with("export const ")
+                    || trimmed.starts_with("export interface ")
+                    || trimmed.starts_with("export type ")
+                    || trimmed.starts_with("export class ")
+                    || trimmed.starts_with("export enum ");
+
+                let is_decl = trimmed.starts_with("function ")
+                    || trimmed.starts_with("interface ")
+                    || trimmed.starts_with("type ")
+                    || trimmed.starts_with("class ")
+                    || (trimmed.starts_with("const ") && (trimmed.contains("= (") || trimmed.contains("= async (") || trimmed.contains(": React.")));
+
+                if is_export || is_decl {
+                    let clean_sig = trimmed.trim_end_matches('{').trim();
+                    outline.push(format!("L{:4}: {}", line_num, clean_sig));
+                }
+            }
+        }
+        "py" => {
+            let mut pending_decorators = Vec::new();
+            for (idx, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                let line_num = idx + 1;
+
+                if trimmed.is_empty() || trimmed.starts_with('#') {
+                    continue;
+                }
+
+                if trimmed.starts_with('@') {
+                    pending_decorators.push(format!("L{:4}: {}", line_num, trimmed));
+                    continue;
+                }
+
+                let is_def = trimmed.starts_with("def ") || trimmed.starts_with("async def ");
+                let is_class = trimmed.starts_with("class ");
+
+                if is_def || is_class {
+                    for dec in pending_decorators.drain(..) {
+                        outline.push(dec);
+                    }
+                    outline.push(format!("L{:4}: {}", line_num, trimmed));
+                } else {
+                    pending_decorators.clear();
+                }
+            }
+        }
+        _ => {
+            for (idx, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                let line_num = idx + 1;
+                if trimmed.starts_with("func ")
+                    || trimmed.starts_with("def ")
+                    || trimmed.starts_with("fn ")
+                    || trimmed.starts_with("class ")
+                    || trimmed.starts_with("struct ")
+                    || trimmed.starts_with("interface ")
+                {
+                    outline.push(format!("L{:4}: {}", line_num, trimmed));
+                }
+            }
+        }
+    }
+
+    outline
+}
+
+impl ToolExecutor for ViewOutlineTool {
+    fn name(&self) -> &'static str {
+        "view_outline"
+    }
+
+    fn description(&self) -> &'static str {
+        "Extract high-level symbol outline (classes, interfaces, methods, routes, annotations, functions) with 1-based line numbers from a source code file. Supports Java, Rust, TypeScript, JavaScript, Python, Go. Extremely token-efficient for understanding file structure before viewing or modifying sections."
+    }
+
+    fn parameters_schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Path to file to outline. Must be an absolute path or relative to workspace root."
+                }
+            },
+            "required": ["path"]
+        })
+    }
+
+    fn prompt_projection(&self) -> Option<String> {
+        Some(r#"
+[Tool Projection: view_outline]
+- Role: Semantic Structural Radar (代码语义骨架雷达)
+- Usage: For large unfamiliar code files (> 100 lines), always invoke `view_outline` first to inspect class structures, method signatures, Spring routes, or exported APIs. This saves 90%+ tokens compared to reading the entire file, and provides exact line numbers for surgical edits.
+"#.trim().to_string())
+    }
+
+    fn execute(&self, args: Value) -> Result<Value, String> {
+        let path_str = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or("Missing 'path' argument")?;
+        let path = Path::new(path_str);
+        let resolved = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            self.workspace_root.join(path)
+        };
+
+        if !is_path_safe(&resolved, &self.workspace_root) {
+            return Err("Security Error: Path traversal detected. Operations are restricted to the workspace.".into());
+        }
+
+        if !resolved.exists() {
+            return Err(format!("File not found: {}", resolved.display()));
+        }
+
+        let content = std::fs::read_to_string(&resolved)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+
+        let ext = resolved
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+
+        let outline_lines = extract_symbol_outline(&content, ext);
+        let outline_text = outline_lines.join("\n");
+        let total_lines = content.lines().count();
+        let orig_bytes = content.len();
+        let outline_bytes = outline_text.len();
+        let reduction_percent = if orig_bytes > 0 && outline_bytes < orig_bytes {
+            ((orig_bytes - outline_bytes) as f64 / orig_bytes as f64) * 100.0
+        } else {
+            0.0
+        };
+
+        Ok(json!({
+            "path": resolved.display().to_string(),
+            "language": ext,
+            "total_lines": total_lines,
+            "outline_symbol_count": outline_lines.len(),
+            "outline": outline_text,
+            "reduction_percent": (reduction_percent * 10.0).round() / 10.0
+        }))
+    }
+}
+
+#[cfg(test)]
+mod outline_tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_symbol_outline_java() {
+        let java_code = r#"
+package com.deepcloud.engine.api;
+
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/jobs")
+public class SpiderJobController extends BaseController {
+
+    @PostMapping
+    @RequirePermission("engine:job:create")
+    public Result<Long> createJob(@Valid @RequestBody CreateJobCmd cmd) {
+        // Implementation with 50 lines
+        return Result.ok(1L);
+    }
+
+    @GetMapping("/{id}")
+    public Result<SpiderJobVO> getJob(@PathVariable("id") Long id) {
+        // Implementation
+        return Result.ok(null);
+    }
+}
+"#;
+        let outline = extract_symbol_outline(java_code, "java");
+        let joined = outline.join("\n");
+        assert!(joined.contains("package com.deepcloud.engine.api;"));
+        assert!(joined.contains("@RestController"));
+        assert!(joined.contains("@RequestMapping(\"/api/v1/jobs\")"));
+        assert!(joined.contains("public class SpiderJobController extends BaseController"));
+        assert!(joined.contains("@PostMapping"));
+        assert!(joined.contains("public Result<Long> createJob(@Valid @RequestBody CreateJobCmd cmd)"));
+        assert!(joined.contains("@GetMapping(\"/{id}\")"));
+        assert!(!joined.contains("Implementation with 50 lines"));
+    }
+
+    #[test]
+    fn test_extract_symbol_outline_rust() {
+        let rs_code = r#"
+pub mod engine;
+use std::sync::Arc;
+
+#[derive(Debug, Clone)]
+pub struct SpiderJob {
+    pub id: String,
+}
+
+impl SpiderJob {
+    pub fn new(id: String) -> Self {
+        Self { id }
+    }
+
+    fn internal_helper(&self) {
+        // secret logic
+    }
+}
+"#;
+        let outline = extract_symbol_outline(rs_code, "rs");
+        let joined = outline.join("\n");
+        assert!(joined.contains("pub mod engine;"));
+        assert!(joined.contains("#[derive(Debug, Clone)]"));
+        assert!(joined.contains("pub struct SpiderJob"));
+        assert!(joined.contains("impl SpiderJob"));
+        assert!(joined.contains("pub fn new(id: String) -> Self"));
+        assert!(joined.contains("fn internal_helper(&self)"));
+        assert!(!joined.contains("secret logic"));
+    }
+}

@@ -55,7 +55,7 @@ impl ShellService for LocalShellProvider {
         let stderr_raw = String::from_utf8_lossy(&output.stderr).to_string();
 
         let stdout_res = crate::services::token_filter::compress_by_command(cmd, &stdout_raw);
-        let stderr_res = if stderr_raw.lines().count() > 30 || stderr_raw.len() > 1500 {
+        let stderr_res = if stderr_raw.lines().count() > 20 || stderr_raw.len() > 1000 {
             crate::services::token_filter::compress_terminal_output(&stderr_raw, 60)
         } else {
             crate::services::token_filter::compress(
