@@ -64,6 +64,10 @@ impl RunPreludeRuntime {
         }
     }
 
+    pub fn project_path(&self) -> &str {
+        &self.project_path
+    }
+
     pub fn prepare(&self, objective: &str) -> RunPrelude {
         let mut routes = route_objective(objective);
         let memories = SupermemoryStore::new(&self.config, None).search_keyword(objective, 5);
@@ -91,6 +95,44 @@ impl RunPreludeRuntime {
                 MAX_PRELUDE_CHARS,
             );
         }
+
+        // 1. 注入工作区宏观拓扑感知 (Workspace Topography)
+        let project_dir = std::path::Path::new(&self.project_path);
+        let root_dir = if project_dir.is_dir() {
+            project_dir
+        } else {
+            std::path::Path::new(".")
+        };
+        if let Some(topo) = scan_workspace_topography(root_dir) {
+            push_bounded(&mut projection, &topo, MAX_PRELUDE_CHARS);
+        }
+
+        // 2. 注入历史任务自省蒸馏出的工程经验准则 (Distilled Engineering Rules)
+        let store = SupermemoryStore::new(&self.config, Some(&self.project_path));
+        let distilled_rules = store
+            .search_scored_result(objective, 3, None, Some("reflexion"))
+            .unwrap_or_default();
+        if !distilled_rules.is_empty() {
+            push_bounded(
+                &mut projection,
+                "<distilled-engineering-rules>\n",
+                MAX_PRELUDE_CHARS,
+            );
+            for hit in distilled_rules {
+                let rule_line = format!(
+                    "- [{}]: {}\n",
+                    sanitize(&hit.record.name, 100),
+                    sanitize(&hit.record.summary, 300)
+                );
+                push_bounded(&mut projection, &rule_line, MAX_PRELUDE_CHARS);
+            }
+            push_bounded(
+                &mut projection,
+                "</distilled-engineering-rules>\n",
+                MAX_PRELUDE_CHARS,
+            );
+        }
+
         if !graph_nodes.is_empty() {
             push_bounded(
                 &mut projection,
@@ -232,6 +274,69 @@ fn sanitize(value: &str, max_chars: usize) -> String {
         .collect()
 }
 
+pub fn scan_workspace_topography(root: &std::path::Path) -> Option<String> {
+    if !root.is_dir() {
+        return None;
+    }
+
+    let mut detected_modules = Vec::new();
+    let candidates = [
+        ("gateway", "Spring Cloud Gateway (JWT/Routing/RateLimit)"),
+        ("iam-service", "Identity & Access Management (Auth/RBAC)"),
+        ("engine-service", "Data Collection Engine (Pipeline/Rules)"),
+        ("scraper-service", "Crawler Service (Python Scrpling/FastAPI)"),
+        ("model-service", "AI Service (Spring AI)"),
+        ("system-service", "System Management (Config/Menus/Tasks)"),
+        ("social-service", "Social Service (Chat/Presence)"),
+        ("media-service", "Media & Audio Room Service"),
+        ("notification-service", "Notification Hub (In-app/Email)"),
+        ("common", "Common Library (Security/Utils/DTO)"),
+        ("database", "Flyway DB Migrations"),
+        ("deepcloud-ui", "Frontend Web & Desktop (Next.js 16/React 19/Tailwind 4)"),
+        ("super-agent", "SuperAgent Engine (Rust/Axum/RTK/MCP)"),
+    ];
+
+    for (dir_name, desc) in candidates {
+        if root.join(dir_name).is_dir() {
+            detected_modules.push(format!("- `{dir_name}/`: {desc}"));
+        }
+    }
+
+    let mut tech_stacks = Vec::new();
+    if root.join("pom.xml").is_file() {
+        tech_stacks.push("Java 21 / Spring Boot 3.2 / MyBatis-Plus (Root Maven Multi-module)");
+    }
+    if root.join("package.json").is_file()
+        || root.join("deepcloud-ui").join("package.json").is_file()
+    {
+        tech_stacks.push("Next.js 16 App Router / React 19 / Tailwind 4 / Base UI (Frontend)");
+    }
+    if root.join("Cargo.toml").is_file() || root.join("super-agent").join("Cargo.toml").is_file() {
+        tech_stacks.push("Rust 2024 (SuperAgent Hub / Memory / LSP / Tool Execution)");
+    }
+
+    if detected_modules.is_empty() && tech_stacks.is_empty() {
+        return None;
+    }
+
+    let mut topo = String::from("<workspace-topography>\n");
+    if !detected_modules.is_empty() {
+        topo.push_str("Key Subsystems:\n");
+        for m in detected_modules {
+            topo.push_str(&format!("{m}\n"));
+        }
+    }
+    if !tech_stacks.is_empty() {
+        topo.push_str("\nTech Stack:\n");
+        for t in tech_stacks {
+            topo.push_str(&format!("- {t}\n"));
+        }
+    }
+    topo.push_str("\nCore Architectural Rules:\n- Forbidden: JPA/Hibernate (MyBatis-Plus only)\n- Frontend: Use Tailwind semantic classes, never hardcode fixed colors\n- API: Controller must return standard Result<T>\n</workspace-topography>\n");
+
+    Some(topo)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,5 +359,21 @@ mod tests {
         let mut output = String::new();
         push_bounded(&mut output, &"知".repeat(10_000), 100);
         assert_eq!(output.chars().count(), 100);
+    }
+
+    #[test]
+    fn test_scan_workspace_topography() {
+        let temp_dir = std::env::temp_dir().join(format!("topo_test_{}", uuid::Uuid::new_v4().simple()));
+        std::fs::create_dir_all(temp_dir.join("gateway")).unwrap();
+        std::fs::create_dir_all(temp_dir.join("iam-service")).unwrap();
+        std::fs::write(temp_dir.join("pom.xml"), "<project></project>").unwrap();
+
+        let topo = scan_workspace_topography(&temp_dir);
+        assert!(topo.is_some());
+        let content = topo.unwrap();
+        assert!(content.contains("gateway"));
+        assert!(content.contains("iam-service"));
+        assert!(content.contains("MyBatis-Plus"));
+        let _ = std::fs::remove_dir_all(temp_dir);
     }
 }

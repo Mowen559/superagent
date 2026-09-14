@@ -21,7 +21,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures::stream::{self, Stream, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::models::task::TaskStatus;
@@ -287,6 +287,227 @@ pub(crate) fn verification_plan_with_changes(
     plan
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewFinding {
+    pub file: String,
+    pub line_hint: Option<usize>,
+    pub severity: String, // "blocker", "warning", "info"
+    pub rule: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CriticReview {
+    pub status: String, // "approved", "changes_requested", "warning"
+    pub passed: bool,
+    pub summary: String,
+    pub findings: Vec<ReviewFinding>,
+}
+
+pub fn review_diff_architecture(diff_content: &str, _changed_files: &[String]) -> CriticReview {
+    let mut findings = Vec::new();
+    let mut current_file = String::new();
+    let mut line_num = 0usize;
+
+    for line in diff_content.lines() {
+        if line.starts_with("+++ b/") {
+            current_file = line.trim_start_matches("+++ b/").to_string();
+            line_num = 0;
+            continue;
+        } else if line.starts_with("--- ")
+            || line.starts_with("diff --git")
+            || line.starts_with("index ")
+        {
+            continue;
+        } else if line.starts_with("@@ ") {
+            if let Some(plus_idx) = line.find('+') {
+                let sub = &line[plus_idx + 1..];
+                let num_str: String = sub.chars().take_while(|c| c.is_ascii_digit()).collect();
+                line_num = num_str.parse().unwrap_or(0);
+            }
+            continue;
+        }
+
+        let is_addition = line.starts_with('+');
+        if is_addition {
+            line_num += 1;
+            let added_code = &line[1..];
+
+            // 1. 架构红线：严禁 JPA / Hibernate (MyBatis-Plus 唯一)
+            if current_file.ends_with(".java") {
+                if added_code.contains("@Entity")
+                    || added_code.contains("javax.persistence")
+                    || added_code.contains("jakarta.persistence")
+                    || added_code.contains("org.springframework.data.jpa")
+                {
+                    findings.push(ReviewFinding {
+                        file: current_file.clone(),
+                        line_hint: Some(line_num),
+                        severity: "blocker".to_string(),
+                        rule: "ARCH-01: No JPA/Hibernate".to_string(),
+                        message: "DeepCloud 严禁使用 JPA/Hibernate，持久层必须统一使用 MyBatis-Plus LambdaQueryWrapper。".to_string(),
+                    });
+                }
+
+                // 2. 契约红线：台账 #5 手写数字 code
+                if added_code.contains(".put(\"code\", 200)")
+                    || added_code.contains(".put(\"code\", 200L)")
+                {
+                    findings.push(ReviewFinding {
+                        file: current_file.clone(),
+                        line_hint: Some(line_num),
+                        severity: "blocker".to_string(),
+                        rule: "API-01: Standard Result Structure".to_string(),
+                        message: "严禁返回数字型 code: 200，前端统一拦截器严格匹配字符串 \"200\"，请直接继承 BaseController 返回 Result.ok()。".to_string(),
+                    });
+                }
+
+                // 3. 架构红线：禁止在 common 模块引入具体业务模块
+                if current_file.starts_with("common/")
+                    && (added_code.contains("import com.deepcloud.engine")
+                        || added_code.contains("import com.deepcloud.iam")
+                        || added_code.contains("import com.deepcloud.system"))
+                {
+                    findings.push(ReviewFinding {
+                        file: current_file.clone(),
+                        line_hint: Some(line_num),
+                        severity: "blocker".to_string(),
+                        rule: "ARCH-02: Common Circular Dependency".to_string(),
+                        message: "严禁在 common 模块引入具体业务微服务，避免造成循环依赖。".to_string(),
+                    });
+                }
+            }
+
+            // 4. 前端红线：严禁硬编码固定颜色 (需使用 Tailwind 语义类)
+            if current_file.ends_with(".tsx")
+                || current_file.ends_with(".jsx")
+                || current_file.ends_with(".ts")
+            {
+                let fixed_color_needles = [
+                    "bg-amber-",
+                    "bg-blue-",
+                    "bg-red-",
+                    "bg-green-",
+                    "bg-emerald-",
+                    "bg-purple-",
+                    "text-amber-",
+                    "text-blue-",
+                    "text-emerald-",
+                    "text-purple-",
+                ];
+                for needle in fixed_color_needles {
+                    if added_code.contains(needle) {
+                        findings.push(ReviewFinding {
+                            file: current_file.clone(),
+                            line_hint: Some(line_num),
+                            severity: "warning".to_string(),
+                            rule: "UI-01: Semantic Colors Required".to_string(),
+                            message: format!("检测到硬编码 Tailwind 颜色类 '{}'，必须使用 Tailwind 语义类（如 bg-muted, text-muted-foreground, bg-primary）。", needle),
+                        });
+                        break;
+                    }
+                }
+            }
+
+            // 5. 安全红线：硬编码密码 / 敏感 Secret
+            let secret_needles = [
+                "password = \"",
+                "secret_key = \"",
+                "password: \"",
+                "secretKey: \"",
+            ];
+            for s in secret_needles {
+                if added_code.to_lowercase().contains(s) && !current_file.contains("test") {
+                    findings.push(ReviewFinding {
+                        file: current_file.clone(),
+                        line_hint: Some(line_num),
+                        severity: "blocker".to_string(),
+                        rule: "SEC-01: No Hardcoded Secrets".to_string(),
+                        message: "检测到疑似明文凭据/密码硬编码，凭据必须接入 Vault 或通过环境变量/配置文件外部化注入。".to_string(),
+                    });
+                    break;
+                }
+            }
+        } else if !line.starts_with('-') {
+            line_num += 1;
+        }
+    }
+
+    let has_blocker = findings.iter().any(|f| f.severity == "blocker");
+    let has_warning = findings.iter().any(|f| f.severity == "warning");
+
+    let status = if has_blocker {
+        "changes_requested".to_string()
+    } else if has_warning {
+        "warning".to_string()
+    } else {
+        "approved".to_string()
+    };
+
+    let passed = !has_blocker;
+    let summary = if findings.is_empty() {
+        "All architectural and convention checks passed with zero violations.".to_string()
+    } else {
+        format!(
+            "Found {} finding(s): {} blocker(s), {} warning(s).",
+            findings.len(),
+            findings.iter().filter(|f| f.severity == "blocker").count(),
+            findings.iter().filter(|f| f.severity == "warning").count()
+        )
+    };
+
+    CriticReview {
+        status,
+        passed,
+        summary,
+        findings,
+    }
+}
+
+pub(crate) async fn review_task_changes(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> Response {
+    let Some(task) = state.task_manager.get_task(&task_id) else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Task not found" })),
+        )
+            .into_response();
+    };
+    let paths = match development_run_paths(&state, &task) {
+        Ok(paths) => paths,
+        Err(error) => {
+            return (StatusCode::CONFLICT, Json(json!({ "error": error }))).into_response()
+        }
+    };
+    let changed_files: Vec<String> = crate::services::change_set::inspect_changes(
+        &paths.baseline,
+        &paths.project,
+        &paths.run_dir,
+    )
+    .map(|cs| cs.files.into_iter().map(|f| f.path).collect())
+    .unwrap_or_default();
+
+    let output = tokio::process::Command::new("git")
+        .arg("diff")
+        .arg("--no-index")
+        .arg("--")
+        .arg(&paths.project)
+        .arg(&paths.run_dir)
+        .output()
+        .await;
+    let diff_text = output
+        .as_ref()
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+        .unwrap_or_default();
+
+    let review = review_diff_architecture(&diff_text, &changed_files);
+    Json(json!({ "review": review })).into_response()
+}
+
 pub(crate) async fn verify_task_changes(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -321,9 +542,25 @@ pub(crate) async fn verify_task_changes(
     )
     .map(|cs| cs.files.into_iter().map(|f| f.path).collect())
     .unwrap_or_default();
+
+    // 1. 对抗审查门禁：扫描 Diff 中的架构红线 (Critic Review Gate)
+    let diff_output = tokio::process::Command::new("git")
+        .arg("diff")
+        .arg("--no-index")
+        .arg("--")
+        .arg(&paths.project)
+        .arg(&paths.run_dir)
+        .output()
+        .await;
+    let diff_text = diff_output
+        .as_ref()
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_string())
+        .unwrap_or_default();
+    let critic_review = review_diff_architecture(&diff_text, &changed_files);
+
     let plan = verification_plan_with_changes(&paths.run_dir, &changed_files);
     let mut results = Vec::new();
-    let mut passed = !plan.is_empty();
+    let mut passed = !plan.is_empty() && critic_review.passed;
     for spec in plan {
         let started = std::time::Instant::now();
         let mut command = tokio::process::Command::new(&spec.program);
@@ -362,7 +599,7 @@ pub(crate) async fn verify_task_changes(
         };
         results.push(result);
     }
-    let status = if results.is_empty() {
+    let status = if results.is_empty() && critic_review.passed {
         "skipped"
     } else if passed {
         "passed"
@@ -376,6 +613,7 @@ pub(crate) async fn verify_task_changes(
         "sourceFingerprint": fingerprint,
         "completedAt": chrono::Utc::now().to_rfc3339(),
         "commands": results,
+        "criticReview": critic_review,
     });
     state
         .task_manager
@@ -573,6 +811,36 @@ mod tests {
         assert!(!plan.is_empty());
         let first = &plan[0];
         assert!(first.label.contains("TDD Targeted Frontend Test"));
+    }
+
+    #[test]
+    fn test_review_diff_architecture_detects_jpa_and_colors() {
+        let diff_content = r#"
+diff --git a/service/src/main/java/com/deepcloud/User.java b/service/src/main/java/com/deepcloud/User.java
+--- a/service/src/main/java/com/deepcloud/User.java
++++ b/service/src/main/java/com/deepcloud/User.java
+@@ -1,3 +1,5 @@
++import javax.persistence.Entity;
++@Entity
+ public class User {}
+diff --git a/ui/src/App.tsx b/ui/src/App.tsx
+--- a/ui/src/App.tsx
++++ b/ui/src/App.tsx
+@@ -10,3 +10,4 @@
++  return <div className="bg-amber-500">Hello</div>;
+"#;
+        let review = review_diff_architecture(diff_content, &[]);
+        assert!(!review.passed);
+        assert_eq!(review.status, "changes_requested");
+        assert_eq!(review.findings.len(), 2);
+
+        let jpa_finding = review.findings.iter().find(|f| f.rule.contains("JPA")).unwrap();
+        assert_eq!(jpa_finding.severity, "blocker");
+        assert!(jpa_finding.message.contains("MyBatis-Plus"));
+
+        let color_finding = review.findings.iter().find(|f| f.rule.contains("UI-01")).unwrap();
+        assert_eq!(color_finding.severity, "warning");
+        assert!(color_finding.message.contains("bg-amber-"));
     }
 }
 

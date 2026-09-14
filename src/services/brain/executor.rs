@@ -73,7 +73,11 @@ impl AgentLoop {
         let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
 
         let system_prompt = format!(
-            "{}\n\n[Deterministic Engineering & TDD Protocol]\n\
+            "{}\n\n[Proactive High-Agency Protocol]\n\
+             - Autonomous Exploration: Actively use `list_dir`, `find_by_name`, `grep_search`, and `search_graph` to map code structure and trace symbols.\n\
+             - Surgical Edits: Always prefer `replace_in_file` and `multi_replace_file_content` for localized code modifications. Never rewrite whole files when changing a few lines.\n\
+             - Self-Healing & Resilience: When a tool returns errors or compiler diagnostics, analyze the cause, adapt the hypothesis, and repair in-stride without giving up.\n\n\
+             [Deterministic Engineering & TDD Protocol]\n\
              - Test-Driven Verification: When resolving bugs or developing features, write or identify targeted test cases first (Red -> Green -> Refactor), then verify against these tests.\n\
              - Compiler-in-the-Loop: When file editing tools return non-empty `diagnostics`, prioritize correcting these syntax/compiler issues immediately before proceeding to subsequent steps.\n\n\
              [Environment Context]\n- OS: {} ({})\n- Current Directory: {}\n- Current Time: {}",
@@ -243,9 +247,20 @@ impl AgentLoop {
                     );
                 }
                 SessionEvent::ToolResult { id, result } => {
+                    let tool_name = self
+                        .events
+                        .iter()
+                        .rev()
+                        .find_map(|e| match e {
+                            SessionEvent::ToolCall {
+                                id: cid, name, ..
+                            } if cid == id => Some(name.clone()),
+                            _ => None,
+                        })
+                        .unwrap_or_else(|| id.clone());
                     println!(
                         "{}",
-                        serde_json::json!({ "type": "tool_result", "tool": id, "result": result })
+                        serde_json::json!({ "type": "tool_result", "tool": tool_name, "call_id": id, "result": result })
                     );
                 }
                 SessionEvent::SystemWarning(w) => {
@@ -532,6 +547,11 @@ impl AgentLoop {
                 }
                 self.save_session();
                 self.record_evolution(&mut cognition, true);
+                let _ = crate::services::brain::plan_reflection::ReflectionEngine::distill_and_persist(
+                    &self.events,
+                    &self.runtime_config,
+                    Some(self.run_prelude_runtime.project_path()),
+                );
                 return Ok(content.to_string());
             }
 

@@ -59,20 +59,20 @@ async fn main() {
 
 # 功能边界与原生基建强制法则 (Boundaries & Core Directives)
 1. 专注于用户意图：始终围绕用户的核心需求执行，不可自行添加过度复杂或无关的功能（Precision over Scope）。
-2. 安全与破坏防范：在执行删除等高危命令前，必须经过反复确认。遇到错误时必须先阅读错误日志，严禁盲目重试。
+2. 安全与破坏防范：在执行删除等高危命令前，必须经过反复确认。遇到错误时必须先阅读错误日志，结合编译器诊断修复，严禁盲目重复无效命令。
 3. 务实与诚实 (Pragmatic & Honest)：任务完成后必须如实反馈成功或失败的细节，不得掩盖失败。
-4. 【原生基建最高优先级】(CRITICAL: Native Tools First)：
-   - 你的底层已经集成了 RTK Token 压缩、Supermemory (超级记忆)、影子 Git 以及极速原生知识图谱引擎 (`search_graph`)。
-   - 在进行代码库探索时，**必须优先使用图谱能力**，严禁上来就盲目使用 grep/find/cat 去搜索海量代码！
-   - 你是统御者，能用原生神装解决的底层问题，绝不允许在外部挂载杂乱的 Python 脚本“重复造轮子”！
+4. 【原生高能动性探索与精确重构】(Proactive Exploration & Precision Editing)：
+   - 你具备强大的图谱（`search_graph`）与文件级搜索能力（`list_dir`, `find_by_name`, `grep_search`）。在探索代码库时，灵活组合这些工具以极高效率定位关键逻辑。
+   - 【外科手术式修改】：代码修改必须优先使用 `replace_in_file` 或 `multi_replace_file_content` 进行精准替换，严禁全量覆写无需变动的大文件。
+   - 充分复用原生基建：RTK Token 压缩、Supermemory (超级记忆)、影子 Git 以及 LSP 编译器即时诊断。
 
 # 思维逻辑与执行策略 (Thinking & Logical Reasoning)
 在处理任何任务时，你必须遵循严格的逻辑推理循环：
-1. [Observation] 仔细观察：不要急于行动。面对未知任务时，先使用工具读取代码结构、API 文档或运行探索性的查询命令。
+1. [Observation & Topography] 敏锐感知：先用工具探明代码结构、API 契约或运行测试，迅速建立代码上下文。
 2. [Reasoning] 深度推理：在内心拆解问题的本质，思考“为什么发生这种情况？”以及“为了达到目标，我需要跨越哪些障碍？”。
 3. [Planning] 制定计划：明确清晰的执行步骤。若发现某一步可能存在风险，需提前规划备用方案。
-4. [Execution & Diagnosis] 执行与诊断：执行工具后，务必仔细检查返回的结果。如果失败，首先诊断错误根源，而不是盲目重复相同的命令。
-5. [Resilience] 韧性容错：若遇到 401 或 LLM Error，必须尝试诊断自愈，不准惊慌退出。
+4. [Execution & Diagnosis] 执行与诊断：执行工具后，务必仔细检查返回的结果与行级编译诊断（diagnostics）。如果失败，首先诊断错误根源并调整策略，而不是盲目重复。
+5. [Resilience & TDD] 韧性自愈与测试验证：编写或运行针对性单测验证修复，确保测试变绿后再交付。
 "#;
 
     let mut engine = AgentLoop::new(system_prompt);
@@ -90,6 +90,15 @@ async fn main() {
     ));
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::fs::MultiReplaceTool::new(cwd_path.clone()),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::fs::ListDirectoryTool::new(cwd_path.clone()),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::fs::FindByNameTool::new(cwd_path.clone()),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::fs::GrepSearchTool::new(cwd_path.clone()),
     ));
     engine.register_tool(Box::new(RunCommandTool::new(
         shell_provider,

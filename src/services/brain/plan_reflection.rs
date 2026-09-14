@@ -96,6 +96,108 @@ impl ReflectionEngine {
             goal, plan.current_step_index + 1, plan.steps.len(), obs_summary
         )
     }
+
+    /// 分析 Agent 执行轨迹，针对发生的错误、语法诊断及最终修复过程，自动蒸馏出工程经验准则
+    pub fn distill_trajectory_lessons(
+        events: &[crate::services::brain::events::SessionEvent],
+    ) -> Vec<DistilledLesson> {
+        use crate::services::brain::events::SessionEvent;
+        let mut lessons = Vec::new();
+
+        // 1. 扫描行级编译器语法错误或工具报错
+        for event in events {
+            if let SessionEvent::ToolResult { id: _, result } = event {
+                // 检查行级诊断
+                if let Some(diags) = result.get("diagnostics").and_then(|d| d.as_array()) {
+                    for diag in diags {
+                        if diag.get("severity").and_then(|s| s.as_str()) == Some("error") {
+                            let msg = diag
+                                .get("message")
+                                .and_then(|m| m.as_str())
+                                .unwrap_or("Syntax error");
+                            let line = diag.get("line").and_then(|l| l.as_u64()).unwrap_or(0);
+                            lessons.push(DistilledLesson {
+                                title: "Delimited Syntax & Compiler Guard".to_string(),
+                                trigger_pattern: format!("Compiler error at line {}: {}", line, msg),
+                                rule_guidance: format!(
+                                    "When editing files, strictly ensure delimiter balance and syntax completeness around line {}. Use replace_in_file with exact context matches.",
+                                    line
+                                ),
+                                severity: "warning".to_string(),
+                            });
+                        }
+                    }
+                }
+
+                // 检查越界或路径安全错误
+                if let Some(err) = result.as_str() {
+                    if err.contains("Security Error") && err.contains("outside the workspace") {
+                        lessons.push(DistilledLesson {
+                            title: "Workspace Boundary Enforcement".to_string(),
+                            trigger_pattern: "Security Error: path outside the workspace".to_string(),
+                            rule_guidance: "All operations must use paths within the current workspace root. Avoid ../ traversals outside target directories.".to_string(),
+                            severity: "blocker".to_string(),
+                        });
+                    }
+                }
+            }
+        }
+
+        // 去重
+        lessons.dedup_by(|a, b| a.title == b.title && a.trigger_pattern == b.trigger_pattern);
+        lessons
+    }
+
+    /// 将蒸馏后的经验准则持久化沉淀到超级记忆海马体 (SupermemoryStore)
+    pub fn distill_and_persist(
+        events: &[crate::services::brain::events::SessionEvent],
+        config: &crate::config::runtime::RuntimeConfig,
+        project_path: Option<&str>,
+    ) -> usize {
+        let lessons = Self::distill_trajectory_lessons(events);
+        if lessons.is_empty() {
+            return 0;
+        }
+
+        let store =
+            crate::services::supermemory_store::SupermemoryStore::new(config, project_path);
+        let count = lessons.len();
+
+        for lesson in lessons {
+            let record_id = format!("distilled_{}", uuid::Uuid::new_v4().simple());
+            let record = crate::models::memory::SupermemoryRecord {
+                id: record_id,
+                name: lesson.title.clone(),
+                summary: format!(
+                    "Pattern: {}\nGuideline: {}",
+                    lesson.trigger_pattern, lesson.rule_guidance
+                ),
+                tags: vec!["distilled_rule".to_string(), "reflexion".to_string()],
+                file_path: "".to_string(),
+                complexity: lesson.severity,
+                node_type: "reflexion".to_string(),
+                source_graph_path: "".to_string(),
+                source_label: "PostMortemReflexion".to_string(),
+                updated_at: chrono::Utc::now().to_rfc3339(),
+                embedding: None,
+            };
+            store.write_memory(record);
+            eprintln!(
+                "\x1b[32m[Reflexion Engine] 🧬 Distilled & persisted rule: {}\x1b[0m",
+                lesson.title
+            );
+        }
+
+        count
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DistilledLesson {
+    pub title: String,
+    pub trigger_pattern: String,
+    pub rule_guidance: String,
+    pub severity: String,
 }
 
 #[cfg(test)]
@@ -133,5 +235,45 @@ mod tests {
         );
         assert!(prompt.contains("SYSTEM REFLECTION INSTRUCTION"));
         assert!(prompt.contains("Repeated tool failure"));
+    }
+
+    #[test]
+    fn test_distill_trajectory_lessons() {
+        use crate::services::brain::events::SessionEvent;
+        use serde_json::json;
+
+        let events = vec![
+            SessionEvent::ToolCall {
+                id: "call_1".to_string(),
+                name: "replace_in_file".to_string(),
+                arguments: json!({ "path": "test.rs" }),
+            },
+            SessionEvent::ToolResult {
+                id: "call_1".to_string(),
+                result: json!({
+                    "diagnostics": [
+                        { "severity": "error", "line": 42, "message": "unclosed delimiter" }
+                    ]
+                }),
+            },
+            SessionEvent::ToolCall {
+                id: "call_2".to_string(),
+                name: "replace_in_file".to_string(),
+                arguments: json!({ "path": "test.rs" }),
+            },
+            SessionEvent::ToolResult {
+                id: "call_2".to_string(),
+                result: json!({
+                    "success": true,
+                    "diagnostics": []
+                }),
+            },
+        ];
+
+        let lessons = ReflectionEngine::distill_trajectory_lessons(&events);
+        assert_eq!(lessons.len(), 1);
+        assert_eq!(lessons[0].title, "Delimited Syntax & Compiler Guard");
+        assert!(lessons[0].trigger_pattern.contains("42"));
+        assert!(lessons[0].rule_guidance.contains("delimiter balance"));
     }
 }

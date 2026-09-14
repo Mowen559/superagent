@@ -59,6 +59,10 @@ pub fn router() -> Router<Arc<AppState>> {
             post(verify_task_changes),
         )
         .route(
+            "/api/agents/tasks/{task_id}/review",
+            get(review_task_changes),
+        )
+        .route(
             "/api/agents/tasks/{task_id}/apply",
             post(apply_task_changes),
         )
