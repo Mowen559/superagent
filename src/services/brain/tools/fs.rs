@@ -244,9 +244,12 @@ impl ToolExecutor for WriteFileTool {
         );
 
         match fs::write(path, code_content) {
-            Ok(_) => Ok(
-                json!({ "status": "success", "message": format!("File written to {}", target_file) }),
-            ),
+            Ok(_) => {
+                let diagnostics = collect_file_diagnostics(path, code_content);
+                Ok(
+                    json!({ "status": "success", "message": format!("File written to {}", target_file), "diagnostics": diagnostics }),
+                )
+            }
             Err(e) => Err(format!("Failed to write to file: {}", e)),
         }
     }
@@ -341,12 +344,11 @@ impl ToolExecutor for ReplaceInFileTool {
                 path_str
             ),
         );
-        std::fs::write(path, content).map_err(|e| format!("Failed to write file: {}", e))?;
-
-        // (&format!("Auto snapshot before replace_in_file {}", path));
+        std::fs::write(path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
+        let diagnostics = collect_file_diagnostics(path, &content);
 
         Ok(
-            json!({"success": true, "message": format!("Successfully replaced text in {}{}", path.display(), repair_msg)}),
+            json!({"success": true, "message": format!("Successfully replaced text in {}{}", path.display(), repair_msg), "diagnostics": diagnostics}),
         )
     }
 }
@@ -452,13 +454,204 @@ impl ToolExecutor for MultiReplaceTool {
         }
 
         std::fs::write(path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
+        let diagnostics = collect_file_diagnostics(path, &content);
 
         Ok(json!({
             "status": "success",
             "blocks_replaced": replaced_count,
-            "message": format!("Successfully applied {} refactoring blocks.", replaced_count)
+            "message": format!("Successfully applied {} refactoring blocks.", replaced_count),
+            "diagnostics": diagnostics
         }))
     }
+}
+
+/// 收集已写入文件的即时语法与行级编译器诊断 (Compiler/Syntax in the Loop)
+pub fn collect_file_diagnostics(path: &Path, content: &str) -> Vec<Value> {
+    let mut diagnostics = Vec::new();
+
+    // 1. LSP 全局活跃客户端诊断 (若运行着 rust-analyzer/tsserver/jdtls)
+    let path_str = path.to_string_lossy().to_string();
+    let lsp_diags = crate::services::brain::tools::lsp_client::get_global_diagnostics_for_file(&path_str);
+    diagnostics.extend(lsp_diags);
+
+    // 2. 内置快速轻量语法结构校验 (Fast Structural Syntax Checker)
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    match ext.as_str() {
+        "json" => {
+            if let Err(e) = serde_json::from_str::<Value>(content) {
+                diagnostics.push(json!({
+                    "severity": "error",
+                    "line": e.line(),
+                    "column": e.column(),
+                    "source": "SyntaxValidator",
+                    "message": format!("JSON 语法错误: {}", e)
+                }));
+            }
+        }
+        "toml" => {
+            if let Err(e) = toml::from_str::<toml::Value>(content) {
+                diagnostics.push(json!({
+                    "severity": "error",
+                    "line": e.span().map(|s| s.start).unwrap_or(1),
+                    "source": "SyntaxValidator",
+                    "message": format!("TOML 语法错误: {}", e.message())
+                }));
+            }
+        }
+        "rs" | "ts" | "tsx" | "js" | "jsx" | "java" => {
+            // 基础括号与分隔符匹配平衡度检测 (Bracket Balance Check)
+            let mut stack = Vec::new();
+            let mut line = 1usize;
+            let mut col = 0usize;
+            let mut in_line_comment = false;
+            let mut in_block_comment = false;
+            let mut in_string = false;
+            let mut string_char = ' ';
+            let mut chars = content.chars().peekable();
+
+            while let Some(ch) = chars.next() {
+                col += 1;
+                if ch == '\n' {
+                    line += 1;
+                    col = 0;
+                    in_line_comment = false;
+                    continue;
+                }
+
+                if in_line_comment {
+                    continue;
+                }
+
+                if in_block_comment {
+                    if ch == '*' && chars.peek() == Some(&'/') {
+                        chars.next();
+                        col += 1;
+                        in_block_comment = false;
+                    }
+                    continue;
+                }
+
+                if in_string {
+                    if ch == '\\' {
+                        let _ = chars.next();
+                        col += 1;
+                    } else if ch == string_char {
+                        in_string = false;
+                    }
+                    continue;
+                }
+
+                if ch == '/' && chars.peek() == Some(&'/') {
+                    chars.next();
+                    col += 1;
+                    in_line_comment = true;
+                    continue;
+                }
+
+                if ch == '/' && chars.peek() == Some(&'*') {
+                    chars.next();
+                    col += 1;
+                    in_block_comment = true;
+                    continue;
+                }
+
+                if ch == '"' || ch == '\'' || ch == '`' {
+                    in_string = true;
+                    string_char = ch;
+                    continue;
+                }
+
+                match ch {
+                    '{' | '(' | '[' => stack.push((ch, line, col)),
+                    '}' => {
+                        if let Some((open, _, _)) = stack.pop() {
+                            if open != '{' {
+                                diagnostics.push(json!({
+                                    "severity": "error",
+                                    "line": line,
+                                    "column": col,
+                                    "source": "SyntaxValidator",
+                                    "message": format!("括号不匹配: 遇到 '}}'，但此前未闭合的左括号为 '{}'", open)
+                                }));
+                                break;
+                            }
+                        } else {
+                            diagnostics.push(json!({
+                                "severity": "error",
+                                "line": line,
+                                "column": col,
+                                "source": "SyntaxValidator",
+                                "message": "括号不匹配: 出现多余未配对的右花括号 '}'"
+                            }));
+                            break;
+                        }
+                    }
+                    ')' => {
+                        if let Some((open, _, _)) = stack.pop() {
+                            if open != '(' {
+                                diagnostics.push(json!({
+                                    "severity": "error",
+                                    "line": line,
+                                    "column": col,
+                                    "source": "SyntaxValidator",
+                                    "message": format!("括号不匹配: 遇到 ')'，但此前未闭合的左括号为 '{}'", open)
+                                }));
+                                break;
+                            }
+                        } else {
+                            diagnostics.push(json!({
+                                "severity": "error",
+                                "line": line,
+                                "column": col,
+                                "source": "SyntaxValidator",
+                                "message": "括号不匹配: 出现多余未配对的右圆括号 ')'"
+                            }));
+                            break;
+                        }
+                    }
+                    ']' => {
+                        if let Some((open, _, _)) = stack.pop() {
+                            if open != '[' {
+                                diagnostics.push(json!({
+                                    "severity": "error",
+                                    "line": line,
+                                    "column": col,
+                                    "source": "SyntaxValidator",
+                                    "message": format!("括号不匹配: 遇到 ']'，但此前未闭合的左括号为 '{}'", open)
+                                }));
+                                break;
+                            }
+                        } else {
+                            diagnostics.push(json!({
+                                "severity": "error",
+                                "line": line,
+                                "column": col,
+                                "source": "SyntaxValidator",
+                                "message": "括号不匹配: 出现多余未配对的右方括号 ']'"
+                            }));
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            if diagnostics.is_empty() && !stack.is_empty() {
+                if let Some((open, o_line, o_col)) = stack.last() {
+                    diagnostics.push(json!({
+                        "severity": "error",
+                        "line": o_line,
+                        "column": o_col,
+                        "source": "SyntaxValidator",
+                        "message": format!("结构未闭合: 位于第 {} 行的 '{}' 未找到对应的闭合右括号", o_line, open)
+                    }));
+                }
+            }
+        }
+        _ => {}
+    }
+
+    diagnostics
 }
 
 #[cfg(test)]
@@ -504,6 +697,29 @@ mod tests {
         }
         .execute(json!({ "path": outside }))
         .is_err());
+    }
+
+    #[test]
+    fn test_collect_file_diagnostics() {
+        // 1. JSON 校验
+        let valid_json = Path::new("test.json");
+        assert!(collect_file_diagnostics(valid_json, r#"{"valid": true}"#).is_empty());
+        let invalid_json = collect_file_diagnostics(valid_json, r#"{"invalid": }"#);
+        assert!(!invalid_json.is_empty());
+        assert_eq!(invalid_json[0]["severity"], "error");
+
+        // 2. 括号匹配校验
+        let valid_rs = Path::new("main.rs");
+        assert!(collect_file_diagnostics(valid_rs, "fn main() { println!(\"hello\"); }").is_empty());
+
+        let invalid_rs = collect_file_diagnostics(valid_rs, "fn main() { let x = (1 + 2; }");
+        assert!(!invalid_rs.is_empty());
+        assert_eq!(invalid_rs[0]["severity"], "error");
+
+        // 3. 未闭合花括号
+        let unclosed_rs = collect_file_diagnostics(valid_rs, "fn main() { if true { println!(\"yes\"); }");
+        assert!(!unclosed_rs.is_empty());
+        assert_eq!(unclosed_rs[0]["severity"], "error");
     }
 }
 

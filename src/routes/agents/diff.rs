@@ -167,8 +167,76 @@ pub(crate) struct VerificationCommand {
 }
 
 pub(crate) fn verification_plan(run_dir: &std::path::Path) -> Vec<VerificationCommand> {
+    verification_plan_with_changes(run_dir, &[])
+}
+
+pub(crate) fn verification_plan_with_changes(
+    run_dir: &std::path::Path,
+    changed_files: &[String],
+) -> Vec<VerificationCommand> {
     let mut plan = Vec::new();
-    if run_dir.join("Cargo.toml").is_file() {
+
+    // 1. TDD 确定性验证门禁：智能探测添加或修改的针对性测试用例
+    for path_str in changed_files {
+        let normalized = path_str.replace('\\', "/");
+        let path = std::path::Path::new(&normalized);
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        // Java 测试感知: e.g. *Test.java / *IT.java
+        if (file_name.ends_with("Test.java") || file_name.ends_with("IT.java")) && run_dir.join("pom.xml").is_file() {
+            let test_class_name = file_name.trim_end_matches(".java");
+            let mut args = vec!["test".to_string(), format!("-Dtest={}", test_class_name)];
+            // 针对多模块 Maven 工程，如 common/src/test/... 提取子模块 -pl common
+            if let Some(submodule) = normalized.split("/src/").next() {
+                if !submodule.is_empty() && submodule != "." && run_dir.join(submodule).join("pom.xml").is_file() {
+                    args.insert(0, "-pl".to_string());
+                    args.insert(1, submodule.to_string());
+                }
+            }
+            plan.push(VerificationCommand {
+                label: format!("TDD Targeted Maven Test: {}", test_class_name),
+                program: if cfg!(windows) { "mvn.cmd" } else { "mvn" }.to_string(),
+                args,
+            });
+            break;
+        }
+
+        // 前端测试感知: e.g. *.test.ts / *.spec.ts / *.test.tsx
+        if (file_name.ends_with(".test.ts") || file_name.ends_with(".test.tsx") || file_name.ends_with(".spec.ts"))
+            && run_dir.join("package.json").is_file()
+        {
+            plan.push(VerificationCommand {
+                label: format!("TDD Targeted Frontend Test: {}", file_name),
+                program: if cfg!(windows) { "npm.cmd" } else { "npm" }.to_string(),
+                args: vec!["test".to_string(), "--".to_string(), normalized.clone()],
+            });
+            break;
+        }
+
+        // Python 测试感知: e.g. test_*.py / *_test.py
+        if (file_name.starts_with("test_") || file_name.ends_with("_test.py")) && file_name.ends_with(".py") {
+            plan.push(VerificationCommand {
+                label: format!("TDD Targeted Python Test: {}", file_name),
+                program: "pytest".to_string(),
+                args: vec![normalized.clone()],
+            });
+            break;
+        }
+
+        // Rust 针对性测试感知: e.g. tests/*.rs
+        if normalized.starts_with("tests/") && file_name.ends_with(".rs") && run_dir.join("Cargo.toml").is_file() {
+            let test_target = file_name.trim_end_matches(".rs");
+            plan.push(VerificationCommand {
+                label: format!("TDD Targeted Rust Test: {}", test_target),
+                program: "cargo".to_string(),
+                args: vec!["test".to_string(), "--test".to_string(), test_target.to_string()],
+            });
+            break;
+        }
+    }
+
+    // 2. 基线构建编译门禁 (Baseline Build Verification)
+    if run_dir.join("Cargo.toml").is_file() && plan.len() < 3 {
         plan.push(VerificationCommand {
             label: "Rust cargo check".to_string(),
             program: "cargo".to_string(),
@@ -246,7 +314,14 @@ pub(crate) async fn verify_task_changes(
                 .into_response()
         }
     };
-    let plan = verification_plan(&paths.run_dir);
+    let changed_files: Vec<String> = crate::services::change_set::inspect_changes(
+        &paths.baseline,
+        &paths.project,
+        &paths.run_dir,
+    )
+    .map(|cs| cs.files.into_iter().map(|f| f.path).collect())
+    .unwrap_or_default();
+    let plan = verification_plan_with_changes(&paths.run_dir, &changed_files);
     let mut results = Vec::new();
     let mut passed = !plan.is_empty();
     for spec in plan {
@@ -466,3 +541,38 @@ pub(crate) async fn apply_task_changes(
     }))
     .into_response()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_verification_plan_with_java_test_changes() {
+        let temp = tempfile::tempdir().unwrap();
+        let run_dir = temp.path();
+        std::fs::write(run_dir.join("pom.xml"), "<project></project>").unwrap();
+
+        let changed = vec!["common/src/test/java/common/agent/AgentSdkTest.java".to_string()];
+        let plan = verification_plan_with_changes(run_dir, &changed);
+
+        assert!(!plan.is_empty());
+        let first = &plan[0];
+        assert!(first.label.contains("TDD Targeted Maven Test: AgentSdkTest"));
+        assert_eq!(first.args, vec!["-pl", "common", "test", "-Dtest=AgentSdkTest"]);
+    }
+
+    #[test]
+    fn test_verification_plan_with_frontend_test_changes() {
+        let temp = tempfile::tempdir().unwrap();
+        let run_dir = temp.path();
+        std::fs::write(run_dir.join("package.json"), r#"{"scripts":{"test":"vitest"}}"#).unwrap();
+
+        let changed = vec!["src/app/agent.test.ts".to_string()];
+        let plan = verification_plan_with_changes(run_dir, &changed);
+
+        assert!(!plan.is_empty());
+        let first = &plan[0];
+        assert!(first.label.contains("TDD Targeted Frontend Test"));
+    }
+}
+

@@ -73,7 +73,10 @@ impl AgentLoop {
         let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
 
         let system_prompt = format!(
-            "{}\n\n[Environment Context]\n- OS: {} ({})\n- Current Directory: {}\n- Current Time: {}",
+            "{}\n\n[Deterministic Engineering & TDD Protocol]\n\
+             - Test-Driven Verification: When resolving bugs or developing features, write or identify targeted test cases first (Red -> Green -> Refactor), then verify against these tests.\n\
+             - Compiler-in-the-Loop: When file editing tools return non-empty `diagnostics`, prioritize correcting these syntax/compiler issues immediately before proceeding to subsequent steps.\n\n\
+             [Environment Context]\n- OS: {} ({})\n- Current Directory: {}\n- Current Time: {}",
             base_prompt, os, arch, cwd, now
         );
         let run_prelude_runtime = RunPreludeRuntime::new(config.clone(), &cwd);

@@ -19,6 +19,7 @@ pub struct LspClient {
     stdin: ChildStdin,
     request_counter: u64,
     responses: Arc<Mutex<HashMap<u64, Value>>>,
+    diagnostics: Arc<Mutex<HashMap<String, Vec<Value>>>>,
     // 保持 Child 的所有权防止进程退出
     _child: Child,
 }
@@ -39,6 +40,8 @@ impl LspClient {
 
         let responses = Arc::new(Mutex::new(HashMap::new()));
         let responses_clone = responses.clone();
+        let diagnostics = Arc::new(Mutex::new(HashMap::new()));
+        let diagnostics_clone = diagnostics.clone();
 
         // 启动后台监听线程读取 stdout
         thread::spawn(move || {
@@ -71,7 +74,21 @@ impl LspClient {
                             if let Some(id_val) = json_val.get("id") {
                                 if let Some(id) = id_val.as_u64() {
                                     if let Ok(mut map) = responses_clone.lock() {
-                                        map.insert(id, json_val);
+                                        map.insert(id, json_val.clone());
+                                    }
+                                }
+                            }
+                            // 检查是否是通知事件 (例如 textDocument/publishDiagnostics)
+                            if let Some(method) = json_val.get("method").and_then(|m| m.as_str()) {
+                                if method == "textDocument/publishDiagnostics" {
+                                    if let Some(params) = json_val.get("params") {
+                                        if let Some(uri) = params.get("uri").and_then(|u| u.as_str()) {
+                                            if let Some(diags) = params.get("diagnostics").and_then(|d| d.as_array()) {
+                                                if let Ok(mut map) = diagnostics_clone.lock() {
+                                                    map.insert(uri.to_string(), diags.clone());
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -85,6 +102,7 @@ impl LspClient {
             stdin,
             request_counter: 1,
             responses,
+            diagnostics,
             _child: child,
         };
 
@@ -160,4 +178,43 @@ impl LspClient {
 
         Ok(())
     }
+
+    /// 查询某文件的最新 LSP 诊断信息
+    pub fn get_file_diagnostics(&self, uri: &str) -> Vec<Value> {
+        if let Ok(map) = self.diagnostics.lock() {
+            if let Some(diags) = map.get(uri) {
+                return diags.clone();
+            }
+        }
+        Vec::new()
+    }
+
+    /// 发送文件已保存通知
+    pub fn notify_did_save(&mut self, uri: &str, text: Option<&str>) -> Result<(), String> {
+        let mut params = json!({
+            "textDocument": { "uri": uri }
+        });
+        if let Some(t) = text {
+            params["text"] = json!(t);
+        }
+        self.send_notification("textDocument/didSave", params)
+    }
 }
+
+/// 查询全局活跃 LSP 客户端关于某文件的行级诊断信息
+pub fn get_global_diagnostics_for_file(file_path: &str) -> Vec<Value> {
+    let uri = if file_path.starts_with("file://") {
+        file_path.to_string()
+    } else {
+        let path = std::path::Path::new(file_path);
+        format!("file:///{}", path.display().to_string().replace('\\', "/"))
+    };
+
+    if let Ok(guard) = GLOBAL_LSP_CLIENT.lock() {
+        if let Some(client) = guard.as_ref() {
+            return client.get_file_diagnostics(&uri);
+        }
+    }
+    Vec::new()
+}
+
