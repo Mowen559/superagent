@@ -31,6 +31,10 @@
     {
       "name": "SystemAndHealth",
       "description": "Hub system health, multi-provider latency probes, and dynamic capabilities discovery."
+    },
+    {
+      "name": "McpToolsRegistry",
+      "description": "Dynamic MCP tool registry & two-way execution bridge for external microservices and plugins."
     }
   ],
   "paths": {
@@ -498,6 +502,113 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp/tools": {
+      "get": {
+        "tags": ["McpToolsRegistry"],
+        "summary": "List all dynamically registered MCP tools",
+        "description": "Returns all remote microservice and dynamic plugin tools currently available to SuperAgent.",
+        "operationId": "listMcpTools",
+        "responses": {
+          "200": {
+            "description": "List of dynamic MCP tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "count": { "type": "integer" },
+                    "tools": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp/tools/register": {
+      "post": {
+        "tags": ["McpToolsRegistry"],
+        "summary": "Register external microservice tools",
+        "description": "Receives tool definitions exported by external microservices (e.g. Java Spring Boot @AgentTool) and registers them for dynamic invocation.",
+        "operationId": "registerMcpTools",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["serviceName", "callbackUrl", "tools"],
+                "properties": {
+                  "serviceName": { "type": "string", "example": "engine-service" },
+                  "callbackUrl": { "type": "string", "example": "http://127.0.0.1:8080/internal/api/v1/agent/tools/invoke" },
+                  "tools": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool registration result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "serviceName": { "type": "string" },
+                    "registeredCount": { "type": "integer" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp/tools/invoke": {
+      "post": {
+        "tags": ["McpToolsRegistry"],
+        "summary": "Directly invoke a registered MCP tool",
+        "description": "Dispatches execution to the remote microservice endpoint registered for this tool.",
+        "operationId": "invokeMcpTool",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tool"],
+                "properties": {
+                  "tool": { "type": "string", "example": "crawl_web_page" },
+                  "arguments": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool execution result from remote service",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "result": {}
+                  }
                 }
               }
             }

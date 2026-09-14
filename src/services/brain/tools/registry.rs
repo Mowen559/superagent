@@ -10,9 +10,18 @@ pub struct PluginRegistry {
 
 impl PluginRegistry {
     pub fn new() -> Self {
-        Self {
+        let registry = Self {
             tools: Arc::new(Mutex::new(HashMap::new())),
+        };
+        // 自动挂载由外部微服务注册的动态 MCP 工具
+        let remote_tools = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+            .lock()
+            .unwrap()
+            .create_tool_executors();
+        for tool in remote_tools {
+            registry.register(tool);
         }
+        registry
     }
 
     pub fn register(&self, tool: Box<dyn ToolExecutor>) {
@@ -45,6 +54,17 @@ impl PluginRegistry {
                     );
                 }
             }
+        }
+
+        // 同步挂载外部微服务注册的动态 MCP 远程工具
+        let remote_tools = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+            .lock()
+            .unwrap()
+            .create_tool_executors();
+        for tool in remote_tools {
+            let tool_name = tool.name().to_string();
+            self.register(tool);
+            eprintln!("[PluginRegistry] Mounted dynamic remote MCP tool: {}", tool_name);
         }
     }
 }

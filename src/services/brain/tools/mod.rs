@@ -24,3 +24,4 @@ pub mod web;
 
 pub mod mcp_client;
 pub mod shadow_git_tool;
+pub mod dynamic_mcp;

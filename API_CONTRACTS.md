@@ -273,3 +273,11 @@ SuperAgent 采用 **“Sidecar/守护进程 (Rust Hub-RS) + 标准开放契约 (
    - `GET /api/health`: 探测服务存活、内存负载与上游 Provider 延迟。
    - `GET /api/capabilities`: 动态发现当前 Hub 启用的功能模块。
 
+### 3. MCP 工具动态注册与双向桥接契约 (McpToolsRegistry)
+1. **外部微服务自动上报与发现**:
+   - `POST /api/mcp/tools/register`: 外部微服务（如 Java Spring Boot `AgentToolAutoRegistrar`）在启动就绪时自动上报由 `@AgentTool` 声明的业务工具元数据与 JSON Schema。
+   - `GET /api/mcp/tools`: 查询所有当前在 Hub-RS 中活跃挂载的动态微服务工具与插件。
+2. **双向调用与反向回调**:
+   - `POST /api/mcp/tools/invoke`: 直接测试或转发调用指定的远程 MCP 工具。
+   - **智能体闭环推理**: 在 SuperAgent 大脑（`AgentLoop` / `ToolExecutionGateway`）推理决策时，自动将微服务上报的外部工具转化为 `ToolExecutor` 暴露给大模型；在大模型生成工具调用指令时，Hub-RS 自动向微服务回调端点（默认 `POST /internal/api/v1/agent/tools/invoke`）发起请求并获取执行结果，实现跨语言、跨服务的智能体业务联动。
+
