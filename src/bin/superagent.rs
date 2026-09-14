@@ -170,6 +170,12 @@ async fn main() {
     // 注册热重载插件工具与自举重载工具
     engine.register_tool(Box::new(ReloadPluginsTool::new(engine.get_tools_ref())));
     engine.register_tool(Box::new(RequestReloadTool));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::checkpoint::CreateCheckpointTool::new(cwd_path.clone()),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::checkpoint::RevertToCheckpointTool::new(cwd_path.clone()),
+    ));
 
     // 自动扫描与装载动态插件工具
     engine.plugin_registry.load_dynamic_plugins();

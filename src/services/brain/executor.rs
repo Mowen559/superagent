@@ -34,11 +34,37 @@ pub trait ToolExecutor: Send + Sync {
     }
 }
 
-/// DSH 鑼冨紡鐨勮繍琛屽紩鎿庯細涓€鍒囧熀浜?Context 瀹瑰櫒涓?SessionEvent 浜嬩欢娴?
+/// Helper function to classify tools as read-only (speculatively parallelizable)
+pub fn is_read_only_tool(name: &str) -> bool {
+    matches!(
+        name,
+        "view_file"
+            | "read_file"
+            | "view_outline"
+            | "list_dir"
+            | "list_directory"
+            | "find_by_name"
+            | "grep_search"
+            | "search_graph"
+            | "query_graph"
+            | "get_architecture"
+            | "trace_path"
+            | "get_code_snippet"
+            | "super_memory"
+            | "read_tool_result"
+            | "web_fetch"
+            | "lsp_client"
+            | "check_worker_status"
+            | "knowledge_search"
+            | "corpus_search"
+    )
+}
+
+/// DSH 范式的运行引擎：一切基于 Context 容器与 SessionEvent 事件流
 pub struct AgentLoop {
     pub ctx: Context,
     pub plugin_registry: crate::services::brain::tools::registry::PluginRegistry,
-    pub events: Vec<SessionEvent>, // 浼氳瘽鍘嗗彶锛堝己绫诲瀷浜嬩欢婧簮锛?
+    pub events: Vec<SessionEvent>, // 会话历史（强类型事件溯源）
     pub event_bus: EventBus,
     system_prompt: String,
     llm_provider: LlmProvider,
@@ -48,7 +74,7 @@ pub struct AgentLoop {
     pub runtime_config: crate::config::runtime::RuntimeConfig,
     session_ledger: SessionLedger,
     session_lifecycle: SessionLifecycle,
-    tool_gateway: ToolExecutionGateway,
+    tool_gateway: Arc<ToolExecutionGateway>,
     evolution_memory: EvolutionMemory,
     compaction_runtime: CompactionRuntime,
     model_attempt_router: ModelAttemptRouter,
@@ -134,7 +160,7 @@ impl AgentLoop {
         let event_bus = EventBus::new();
 
         let plugin_registry = crate::services::brain::tools::registry::PluginRegistry::new();
-        let tool_gateway = ToolExecutionGateway::new(plugin_registry.get_tools_ref());
+        let tool_gateway = Arc::new(ToolExecutionGateway::new(plugin_registry.get_tools_ref()));
         let evolution_memory = EvolutionMemory::default_location();
         let steering_queue = Arc::new(SteeringQueue::default_location());
         let interaction_runtime = Arc::new(InteractionRuntime::default());
@@ -357,7 +383,7 @@ impl AgentLoop {
         self.plugin_registry.register(tool);
     }
 
-    pub fn get_tools_ref(&self) -> Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>> {
+    pub fn get_tools_ref(&self) -> Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>> {
         self.plugin_registry.get_tools_ref()
     }
 
@@ -477,56 +503,140 @@ impl AgentLoop {
                 }
             };
 
-            // 4. 瑙ｆ瀽 LLM 鍥炲锛屽彂灏勬ā鍨嬫€濊€冧簨浠?/ 宸ュ叿璋冪敤浜嬩欢
+            // 4. 解析 LLM 回复，发射模型思考事件 / 工具调用事件
             if let Some(tool_calls) = llm_message.get("tool_calls").and_then(|v| v.as_array()) {
+                struct ParsedCall {
+                    call_id: String,
+                    func_name: String,
+                    args: Value,
+                    is_read_only: bool,
+                }
+
+                let mut parsed_calls: Vec<ParsedCall> = Vec::with_capacity(tool_calls.len());
                 for call in tool_calls {
                     let func_name = call["function"]["name"].as_str().unwrap_or("").to_string();
                     let args_str = call["function"]["arguments"].as_str().unwrap_or("{}");
                     let args: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
-
                     let call_id = call["id"].as_str().unwrap_or("").to_string();
+                    let is_read_only = is_read_only_tool(&func_name);
 
-                    // 鍙戝皠宸ュ叿璋冪敤浜嬩欢
-                    self.push_event(SessionEvent::ToolCall {
-                        id: call_id.clone(),
-                        name: func_name.clone(),
-                        arguments: args.clone(),
-                    });
-                    self.save_session();
-
-                    let awaits_user = func_name == "ask_user";
-                    if awaits_user {
-                        self.transition_session(
-                            SessionStatus::NeedsInput,
-                            Some("waiting for correlated Interaction Request".to_string()),
-                        )?;
-                    }
-
-                    let receipt = self.tool_gateway.execute(ToolExecutionRequest {
-                        call_id: call_id.clone(),
-                        name: func_name.clone(),
-                        arguments: args,
-                    });
-                    if awaits_user {
-                        self.transition_session(
-                            SessionStatus::Running,
-                            Some("Interaction Request settled".to_string()),
-                        )?;
-                    }
-                    eprintln!(
-                        "[Brain B] Tool {} finished with {:?} in {}ms",
-                        receipt.name, receipt.status, receipt.duration_ms
-                    );
-                    cognition.observe_tool(receipt.status, receipt.risk);
-                    let tool_result = receipt.result;
-
-                    // 鍙戝皠宸ュ叿鎵ц缁撴灉浜嬩欢
-                    self.push_event(SessionEvent::ToolResult {
-                        id: call_id,
-                        result: tool_result,
+                    parsed_calls.push(ParsedCall {
+                        call_id,
+                        func_name,
+                        args,
+                        is_read_only,
                     });
                 }
-                self.save_session();
+
+                // Partition parsed_calls into contiguous chunks:
+                // Contiguous read-only calls form a chunk (can execute concurrently),
+                // Mutating calls form single-element chunks (executed sequentially with barriers).
+                let mut chunks: Vec<Vec<ParsedCall>> = Vec::new();
+                for call in parsed_calls {
+                    if call.is_read_only {
+                        if let Some(last_chunk) = chunks.last_mut() {
+                            if last_chunk.first().map(|c| c.is_read_only).unwrap_or(false) {
+                                last_chunk.push(call);
+                                continue;
+                            }
+                        }
+                        chunks.push(vec![call]);
+                    } else {
+                        chunks.push(vec![call]);
+                    }
+                }
+
+                for chunk in chunks {
+                    let is_read_only_chunk = chunk.first().map(|c| c.is_read_only).unwrap_or(false);
+
+                    if is_read_only_chunk && chunk.len() > 1 {
+                        // Parallel branch for speculative read-only tool calls
+                        for item in &chunk {
+                            self.push_event(SessionEvent::ToolCall {
+                                id: item.call_id.clone(),
+                                name: item.func_name.clone(),
+                                arguments: item.args.clone(),
+                            });
+                        }
+                        self.save_session();
+
+                        eprintln!(
+                            "[Brain B] Speculative parallel execution of {} read-only tools: {:?}",
+                            chunk.len(),
+                            chunk.iter().map(|c| c.func_name.as_str()).collect::<Vec<_>>()
+                        );
+
+                        let mut handles = Vec::with_capacity(chunk.len());
+                        for item in chunk {
+                            let gateway = self.tool_gateway.clone();
+                            let req = ToolExecutionRequest {
+                                call_id: item.call_id,
+                                name: item.func_name,
+                                arguments: item.args,
+                            };
+                            handles.push(tokio::task::spawn_blocking(move || gateway.execute(req)));
+                        }
+
+                        for handle in handles {
+                            if let Ok(receipt) = handle.await {
+                                eprintln!(
+                                    "[Brain B] Tool {} (parallel) finished with {:?} in {}ms",
+                                    receipt.name, receipt.status, receipt.duration_ms
+                                );
+                                cognition.observe_tool(receipt.status, receipt.risk);
+                                self.push_event(SessionEvent::ToolResult {
+                                    id: receipt.call_id,
+                                    result: receipt.result,
+                                });
+                            }
+                        }
+                        self.save_session();
+                    } else {
+                        // Sequential branch (mutating tools or single tool call)
+                        for item in chunk {
+                            self.push_event(SessionEvent::ToolCall {
+                                id: item.call_id.clone(),
+                                name: item.func_name.clone(),
+                                arguments: item.args.clone(),
+                            });
+                            self.save_session();
+
+                            let awaits_user = item.func_name == "ask_user";
+                            if awaits_user {
+                                self.transition_session(
+                                    SessionStatus::NeedsInput,
+                                    Some("waiting for correlated Interaction Request".to_string()),
+                                )?;
+                            }
+
+                            let receipt = self.tool_gateway.execute(ToolExecutionRequest {
+                                call_id: item.call_id.clone(),
+                                name: item.func_name.clone(),
+                                arguments: item.args,
+                            });
+
+                            if awaits_user {
+                                self.transition_session(
+                                    SessionStatus::Running,
+                                    Some("Interaction Request settled".to_string()),
+                                )?;
+                            }
+
+                            eprintln!(
+                                "[Brain B] Tool {} finished with {:?} in {}ms",
+                                receipt.name, receipt.status, receipt.duration_ms
+                            );
+                            cognition.observe_tool(receipt.status, receipt.risk);
+                            let tool_result = receipt.result;
+
+                            self.push_event(SessionEvent::ToolResult {
+                                id: item.call_id,
+                                result: tool_result,
+                            });
+                            self.save_session();
+                        }
+                    }
+                }
                 continue;
             }
 

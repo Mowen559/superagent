@@ -12,7 +12,7 @@ use std::time::Instant;
 
 const DEFAULT_MAX_RESULT_CHARS: usize = 16_000;
 
-pub type ToolRegistry = Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>;
+pub type ToolRegistry = Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>>;
 
 #[derive(Debug, Clone)]
 pub struct ToolExecutionRequest {
@@ -212,7 +212,8 @@ impl ToolExecutionGateway {
             .registry
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .remove(&request.name);
+            .get(&request.name)
+            .cloned();
 
         let Some(tool) = tool else {
             return self.receipt(
@@ -226,11 +227,6 @@ impl ToolExecutionGateway {
         let execution = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             tool.execute(request.arguments.clone())
         }));
-
-        self.registry
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .insert(request.name.clone(), tool);
 
         match execution {
             Ok(Ok(result)) => {
@@ -395,8 +391,8 @@ mod tests {
     }
 
     fn registry(tool: FixtureTool) -> ToolRegistry {
-        let mut tools: HashMap<String, Box<dyn ToolExecutor>> = HashMap::new();
-        tools.insert(tool.name().to_string(), Box::new(tool));
+        let mut tools: HashMap<String, Arc<dyn ToolExecutor>> = HashMap::new();
+        tools.insert(tool.name().to_string(), Arc::new(tool));
         Arc::new(Mutex::new(tools))
     }
 

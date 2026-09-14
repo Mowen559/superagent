@@ -518,3 +518,54 @@ pub fn rollback_to_snapshot(project_path: &str, snapshot_hash: &str) -> Result<(
 
     Ok(())
 }
+
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SnapshotCheckpoint {
+    pub id: String,
+    pub commit_hash: String,
+    pub description: String,
+    pub timestamp: String,
+}
+
+/// 为当前工作区创建命名检查点
+pub fn create_checkpoint(project_path: &str, description: &str) -> Result<SnapshotCheckpoint, String> {
+    let id = format!("cp-{}", &uuid::Uuid::new_v4().to_string()[..8]);
+    let msg = format!("[Checkpoint: {}] {}", id, description);
+    let commit_hash = record_ai_snapshot(project_path, &msg)?;
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    Ok(SnapshotCheckpoint {
+        id,
+        commit_hash,
+        description: description.to_string(),
+        timestamp: now,
+    })
+}
+
+/// 回滚工作区到指定检查点或最新检查点
+pub fn revert_to_checkpoint(project_path: &str, checkpoint_target: Option<&str>) -> Result<String, String> {
+    let history = get_ai_history(project_path, 30)?;
+    if history.is_empty() {
+        return Err("No checkpoint history found to revert to.".to_string());
+    }
+
+    let target_commit = match checkpoint_target {
+        Some(target) => {
+            history.iter().find(|c| {
+                c.hash.starts_with(target)
+                    || c.short_hash == target
+                    || c.message.contains(target)
+            }).ok_or_else(|| format!("Checkpoint '{}' not found in history.", target))?
+        }
+        None => {
+            history.iter().find(|c| c.message.contains("[Checkpoint:"))
+                .unwrap_or(&history[0])
+        }
+    };
+
+    rollback_to_snapshot(project_path, &target_commit.hash)?;
+    Ok(format!(
+        "Successfully reverted workspace to checkpoint '{}' ({})",
+        target_commit.short_hash, target_commit.message
+    ))
+}

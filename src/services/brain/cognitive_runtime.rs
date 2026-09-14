@@ -47,6 +47,7 @@ pub struct CognitiveRuntime {
     tool_calls: usize,
     successful_tools: usize,
     failed_tools: usize,
+    consecutive_failures: usize,
     completion_review_used: bool,
     max_model_turns: usize,
     plan: RunPlan,
@@ -78,6 +79,7 @@ impl CognitiveRuntime {
             tool_calls: 0,
             successful_tools: 0,
             failed_tools: 0,
+            consecutive_failures: 0,
             completion_review_used: false,
             max_model_turns: DEFAULT_MAX_MODEL_TURNS,
             plan: RunPlan::for_task(task_kind),
@@ -87,6 +89,10 @@ impl CognitiveRuntime {
 
     pub fn task_kind(&self) -> TaskKind {
         self.task_kind
+    }
+
+    pub fn consecutive_failures(&self) -> usize {
+        self.consecutive_failures
     }
 
     pub fn apply_promoted_guidance(&mut self, guidance: Vec<String>) {
@@ -118,6 +124,11 @@ impl CognitiveRuntime {
         } else {
             ""
         };
+        let deadlock_warning = if self.consecutive_failures >= 3 {
+            "\n[HYPOTHESIS DEADLOCK WARNING] 3 or more consecutive tool actions failed. Your current hypothesis or approach is likely fundamentally flawed or stuck in a dead-end. Consider discarding this branch: use `revert_to_checkpoint` to restore workspace to a clean state, formulate an entirely alternative strategy, and start anew."
+        } else {
+            ""
+        };
         let replan_note = self
             .plan
             .take_replan_notice()
@@ -133,7 +144,7 @@ impl CognitiveRuntime {
         };
 
         Ok(format!(
-            "# Adaptive Cognitive State\nObjective: {}\nMode: {:?}; task: {:?}; model turn: {}; tools: {} succeeded / {} failed.\nRun plan:\n{}\nStrategy: {}{}{}{}\nAdvance the in-progress step using evidence. Do not claim completion without evidence. Never fabricate tool output.",
+            "# Adaptive Cognitive State\nObjective: {}\nMode: {:?}; task: {:?}; model turn: {}; tools: {} succeeded / {} failed.\nRun plan:\n{}\nStrategy: {}{}{}{}{}\nAdvance the in-progress step using evidence. Do not claim completion without evidence. Never fabricate tool output.",
             self.objective,
             self.mode,
             self.task_kind,
@@ -143,6 +154,7 @@ impl CognitiveRuntime {
             self.plan.render(),
             strategy,
             failure_note,
+            deadlock_warning,
             replan_note,
             learned_note,
         ))
@@ -153,6 +165,7 @@ impl CognitiveRuntime {
         self.plan.observe_tool(status, risk);
         if status == ToolExecutionStatus::Succeeded {
             self.successful_tools += 1;
+            self.consecutive_failures = 0;
         } else if matches!(
             status,
             ToolExecutionStatus::Failed
@@ -162,6 +175,7 @@ impl CognitiveRuntime {
                 | ToolExecutionStatus::RepetitionBlocked
         ) {
             self.failed_tools += 1;
+            self.consecutive_failures += 1;
         }
     }
 
@@ -323,5 +337,30 @@ mod tests {
         assert!(runtime.next_guidance().is_ok());
         assert!(runtime.next_guidance().is_ok());
         assert!(runtime.next_guidance().is_err());
+    }
+
+    #[test]
+    fn hypothesis_deadlock_warning_triggers_after_consecutive_failures() {
+        let mut runtime = CognitiveRuntime::with_mode("修复Bug", ReasoningMode::Adaptive);
+        assert_eq!(runtime.consecutive_failures(), 0);
+
+        runtime.observe_tool(ToolExecutionStatus::Failed, ToolRisk::WorkspaceMutation);
+        assert_eq!(runtime.consecutive_failures(), 1);
+        assert!(!runtime.next_guidance().unwrap().contains("HYPOTHESIS DEADLOCK WARNING"));
+
+        runtime.observe_tool(ToolExecutionStatus::Failed, ToolRisk::WorkspaceMutation);
+        assert_eq!(runtime.consecutive_failures(), 2);
+        assert!(!runtime.next_guidance().unwrap().contains("HYPOTHESIS DEADLOCK WARNING"));
+
+        runtime.observe_tool(ToolExecutionStatus::Failed, ToolRisk::WorkspaceMutation);
+        assert_eq!(runtime.consecutive_failures(), 3);
+        let guidance = runtime.next_guidance().unwrap();
+        assert!(guidance.contains("HYPOTHESIS DEADLOCK WARNING"));
+        assert!(guidance.contains("revert_to_checkpoint"));
+
+        // Success resets the consecutive failures counter
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
+        assert_eq!(runtime.consecutive_failures(), 0);
+        assert!(!runtime.next_guidance().unwrap().contains("HYPOTHESIS DEADLOCK WARNING"));
     }
 }

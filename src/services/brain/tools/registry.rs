@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 pub struct PluginRegistry {
-    tools: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>,
+    tools: Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>>,
 }
 
 impl PluginRegistry {
@@ -26,10 +26,10 @@ impl PluginRegistry {
 
     pub fn register(&self, tool: Box<dyn ToolExecutor>) {
         let mut guard = self.tools.lock().unwrap();
-        guard.insert(tool.name().to_string(), tool);
+        guard.insert(tool.name().to_string(), Arc::from(tool));
     }
 
-    pub fn get_tools_ref(&self) -> Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>> {
+    pub fn get_tools_ref(&self) -> Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>> {
         self.tools.clone()
     }
 

@@ -10,11 +10,11 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 pub struct ReloadPluginsTool {
-    tools_ref: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>,
+    tools_ref: Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>>,
 }
 
 impl ReloadPluginsTool {
-    pub fn new(tools_ref: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>>) -> Self {
+    pub fn new(tools_ref: Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>>) -> Self {
         Self { tools_ref }
     }
 }
@@ -74,7 +74,7 @@ impl ToolExecutor for ReloadPluginsTool {
                 for tool in dynamic_tools {
                     let tool_name = tool.name().to_string();
                     let mut lock = self.tools_ref.lock().unwrap();
-                    lock.insert(tool_name.clone(), Box::new(tool));
+                    lock.insert(tool_name.clone(), Arc::new(tool));
                     loaded_names.push(tool_name);
                 }
             }
@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_reload_plugins_and_call_dynamic_greet() {
-        let tools: Arc<Mutex<HashMap<String, Box<dyn ToolExecutor>>>> =
+        let tools: Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>> =
             Arc::new(Mutex::new(HashMap::new()));
         let reload_tool = ReloadPluginsTool::new(tools.clone());
 
