@@ -103,9 +103,29 @@ impl RequirementAnalyzer {
         }
         let report_path = report_dir.join("requirement_impact.md");
 
+        let lang = match project_language.to_lowercase().as_str() {
+            "java" => crate::services::language_rules::SupportedLanguage::Java,
+            "go" | "golang" => crate::services::language_rules::SupportedLanguage::Go,
+            "rust" => crate::services::language_rules::SupportedLanguage::Rust,
+            "typescript" | "ts" => crate::services::language_rules::SupportedLanguage::TypeScript,
+            "javascript" | "js" => crate::services::language_rules::SupportedLanguage::JavaScript,
+            "python" | "py" => crate::services::language_rules::SupportedLanguage::Python,
+            _ => crate::services::language_rules::SupportedLanguage::Unknown,
+        };
+        let rules_checklist = if lang != crate::services::language_rules::SupportedLanguage::Unknown {
+            let rules = crate::services::language_rules::BuiltinRuleset::get_rules_for_language(lang);
+            let mut buf = String::from("\n\n## 实施与验收规范红线 (Deterministic Quality Checklist)\n");
+            for r in rules {
+                buf.push_str(&format!("- **[{}] {}**: {}\n", r.category.display_name(), r.title, r.description));
+            }
+            buf
+        } else {
+            String::new()
+        };
+
         let report_content = format!(
-            "# 需求逆向推演报告\n\n## 原始需求\n{}\n\n## 拟修改入口与影响面分析\n{}\n\n> 本报告由 DeepCloud 逆向推演引擎基于当前代码图谱自动生成。",
-            requirement, entry_points_resp
+            "# 需求逆向推演报告\n\n## 原始需求\n{}\n\n## 拟修改入口与影响面分析\n{}{}\n\n> 本报告由 DeepCloud 逆向推演引擎基于当前代码图谱自动生成。",
+            requirement, entry_points_resp, rules_checklist
         );
 
         fs::write(&report_path, report_content)?;

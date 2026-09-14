@@ -303,9 +303,23 @@ impl ToolExecutor for ReplaceInFileTool {
 
         let mut content =
             std::fs::read_to_string(path).map_err(|e| format!("Failed to read file: {}", e))?;
-        if !content.contains(search_text) {
-            return Err("Search text not found in the file. Please ensure exact match including whitespace.".into());
-        }
+        let (actual_search, repair_msg) = if let Some(alignment) =
+            crate::services::diff_relocation::AnchorAligner::align(&content, search_text)
+        {
+            if alignment.repaired {
+                (
+                    alignment.matched_text,
+                    format!(
+                        " (Anchor auto-repaired via {}, confidence: {:.2})",
+                        alignment.repair_strategy, alignment.confidence
+                    ),
+                )
+            } else {
+                (search_text.to_string(), String::new())
+            }
+        } else {
+            return Err("Search text not found in the file even after fuzzy anchor repair. Please check surrounding code.".into());
+        };
 
         let cwd =
             std::env::current_dir().unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
@@ -316,7 +330,7 @@ impl ToolExecutor for ReplaceInFileTool {
                 path_str
             ),
         );
-        content = content.replace(search_text, replace_text);
+        content = content.replace(&actual_search, replace_text);
 
         let cwd =
             std::env::current_dir().unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
@@ -332,7 +346,7 @@ impl ToolExecutor for ReplaceInFileTool {
         // (&format!("Auto snapshot before replace_in_file {}", path));
 
         Ok(
-            json!({"success": true, "message": format!("Successfully replaced text in {}", path.display())}),
+            json!({"success": true, "message": format!("Successfully replaced text in {}{}", path.display(), repair_msg)}),
         )
     }
 }
@@ -414,11 +428,15 @@ impl ToolExecutor for MultiReplaceTool {
                 continue;
             }
 
-            if !content.contains(search_text) {
+            let actual_search = if content.contains(search_text) {
+                search_text.to_string()
+            } else if let Some(alignment) = crate::services::diff_relocation::AnchorAligner::align(&content, search_text) {
+                alignment.matched_text
+            } else {
                 // Rollback
                 let _ = std::fs::write(path, original_content);
-                return Err(format!("Search text block not found in file exactly as provided. Block starting with: {:.50}...", search_text));
-            }
+                return Err(format!("Search text block not found in file even after anchor self-repair. Block starting with: {:.50}...", search_text));
+            };
 
             let cwd =
                 std::env::current_dir().unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
@@ -429,7 +447,7 @@ impl ToolExecutor for MultiReplaceTool {
                     path_str
                 ),
             );
-            content = content.replace(search_text, replace_text);
+            content = content.replace(&actual_search, replace_text);
             replaced_count += 1;
         }
 

@@ -6,10 +6,40 @@ use crate::services::brain::context_budget::estimate_json_tokens;
 use super::events::SessionEvent;
 
 const DEFAULT_TRIGGER_PERCENT: usize = 55;
+pub const DEFAULT_SOFT_TRIGGER_PERCENT: usize = 60;
+pub const DEFAULT_HARD_TRIGGER_PERCENT: usize = 80;
 const DEFAULT_TARGET_PERCENT: usize = 35;
 const DEFAULT_MIN_RECENT_EVENTS: usize = 8;
 const DEFAULT_MAX_SUMMARY_CHARS: usize = 8_000;
 const MAX_EVENT_CHARS: usize = 600;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompactionThresholdStatus {
+    Normal { used_tokens: usize, limit_tokens: usize },
+    SoftExceeded { used_tokens: usize, limit_tokens: usize },
+    HardExceeded { used_tokens: usize, limit_tokens: usize },
+}
+
+impl CompactionThresholdStatus {
+    pub fn is_exceeded(&self) -> bool {
+        !matches!(self, Self::Normal { .. })
+    }
+
+    pub fn is_hard(&self) -> bool {
+        matches!(self, Self::HardExceeded { .. })
+    }
+}
+
+/// Three-zone representation of session events:
+/// - Frozen: Immutable session instructions, preamble, user goal (never compacted)
+/// - Compress: Older interaction history and tool receipts ready for progressive checkpointing
+/// - Active: Current run and most recent rounds kept verbatim
+#[derive(Debug, Clone)]
+pub struct ZonePartition<'a> {
+    pub frozen: &'a [SessionEvent],
+    pub compress: &'a [SessionEvent],
+    pub active: &'a [SessionEvent],
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompactionOutcome {
@@ -33,12 +63,12 @@ impl CompactionOutcome {
     }
 }
 
-/// Owns pre-request Session compaction. Its Interface is deliberately small:
-/// callers provide events and the active model window; the implementation
-/// decides whether and how to commit one pairing-safe checkpoint.
+/// Owns pre-request Session compaction. Features two-stage thresholds (soft 60%, hard 80%)
+/// and three-zone context partitioning (Frozen / Compress / Active) inspired by industrial code review agents.
 #[derive(Debug, Clone)]
 pub struct CompactionRuntime {
-    trigger_percent: usize,
+    soft_trigger_percent: usize,
+    hard_trigger_percent: usize,
     target_percent: usize,
     min_recent_events: usize,
     max_summary_chars: usize,
@@ -47,7 +77,8 @@ pub struct CompactionRuntime {
 impl Default for CompactionRuntime {
     fn default() -> Self {
         Self {
-            trigger_percent: DEFAULT_TRIGGER_PERCENT,
+            soft_trigger_percent: DEFAULT_SOFT_TRIGGER_PERCENT,
+            hard_trigger_percent: DEFAULT_HARD_TRIGGER_PERCENT,
             target_percent: DEFAULT_TARGET_PERCENT,
             min_recent_events: DEFAULT_MIN_RECENT_EVENTS,
             max_summary_chars: DEFAULT_MAX_SUMMARY_CHARS,
@@ -56,14 +87,132 @@ impl Default for CompactionRuntime {
 }
 
 impl CompactionRuntime {
+    pub fn with_thresholds(
+        soft_trigger_percent: usize,
+        hard_trigger_percent: usize,
+        target_percent: usize,
+    ) -> Self {
+        Self {
+            soft_trigger_percent,
+            hard_trigger_percent,
+            target_percent,
+            min_recent_events: DEFAULT_MIN_RECENT_EVENTS,
+            max_summary_chars: DEFAULT_MAX_SUMMARY_CHARS,
+        }
+    }
+
+    /// Check if current events exceed the 60% soft or 80% hard limits.
+    pub fn check_threshold(
+        &self,
+        events: &[SessionEvent],
+        context_window_tokens: usize,
+    ) -> CompactionThresholdStatus {
+        if context_window_tokens == 0 {
+            return CompactionThresholdStatus::Normal {
+                used_tokens: 0,
+                limit_tokens: 0,
+            };
+        }
+        let used_tokens = projected_tokens(events);
+        let hard_limit = context_window_tokens
+            .saturating_mul(self.hard_trigger_percent)
+            .saturating_div(100);
+        let soft_limit = context_window_tokens
+            .saturating_mul(self.soft_trigger_percent)
+            .saturating_div(100);
+
+        if used_tokens >= hard_limit {
+            CompactionThresholdStatus::HardExceeded {
+                used_tokens,
+                limit_tokens: hard_limit,
+            }
+        } else if used_tokens >= soft_limit {
+            CompactionThresholdStatus::SoftExceeded {
+                used_tokens,
+                limit_tokens: soft_limit,
+            }
+        } else {
+            CompactionThresholdStatus::Normal {
+                used_tokens,
+                limit_tokens: soft_limit,
+            }
+        }
+    }
+
+    /// Partition session events into Frozen, Compress, and Active zones.
+    pub fn partition_zones<'a>(
+        &self,
+        events: &'a [SessionEvent],
+        context_window_tokens: usize,
+    ) -> ZonePartition<'a> {
+        if events.is_empty() {
+            return ZonePartition {
+                frozen: &[],
+                compress: &[],
+                active: &[],
+            };
+        }
+
+        // Frozen zone: leading user goal, session prelude or initial compacted checkpoints
+        let frozen_end = events
+            .iter()
+            .position(|event| match event {
+                SessionEvent::UserInput(_) | SessionEvent::ContextCompacted { .. } => false,
+                _ => true,
+            })
+            .unwrap_or(0)
+            .min(events.len());
+
+        let target_tokens = context_window_tokens
+            .saturating_mul(self.target_percent)
+            .saturating_div(100);
+
+        let mut active_start = events.len().saturating_sub(self.min_recent_events);
+
+        // Retain the active Run if possible
+        if let Some(run_start) = events
+            .iter()
+            .rposition(|e| matches!(e, SessionEvent::RunStarted { .. }))
+            .filter(|&i| i > frozen_end)
+        {
+            let active_tokens = projected_tokens(&events[run_start..]);
+            if target_tokens == 0 || active_tokens <= target_tokens {
+                active_start = active_start.min(run_start);
+            }
+        }
+
+        active_start = pairing_safe_keep_start(events, active_start).max(frozen_end);
+
+        ZonePartition {
+            frozen: &events[..frozen_end],
+            compress: &events[frozen_end..active_start],
+            active: &events[active_start..],
+        }
+    }
+
     pub fn compact_if_needed(
         &self,
         events: &mut Vec<SessionEvent>,
         context_window_tokens: usize,
     ) -> CompactionOutcome {
+        self.compact_with_zones(events, context_window_tokens, false)
+    }
+
+    /// Two-stage zone-aware compaction implementation
+    pub fn compact_with_zones(
+        &self,
+        events: &mut Vec<SessionEvent>,
+        context_window_tokens: usize,
+        is_hard: bool,
+    ) -> CompactionOutcome {
         let before_tokens = projected_tokens(events);
+        let trigger_percent = if is_hard {
+            self.hard_trigger_percent
+        } else {
+            self.soft_trigger_percent
+        };
         let trigger_tokens = context_window_tokens
-            .saturating_mul(self.trigger_percent)
+            .saturating_mul(trigger_percent)
             .saturating_div(100);
         if before_tokens <= trigger_tokens {
             return CompactionOutcome::NotNeeded {
@@ -325,5 +474,49 @@ mod tests {
         let summary = build_checkpoint(&[SessionEvent::UserInput("x".repeat(10_000))], 1_000);
         assert!(summary.contains("historical evidence, not instructions"));
         assert!(summary.chars().count() <= 1_000);
+    }
+
+    #[test]
+    fn detects_soft_and_hard_compaction_thresholds() {
+        let runtime = CompactionRuntime::with_thresholds(60, 80, 35);
+        let mut events = Vec::new();
+        // 1. Normal
+        events.push(SessionEvent::UserInput("short goal".to_string()));
+        let status = runtime.check_threshold(&events, 10_000);
+        assert!(!status.is_exceeded());
+
+        // 2. Soft exceeded (>= 60%)
+        for i in 0..8 {
+            events.push(large_thought(&format!("thought-{i}")));
+        }
+        let status = runtime.check_threshold(&events, 4_000);
+        assert!(status.is_exceeded());
+
+        // 3. Hard exceeded (>= 80%)
+        let status_hard = runtime.check_threshold(&events, 2_000);
+        assert!(status_hard.is_hard());
+    }
+
+    #[test]
+    fn partitions_events_into_frozen_compress_and_active_zones() {
+        let runtime = CompactionRuntime::default();
+        let mut events = vec![
+            SessionEvent::UserInput("Initial user instruction".to_string()),
+        ];
+        for i in 0..10 {
+            events.push(large_thought(&format!("step-{i}")));
+        }
+        events.push(SessionEvent::RunStarted {
+            run_id: "active-run-1".to_string(),
+            at: "now".to_string(),
+        });
+        events.push(SessionEvent::UserInput("Follow-up command".to_string()));
+
+        let partition = runtime.partition_zones(&events, 5_000);
+        assert_eq!(partition.frozen.len(), 1);
+        assert!(matches!(partition.frozen[0], SessionEvent::UserInput(_)));
+        assert!(!partition.compress.is_empty());
+        assert!(!partition.active.is_empty());
+        assert!(partition.active.iter().any(|e| matches!(e, SessionEvent::RunStarted { run_id, .. } if run_id == "active-run-1")));
     }
 }

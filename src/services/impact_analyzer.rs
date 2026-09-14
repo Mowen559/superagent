@@ -184,4 +184,17 @@ impl ImpactAnalyzer {
 
         Ok(report)
     }
+
+    /// 对变更文件进行拓扑依赖分组与 Token 预算评估
+    pub fn group_changes(&self, changed_files: &[ChangedFile]) -> Vec<crate::services::diff_grouping::ChangeGroup> {
+        let entries: Vec<crate::services::diff_grouping::DiffEntry> = changed_files
+            .iter()
+            .map(|f| {
+                let path_str = f.path.to_string_lossy().replace('\\', "/");
+                crate::services::diff_grouping::DiffEntry::new(path_str, 20, 0, &f.status)
+            })
+            .collect();
+        crate::services::diff_grouping::TopologyDiffGrouper::default().group_diffs(&entries)
+    }
 }
+
