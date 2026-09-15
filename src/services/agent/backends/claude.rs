@@ -65,11 +65,13 @@ impl AgentBackend for ClaudeBackend {
                 envs: Some(Box::new(|_opts| {
                     let mut envs = HashMap::new();
                     // Point claude CLI to our internal protocol translation proxy
-                    // By default, hub-rs runs on port 8080.
-                    // TODO: Dynamically fetch port from config or context. Using 8080 for now.
+                    let port = std::env::var("PORT")
+                        .ok()
+                        .and_then(|p| p.parse::<u16>().ok())
+                        .unwrap_or(crate::server::DEFAULT_PORT);
                     envs.insert(
                         "ANTHROPIC_BASE_URL".to_string(),
-                        "http://127.0.0.1:8080/proxy/anthropic".to_string(),
+                        format!("http://127.0.0.1:{}/proxy/anthropic", port),
                     );
                     envs
                 })),

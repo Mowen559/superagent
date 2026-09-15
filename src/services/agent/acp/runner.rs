@@ -357,7 +357,17 @@ pub async fn run(
             .map_err(|e| format!("initialize failed: {e}"))?;
 
             let cwd = opts.cwd.clone().unwrap_or_else(|| ".".to_string());
-            let mcp_servers = json!([]); // TODO: Map opts.mcp_config
+            let mcp_servers = match &opts.mcp_config {
+                Some(serde_json::Value::Array(arr)) => serde_json::Value::Array(arr.clone()),
+                Some(serde_json::Value::Object(map)) => {
+                    if let Some(servers) = map.get("mcpServers") {
+                        servers.clone()
+                    } else {
+                        serde_json::Value::Object(map.clone())
+                    }
+                }
+                _ => json!([]),
+            };
             let session_id = if let Some(ref rid) = resume {
                 let res = request(
                     "session/resume",

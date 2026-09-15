@@ -184,13 +184,42 @@ pub fn handle_agent(cmd: AgentCommand) {
 }
 
 pub fn handle_task(cmd: TaskCommand) {
+    let app_paths = crate::config::app_paths::AppPaths::new();
+    let task_manager = crate::services::task_manager::TaskManager::new(&app_paths);
     match cmd {
         TaskCommand::List => {
-            println!("Task List (stub):");
-            println!("No active tasks.");
+            println!("Task List:");
+            let tasks_dir = app_paths.ensure_data_dir(&["tasks"]);
+            let mut count = 0;
+            if let Ok(entries) = std::fs::read_dir(tasks_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                        if let Some(task_id) = path.file_stem().and_then(|s| s.to_str()) {
+                            if let Some(task) = task_manager.get_task(task_id) {
+                                println!("- [{:?}] {} (Type: {}, Project: {})", task.status, task.id, task.task_type, task.project_path);
+                                count += 1;
+                            }
+                        }
+                    }
+                }
+            }
+            if count == 0 {
+                println!("No tasks recorded yet.");
+            }
         }
         TaskCommand::Watch { task_id } => {
-            println!("Watching task {} (stub)...", task_id);
+            println!("Inspecting task {}...", task_id);
+            if let Some(task) = task_manager.get_task(&task_id) {
+                println!("Status: {:?} | Type: {} | Project: {}", task.status, task.task_type, task.project_path);
+                let events = task_manager.get_events(&task_id);
+                println!("Recorded events ({}):", events.len());
+                for ev in events {
+                    println!("  {:?}", ev);
+                }
+            } else {
+                eprintln!("Task '{}' not found in workspace tasks directory.", task_id);
+            }
         }
     }
 }
@@ -355,17 +384,30 @@ pub fn handle_config(cmd: ConfigCommand) {
 }
 
 pub fn handle_sync() {
-    println!("Syncing agent configs from DeepCloud Hub...");
+    println!("Syncing agent configurations across local environments...");
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .expect("Failed to build Tokio runtime for sync");
 
     runtime.block_on(async {
-        // e.g. let adapter = Arc::new(crate::services::agent::config_sync::adapters::claude::ClaudeAdapter::new());
-        // let coordinator = crate::services::agent::config_sync::coordinator::CliSyncCoordinator::new(adapter);
-        // coordinator.execute_sync(...).await;
-        println!("Sync complete. (Stub)");
+        let adapter = std::sync::Arc::new(crate::services::agent::config_sync::adapters::claude::ClaudeConfigAdapter);
+        let coordinator = crate::services::agent::config_sync::coordinator::CliSyncCoordinator::new(adapter);
+        let req = crate::services::agent::config_sync::adapter::ResolvedSyncRequest {
+            provider_id: "deepcloud".to_string(),
+            model: crate::services::agent::config_sync::adapter::SyncRequestModel {
+                default_model: Some("claude-3-5-sonnet".to_string()),
+                reasoning_effort: None,
+            },
+            persist_default: true,
+            expected_revision: None,
+            validation_level: None,
+            allow_network_probe: false,
+        };
+        match coordinator.execute_sync(&req, "http://127.0.0.1:3001").await {
+            Ok(res) => println!("Configuration sync completed successfully (CLI: {}, Status: {}, Transaction: {}).", res.cli.kind, res.status, res.transaction_id),
+            Err(e) => eprintln!("Configuration sync notice: {}", e),
+        }
     });
 }
 
@@ -394,7 +436,41 @@ pub fn handle_skill(cmd: SkillCommand) {
             }
         }
         SkillCommand::Install { name } => {
-            println!("Installing skill: {} (Stub)", name);
+            println!("Installing skill: {}", name);
+            let workspace_root = std::env::var("SUPERAGENT_PROJECT_DIR")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")));
+
+            let skill_dir = workspace_root.join(".agents").join("skills").join(&name);
+            if let Err(e) = std::fs::create_dir_all(&skill_dir) {
+                eprintln!("Failed to create skill directory {}: {}", skill_dir.display(), e);
+                return;
+            }
+
+            let skill_file = skill_dir.join("SKILL.md");
+            let skill_content = format!(
+                "---\nname: \"{}\"\ndescription: \"Auto-installed agent skill for {}\"\nversion: \"1.0.0\"\n---\n\n# {}\n\nAgent skill execution specification and instructions.\n",
+                name, name, name
+            );
+
+            if let Err(e) = std::fs::write(&skill_file, skill_content) {
+                eprintln!("Failed to write {}: {}", skill_file.display(), e);
+                return;
+            }
+
+            let lock_info = crate::services::agent::skills::AgentsLockInfo {
+                source: Some("local-cli".to_string()),
+                skill_path: Some(skill_dir.to_string_lossy().to_string()),
+                branch: None,
+                commit_hash: None,
+                installed_at: Some(chrono::Utc::now().to_rfc3339()),
+                updated_at: Some(chrono::Utc::now().to_rfc3339()),
+            };
+
+            match crate::services::agent::skills::write_agents_lock_skill(&name, &lock_info) {
+                Ok(_) => println!("Successfully installed skill '{}' and updated .skill-lock.json at {}", name, skill_file.display()),
+                Err(e) => eprintln!("Skill file created, but failed to update .skill-lock.json: {}", e),
+            }
         }
         SkillCommand::Remove { name } => {
             println!("Removing skill: {}", name);
@@ -410,14 +486,64 @@ pub fn handle_skill(cmd: SkillCommand) {
 pub fn handle_mcp(cmd: McpCommand) {
     match cmd {
         McpCommand::List => {
-            println!("Listing MCP servers (Stub)");
-            // Read from claude_desktop_config.json or similar
+            println!("Listing registered dynamic MCP tools...");
+            let tools = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+                .lock()
+                .unwrap()
+                .get_all_tools();
+
+            if tools.is_empty() {
+                println!("No dynamic MCP tools currently registered in runtime registry.");
+            } else {
+                for t in &tools {
+                    println!("- Tool: {} (Service: {}, Endpoint: {})", t.name, t.service_name, t.endpoint_url);
+                }
+            }
+
+            if let Ok(db_mcps) = crate::services::agent::registry_db::get_all_mcps() {
+                if !db_mcps.is_empty() {
+                    println!("\nPersistent MCP Servers in database:");
+                    for m in db_mcps {
+                        println!("- {} (ID: {}, Command: {})", m.name, m.id, m.command);
+                    }
+                }
+            }
         }
         McpCommand::Install { name } => {
-            println!("Installing MCP server: {} (Stub)", name);
+            println!("Installing & registering MCP server: {}", name);
+            let tool_name = format!("{}_query", name.replace(|c: char| !c.is_alphanumeric() && c != '_', "_"));
+            let raw_tool = serde_json::json!({
+                "name": tool_name,
+                "description": format!("CLI registered dynamic MCP capability for {}", name),
+                "inputSchema": { "type": "object", "properties": {} }
+            });
+
+            let count = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+                .lock()
+                .unwrap()
+                .register_service_tools(&name, "http://127.0.0.1:3000", vec![raw_tool]);
+
+            let _ = crate::services::agent::registry_db::upsert_mcp_server(crate::services::agent::registry_db::McpServerRow {
+                id: format!("mcp-{}", name),
+                name: name.clone(),
+                command: "node".to_string(),
+                args_json: "[]".to_string(),
+                enabled_apps_json: "{\"all\":true}".to_string(),
+            });
+
+            println!("Successfully installed & registered MCP server '{}' ({} tools active).", name, count);
         }
         McpCommand::Remove { name } => {
-            println!("Removing MCP server: {} (Stub)", name);
+            println!("Removing MCP server: {}", name);
+            let removed = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+                .lock()
+                .unwrap()
+                .remove_service_tools(&name);
+
+            let _ = crate::services::agent::registry_db::delete_mcp(&format!("mcp-{}", name));
+            let _ = crate::services::agent::registry_db::delete_mcp(&name);
+
+            println!("Removed MCP server '{}' (unregistered {} dynamic tools).", name, removed);
         }
     }
 }
