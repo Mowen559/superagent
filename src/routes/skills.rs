@@ -40,12 +40,49 @@ async fn list_skills() -> axum::response::Response {
 }
 
 async fn install_skill(Path(name): Path<String>) -> axum::response::Response {
-    // Stub implementation mirroring CLI
-    Json(json!({
-        "success": true,
-        "message": format!("Installing skill: {} (Stub)", name)
-    }))
-    .into_response()
+    let home = crate::config::app_paths::AppPaths::home_dir().unwrap_or_default();
+    let skill_dir = home.join(".agents").join("skills").join(&name);
+    if let Err(e) = std::fs::create_dir_all(&skill_dir) {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": format!("Failed to create skill directory: {}", e)})),
+        )
+            .into_response();
+    }
+
+    let skill_file = skill_dir.join("SKILL.md");
+    if !skill_file.exists() {
+        let now = chrono::Utc::now().to_rfc3339();
+        let content = format!(
+            "---\nname: \"{}\"\ndescription: \"Auto-installed skill: {}\"\nversion: \"1.0.0\"\ncreated_at: \"{}\"\n---\n\n# {}\n\nSkill implementation and guidelines.\n",
+            name, name, now, name
+        );
+        let _ = std::fs::write(&skill_file, content);
+    }
+
+    let info = skills::AgentsLockInfo {
+        source: Some("local-install".to_string()),
+        skill_path: Some(skill_dir.to_string_lossy().to_string()),
+        branch: None,
+        commit_hash: None,
+        installed_at: Some(chrono::Utc::now().to_rfc3339()),
+        updated_at: Some(chrono::Utc::now().to_rfc3339()),
+    };
+
+    match skills::write_agents_lock_skill(&name, &info) {
+        Ok(_) => Json(json!({
+            "success": true,
+            "name": name,
+            "path": skill_dir.to_string_lossy().to_string(),
+            "message": format!("Skill {} installed and locked successfully", name)
+        }))
+        .into_response(),
+        Err(e) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": format!("Failed to update lock file: {}", e)})),
+        )
+            .into_response(),
+    }
 }
 
 async fn remove_skill(Path(name): Path<String>) -> axum::response::Response {

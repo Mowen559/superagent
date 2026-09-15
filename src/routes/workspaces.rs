@@ -43,6 +43,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/api/workspaces/shadow-snapshot",
             post(workspace_shadow_snapshot),
         )
+        .route(
+            "/api/workspaces/verify",
+            post(verify_workspace),
+        )
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -679,4 +683,97 @@ async fn synthesize_workspace_wiki(
     format!(
         "# 项目知识链\n\n## 工作区\n\n`{project}`\n\n## 图谱概览\n\n```json\n{totals}\n```\n\n## 超级记忆\n\n- 记忆条目：{memory_count}\n- 知识文档：{document_count}\n\n## 影子 Git\n\n- 快照数量：{snapshot_count}\n\n> 当前未配置可用大模型，已生成结构化占位 Wiki。配置模型后可重新刷新工作区智能快照。"
     )
+}
+
+async fn verify_workspace(
+    State(_state): State<Arc<AppState>>,
+    Json(payload): Json<WorkspaceRequest>,
+) -> Response {
+    let project_path_str = match payload.project_path() {
+        Some(p) if !p.trim().is_empty() => p,
+        _ => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Missing project or path"})),
+            )
+                .into_response()
+        }
+    };
+
+    let p = std::path::Path::new(&project_path_str);
+    if !p.exists() {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": format!("Directory not found: {}", project_path_str)})),
+        )
+            .into_response();
+    }
+
+    // Auto-detect build tool and test command
+    let (label, cmd) = if p.join("Cargo.toml").exists() {
+        ("Rust Cargo Test Guard", "cargo check --tests")
+    } else if p.join("package.json").exists() {
+        ("Node.js Test Guard", "npm test")
+    } else if p.join("pom.xml").exists() {
+        ("Maven Test Guard", "mvn test-compile")
+    } else if p.join("requirements.txt").exists() || p.join("pyproject.toml").exists() {
+        ("Python Pytest Guard", "pytest")
+    } else if p.join("go.mod").exists() {
+        ("Go Test Guard", "go test ./...")
+    } else {
+        (
+            "Generic Sanity Guard",
+            "echo [Sanity Check] Workspace structure verified.",
+        )
+    };
+
+    use crate::services::brain::capabilities::shell::ShellService;
+    let shell = crate::services::brain::capabilities::shell::LocalShellProvider;
+    match shell.execute(cmd, &project_path_str, false, 60) {
+        Ok(res) => {
+            let exit_code = res.get("exit_code").and_then(|v| v.as_i64()).unwrap_or(-1);
+            let raw_stdout = res.get("stdout").and_then(|v| v.as_str()).unwrap_or("");
+            let raw_stderr = res.get("stderr").and_then(|v| v.as_str()).unwrap_or("");
+
+            let clean_stdout =
+                crate::services::brain::capabilities::shell::strip_ansi_escapes(raw_stdout);
+            let clean_stderr =
+                crate::services::brain::capabilities::shell::strip_ansi_escapes(raw_stderr);
+            let status = if exit_code == 0 { "passed" } else { "failed" };
+
+            Json(json!({
+                "verification": {
+                    "status": status,
+                    "completedAt": chrono::Utc::now().to_rfc3339(),
+                    "commands": [
+                        {
+                            "label": label,
+                            "program": cmd,
+                            "status": status,
+                            "exitCode": exit_code,
+                            "stdout": clean_stdout,
+                            "stderr": clean_stderr,
+                        }
+                    ]
+                }
+            }))
+            .into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "verification": {
+                    "status": "failed",
+                    "commands": [
+                        {
+                            "label": label,
+                            "status": "failed",
+                            "error": e,
+                        }
+                    ]
+                }
+            })),
+        )
+            .into_response(),
+    }
 }

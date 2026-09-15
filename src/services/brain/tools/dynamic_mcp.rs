@@ -177,6 +177,13 @@ impl DynamicMcpToolRegistry {
         self.tools.values().cloned().collect()
     }
 
+    /// 移除某个微服务的所有已注册工具
+    pub fn remove_service_tools(&mut self, service_name: &str) -> usize {
+        let before = self.tools.len();
+        self.tools.retain(|_, def| def.service_name != service_name);
+        before - self.tools.len()
+    }
+
     /// 实例化所有远程工具为 ToolExecutor 集合，供注入 AgentLoop
     pub fn create_tool_executors(&self) -> Vec<Box<dyn ToolExecutor>> {
         self.tools

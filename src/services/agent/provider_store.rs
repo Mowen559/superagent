@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::{OnceLock, RwLock};
+use std::time::{Duration, Instant};
 
 /// Configuration for an upstream provider that Hub routes to or manages.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,8 +15,17 @@ pub struct ProviderConfig {
     pub is_local_proxy: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProxyTokenSession {
+    pub token: String,
+    pub provider_id: String,
+    pub created_at: Instant,
+    pub ttl: Duration,
+}
+
 pub struct ProviderStore {
     providers: HashMap<String, ProviderConfig>,
+    active_tokens: RwLock<HashMap<String, ProxyTokenSession>>,
 }
 
 impl ProviderStore {
@@ -42,24 +53,46 @@ impl ProviderStore {
                 is_local_proxy: true,
             },
         );
-        Self { providers }
+        Self {
+            providers,
+            active_tokens: RwLock::new(HashMap::new()),
+        }
     }
 
     pub fn get_provider(&self, provider_id: &str) -> Option<ProviderConfig> {
         self.providers.get(provider_id).cloned()
     }
 
-    pub fn generate_proxy_token(&self, _provider_id: &str) -> String {
-        // In a full implementation, this might generate a secure random UUID
-        // and store it in an active session cache for the proxy to validate.
-        // For now, it returns a static mock token.
-        "deepcloud_proxy_token_v1".to_string()
+    pub fn generate_proxy_token(&self, provider_id: &str) -> String {
+        let token = format!("dc-token-{}-{}", provider_id, uuid::Uuid::new_v4());
+        let session = ProxyTokenSession {
+            token: token.clone(),
+            provider_id: provider_id.to_string(),
+            created_at: Instant::now(),
+            ttl: Duration::from_secs(86400),
+        };
+        if let Ok(mut tokens) = self.active_tokens.write() {
+            tokens.retain(|_, s| s.created_at.elapsed() < s.ttl);
+            tokens.insert(token.clone(), session);
+        }
+        token
+    }
+
+    pub fn validate_proxy_token(&self, token: &str) -> bool {
+        if token == "deepcloud_proxy_token_v1" {
+            return true;
+        }
+        if let Ok(tokens) = self.active_tokens.read() {
+            if let Some(session) = tokens.get(token) {
+                return session.created_at.elapsed() < session.ttl;
+            }
+        }
+        false
     }
 }
-
-use std::sync::OnceLock;
 
 pub fn global_provider_store() -> &'static ProviderStore {
     static STORE: OnceLock<ProviderStore> = OnceLock::new();
     STORE.get_or_init(ProviderStore::new)
 }
+

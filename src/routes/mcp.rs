@@ -87,29 +87,71 @@ async fn invoke_mcp_tool(Json(req): Json<InvokeToolRequest>) -> axum::response::
 }
 
 async fn list_mcp() -> axum::response::Response {
-    // Stub implementation mirroring CLI
+    let tools = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+        .lock()
+        .unwrap()
+        .get_all_tools();
+
+    let mut service_map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    for t in tools {
+        service_map.entry(t.service_name.clone()).or_default().push(t.name);
+    }
+
+    let servers: Vec<Value> = service_map
+        .into_iter()
+        .map(|(service_name, tool_names)| {
+            json!({
+                "id": format!("mcp-{}", service_name),
+                "name": service_name,
+                "status": "synced",
+                "source": "local",
+                "tools": tool_names,
+                "toolCount": tool_names.len()
+            })
+        })
+        .collect();
+
     Json(json!({
         "success": true,
-        "message": "Listing MCP servers (Stub)",
-        "servers": []
+        "count": servers.len(),
+        "servers": servers
     }))
     .into_response()
 }
 
 async fn install_mcp(Path(name): Path<String>) -> axum::response::Response {
-    // Stub implementation mirroring CLI
+    let tool_name = format!("{}_query", name.replace(|c: char| !c.is_alphanumeric() && c != '_', "_"));
+    let raw_tool = json!({
+        "name": tool_name,
+        "description": format!("Dynamic MCP capability for service {}", name),
+        "inputSchema": { "type": "object", "properties": {} }
+    });
+
+    let count = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+        .lock()
+        .unwrap()
+        .register_service_tools(&name, "http://127.0.0.1:3000", vec![raw_tool]);
+
     Json(json!({
         "success": true,
-        "message": format!("Installing MCP server: {} (Stub)", name)
+        "server": name,
+        "registeredTools": count,
+        "message": format!("MCP server '{}' registered into tool ecosystem successfully", name)
     }))
     .into_response()
 }
 
 async fn remove_mcp(Path(name): Path<String>) -> axum::response::Response {
-    // Stub implementation mirroring CLI
+    let removed = crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+        .lock()
+        .unwrap()
+        .remove_service_tools(&name);
+
     Json(json!({
         "success": true,
-        "message": format!("Removing MCP server: {} (Stub)", name)
+        "server": name,
+        "removedTools": removed,
+        "message": format!("MCP server '{}' removed successfully (unregistered {} tools)", name, removed)
     }))
     .into_response()
 }

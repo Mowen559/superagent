@@ -80,8 +80,111 @@ impl RequirementAnalyzer {
 
         info!("Predicted Entry Points:\n{}", entry_points_resp);
 
-        // 3. TODO: 这里应该从 entry_points_resp 提取具体的文件路径，通过图推演受影响的节点。
-        // 为简化示例，我们直接将其作为推演报告的基础。
+        // 3. 从 entry_points_resp 提取具体文件路径，并在 Graph DB 中真实推演受影响的调用方节点
+        let mut impacted_analysis_md = String::new();
+        if let Ok(conn) = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY) {
+            let candidate_files: Vec<String> = entry_points_resp
+                .split(|c: char| {
+                    c.is_whitespace()
+                        || c == '`'
+                        || c == '"'
+                        || c == '\''
+                        || c == '('
+                        || c == ')'
+                        || c == '['
+                        || c == ']'
+                })
+                .filter(|token| {
+                    token.ends_with(".rs")
+                        || token.ends_with(".java")
+                        || token.ends_with(".ts")
+                        || token.ends_with(".tsx")
+                        || token.ends_with(".py")
+                        || token.ends_with(".go")
+                        || token.ends_with(".js")
+                })
+                .map(|s| s.trim_start_matches("./").replace('\\', "/"))
+                .collect::<std::collections::HashSet<_>>()
+                .into_iter()
+                .collect();
+
+            if !candidate_files.is_empty() {
+                impacted_analysis_md.push_str("\n\n### 代码知识图谱受影响节点推演 (Graph Blast Radius)\n");
+                let mut total_impacted_count = 0;
+
+                for file in &candidate_files {
+                    let like_pattern = format!("%{}%", file);
+                    let node_stmt = conn.prepare(
+                        "SELECT id, name, label FROM nodes WHERE file_path LIKE ?1 LIMIT 50",
+                    );
+                    if let Ok(mut stmt) = node_stmt {
+                        let nodes: Vec<(i64, String, String)> = stmt
+                            .query_map([&like_pattern], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+                            .map(|mapped| mapped.filter_map(|r| r.ok()).collect())
+                            .unwrap_or_default();
+
+                        if !nodes.is_empty() {
+                            let id_list = nodes
+                                .iter()
+                                .map(|(id, _, _)| id.to_string())
+                                .collect::<Vec<_>>()
+                                .join(",");
+                            let edge_sql = format!(
+                                "SELECT DISTINCT source_id FROM edges WHERE target_id IN ({}) LIMIT 50",
+                                id_list
+                            );
+                            if let Ok(mut edge_stmt) = conn.prepare(&edge_sql) {
+                                let source_ids: Vec<i64> = edge_stmt
+                                    .query_map([], |r| r.get(0))
+                                    .map(|mapped| mapped.filter_map(|r| r.ok()).collect())
+                                    .unwrap_or_default();
+
+                                if !source_ids.is_empty() {
+                                    let s_id_list = source_ids
+                                        .iter()
+                                        .map(|id| id.to_string())
+                                        .collect::<Vec<_>>()
+                                        .join(",");
+                                    let caller_sql = format!(
+                                        "SELECT name, label, file_path FROM nodes WHERE id IN ({}) LIMIT 30",
+                                        s_id_list
+                                    );
+                                    if let Ok(mut caller_stmt) = conn.prepare(&caller_sql) {
+                                        let callers: Vec<(String, String, String)> = caller_stmt
+                                            .query_map([], |r| {
+                                                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+                                            })
+                                            .map(|mapped| mapped.filter_map(|r| r.ok()).collect())
+                                            .unwrap_or_default();
+
+                                        if !callers.is_empty() {
+                                            total_impacted_count += callers.len();
+                                            impacted_analysis_md.push_str(&format!(
+                                                "- **入口源文件**: `{}` (包含 {} 个符号)\n",
+                                                file,
+                                                nodes.len()
+                                            ));
+                                            impacted_analysis_md
+                                                .push_str("  - **直接下游调用方/影响节点**:\n");
+                                            for (c_name, c_label, c_file) in callers {
+                                                impacted_analysis_md.push_str(&format!(
+                                                    "    - `[{}] {}` (文件: `{}`)\n",
+                                                    c_label, c_name, c_file
+                                                ));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if total_impacted_count == 0 {
+                    impacted_analysis_md.push_str("- 未检测到已索引的直接下游反向调用依赖（此入口文件属于高层入口或独立模块）。\n");
+                }
+            }
+        }
 
         // 4. 持久化分析结果到工作区
         if let Some(r) = &reporter {
@@ -112,20 +215,28 @@ impl RequirementAnalyzer {
             "python" | "py" => crate::services::language_rules::SupportedLanguage::Python,
             _ => crate::services::language_rules::SupportedLanguage::Unknown,
         };
-        let rules_checklist = if lang != crate::services::language_rules::SupportedLanguage::Unknown {
-            let rules = crate::services::language_rules::BuiltinRuleset::get_rules_for_language(lang);
-            let mut buf = String::from("\n\n## 实施与验收规范红线 (Deterministic Quality Checklist)\n");
-            for r in rules {
-                buf.push_str(&format!("- **[{}] {}**: {}\n", r.category.display_name(), r.title, r.description));
-            }
-            buf
-        } else {
-            String::new()
-        };
+        let rules_checklist =
+            if lang != crate::services::language_rules::SupportedLanguage::Unknown {
+                let rules =
+                    crate::services::language_rules::BuiltinRuleset::get_rules_for_language(lang);
+                let mut buf =
+                    String::from("\n\n## 实施与验收规范红线 (Deterministic Quality Checklist)\n");
+                for r in rules {
+                    buf.push_str(&format!(
+                        "- **[{}] {}**: {}\n",
+                        r.category.display_name(),
+                        r.title,
+                        r.description
+                    ));
+                }
+                buf
+            } else {
+                String::new()
+            };
 
         let report_content = format!(
-            "# 需求逆向推演报告\n\n## 原始需求\n{}\n\n## 拟修改入口与影响面分析\n{}{}\n\n> 本报告由 DeepCloud 逆向推演引擎基于当前代码图谱自动生成。",
-            requirement, entry_points_resp, rules_checklist
+            "# 需求逆向推演报告\n\n## 原始需求\n{}\n\n## 拟修改入口与影响面分析\n{}{}{}\n\n> 本报告由 DeepCloud 逆向推演引擎基于当前代码图谱自动生成。",
+            requirement, entry_points_resp, impacted_analysis_md, rules_checklist
         );
 
         fs::write(&report_path, report_content)?;
