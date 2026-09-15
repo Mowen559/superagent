@@ -52,3 +52,4 @@ pub mod code_complexity;
 pub mod code_similarity;
 pub mod project_manager;
 pub mod pipeline_filter;
+pub mod repo_map;

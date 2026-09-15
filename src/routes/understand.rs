@@ -94,6 +94,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/understand/similarity", axum::routing::post(understand_similarity))
         .route("/api/understand/projects", get(understand_projects))
         .route("/api/understand/adr", get(list_or_get_adr).post(create_adr_endpoint))
+        .route("/api/understand/repo_map", get(understand_repo_map))
 }
 
 /// File-level understanding: symbols, dependencies, inbound references, and an
@@ -857,6 +858,68 @@ async fn understand_projects(
     let root = &state.runtime_config.projects_root;
     let projects = crate::services::project_manager::ProjectIndexManager::discover_projects(root);
     Json(json!(projects)).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct RepoMapQuery {
+    project: Option<String>,
+    focus_path: Option<String>,
+    query: Option<String>,
+    max_symbols: Option<usize>,
+}
+
+async fn understand_repo_map(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<RepoMapQuery>,
+) -> Response {
+    let project = match params.project {
+        Some(p) => p,
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
+    };
+
+    let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
+    if !db_path.exists() {
+        return Json(json!({
+            "repo_map": "",
+            "message": "Database not found. Please index workspace first.",
+            "symbols_count": 0,
+            "files_count": 0
+        }))
+        .into_response();
+    }
+
+    let generator = crate::services::repo_map::RepoMapEngine::new(db_path);
+    let max_syms = params.max_symbols.unwrap_or(60);
+    match generator.generate_map(params.focus_path.as_deref(), params.query.as_deref(), max_syms) {
+        Ok(repo_map) => {
+            let files_count = repo_map
+                .lines()
+                .filter(|l| !l.starts_with("  ") && !l.trim().is_empty())
+                .count();
+            let symbols_count = repo_map
+                .lines()
+                .filter(|l| l.starts_with("  ") && !l.trim().is_empty())
+                .count();
+            Json(json!({
+                "repo_map": repo_map,
+                "files_count": files_count,
+                "symbols_count": symbols_count,
+                "project": project,
+            }))
+            .into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
 }
 
 #[cfg(test)]

@@ -30,3 +30,5 @@ pub mod impact_radar;
 pub mod benchmark_tool;
 pub mod synthesize_tool;
 pub mod blackboard_tool;
+pub mod repo_map_tool;
+pub mod verify_task;

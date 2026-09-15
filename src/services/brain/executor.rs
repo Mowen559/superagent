@@ -656,6 +656,27 @@ impl AgentLoop {
                                 id: item.call_id,
                                 result: tool_result,
                             });
+
+                            if item.func_name == "revert_to_checkpoint"
+                                && receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded
+                            {
+                                let user_input_idx = self
+                                    .events
+                                    .iter()
+                                    .position(|e| matches!(e, SessionEvent::UserInput(_)))
+                                    .unwrap_or(0);
+                                if self.events.len() > user_input_idx + 2 {
+                                    eprintln!(
+                                        "\x1b[35m[Mental State Pruning] Time travel: Pruned {} failure events from session\x1b[0m",
+                                        self.events.len() - (user_input_idx + 2)
+                                    );
+                                    self.events.truncate(user_input_idx + 2);
+                                }
+                                self.push_event(SessionEvent::SystemWarning(
+                                    "[TIME TRAVEL CLEAN STATE] Workspace and mental state reverted to clean checkpoint. Former failure context discarded. Formulate an entirely alternative strategy and proceed with fresh evidence.".to_string(),
+                                ));
+                            }
+
                             self.save_session();
                         }
                     }

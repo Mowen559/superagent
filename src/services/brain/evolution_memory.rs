@@ -127,6 +127,56 @@ impl EvolutionMemory {
         Ok(lessons)
     }
 
+    /// 动态 ELO 置信度强化与衰减反馈 (Hermes 3 RLVR Feedback Loop)
+    pub fn update_lesson_feedback(&self, lesson_id: &str, positive: bool) -> io::Result<Option<DistilledLesson>> {
+        let mut data = self.load()?;
+        let mut updated = None;
+        let mut prune_index = None;
+
+        for (idx, lesson) in data.lessons.iter_mut().enumerate() {
+            if lesson.id == lesson_id {
+                lesson.usage_count += 1;
+                lesson.updated_at = chrono::Utc::now().to_rfc3339();
+                if positive {
+                    lesson.confidence_score = (lesson.confidence_score + 0.05).min(1.0);
+                } else {
+                    lesson.confidence_score = (lesson.confidence_score - 0.15).max(0.0);
+                }
+
+                // 自动淘汰机制：若置信度低于 0.40 且被使用过，予以自动淘汰剪枝
+                if lesson.confidence_score < 0.40 && lesson.usage_count >= 2 {
+                    prune_index = Some(idx);
+                } else {
+                    updated = Some(lesson.clone());
+                }
+                break;
+            }
+        }
+
+        if let Some(idx) = prune_index {
+            let pruned = data.lessons.remove(idx);
+            eprintln!(
+                "\x1b[33m[Evolution Pruning] Pruned sub-par lesson '{}' (Confidence: {:.2} < 0.40)\x1b[0m",
+                pruned.id, pruned.confidence_score
+            );
+        }
+
+        self.save(&data)?;
+        Ok(updated)
+    }
+
+    /// 主动扫描并清理过期的低置信度经验条目
+    pub fn prune_stale_lessons(&self) -> io::Result<usize> {
+        let mut data = self.load()?;
+        let initial_len = data.lessons.len();
+        data.lessons.retain(|l| l.confidence_score >= 0.40 || l.usage_count < 2);
+        let pruned_count = initial_len.saturating_sub(data.lessons.len());
+        if pruned_count > 0 {
+            self.save(&data)?;
+        }
+        Ok(pruned_count)
+    }
+
     /// 基于会话真实执行轨迹提炼实战经验 (Hermes Trajectory Distillation)
     pub fn distill_trajectory(
         &self,
@@ -497,5 +547,41 @@ mod tests {
         let retrieved = memory.retrieve_relevant_lessons("job controller").unwrap();
         assert_eq!(retrieved.len(), 1);
         assert_eq!(retrieved[0].id, lesson.id);
+    }
+
+    #[test]
+    fn test_lesson_elo_reward_and_pruning() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("strategies.json");
+        let memory = EvolutionMemory::new(path);
+
+        let lesson = DistilledLesson {
+            id: "les_elo_1".to_string(),
+            domain: "mybatis".to_string(),
+            trigger_scenario: "querying active users".to_string(),
+            trap_pattern: "using raw query wrapper".to_string(),
+            golden_solution: "use lambda query wrapper".to_string(),
+            confidence_score: 0.50,
+            usage_count: 1,
+            updated_at: "2026-09-15T00:00:00Z".to_string(),
+        };
+        memory.record_lesson(lesson.clone()).unwrap();
+
+        // 1. Positive reward
+        let rewarded = memory.update_lesson_feedback("les_elo_1", true).unwrap().unwrap();
+        assert!((rewarded.confidence_score - 0.55).abs() < f32::EPSILON);
+        assert_eq!(rewarded.usage_count, 2);
+
+        // 2. Penalty
+        let penalized = memory.update_lesson_feedback("les_elo_1", false).unwrap().unwrap();
+        assert!((penalized.confidence_score - 0.40).abs() < f32::EPSILON);
+
+        // 3. Further penalty drops below 0.40 -> automatically pruned!
+        let pruned = memory.update_lesson_feedback("les_elo_1", false).unwrap();
+        assert!(pruned.is_none());
+
+        // Verify lesson is no longer in list
+        let lessons = memory.list_lessons().unwrap();
+        assert!(lessons.is_empty());
     }
 }

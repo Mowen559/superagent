@@ -95,6 +95,15 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
             "SubagentWorker",
         ),
     ));
+    agent.register_tool(Box::new(
+        crate::services::brain::tools::repo_map_tool::RepoMapTool::new(cwd_path.clone()),
+    ));
+    agent.register_tool(Box::new(
+        crate::services::brain::tools::verify_task::VerifyTaskTool::new(
+            provider.clone(),
+            cwd_path.clone(),
+        ),
+    ));
 
     // 自动扫描与装载动态插件与 MCP 工具
     agent.plugin_registry.load_dynamic_plugins();

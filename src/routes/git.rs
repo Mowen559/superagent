@@ -70,6 +70,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/git/shadow-rollback", post(shadow_rollback))
         .route("/api/apply-patch", post(apply_patch))
         .route("/api/projects/git-clone", post(git_clone))
+        .route("/api/git/checkpoints", get(list_git_checkpoints))
+        .route("/api/git/checkpoints/revert", post(revert_git_checkpoint))
 }
 
 async fn git_status(
@@ -506,4 +508,54 @@ async fn git_clone(
 
     Json(json!({ "success": true, "taskId": task.id, "path": target, "status": "pending" }))
         .into_response()
+}
+
+#[derive(Deserialize)]
+pub struct CheckpointQuery {
+    pub project: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct RevertCheckpointPayload {
+    pub project: String,
+    pub checkpoint: Option<String>,
+}
+
+async fn list_git_checkpoints(
+    State(_state): State<Arc<AppState>>,
+    Query(params): Query<CheckpointQuery>,
+) -> Response {
+    let project = match params.project {
+        Some(p) => p,
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Missing project param" })),
+            )
+                .into_response()
+        }
+    };
+
+    match git_service::list_checkpoints(&project) {
+        Ok(checkpoints) => Json(json!({ "checkpoints": checkpoints })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+async fn revert_git_checkpoint(
+    State(_state): State<Arc<AppState>>,
+    Json(payload): Json<RevertCheckpointPayload>,
+) -> Response {
+    match git_service::revert_to_checkpoint(&payload.project, payload.checkpoint.as_deref()) {
+        Ok(msg) => Json(json!({ "success": true, "message": msg })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
 }

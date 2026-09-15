@@ -104,7 +104,7 @@ async fn main() {
         hub_rs::services::brain::tools::fs::GrepSearchTool::new(cwd_path.clone()),
     ));
     engine.register_tool(Box::new(RunCommandTool::new(
-        shell_provider,
+        shell_provider.clone(),
         cwd_path.clone(),
     )));
     engine.register_tool(Box::new(WebFetchTool));
@@ -194,6 +194,15 @@ async fn main() {
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::synthesize_tool::SynthesizeTool::new(
             engine.get_tools_ref(),
+            cwd_path.clone(),
+        ),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::repo_map_tool::RepoMapTool::new(cwd_path.clone()),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::verify_task::VerifyTaskTool::new(
+            shell_provider.clone(),
             cwd_path.clone(),
         ),
     ));
