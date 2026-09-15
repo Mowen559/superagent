@@ -161,10 +161,20 @@ impl CliConfigAdapter for CodexConfigAdapter {
                 } else {
                     let mut provider_table = Table::new();
                     provider_table.insert("name", value(p.display_name));
-                    // Mock direct connection config based on provider
-                    let base_url = format!("{}/v1", hub_base_url); // Fallback mock
+                    // Resolve direct connection config based on provider's configured models_endpoint
+                    let base_path = p.models_endpoint.trim_end_matches("/models");
+                    let base_url = if base_path.starts_with("http://") || base_path.starts_with("https://") {
+                        base_path.to_string()
+                    } else {
+                        format!("{}{}", hub_base_url, if base_path.is_empty() { "/v1" } else { base_path })
+                    };
                     provider_table.insert("base_url", value(base_url));
-                    provider_table.insert("wire_api", value("responses"));
+                    let wire_api = match p.upstream_protocol.to_uppercase().as_str() {
+                        "OPENAI_RESPONSES" => "responses",
+                        "OPENAI_CHAT" => "openai",
+                        _ => "responses",
+                    };
+                    provider_table.insert("wire_api", value(wire_api));
                     provider_table.insert("env_key", value("DEEPCLOUD_CLI_TOKEN"));
 
                     providers.insert(provider_id, Item::Table(provider_table));
