@@ -133,6 +133,12 @@ async fn main() {
     engine.register_tool(Box::new(LspTool));
     engine.register_tool(Box::new(SkillTool::new(std::env::current_dir().unwrap())));
     engine.register_tool(Box::new(HarnessAcpClientTool));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::blackboard_tool::BlackboardTool::new(
+            hub_rs::services::brain::agent_blackboard::AgentBlackboard::global(),
+            "Supervisor",
+        ),
+    ));
 
     // 注册子智能体与监工介入工具
     engine.register_tool(Box::new(AskUserTool::new(
@@ -175,6 +181,9 @@ async fn main() {
     ));
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::checkpoint::RevertToCheckpointTool::new(cwd_path.clone()),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::checkpoint::ListCheckpointsTool::new(cwd_path.clone()),
     ));
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::impact_radar::ImpactRadarTool::new(cwd_path.clone()),

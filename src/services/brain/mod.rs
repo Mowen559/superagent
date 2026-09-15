@@ -38,3 +38,4 @@ pub mod tool_result_store;
 pub mod tools;
 pub mod topology_graph;
 pub mod worker;
+pub mod architectural_linter;

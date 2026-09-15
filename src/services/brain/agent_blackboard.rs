@@ -17,9 +17,17 @@ pub struct AgentBlackboard {
     history: Arc<RwLock<Vec<BlackboardEntry>>>,
 }
 
+use once_cell::sync::Lazy;
+
+static GLOBAL_BLACKBOARD: Lazy<Arc<AgentBlackboard>> = Lazy::new(|| Arc::new(AgentBlackboard::new()));
+
 impl AgentBlackboard {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn global() -> Arc<Self> {
+        GLOBAL_BLACKBOARD.clone()
     }
 
     pub fn post(&self, key: impl Into<String>, value: impl Into<String>, publisher: impl Into<String>, tag: impl Into<String>) {

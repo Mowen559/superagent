@@ -569,3 +569,44 @@ pub fn revert_to_checkpoint(project_path: &str, checkpoint_target: Option<&str>)
         target_commit.short_hash, target_commit.message
     ))
 }
+
+/// 列出当前工作区历史上的所有命名检查点
+pub fn list_checkpoints(project_path: &str) -> Result<Vec<SnapshotCheckpoint>, String> {
+    let history = get_ai_history(project_path, 50)?;
+    let mut checkpoints = Vec::new();
+
+    for commit in history {
+        if commit.message.contains("[Checkpoint:") {
+            let id = if let Some(start) = commit.message.find("[Checkpoint: ") {
+                let rest = &commit.message[start + 13..];
+                if let Some(end) = rest.find(']') {
+                    rest[..end].to_string()
+                } else {
+                    commit.short_hash.clone()
+                }
+            } else {
+                commit.short_hash.clone()
+            };
+
+            let description = if let Some(pos) = commit.message.find("] ") {
+                commit.message[pos + 2..].to_string()
+            } else {
+                commit.message.clone()
+            };
+
+            let time_str = chrono::DateTime::from_timestamp(commit.timestamp, 0)
+                .map(|dt| dt.with_timezone(&chrono::Local).format("%Y-%m-%d %H:%M:%S").to_string())
+                .unwrap_or_else(|| commit.timestamp.to_string());
+
+            checkpoints.push(SnapshotCheckpoint {
+                id,
+                commit_hash: commit.hash,
+                description,
+                timestamp: time_str,
+            });
+        }
+    }
+
+    Ok(checkpoints)
+}
+

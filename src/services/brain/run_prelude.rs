@@ -107,6 +107,11 @@ impl RunPreludeRuntime {
             push_bounded(&mut projection, &topo, MAX_PRELUDE_CHARS);
         }
 
+        // 1.5 注入工作区匹配的沉淀技能主动推荐 (Proactively Recommended Skills)
+        if let Some(skills_block) = scan_recommended_skills(root_dir, objective) {
+            push_bounded(&mut projection, &skills_block, MAX_PRELUDE_CHARS);
+        }
+
         // 2. 注入历史任务自省蒸馏出的工程经验准则 (Distilled Engineering Rules)
         let store = SupermemoryStore::new(&self.config, Some(&self.project_path));
         let distilled_rules = store
@@ -337,6 +342,69 @@ pub fn scan_workspace_topography(root: &std::path::Path) -> Option<String> {
     Some(topo)
 }
 
+fn scan_recommended_skills(root: &std::path::Path, objective: &str) -> Option<String> {
+    let skills_dir = root.join(".agents").join("skills");
+    if !skills_dir.is_dir() {
+        return None;
+    }
+
+    let obj_lower = objective.to_ascii_lowercase();
+    let mut matched = Vec::new();
+
+    for entry in walkdir::WalkDir::new(&skills_dir)
+        .max_depth(2)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        if entry.file_name() == "SKILL.md" {
+            if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                let skill_name = entry
+                    .path()
+                    .parent()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown");
+
+                let mut is_match = obj_lower.contains(&skill_name.to_ascii_lowercase());
+                if !is_match {
+                    for line in content.lines().take(15) {
+                        let line_lower = line.to_ascii_lowercase();
+                        if (line_lower.starts_with("description:") || line_lower.starts_with("name:"))
+                            && obj_lower
+                                .split_whitespace()
+                                .any(|word| word.len() >= 3 && line_lower.contains(word))
+                        {
+                            is_match = true;
+                            break;
+                        }
+                    }
+                }
+
+                if is_match {
+                    matched.push(format!(
+                        "- `{}`: Read via `skill_tool(action='read', skill_name='{}')`",
+                        skill_name, skill_name
+                    ));
+                    if matched.len() >= 3 {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if matched.is_empty() {
+        return None;
+    }
+
+    let mut buf = String::from("<proactively-recommended-skills>\nRelevant workspace skills discovered:\n");
+    for item in matched {
+        buf.push_str(&format!("{item}\n"));
+    }
+    buf.push_str("</proactively-recommended-skills>\n");
+    Some(buf)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -374,6 +442,24 @@ mod tests {
         assert!(content.contains("gateway"));
         assert!(content.contains("iam-service"));
         assert!(content.contains("MyBatis-Plus"));
+        let _ = std::fs::remove_dir_all(temp_dir);
+    }
+
+    #[test]
+    fn test_scan_recommended_skills() {
+        let temp_dir = std::env::temp_dir().join(format!("skills_rec_test_{}", uuid::Uuid::new_v4().simple()));
+        let skill_dir = temp_dir.join(".agents").join("skills").join("mybatis-paging");
+        std::fs::create_dir_all(&skill_dir).unwrap();
+        std::fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: mybatis-paging\ndescription: MyBatis-Plus pagination best practice\n---\nBody",
+        ).unwrap();
+
+        let rec = scan_recommended_skills(&temp_dir, "实现一个 mybatis-paging 分页查询接口");
+        assert!(rec.is_some());
+        let rec_content = rec.unwrap();
+        assert!(rec_content.contains("<proactively-recommended-skills>"));
+        assert!(rec_content.contains("mybatis-paging"));
         let _ = std::fs::remove_dir_all(temp_dir);
     }
 }

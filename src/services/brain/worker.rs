@@ -80,12 +80,21 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
     agent.register_tool(Box::new(ReloadPluginsTool::new(agent.get_tools_ref())));
     agent.register_tool(Box::new(CreateCheckpointTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(RevertToCheckpointTool::new(cwd_path.clone())));
+    agent.register_tool(Box::new(
+        crate::services::brain::tools::checkpoint::ListCheckpointsTool::new(cwd_path.clone()),
+    ));
     agent.register_tool(Box::new(ImpactRadarTool::new(cwd_path.clone())));
     agent.register_tool(Box::new(GoldenBenchmarkTool));
     agent.register_tool(Box::new(SynthesizeTool::new(
         agent.get_tools_ref(),
         cwd_path.clone(),
     )));
+    agent.register_tool(Box::new(
+        crate::services::brain::tools::blackboard_tool::BlackboardTool::new(
+            crate::services::brain::agent_blackboard::AgentBlackboard::global(),
+            "SubagentWorker",
+        ),
+    ));
 
     // 自动扫描与装载动态插件与 MCP 工具
     agent.plugin_registry.load_dynamic_plugins();

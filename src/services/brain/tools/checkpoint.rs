@@ -1,4 +1,4 @@
-﻿use crate::services::brain::executor::ToolExecutor;
+use crate::services::brain::executor::ToolExecutor;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
@@ -121,3 +121,43 @@ impl ToolExecutor for RevertToCheckpointTool {
         }))
     }
 }
+
+/// 列出工作区历史检查点清单 (List Checkpoints)
+pub struct ListCheckpointsTool {
+    pub workspace_root: PathBuf,
+}
+
+impl ListCheckpointsTool {
+    pub fn new(workspace_root: PathBuf) -> Self {
+        Self { workspace_root }
+    }
+}
+
+impl ToolExecutor for ListCheckpointsTool {
+    fn name(&self) -> &'static str {
+        "list_checkpoints"
+    }
+
+    fn description(&self) -> &'static str {
+        "List all available workspace checkpoints and milestones with their IDs, commit hashes, timestamps, and descriptions."
+    }
+
+    fn parameters_schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {},
+            "required": []
+        })
+    }
+
+    fn execute(&self, _args: Value) -> Result<Value, String> {
+        let cwd_str = self.workspace_root.to_string_lossy().to_string();
+        let checkpoints = crate::services::git_service::list_checkpoints(&cwd_str)?;
+        Ok(json!({
+            "status": "success",
+            "total": checkpoints.len(),
+            "checkpoints": checkpoints
+        }))
+    }
+}
+

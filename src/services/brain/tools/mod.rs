@@ -29,3 +29,4 @@ pub mod checkpoint;
 pub mod impact_radar;
 pub mod benchmark_tool;
 pub mod synthesize_tool;
+pub mod blackboard_tool;

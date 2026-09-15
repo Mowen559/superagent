@@ -246,8 +246,13 @@ impl ToolExecutor for WriteFileTool {
         match fs::write(path, code_content) {
             Ok(_) => {
                 let diagnostics = collect_file_diagnostics(path, code_content);
+                let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(path, code_content);
+                let mut message = format!("File written to {}", target_file);
+                if let Some(adv_text) = crate::services::brain::architectural_linter::ArchitecturalLinter::format_advisories(&arch_advisories) {
+                    message.push_str(&adv_text);
+                }
                 Ok(
-                    json!({ "status": "success", "message": format!("File written to {}", target_file), "diagnostics": diagnostics }),
+                    json!({ "status": "success", "message": message, "diagnostics": diagnostics }),
                 )
             }
             Err(e) => Err(format!("Failed to write to file: {}", e)),
@@ -366,7 +371,12 @@ impl ToolExecutor for ReplaceInFileTool {
             None
         };
 
-        let mut res = json!({"success": true, "message": format!("Successfully replaced text in {}{}", path.display(), repair_msg), "diagnostics": diagnostics});
+        let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(path, &content);
+        let mut msg = format!("Successfully replaced text in {}{}", path.display(), repair_msg);
+        if let Some(adv_text) = crate::services::brain::architectural_linter::ArchitecturalLinter::format_advisories(&arch_advisories) {
+            msg.push_str(&adv_text);
+        }
+        let mut res = json!({"success": true, "message": msg, "diagnostics": diagnostics});
         if let Some(impact) = impact_warning {
             res["impact_radar"] = impact;
         }
@@ -476,11 +486,16 @@ impl ToolExecutor for MultiReplaceTool {
 
         std::fs::write(path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
         let diagnostics = collect_file_diagnostics(path, &content);
+        let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(path, &content);
+        let mut msg = format!("Successfully applied {} refactoring blocks.", replaced_count);
+        if let Some(adv_text) = crate::services::brain::architectural_linter::ArchitecturalLinter::format_advisories(&arch_advisories) {
+            msg.push_str(&adv_text);
+        }
 
         let mut res = json!({
             "status": "success",
             "blocks_replaced": replaced_count,
-            "message": format!("Successfully applied {} refactoring blocks.", replaced_count),
+            "message": msg,
             "diagnostics": diagnostics
         });
 
@@ -690,6 +705,19 @@ pub fn collect_file_diagnostics(path: &Path, content: &str) -> Vec<Value> {
             }
         }
         _ => {}
+    }
+
+    // 3. DeepCloud 核心架构契约实时 Linter (Architectural Linter)
+    let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(path, content);
+    for adv in arch_advisories {
+        diagnostics.push(json!({
+            "severity": "warning",
+            "line": 1,
+            "column": 1,
+            "source": "ArchitectureLinter",
+            "rule": adv.rule_name,
+            "message": format!("[{}] {}. Fix: {}", adv.rule_name, adv.violation, adv.prescribed_fix)
+        }));
     }
 
     diagnostics
