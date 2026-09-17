@@ -47,8 +47,6 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
             .to_string();
         fn resolve_gemini_native_model(m: &str) -> &str {
             match m {
-                "claude-opus-4-6-thinking" => "claude-3.5-sonnet-v2-0",
-                "claude-3.5-sonnet" => "claude-3.5-sonnet-v2-0",
                 "gemini-3.1-pro-high" => "gemini-pro-agent",
                 "gemini-3.1-pro-low" => "gemini-3.1-pro-low",
                 "gemini-3.1-flash-lite" => "gemini-3.1-flash-lite",

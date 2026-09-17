@@ -129,18 +129,55 @@ pub(crate) async fn get_task_diff(
         Some("pending".to_string()),
     );
 
-    let output = tokio::process::Command::new("git")
-        .arg("diff")
-        .arg("--no-index")
-        .arg("--")
-        .arg(&paths.project)
-        .arg(&paths.run_dir)
-        .output()
-        .await;
-    let diff = output
-        .as_ref()
-        .map(|output| String::from_utf8_lossy(&output.stdout).to_string())
-        .unwrap_or_default();
+    let diff = if !change_set.files.is_empty() {
+        let mut file_diffs = Vec::new();
+        for file in &change_set.files {
+            let left_file = paths.project.join(&file.path);
+            let right_file = paths.run_dir.join(&file.path);
+
+            let null_path = if cfg!(windows) { "NUL" } else { "/dev/null" };
+            let left_arg = if left_file.exists() {
+                left_file.to_string_lossy().to_string()
+            } else {
+                null_path.to_string()
+            };
+            let right_arg = if right_file.exists() {
+                right_file.to_string_lossy().to_string()
+            } else {
+                null_path.to_string()
+            };
+
+            let out = tokio::process::Command::new("git")
+                .arg("diff")
+                .arg("--no-index")
+                .arg("--")
+                .arg(&left_arg)
+                .arg(&right_arg)
+                .output()
+                .await;
+
+            if let Ok(output) = out {
+                let s = String::from_utf8_lossy(&output.stdout);
+                if !s.is_empty() {
+                    file_diffs.push(s.to_string());
+                }
+            }
+        }
+        file_diffs.join("\n")
+    } else {
+        let output = tokio::process::Command::new("git")
+            .arg("diff")
+            .arg("--no-index")
+            .arg("--")
+            .arg(&paths.project)
+            .arg(&paths.run_dir)
+            .output()
+            .await;
+        output
+            .as_ref()
+            .map(|output| String::from_utf8_lossy(&output.stdout).to_string())
+            .unwrap_or_default()
+    };
     let truncated = diff.chars().count() > MAX_DIFF_CHARS;
     let diff = diff.chars().take(MAX_DIFF_CHARS).collect::<String>();
     Json(json!({
@@ -704,20 +741,16 @@ pub(crate) async fn apply_task_changes(
         )
             .into_response();
     }
-    let snapshot_hash =
-        match crate::services::git_service::record_ai_snapshot(
-            &task.project_path,
-            &format!("Before applying AI task {task_id}"),
-        ) {
-            Ok(hash) => hash,
-            Err(error) => return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(
-                    json!({ "error": format!("Cannot create pre-apply shadow snapshot: {error}") }),
-                ),
-            )
-                .into_response(),
-        };
+    let snapshot_hash = match crate::services::git_service::record_ai_snapshot(
+        &task.project_path,
+        &format!("Before applying AI task {task_id}"),
+    ) {
+        Ok(hash) => hash,
+        Err(error) => {
+            tracing::warn!("Pre-apply snapshot skipped: {error}");
+            "unversioned".to_string()
+        }
+    };
     let apply_receipt = match crate::services::change_set::apply_changes(
         &change_set,
         &paths.project,

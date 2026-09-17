@@ -53,6 +53,7 @@ pub async fn execute_model_request(
         let attempt = candidate_index + 1;
         let attempt_started = Instant::now();
         let mut attempt_settings = candidate.attempt_settings(&settings);
+        let mut has_retried_auth = false;
 
         let mut has_valid_oauth = false;
         if let Some(token) = &override_token {
@@ -124,7 +125,7 @@ pub async fn execute_model_request(
         }
 
         let upstream_adapter = adapter_for_provider(&attempt_settings);
-        let prep_res = upstream_adapter.prepare_request(&attempt_settings, attempt_body);
+        let prep_res = upstream_adapter.prepare_request(&attempt_settings, attempt_body.clone());
         let (target_url, req_headers, upstream_body) = match prep_res {
             Ok(res) => res,
             Err(e) => {
@@ -224,6 +225,67 @@ pub async fn execute_model_request(
                 return Err(last_error);
             }
         };
+
+        // 401 自动无感知刷新与原地重发机制 (In-place Seamless Retry)
+        let mut res = res;
+        if res.status() == StatusCode::UNAUTHORIZED
+            && override_token.is_none()
+            && candidate.account.refresh_token.is_some()
+            && !has_retried_auth
+        {
+            has_retried_auth = true;
+            tracing::warn!(
+                "[Gateway] Upstream returned 401 Unauthorized for account '{}'. Attempting seamless token refresh and in-place retry...",
+                candidate.account.id
+            );
+
+            let refresh_res = crate::services::cli_auth::runtime::AuthRuntime::global()
+                .force_refresh_token(&mut candidate.account, http_client)
+                .await;
+
+            match refresh_res {
+                Ok(new_token) => {
+                    tracing::info!(
+                        "[Gateway] Token refreshed successfully for account '{}'. Re-preparing request...",
+                        candidate.account.id
+                    );
+                    attempt_settings.api_key = new_token;
+
+                    if let Ok((retry_target_url, retry_req_headers, retry_upstream_body)) =
+                        upstream_adapter.prepare_request(&attempt_settings, attempt_body.clone())
+                    {
+                        let mut retry_req_builder =
+                            http_client.post(&retry_target_url).json(&retry_upstream_body);
+                        for (k, v) in retry_req_headers.iter() {
+                            if !k.as_str().eq_ignore_ascii_case("content-type") {
+                                retry_req_builder = retry_req_builder.header(k, v);
+                            }
+                        }
+                        if attempt_settings.provider != "gemini_native" {
+                            if let Some(project_id) = &attempt_settings.project_id {
+                                retry_req_builder =
+                                    retry_req_builder.header("x-goog-user-project", project_id);
+                            }
+                        }
+
+                        if let Ok(retry_res) = retry_req_builder.send().await {
+                            tracing::info!(
+                                "[Gateway] In-place retry completed with status: {}",
+                                retry_res.status()
+                            );
+                            res = retry_res;
+                        }
+                    }
+                }
+                Err(err) => {
+                    tracing::error!(
+                        "[Gateway] Failed to force refresh token for account '{}': {}",
+                        candidate.account.id,
+                        err
+                    );
+                }
+            }
+        }
 
         let status = res.status();
         let attempt_duration_ms = crate::domains::model_gateway::providers::elapsed_ms(attempt_started);

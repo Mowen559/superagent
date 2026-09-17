@@ -50,6 +50,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/agents/run", post(run_agent))
         .route("/api/agents/tasks/{task_id}/events", get(stream_events))
         .route(
+            "/api/agents/tasks/{task_id}/events/list",
+            get(crate::routes::tasks::get_task_events_list),
+        )
+        .route(
             "/api/agents/tasks/{task_id}/interact",
             post(interact_with_task),
         )

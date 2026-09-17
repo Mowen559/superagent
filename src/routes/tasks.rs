@@ -18,6 +18,10 @@ pub fn router() -> Router<Arc<AppState>> {
             "/api/tasks/{task_id}/events",
             get(crate::routes::agents::stream_events),
         )
+        .route(
+            "/api/tasks/{task_id}/events/list",
+            get(get_task_events_list),
+        )
         .route("/api/tasks/{task_id}/cancel", post(cancel_task))
 }
 
@@ -70,4 +74,29 @@ async fn cancel_task(State(state): State<Arc<AppState>>, Path(task_id): Path<Str
         )
             .into_response()
     }
+}
+
+pub(crate) async fn get_task_events_list(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> Response {
+    if state.task_manager.get_task(&task_id).is_none() {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Task not found" })),
+        )
+            .into_response();
+    }
+    let events = state.task_manager.get_events(&task_id);
+    let msgs: Vec<serde_json::Value> = events
+        .into_iter()
+        .map(|(seq, msg)| {
+            let mut v = serde_json::to_value(&msg).unwrap_or_default();
+            if let Some(obj) = v.as_object_mut() {
+                obj.insert("sequence".to_string(), json!(seq));
+            }
+            v
+        })
+        .collect();
+    Json(json!({ "taskId": task_id, "events": msgs })).into_response()
 }

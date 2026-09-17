@@ -62,7 +62,11 @@ pub struct ShadowFileChange {
 fn open_repo(project_path: &str, kind: RepoKind) -> Result<Repository, String> {
     match kind {
         RepoKind::Local => {
-            Repository::open(project_path).map_err(|e| format!("Not a git repository: {}", e))
+            let clean = project_path.trim_start_matches(r"\\?\");
+            Repository::discover(clean)
+                .or_else(|_| Repository::open(clean))
+                .or_else(|_| Repository::open(project_path))
+                .map_err(|e| format!("Not a git repository: {}", e))
         }
         RepoKind::Shadow => {
             let shadow = Path::new(project_path).join(".shadow-git");

@@ -637,97 +637,113 @@ pub async fn handle_claude_oauth_flow(
     })
 }
 
-pub async fn refresh_account_token_if_needed(
+pub async fn force_refresh_account_token(
     account: &mut crate::config::llm_settings::LLMAccount,
     http_client: &reqwest::Client,
 ) -> bool {
+    let refresh_token = match &account.refresh_token {
+        Some(rt) if !rt.is_empty() => rt.clone(),
+        _ => return false,
+    };
+
     let mut needs_save = false;
-    if let (Some(expires_at), Some(refresh_token)) = (account.expires_at, &account.refresh_token) {
-        if chrono::Utc::now().timestamp() + 300 >= expires_at {
-            tracing::info!("Token expired or expiring soon, refreshing...");
+    tracing::info!("[Auth] Executing OAuth token refresh for provider '{}', account '{}'", account.provider, account.id);
 
-            if account.provider == "github_copilot" {
-                let req = http_client
-                    .get("https://api.github.com/copilot_internal/v2/token")
-                    .header("Authorization", format!("token {}", refresh_token))
-                    .header("Accept", "application/json")
-                    .header("User-Agent", "GitHubCopilotChat/0.11.1");
+    if account.provider == "github_copilot" {
+        let req = http_client
+            .get("https://api.github.com/copilot_internal/v2/token")
+            .header("Authorization", format!("token {}", refresh_token))
+            .header("Accept", "application/json")
+            .header("User-Agent", "GitHubCopilotChat/0.11.1");
 
-                if let Ok(res) = req.send().await {
-                    if let Ok(json_res) = res.json::<serde_json::Value>().await {
-                        if let Some(token) = json_res.get("token").and_then(|v| v.as_str()) {
-                            account.api_key = token.to_string();
-                            if let Some(expires_in) =
-                                json_res.get("expires_at").and_then(|v| v.as_i64())
-                            {
-                                account.expires_at = Some(expires_in);
-                            }
-                            needs_save = true;
-                        }
-                    }
-                }
-            } else {
-                let token_url =
-                    if account.provider == "openai" || account.provider == "openai_native" {
-                        "https://auth.openai.com/oauth/token"
-                    } else if account.provider == "gemini" || account.provider == "gemini_native" {
-                        "https://oauth2.googleapis.com/token"
-                    } else {
-                        ""
-                    };
-
-                if !token_url.is_empty() {
-                    let client_id = if account.provider == "openai"
-                        || account.provider == "openai_native"
+        if let Ok(res) = req.send().await {
+            if let Ok(json_res) = res.json::<serde_json::Value>().await {
+                if let Some(token) = json_res.get("token").and_then(|v| v.as_str()) {
+                    account.api_key = token.to_string();
+                    if let Some(expires_in) =
+                        json_res.get("expires_at").and_then(|v| v.as_i64())
                     {
-                        "app_EMoamEEZ73f0CkXaXp7hrann"
-                    } else if account.provider == "gemini_native" {
-                        "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
-                    } else {
-                        "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
-                    };
-
-                    let client_secret = if account.provider == "gemini" {
-                        Some("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")
-                    } else if account.provider == "gemini_native" {
-                        Some("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")
-                    } else {
-                        None
-                    };
-
-                    let req = http_client
-                        .post(token_url)
-                        .header("Content-Type", "application/x-www-form-urlencoded");
-
-                    let mut body_str = format!(
-                        "grant_type=refresh_token&refresh_token={}&client_id={}",
-                        refresh_token, client_id
-                    );
-                    if let Some(secret) = client_secret {
-                        body_str.push_str(&format!("&client_secret={}", secret));
+                        account.expires_at = Some(expires_in);
                     }
+                    needs_save = true;
+                }
+            }
+        }
+    } else {
+        let token_url =
+            if account.provider == "openai" || account.provider == "openai_native" {
+                "https://auth.openai.com/oauth/token"
+            } else if account.provider == "gemini" || account.provider == "gemini_native" {
+                "https://oauth2.googleapis.com/token"
+            } else if account.provider == "anthropic" || account.provider == "claude" {
+                "https://platform.claude.com/v1/oauth/token"
+            } else {
+                ""
+            };
 
-                    if let Ok(res) = req.body(body_str).send().await {
-                        if let Ok(res_json) = res.json::<serde_json::Value>().await {
-                            if let Some(access_token) =
-                                res_json.get("access_token").and_then(|v| v.as_str())
-                            {
-                                account.api_key = access_token.to_string();
+        if !token_url.is_empty() {
+            let client_id = if account.provider == "openai"
+                || account.provider == "openai_native"
+            {
+                "app_EMoamEEZ73f0CkXaXp7hrann"
+            } else if account.provider == "gemini_native" {
+                "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+            } else if account.provider == "anthropic" || account.provider == "claude" {
+                "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+            } else {
+                "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
+            };
 
-                                if let Some(new_refresh) =
-                                    res_json.get("refresh_token").and_then(|v| v.as_str())
-                                {
-                                    account.refresh_token = Some(new_refresh.to_string());
-                                }
+            let client_secret = if account.provider == "gemini" {
+                Some("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")
+            } else if account.provider == "gemini_native" {
+                Some("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")
+            } else {
+                None
+            };
 
-                                if let Some(expires_in) =
-                                    res_json.get("expires_in").and_then(|v| v.as_i64())
-                                {
-                                    account.expires_at =
-                                        Some(chrono::Utc::now().timestamp() + expires_in);
-                                }
-                                needs_save = true;
-                            }
+            let mut req = http_client
+                .post(token_url)
+                .header("Content-Type", "application/x-www-form-urlencoded");
+
+            if account.provider == "anthropic" || account.provider == "claude" {
+                req = req.header("User-Agent", "Mozilla/5.0");
+            }
+
+            let mut body_str = format!(
+                "grant_type=refresh_token&refresh_token={}&client_id={}",
+                urlencoding::encode(&refresh_token),
+                client_id
+            );
+            if let Some(secret) = client_secret {
+                body_str.push_str(&format!("&client_secret={}", secret));
+            }
+
+            if let Ok(res) = req.body(body_str).send().await {
+                if let Ok(res_json) = res.json::<serde_json::Value>().await {
+                    if let Some(access_token) =
+                        res_json.get("access_token").and_then(|v| v.as_str())
+                    {
+                        account.api_key = access_token.to_string();
+
+                        if let Some(new_refresh) =
+                            res_json.get("refresh_token").and_then(|v| v.as_str())
+                        {
+                            account.refresh_token = Some(new_refresh.to_string());
+                        }
+
+                        if let Some(expires_in) =
+                            res_json.get("expires_in").and_then(|v| v.as_i64())
+                        {
+                            account.expires_at =
+                                Some(chrono::Utc::now().timestamp() + expires_in);
+                        }
+                        needs_save = true;
+
+                        #[cfg(target_os = "windows")]
+                        if account.provider == "anthropic" || account.provider == "claude" {
+                            let _ = keyring::Entry::new("claude_desktop_access_token", "default")
+                                .and_then(|e| e.set_password(&account.api_key).map_err(|err| keyring::Error::PlatformFailure(err.into())));
                         }
                     }
                 }
@@ -735,4 +751,17 @@ pub async fn refresh_account_token_if_needed(
         }
     }
     needs_save
+}
+
+pub async fn refresh_account_token_if_needed(
+    account: &mut crate::config::llm_settings::LLMAccount,
+    http_client: &reqwest::Client,
+) -> bool {
+    if let (Some(expires_at), Some(_)) = (account.expires_at, &account.refresh_token) {
+        if chrono::Utc::now().timestamp() + 300 >= expires_at {
+            tracing::info!("Token expired or expiring soon, refreshing...");
+            return force_refresh_account_token(account, http_client).await;
+        }
+    }
+    false
 }

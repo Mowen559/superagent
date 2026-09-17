@@ -78,4 +78,40 @@ impl AuthRuntime {
             Err(AuthError::RefreshFailed("Failed to refresh token upstream".into()))
         }
     }
+
+    pub async fn force_refresh_token(&self, account: &mut LLMAccount, http_client: &reqwest::Client) -> Result<String, AuthError> {
+        if account.refresh_token.is_none() {
+            return Err(AuthError::TokenExpired);
+        }
+
+        let lock = {
+            let mut locks = self.refresh_locks.lock().await;
+            locks.entry(account.id.clone()).or_insert_with(|| Arc::new(Mutex::new(()))).clone()
+        };
+
+        let _guard = lock.lock().await;
+
+        let refreshed = crate::services::cli_auth::force_refresh_account_token(account, http_client).await;
+        
+        if refreshed {
+            let account_id = account.id.clone();
+            let new_key = account.api_key.clone();
+            let new_refresh = account.refresh_token.clone();
+            let new_expires = account.expires_at;
+            let _ = llm_settings::update_llm_settings(move |settings| {
+                for a in &mut settings.accounts {
+                    if a.id == account_id {
+                        a.api_key = new_key.clone();
+                        a.refresh_token = new_refresh.clone();
+                        a.expires_at = new_expires;
+                        break;
+                    }
+                }
+                Ok(())
+            });
+            Ok(account.api_key.clone())
+        } else {
+            Err(AuthError::RefreshFailed("Failed to force refresh token upstream".into()))
+        }
+    }
 }

@@ -1,4 +1,4 @@
-pub async fn run_worker(prompt: &str, project: Option<String>) {
+pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<String>) {
     use crate::services::brain::capabilities::shell::LocalShellProvider;
     use crate::services::brain::executor::AgentLoop;
     use crate::services::brain::subagent_runtime::SubagentRuntime;
@@ -45,7 +45,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>) {
    - 当工具返回报错或编译器诊断时，分析根因，调整方案，就地修复，不轻易中断任务。
 "#;
 
-    let mut agent = AgentLoop::new(worker_system_prompt);
+    let mut agent = AgentLoop::with_model(worker_system_prompt, model.as_deref());
     agent.emit_jsonl = true;
 
     // 注册核心能力与工具箱 (Fully Armed Superagent Toolset)

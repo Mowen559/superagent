@@ -24,6 +24,14 @@ impl AgentBackend for SuperAgentBackend {
             "--prompt".to_string(),
             prompt,
         ];
+        if let Some(model) = opts.model.as_ref().filter(|m| !m.trim().is_empty()) {
+            args.push("--model".to_string());
+            args.push(model.clone());
+        }
+        if let Some(cwd) = opts.cwd.as_ref().filter(|p| !p.trim().is_empty()) {
+            args.push("--project".to_string());
+            args.push(cwd.clone());
+        }
 
         json_lines::run(
             JsonSpec {
@@ -70,6 +78,14 @@ impl AgentBackend for SuperAgentBackend {
                         } else if t == "status" {
                             if let Some(s) = evt.get("status").and_then(|v| v.as_str()) {
                                 st.forced_status = Some(s.to_string());
+                            }
+                            if let Some(res) = evt.get("result").and_then(|v| v.as_str()) {
+                                if !res.trim().is_empty() {
+                                    st.output = res.to_string();
+                                    out.push(AgentMessage::Text {
+                                        content: res.to_string(),
+                                    });
+                                }
                             }
                         } else if t == "AskUser" {
                             if let Some(payload) = evt.get("payload") {

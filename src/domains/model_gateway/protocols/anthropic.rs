@@ -259,6 +259,38 @@ impl ProtocolConverter for AnthropicConverter {
             }
         }
 
+        if let Some(stop_sequences) = body.get("stop_sequences") {
+            result["stop"] = stop_sequences.clone();
+        }
+
+        if let Some(tool_choice) = body.get("tool_choice") {
+            if let Some(tc_type) = tool_choice.get("type").and_then(|t| t.as_str()) {
+                match tc_type {
+                    "auto" => {
+                        result["tool_choice"] = json!("auto");
+                    }
+                    "any" => {
+                        result["tool_choice"] = json!("required");
+                    }
+                    "tool" => {
+                        if let Some(name) = tool_choice.get("name").and_then(|n| n.as_str()) {
+                            result["tool_choice"] = json!({
+                                "type": "function",
+                                "function": { "name": name }
+                            });
+                        }
+                    }
+                    _ => {}
+                }
+            } else if let Some(tc_str) = tool_choice.as_str() {
+                result["tool_choice"] = json!(tc_str);
+            }
+        }
+
+        if result.get("max_tokens").is_none() {
+            result["max_tokens"] = json!(4096);
+        }
+
         Ok(result)
     }
 
@@ -424,5 +456,20 @@ mod tests {
                 .len(),
             1
         );
+    }
+
+    #[test]
+    fn test_anthropic_tool_choice_and_defaults() {
+        let converter = AnthropicConverter;
+        let body = json!({
+            "model": "claude-3-5-sonnet",
+            "messages": [{"role": "user", "content": "hello"}],
+            "stop_sequences": ["\n\nHuman:"],
+            "tool_choice": {"type": "tool", "name": "get_weather"}
+        });
+        let standard = converter.request_to_standard(body).unwrap();
+        assert_eq!(standard["max_tokens"], 4096);
+        assert_eq!(standard["stop"], json!(["\n\nHuman:"]));
+        assert_eq!(standard["tool_choice"]["function"]["name"], "get_weather");
     }
 }

@@ -65,10 +65,24 @@ pub(crate) async fn handle_request(
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
 
-    let mut override_token = None;
+    let mut raw_token = None;
     if let Some(auth_val) = headers.get("Authorization").and_then(|v| v.to_str().ok()) {
-        if auth_val.starts_with("Bearer ") {
-            let token = &auth_val[7..];
+        if let Some(stripped) = auth_val.strip_prefix("Bearer ") {
+            raw_token = Some(stripped.trim());
+        } else {
+            raw_token = Some(auth_val.trim());
+        }
+    } else if let Some(key_val) = headers.get("x-api-key").and_then(|v| v.to_str().ok()) {
+        raw_token = Some(key_val.trim());
+    } else if let Some(key_val) = headers.get("anthropic-auth-token").and_then(|v| v.to_str().ok()) {
+        raw_token = Some(key_val.trim());
+    } else if let Some(key_val) = headers.get("api-key").and_then(|v| v.to_str().ok()) {
+        raw_token = Some(key_val.trim());
+    }
+
+    let mut override_token = None;
+    if let Some(token) = raw_token {
+        if !token.is_empty() {
             if !auth_validator::is_api_key(token) {
                 match auth_validator::validate_oauth_token(
                     &state.http_client,

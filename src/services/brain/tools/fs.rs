@@ -8,31 +8,128 @@ use std::path::Path;
 
 use std::path::PathBuf;
 
-fn is_path_safe(path: &Path, workspace_root: &Path) -> bool {
-    let absolute_path = if path.is_absolute() {
-        path.to_path_buf()
+/// 剥离 Windows UNC `\\?\` 前缀并规范化路径
+pub fn normalize_path(p: &Path) -> PathBuf {
+    let s = p.to_string_lossy();
+    let stripped = if s.starts_with(r"\\?\") {
+        &s[4..]
     } else {
-        workspace_root.join(path)
+        &s
     };
+    PathBuf::from(stripped)
+}
 
-    let normalized = match std::fs::canonicalize(&absolute_path) {
-        Ok(p) => p,
-        Err(_) => {
-            if let Some(parent) = absolute_path.parent() {
-                if let Ok(p) = std::fs::canonicalize(parent) {
-                    p.join(absolute_path.file_name().unwrap_or_default())
-                } else {
-                    return false;
-                }
+/// 智能且安全的路径自愈解析 (Auto-healing Safe Path Resolver)
+/// 保证所有相对路径、历史沙箱泄露路径、Windows UNC 路径均自愈重定向至当前任务的 workspace_root，
+/// 并且杜绝越权目录逃逸。
+pub fn resolve_safe_path(raw_path: &str, workspace_root: &Path) -> Result<PathBuf, String> {
+    let trimmed = raw_path.trim();
+    if trimmed.is_empty() || trimmed == "." || trimmed == "./" || trimmed == ".\\" {
+        return Ok(workspace_root.to_path_buf());
+    }
+
+    let norm_slash = trimmed.replace('\\', "/");
+
+    // 1. 历史沙箱路径自愈：若大模型误传了历史 run 的 workspace 绝对路径（例如 .../runs/<old_id>/workspace/src/...）
+    if norm_slash.contains(".aindex-hub") && norm_slash.contains("/runs/") && norm_slash.contains("/workspace") {
+        if let Some(pos) = norm_slash.find("/workspace") {
+            let sub = &norm_slash[pos + "/workspace".len()..];
+            let sub_clean = sub.trim_start_matches('/');
+            if sub_clean.is_empty() || sub_clean == "." {
+                return Ok(workspace_root.to_path_buf());
             } else {
-                return false;
+                return Ok(workspace_root.join(sub_clean));
+            }
+        }
+    }
+
+    // 2. 相对路径解析
+    let raw_path_obj = Path::new(trimmed);
+    let resolved = if raw_path_obj.is_relative() {
+        workspace_root.join(raw_path_obj)
+    } else {
+        // 绝对路径：检查是否在 workspace_root 范围内
+        let norm_target = normalize_path(raw_path_obj);
+        let norm_root = normalize_path(workspace_root);
+        if norm_target.starts_with(&norm_root) {
+            norm_target
+        } else {
+            // 如果绝对路径不在 workspace_root 内，检查是否包含 /workspace/ 后缀
+            if let Some(pos) = norm_slash.rfind("/workspace/") {
+                let sub = &norm_slash[pos + "/workspace/".len()..];
+                workspace_root.join(sub)
+            } else {
+                // 如果绝对路径完全不属于 workspace_root，但目标在原始项目中存在，尝试提取匹配相对路径
+                let root_components: Vec<_> = norm_root.components().collect();
+                let last_root_name = root_components
+                    .last()
+                    .map(|c| c.as_os_str().to_string_lossy().to_string())
+                    .unwrap_or_default();
+
+                let mut matched_candidate = None;
+                if !last_root_name.is_empty() {
+                    if let Some(pos) = norm_slash.rfind(&format!("/{}", last_root_name)) {
+                        let sub = &norm_slash[pos + last_root_name.len() + 1..];
+                        let sub_clean = sub.trim_start_matches('/');
+                        let candidate = workspace_root.join(sub_clean);
+                        if candidate.exists() {
+                            matched_candidate = Some(candidate);
+                        }
+                    }
+                }
+
+                if let Some(candidate) = matched_candidate {
+                    candidate
+                } else {
+                    return Err(format!(
+                        "Security Error: Path '{}' is outside the workspace root",
+                        trimmed
+                    ));
+                }
             }
         }
     };
 
-    let cwd_canonical =
-        std::fs::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
-    normalized.starts_with(cwd_canonical)
+    // 3. 最终沙箱逃逸检查 (Canonicalize / Parent Check 防御 ../../ 逃逸)
+    let canonical_root = std::fs::canonicalize(workspace_root)
+        .map(|p| normalize_path(&p))
+        .unwrap_or_else(|_| normalize_path(workspace_root));
+
+    let canonical_target = if resolved.exists() {
+        std::fs::canonicalize(&resolved)
+            .map(|p| normalize_path(&p))
+            .unwrap_or_else(|_| normalize_path(&resolved))
+    } else if let Some(parent) = resolved.parent() {
+        if parent.exists() {
+            if let Ok(p) = std::fs::canonicalize(parent) {
+                normalize_path(&p).join(resolved.file_name().unwrap_or_default())
+            } else {
+                normalize_path(&resolved)
+            }
+        } else {
+            normalize_path(&resolved)
+        }
+    } else {
+        normalize_path(&resolved)
+    };
+
+    if canonical_target.starts_with(&canonical_root) {
+        Ok(canonical_target)
+    } else {
+        let norm_resolved = normalize_path(&resolved);
+        if norm_resolved.starts_with(&canonical_root) {
+            Ok(norm_resolved)
+        } else {
+            Err(format!(
+                "Security Error: Path '{}' resolves outside the workspace root",
+                trimmed
+            ))
+        }
+    }
+}
+
+fn is_path_safe(path: &Path, workspace_root: &Path) -> bool {
+    resolve_safe_path(&path.to_string_lossy(), workspace_root).is_ok()
 }
 
 fn require_safe_path(path: &Path, operation: &str, workspace_root: &Path) -> Result<(), String> {
@@ -103,12 +200,13 @@ impl ToolExecutor for ReadFileTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let path_str = args
             .get("AbsolutePath")
+            .or_else(|| args.get("path"))
+            .or_else(|| args.get("file_path"))
             .and_then(|v| v.as_str())
             .ok_or("Missing or invalid 'AbsolutePath' argument")?;
 
-        let path = Path::new(path_str);
-        require_safe_path(path, "file read", &self.workspace_root)?;
-        if !path.exists() {
+        let resolved_path = resolve_safe_path(path_str, &self.workspace_root)?;
+        if !resolved_path.exists() {
             return Err(format!("File not found: {}", path_str));
         }
 
@@ -128,7 +226,7 @@ impl ToolExecutor for ReadFileTool {
         let filter_level = std::str::FromStr::from_str(filter_level_str)
             .unwrap_or(crate::services::token_filter::FilterLevel::None);
 
-        match fs::read_to_string(path) {
+        match fs::read_to_string(&resolved_path) {
             Ok(full_content) => {
                 let mut content = full_content.clone();
                 let mut is_paginated = false;
@@ -158,7 +256,7 @@ impl ToolExecutor for ReadFileTool {
                     "content": content,
                     "paginated": is_paginated,
                     "bytes": content.len(),
-                    "file_path": path_str,
+                    "file_path": resolved_path.to_string_lossy().to_string(),
                     "rtk_metrics": rtk_metrics
                 }))
             }
@@ -207,18 +305,18 @@ impl ToolExecutor for WriteFileTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let target_file = args
             .get("TargetFile")
+            .or_else(|| args.get("path"))
+            .or_else(|| args.get("file_path"))
             .and_then(|v| v.as_str())
             .ok_or("Missing or invalid 'TargetFile' argument")?;
 
         let code_content = args
             .get("CodeContent")
+            .or_else(|| args.get("content"))
             .and_then(|v| v.as_str())
             .ok_or("Missing or invalid 'CodeContent' argument")?;
 
-        let path = Path::new(target_file);
-        if !is_path_safe(path, &self.workspace_root) {
-            return Err("Security Error: Path traversal detected. Operations are restricted to the workspace.".into());
-        }
+        let path = resolve_safe_path(target_file, &self.workspace_root)?;
 
         // 自动创建父目录
         if let Some(parent) = path.parent() {
@@ -231,23 +329,22 @@ impl ToolExecutor for WriteFileTool {
         // 自动快照：脊髓反射 (Spinal Reflex - Shadow Backup)
         eprintln!(
             "\x1b[36m[Spinal Reflex] 运动中枢触发防卫：自动备份 {}\x1b[0m",
-            target_file
+            path.display()
         );
-        let cwd = std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
-        let cwd_str = cwd.to_string_lossy().to_string();
+        let cwd_str = self.workspace_root.to_string_lossy().to_string();
         let _ = crate::services::git_service::record_ai_snapshot(
             &cwd_str,
             &format!(
                 "[Shadow Backup] Auto-backup before modifying {}",
-                target_file
+                path.display()
             ),
         );
 
-        match fs::write(path, code_content) {
+        match fs::write(&path, code_content) {
             Ok(_) => {
-                let diagnostics = collect_file_diagnostics(path, code_content);
-                let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(path, code_content);
-                let mut message = format!("File written to {}", target_file);
+                let diagnostics = collect_file_diagnostics(&path, code_content);
+                let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(&path, code_content);
+                let mut message = format!("File written to {}", path.display());
                 if let Some(adv_text) = crate::services::brain::architectural_linter::ArchitecturalLinter::format_advisories(&arch_advisories) {
                     message.push_str(&adv_text);
                 }
@@ -294,11 +391,13 @@ impl ToolExecutor for ReplaceInFileTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let path_str = args
             .get("path")
+            .or_else(|| args.get("TargetFile"))
+            .or_else(|| args.get("file_path"))
             .and_then(|v| v.as_str())
             .ok_or("Missing path")?;
-        let path = Path::new(path_str);
-        if !is_path_safe(path, &self.workspace_root) {
-            return Err("Security Error: Path traversal detected. Operations are restricted to the workspace.".into());
+        let path = resolve_safe_path(path_str, &self.workspace_root)?;
+        if !path.exists() {
+            return Err(format!("File not found: {}", path_str));
         }
         let search_text = args
             .get("search_text")
@@ -310,7 +409,7 @@ impl ToolExecutor for ReplaceInFileTool {
             .ok_or("Missing replace_text")?;
 
         let mut content =
-            std::fs::read_to_string(path).map_err(|e| format!("Failed to read file: {}", e))?;
+            std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
         let (actual_search, repair_msg) = if let Some(alignment) =
             crate::services::diff_relocation::AnchorAligner::align(&content, search_text)
         {
@@ -329,31 +428,29 @@ impl ToolExecutor for ReplaceInFileTool {
             return Err("Search text not found in the file even after fuzzy anchor repair. Please check surrounding code.".into());
         };
 
-        let cwd =
-            std::env::current_dir().unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
+        let cwd_str = self.workspace_root.to_string_lossy().to_string();
         let _ = crate::services::git_service::record_ai_snapshot(
-            &cwd.to_string_lossy().to_string(),
+            &cwd_str,
             &format!(
                 "[Shadow Backup] Auto-backup before replace_in_file {}",
-                path_str
+                path.display()
             ),
         );
         content = content.replace(&actual_search, replace_text);
-        std::fs::write(path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
-        let diagnostics = collect_file_diagnostics(path, &content);
+        std::fs::write(&path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
+        let diagnostics = collect_file_diagnostics(&path, &content);
 
         // 改前/改中符号波及面推演 (Call-Graph Impact Radar)
         let impact_warning = if let Some(sym) = crate::services::diff_impact::extract_declared_symbol(&actual_search) {
             let app_paths = crate::config::app_paths::AppPaths::new();
             let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
-            let cwd_str = self.workspace_root.to_string_lossy().to_string();
             let db_path = config.codebase_memory_db_path(Some(&cwd_str));
             let db_path_str = db_path.to_string_lossy().to_string();
             if let Ok(radar) = crate::services::diff_impact::DiffImpactAnalyzer::analyze_symbol_impact(
                 &self.workspace_root,
                 &db_path_str,
                 &sym,
-                Some(path),
+                Some(&path),
             ) {
                 if radar.total_callers > 0 {
                     eprintln!(
@@ -429,15 +526,16 @@ impl ToolExecutor for MultiReplaceTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let path_str = args
             .get("path")
+            .or_else(|| args.get("TargetFile"))
             .and_then(|v| v.as_str())
             .ok_or("Missing path")?;
-        let path = Path::new(path_str);
-        if !is_path_safe(path, &self.workspace_root) {
-            return Err("Security Error: Path traversal detected.".into());
+        let path = resolve_safe_path(path_str, &self.workspace_root)?;
+        if !path.exists() {
+            return Err(format!("File not found: {}", path_str));
         }
 
         let mut content =
-            std::fs::read_to_string(path).map_err(|e| format!("Failed to read file: {}", e))?;
+            std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
 
         let reps = args
             .get("replacements")
@@ -467,26 +565,25 @@ impl ToolExecutor for MultiReplaceTool {
                 alignment.matched_text
             } else {
                 // Rollback
-                let _ = std::fs::write(path, original_content);
+                let _ = std::fs::write(&path, original_content);
                 return Err(format!("Search text block not found in file even after anchor self-repair. Block starting with: {:.50}...", search_text));
             };
 
-            let cwd =
-                std::env::current_dir().unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
+            let cwd_str = self.workspace_root.to_string_lossy().to_string();
             let _ = crate::services::git_service::record_ai_snapshot(
-                &cwd.to_string_lossy().to_string(),
+                &cwd_str,
                 &format!(
                     "[Shadow Backup] Auto-backup before replace_in_file {}",
-                    path_str
+                    path.display()
                 ),
             );
             content = content.replace(&actual_search, replace_text);
             replaced_count += 1;
         }
 
-        std::fs::write(path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
-        let diagnostics = collect_file_diagnostics(path, &content);
-        let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(path, &content);
+        std::fs::write(&path, &content).map_err(|e| format!("Failed to write file: {}", e))?;
+        let diagnostics = collect_file_diagnostics(&path, &content);
+        let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(&path, &content);
         let mut msg = format!("Successfully applied {} refactoring blocks.", replaced_count);
         if let Some(adv_text) = crate::services::brain::architectural_linter::ArchitecturalLinter::format_advisories(&arch_advisories) {
             msg.push_str(&adv_text);
@@ -509,7 +606,7 @@ impl ToolExecutor for MultiReplaceTool {
                 &self.workspace_root,
                 &db_path_str,
                 &sym,
-                Some(path),
+                Some(&path),
             ) {
                 if radar.total_callers > 0 {
                     res["impact_radar"] = serde_json::to_value(radar).unwrap_or(Value::Null);
@@ -815,24 +912,25 @@ impl ToolExecutor for ListDirectoryTool {
         json!({
             "type": "object",
             "properties": {
-                "path": { "type": "string", "description": "The absolute path to the directory" }
-            },
-            "required": ["path"]
+                "path": { "type": "string", "description": "The path to the directory (optional, default: workspace root)" },
+                "DirectoryPath": { "type": "string", "description": "Alias for path" }
+            }
         })
     }
 
     fn execute(&self, args: Value) -> Result<Value, String> {
         let path_str = args
             .get("path")
+            .or_else(|| args.get("DirectoryPath"))
+            .or_else(|| args.get("dir"))
             .and_then(|v| v.as_str())
-            .ok_or("Missing path")?;
-        let path = std::path::Path::new(path_str);
-        require_safe_path(path, "directory listing", &self.workspace_root)?;
+            .unwrap_or(".");
+        let path = resolve_safe_path(path_str, &self.workspace_root)?;
         if !path.is_dir() {
             return Err(format!("{} is not a directory or does not exist", path_str));
         }
         let mut entries = vec![];
-        match std::fs::read_dir(path) {
+        match std::fs::read_dir(&path) {
             Ok(read_dir) => {
                 for entry in read_dir.flatten() {
                     let name = entry.file_name().to_string_lossy().to_string();
@@ -880,20 +978,22 @@ impl ToolExecutor for FindByNameTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let dir = args
             .get("SearchDirectory")
+            .or_else(|| args.get("dir"))
+            .or_else(|| args.get("path"))
             .and_then(|v| v.as_str())
-            .ok_or("Missing SearchDirectory")?;
+            .unwrap_or(".");
         let pattern = args
             .get("Pattern")
             .and_then(|v| v.as_str())
             .ok_or("Missing Pattern")?;
 
-        let path = Path::new(dir);
+        let path = resolve_safe_path(dir, &self.workspace_root)?;
         if !path.is_dir() {
             return Err(format!("Directory not found: {}", dir));
         }
 
         let mut results = vec![];
-        let walker = ignore::WalkBuilder::new(path).build();
+        let walker = ignore::WalkBuilder::new(&path).build();
         for result in walker {
             if let Ok(entry) = result {
                 let file_name = entry.file_name().to_string_lossy();
@@ -943,14 +1043,16 @@ impl ToolExecutor for GrepSearchTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let dir = args
             .get("SearchPath")
+            .or_else(|| args.get("path"))
+            .or_else(|| args.get("dir"))
             .and_then(|v| v.as_str())
-            .ok_or("Missing SearchPath")?;
+            .unwrap_or(".");
         let query = args
             .get("Query")
             .and_then(|v| v.as_str())
             .ok_or("Missing Query")?;
 
-        let path = Path::new(dir);
+        let path = resolve_safe_path(dir, &self.workspace_root)?;
         if !path.exists() {
             return Err(format!("Path not found: {}", dir));
         }
@@ -977,9 +1079,9 @@ impl ToolExecutor for GrepSearchTool {
         };
 
         if path.is_file() {
-            process_file(path);
+            process_file(&path);
         } else {
-            let walker = ignore::WalkBuilder::new(path).build();
+            let walker = ignore::WalkBuilder::new(&path).build();
             for result in walker {
                 if let Ok(entry) = result {
                     if entry.file_type().map_or(false, |ft| ft.is_file()) {
@@ -1216,21 +1318,14 @@ impl ToolExecutor for ViewOutlineTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let path_str = args
             .get("path")
+            .or_else(|| args.get("AbsolutePath"))
+            .or_else(|| args.get("file_path"))
             .and_then(|v| v.as_str())
             .ok_or("Missing 'path' argument")?;
-        let path = Path::new(path_str);
-        let resolved = if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            self.workspace_root.join(path)
-        };
-
-        if !is_path_safe(&resolved, &self.workspace_root) {
-            return Err("Security Error: Path traversal detected. Operations are restricted to the workspace.".into());
-        }
+        let resolved = resolve_safe_path(path_str, &self.workspace_root)?;
 
         if !resolved.exists() {
-            return Err(format!("File not found: {}", resolved.display()));
+            return Err(format!("File not found: {}", path_str));
         }
 
         let content = std::fs::read_to_string(&resolved)

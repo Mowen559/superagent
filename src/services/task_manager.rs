@@ -526,11 +526,11 @@ impl TaskManager {
 }
 
 fn same_project_path(left: &str, right: &str) -> bool {
-    if cfg!(windows) {
-        left.eq_ignore_ascii_case(right)
-    } else {
-        left == right
-    }
+    let clean = |s: &str| -> String {
+        let trimmed = s.trim_start_matches(r"\\?\");
+        trimmed.replace('/', "\\").to_ascii_lowercase()
+    };
+    clean(left) == clean(right)
 }
 
 #[cfg(test)]

@@ -87,6 +87,10 @@ pub struct AgentLoop {
 
 impl AgentLoop {
     pub fn new(base_prompt: &str) -> Self {
+        Self::with_model(base_prompt, None)
+    }
+
+    pub fn with_model(base_prompt: &str, model_override: Option<&str>) -> Self {
         let client = reqwest::Client::new();
 
         let cwd = std::env::current_dir()
@@ -181,8 +185,21 @@ impl AgentLoop {
         }
 
         let llm_settings = crate::config::llm_settings::read_llm_settings();
-        let fast_model = llm_settings.resolved_fast_model();
+        let target_model = model_override
+            .filter(|m| !m.trim().is_empty())
+            .map(|m| m.to_string())
+            .unwrap_or_else(|| llm_settings.model.clone());
+
+        let fast_model = if model_override.is_some() {
+            let mut temp_settings = llm_settings.clone();
+            temp_settings.model = target_model.clone();
+            temp_settings.resolved_fast_model()
+        } else {
+            llm_settings.resolved_fast_model()
+        };
+
         let fast_llm_provider = LlmProvider::with_model_override(client.clone(), Some(fast_model));
+        let llm_provider = LlmProvider::with_model_override(client.clone(), Some(target_model));
 
         Self {
             ctx: Context::new(),
@@ -190,7 +207,7 @@ impl AgentLoop {
             events,
             event_bus,
             system_prompt,
-            llm_provider: LlmProvider::new(client),
+            llm_provider,
             fast_llm_provider,
             steering_queue,
             interaction_runtime,
@@ -695,6 +712,9 @@ impl AgentLoop {
                     )));
                     self.save_session();
                     continue;
+                }
+                if self.emit_jsonl {
+                    println!("{}", serde_json::json!({ "type": "text", "content": content }));
                 }
                 self.save_session();
                 self.record_evolution(&mut cognition, prompt, true);

@@ -22,6 +22,9 @@ pub enum Commands {
         /// Project workspace root
         #[arg(long)]
         project: Option<String>,
+        /// Target model name override
+        #[arg(long)]
+        model: Option<String>,
     },
     /// Start the backend service
     Service {
@@ -197,10 +200,10 @@ pub fn dispatch() {
     };
 
     match cli.command {
-        Some(Commands::SuperagentWorker { prompt, project }) => {
+        Some(Commands::SuperagentWorker { prompt, project, model }) => {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                crate::services::brain::worker::run_worker(&prompt, project).await;
+                crate::services::brain::worker::run_worker(&prompt, project, model).await;
             });
         }
         Some(Commands::Install) => crate::cli_commands::handle_install(),
