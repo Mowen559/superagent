@@ -143,6 +143,72 @@ impl ReflectionEngine {
             }
         }
 
+        // 2. 扫描终端执行与编译器自愈轨迹 (Compiler-in-the-loop self-healing distillation)
+        let mut last_error_cmd: Option<(String, String)> = None;
+        for (i, event) in events.iter().enumerate() {
+            if let SessionEvent::ToolCall { name, arguments, .. } = event {
+                if name == "run_command" {
+                    let cmd_str = arguments
+                        .get("command")
+                        .or_else(|| arguments.get("CommandLine"))
+                        .and_then(|c| c.as_str())
+                        .unwrap_or("")
+                        .to_string();
+
+                    // 寻找此调用对应的首个 ToolResult
+                    for next_event in events.iter().skip(i + 1) {
+                        if let SessionEvent::ToolResult { result, .. } = next_event {
+                            let output = if let Some(s) = result.as_str() {
+                                s.to_string()
+                            } else {
+                                result.to_string()
+                            };
+
+                            let is_failure = output.contains("Compilation failure")
+                                || output.contains("BUILD FAILURE")
+                                || output.contains("[ERROR]")
+                                || output.contains("error[E")
+                                || output.contains("error: ")
+                                || output.contains("failed with exit code");
+
+                            let is_success = output.contains("BUILD SUCCESS")
+                                || output.contains("test result: ok")
+                                || output.contains("Finished `release`");
+
+                            if is_failure {
+                                let err_line = output
+                                    .lines()
+                                    .find(|l| {
+                                        l.contains("[ERROR]")
+                                            || l.contains("error:")
+                                            || l.contains("Compilation failure")
+                                    })
+                                    .unwrap_or("Compiler error detected")
+                                    .trim()
+                                    .chars()
+                                    .take(150)
+                                    .collect::<String>();
+                                last_error_cmd = Some((cmd_str.clone(), err_line));
+                            } else if is_success {
+                                if let Some((failed_cmd, err_line)) = last_error_cmd.take() {
+                                    lessons.push(DistilledLesson {
+                                        title: format!("Compiler Self-Healing: {}", failed_cmd),
+                                        trigger_pattern: format!("Command '{}' failed with: {}", failed_cmd, err_line),
+                                        rule_guidance: format!(
+                                            "Prior build failure '{}' was successfully resolved by subsequent surgical edits. Always verify type signatures, imports, and syntax before running compile.",
+                                            err_line
+                                        ),
+                                        severity: "knowledge".to_string(),
+                                    });
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         // 去重
         lessons.dedup_by(|a, b| a.title == b.title && a.trigger_pattern == b.trigger_pattern);
         lessons

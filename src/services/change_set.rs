@@ -4,8 +4,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 
-const MAX_CHANGESET_FILES: usize = 50_000;
-const MAX_HASHED_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_CHANGESET_FILES: usize = 200_000;
+const MAX_HASHED_BYTES: u64 = 2048 * 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -105,6 +105,52 @@ pub fn copy_workspace(source: &Path, destination: &Path) -> Result<(), String> {
             .strip_prefix(source)
             .map_err(|error| error.to_string())?;
         if relative.as_os_str().is_empty() {
+            continue;
+        }
+        let relative_str = relative.to_string_lossy().replace('\\', "/");
+        if relative_str.split('/').any(|seg| matches!(
+            seg,
+            ".git"
+                | ".deepcloud"
+                | ".shadow-git"
+                | ".supermemory"
+                | "node_modules"
+                | "target"
+                | ".next"
+                | "dist"
+                | "build"
+                | "coverage"
+                | "release"
+                | "mpv"
+                | ".cargo"
+                | ".agents"
+                | ".idea"
+                | ".vscode"
+                | "out"
+                | "bin"
+                | "obj"
+                | "vendor"
+                | "venv"
+                | ".venv"
+                | "__pycache__"
+                | ".pytest_cache"
+                | ".turbo"
+                | ".aindex-hub"
+                | ".cache"
+                | "openclaw"
+                | "hermes-agent"
+                | "deepseek-harness"
+                | "Ghosten-Player"
+                | "data"
+                | "gh_cli"
+                | ".codegraph"
+                | ".cursor"
+                | ".qoder"
+                | "runs"
+                | "scratch"
+                | ".system_generated"
+                | ".gemini"
+        )) {
             continue;
         }
         let target = destination.join(relative);
@@ -312,9 +358,6 @@ fn scan_files(root: &Path) -> Result<BTreeMap<String, FileFingerprint>, String> 
         if !entry.file_type().is_some_and(|kind| kind.is_file()) {
             continue;
         }
-        if files.len() >= MAX_CHANGESET_FILES {
-            return Err(format!("Change set exceeds {MAX_CHANGESET_FILES} files"));
-        }
         let relative = entry
             .path()
             .strip_prefix(root)
@@ -322,6 +365,55 @@ fn scan_files(root: &Path) -> Result<BTreeMap<String, FileFingerprint>, String> 
             .to_string_lossy()
             .replace('\\', "/");
         safe_relative(&relative)?;
+        if relative.split('/').any(|seg| matches!(
+            seg,
+            ".git"
+                | ".deepcloud"
+                | ".shadow-git"
+                | ".supermemory"
+                | "node_modules"
+                | "target"
+                | ".next"
+                | "dist"
+                | "build"
+                | "coverage"
+                | "release"
+                | "mpv"
+                | ".cargo"
+                | ".agents"
+                | ".idea"
+                | ".vscode"
+                | "out"
+                | "bin"
+                | "obj"
+                | "vendor"
+                | "venv"
+                | ".venv"
+                | "__pycache__"
+                | ".pytest_cache"
+                | ".turbo"
+                | ".aindex-hub"
+                | ".cache"
+                | "openclaw"
+                | "hermes-agent"
+                | "deepseek-harness"
+                | "Ghosten-Player"
+                | "data"
+                | "gh_cli"
+                | ".codegraph"
+                | ".cursor"
+                | ".qoder"
+                | "runs"
+                | "scratch"
+                | ".system_generated"
+                | ".gemini"
+        )) {
+            continue;
+        }
+        let metadata = std::fs::metadata(entry.path()).map_err(|error| error.to_string())?;
+        if is_binary_or_large_asset(entry.path(), metadata.len()) {
+            continue;
+        }
         let payload = std::fs::read(entry.path()).map_err(|error| error.to_string())?;
         hashed_bytes = hashed_bytes.saturating_add(payload.len() as u64);
         if hashed_bytes > MAX_HASHED_BYTES {
@@ -334,6 +426,9 @@ fn scan_files(root: &Path) -> Result<BTreeMap<String, FileFingerprint>, String> 
             .iter()
             .map(|byte| format!("{byte:02x}"))
             .collect();
+        if files.len() >= MAX_CHANGESET_FILES {
+            return Err(format!("Change set exceeds {MAX_CHANGESET_FILES} files"));
+        }
         files.insert(
             relative,
             FileFingerprint {
@@ -362,22 +457,100 @@ fn safe_relative(path: &str) -> Result<PathBuf, String> {
 }
 
 fn is_generated_directory(path: &Path) -> bool {
-    path.is_dir()
-        && matches!(
-            path.file_name().and_then(|value| value.to_str()),
-            Some(
-                ".git"
-                    | ".deepcloud"
-                    | ".shadow-git"
-                    | ".supermemory"
-                    | "node_modules"
-                    | "target"
-                    | ".next"
-                    | "dist"
-                    | "build"
-                    | "coverage"
-            )
-        )
+    let name = match path.file_name().and_then(|value| value.to_str()) {
+        Some(name) => name,
+        None => return false,
+    };
+    matches!(
+        name,
+        ".git"
+            | ".deepcloud"
+            | ".shadow-git"
+            | ".supermemory"
+            | "node_modules"
+            | "target"
+            | ".next"
+            | "dist"
+            | "build"
+            | "coverage"
+            | "release"
+            | "mpv"
+            | ".cargo"
+            | ".agents"
+            | ".idea"
+            | ".vscode"
+            | "out"
+            | "bin"
+            | "obj"
+            | "vendor"
+            | "venv"
+            | ".venv"
+            | "__pycache__"
+            | ".pytest_cache"
+            | ".turbo"
+            | ".aindex-hub"
+            | ".cache"
+            | "openclaw"
+            | "hermes-agent"
+            | "deepseek-harness"
+            | "Ghosten-Player"
+            | "data"
+            | "gh_cli"
+            | ".codegraph"
+            | ".cursor"
+            | ".qoder"
+            | "runs"
+            | "scratch"
+            | ".system_generated"
+            | ".gemini"
+    )
+}
+
+fn is_binary_or_large_asset(path: &Path, file_len: u64) -> bool {
+    if file_len > 10 * 1024 * 1024 {
+        return true;
+    }
+    let ext = match path.extension().and_then(|ext| ext.to_str()) {
+        Some(ext) => ext.to_ascii_lowercase(),
+        None => return false,
+    };
+    matches!(
+        ext.as_str(),
+        "exe"
+            | "dll"
+            | "so"
+            | "dylib"
+            | "pdb"
+            | "lib"
+            | "rlib"
+            | "jar"
+            | "war"
+            | "ear"
+            | "zip"
+            | "tar"
+            | "gz"
+            | "tgz"
+            | "7z"
+            | "rar"
+            | "iso"
+            | "bin"
+            | "mp4"
+            | "mkv"
+            | "avi"
+            | "mp3"
+            | "wav"
+            | "flac"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "webp"
+            | "ico"
+            | "pdf"
+            | "db"
+            | "sqlite"
+            | "sqlite3"
+    )
 }
 
 #[cfg(test)]

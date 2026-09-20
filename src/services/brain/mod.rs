@@ -14,6 +14,7 @@ pub mod events;
 pub mod evolution_memory;
 pub mod executor;
 pub mod hitl_continuation;
+pub mod intent;
 pub mod interaction_runtime;
 pub mod ipc;
 pub mod knowledge_corpus;

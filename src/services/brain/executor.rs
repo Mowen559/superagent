@@ -123,21 +123,6 @@ impl AgentLoop {
             eprintln!("[Brain B] Failed to load session ledger: {}", error);
             Vec::new()
         });
-        if events.is_empty() {
-            if let Ok(data) = std::fs::read_to_string(".brain_events.json") {
-                if let Ok(loaded) = serde_json::from_str::<Vec<SessionEvent>>(&data) {
-                    events = loaded;
-                    if let Err(error) = session_ledger.sync(&events) {
-                        eprintln!("[Brain B] Failed to migrate legacy event log: {}", error);
-                    } else {
-                        eprintln!(
-                            "[Brain B] Migrated {} legacy events into session ledger",
-                            events.len()
-                        );
-                    }
-                }
-            }
-        }
         let pairing_report = repair_tool_pairs(&mut events);
         if pairing_report.changed() {
             eprintln!(

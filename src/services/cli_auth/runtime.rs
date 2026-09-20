@@ -25,13 +25,17 @@ impl AuthRuntime {
     }
 
     pub async fn get_valid_token(&self, account: &mut LLMAccount, http_client: &reqwest::Client) -> Result<String, AuthError> {
-        let needs_refresh = {
-            if let Some(expires_at) = account.expires_at {
-                chrono::Utc::now().timestamp() + 300 >= expires_at
+        let is_expired = |expires_at: i64| -> bool {
+            if expires_at > 100_000_000_000 {
+                // 毫秒时间戳
+                chrono::Utc::now().timestamp_millis() + 300_000 >= expires_at
             } else {
-                false
+                // 秒时间戳
+                chrono::Utc::now().timestamp() + 300 >= expires_at
             }
         };
+
+        let needs_refresh = account.expires_at.map(&is_expired).unwrap_or(false);
 
         if !needs_refresh {
             return Ok(account.api_key.clone());
@@ -45,7 +49,7 @@ impl AuthRuntime {
         let _guard = lock.lock().await;
         // Check again after acquiring lock
         if let Some(expires_at) = account.expires_at {
-            if chrono::Utc::now().timestamp() + 300 < expires_at {
+            if !is_expired(expires_at) {
                 return Ok(account.api_key.clone()); 
             }
         }

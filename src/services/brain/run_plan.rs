@@ -175,20 +175,21 @@ impl RunPlan {
                     } else if action_already_complete {
                         self.complete_and_advance("verify", Some("respond"));
                     }
-                } else if matches!(
-                    risk,
-                    ToolRisk::WorkspaceMutation | ToolRisk::ProcessControl | ToolRisk::Destructive
-                ) {
-                    if action_already_complete && risk == ToolRisk::ProcessControl {
+                } else if matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive) {
+                    // 【物理落盘铁律】：仅当真实发生工作区写盘(WorkspaceMutation)时，才能推进 act！
+                    if !inspect_complete {
+                        self.replan_notice = Some(
+                            "The action happened before inspection. Inspect the resulting state now, verify the change, and report the missing pre-change evidence as residual risk."
+                                .to_string(),
+                        );
+                    }
+                    self.complete_and_advance("act", Some("verify"));
+                } else if risk == ToolRisk::ProcessControl {
+                    // 【防伪重构】：终端命令不能用于推进 act！若代码已写，推进 verify；若代码未写，仅作为基线环境探索推进 inspect
+                    if action_already_complete {
                         self.complete_and_advance("verify", Some("respond"));
-                    } else {
-                        if !inspect_complete {
-                            self.replan_notice = Some(
-                                "The action happened before inspection. Inspect the resulting state now, verify the change, and report the missing pre-change evidence as residual risk."
-                                    .to_string(),
-                            );
-                        }
-                        self.complete_and_advance("act", Some("verify"));
+                    } else if !inspect_complete {
+                        self.complete_and_advance("inspect", Some("act"));
                     }
                 }
             }
@@ -284,5 +285,19 @@ mod tests {
         plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
         plan.begin_completion();
         assert_eq!(plan.completion_gap(), None);
+    }
+
+    #[test]
+    fn process_control_cannot_advance_act_without_mutation() {
+        let mut plan = RunPlan::for_task(TaskKind::Execution);
+        // 先跑只读探索
+        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
+        // 跑了一个命令（例如 mvn test 或 echo），由于未发生任何文件写盘，act 绝不能被推进为 completed！
+        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl);
+        assert_eq!(plan.completion_gap(), Some("Apply the coherent change"));
+        
+        // 只有真实发生 WorkspaceMutation 时，act 才被推进！
+        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
+        assert_eq!(plan.completion_gap(), Some("Verify the changed behavior"));
     }
 }

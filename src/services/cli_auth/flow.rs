@@ -758,7 +758,12 @@ pub async fn refresh_account_token_if_needed(
     http_client: &reqwest::Client,
 ) -> bool {
     if let (Some(expires_at), Some(_)) = (account.expires_at, &account.refresh_token) {
-        if chrono::Utc::now().timestamp() + 300 >= expires_at {
+        let is_expired = if expires_at > 100_000_000_000 {
+            chrono::Utc::now().timestamp_millis() + 300_000 >= expires_at
+        } else {
+            chrono::Utc::now().timestamp() + 300 >= expires_at
+        };
+        if is_expired {
             tracing::info!("Token expired or expiring soon, refreshing...");
             return force_refresh_account_token(account, http_client).await;
         }

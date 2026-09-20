@@ -32,3 +32,5 @@ pub mod synthesize_tool;
 pub mod blackboard_tool;
 pub mod repo_map_tool;
 pub mod verify_task;
+pub mod project_index_tool;
+

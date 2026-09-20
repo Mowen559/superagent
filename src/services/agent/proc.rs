@@ -22,9 +22,19 @@ pub fn agent_command(default_name: &str) -> Command {
 
     #[allow(unused_mut)]
     let mut cmd = if cfg!(windows) {
-        let mut c = Command::new("cmd");
-        c.arg("/C").arg(resolved_name);
-        c
+        let is_exe = resolved_name.ends_with(".exe")
+            || std::path::Path::new(&resolved_name)
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .map(|ext| ext.eq_ignore_ascii_case("exe"))
+                .unwrap_or(false);
+        if is_exe {
+            Command::new(resolved_name)
+        } else {
+            let mut c = Command::new("cmd");
+            c.arg("/C").arg(resolved_name);
+            c
+        }
     } else {
         Command::new(resolved_name)
     };

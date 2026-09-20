@@ -80,8 +80,11 @@ impl AgentBackend for SuperAgentBackend {
                                 st.forced_status = Some(s.to_string());
                             }
                             if let Some(res) = evt.get("result").and_then(|v| v.as_str()) {
-                                if !res.trim().is_empty() {
-                                    st.output = res.to_string();
+                                if !res.trim().is_empty() && !st.output.contains(res) {
+                                    if !st.output.is_empty() {
+                                        st.output.push('\n');
+                                    }
+                                    st.output.push_str(res);
                                     out.push(AgentMessage::Text {
                                         content: res.to_string(),
                                     });

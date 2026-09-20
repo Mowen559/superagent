@@ -123,71 +123,62 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
         })),
     );
     let task_id = task.id.clone();
-
-    // Create an immutable baseline manifest and an isolated working copy.
-    let isolated_workspace = if !project.is_empty() {
-        // The run directory must never be nested under the selected project:
-        // selecting the managed projects root itself would otherwise make the
-        // copy operation recursively copy its own destination.
-        let run_root = state.app_paths.ensure_data_dir(&["runs", &task_id]);
-        let run_dir = run_root.join("workspace");
-        let baseline_path = run_root.join("baseline.json");
-        let _ = crate::services::git_service::record_ai_snapshot(
-            &project,
-            "Creating Baseline Snapshot",
-        );
-        let prepared = crate::services::change_set::capture_baseline(
-            std::path::Path::new(&project),
-            &baseline_path,
-        )
-        .and_then(|_| {
-            crate::services::change_set::copy_workspace(std::path::Path::new(&project), &run_dir)
-        });
-        if let Err(error) = prepared {
-            state.task_manager.update_status(
-                &task_id,
-                TaskStatus::Failed,
-                Some(format!("Failed to prepare isolated workspace: {error}")),
-            );
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": error, "taskId": task_id })),
-            )
-                .into_response();
-        }
-        state
-            .task_manager
-            .update_workspace_baseline(&task_id, baseline_path.to_string_lossy().to_string());
-        run_dir.to_string_lossy().to_string()
-    } else {
-        "".to_string()
-    };
-
     state
         .task_manager
         .update_status(&task_id, TaskStatus::Running, None);
-
-    let cwd_path = if !isolated_workspace.is_empty() {
-        isolated_workspace.clone()
-    } else {
-        project.clone()
-    };
-
-    let opts = ExecOptions {
-        cwd: Some(cwd_path.clone()).filter(|p| !p.is_empty()),
-        model: body.model.clone().filter(|m| !m.is_empty()),
-        resume_session_id: body.resume_session_id.clone().filter(|s| !s.is_empty()),
-        thinking_level: body.thinking_level.clone().filter(|t| !t.is_empty()),
-        timeout: Some(timeout),
-        ..Default::default()
-    };
 
     let state_bg = state.clone();
     let task_bg = task_id.clone();
     let prompt = body.prompt.clone();
     let agent_name = body.agent.clone();
+    let project_bg = project.clone();
+    let model_bg = body.model.clone().filter(|m| !m.is_empty());
+    let resume_bg = body.resume_session_id.clone().filter(|s| !s.is_empty());
+    let thinking_bg = body.thinking_level.clone().filter(|t| !t.is_empty());
 
     let handle = tokio::spawn(async move {
+        // 异步准备隔离工作区与 baseline，绝不阻塞 HTTP 入口响应
+        let mut cwd_path = project_bg.clone();
+        if !project_bg.is_empty() {
+            let run_root = state_bg.app_paths.ensure_data_dir(&["runs", &task_bg]);
+            let run_dir = run_root.join("workspace");
+            let baseline_path = run_root.join("baseline.json");
+
+            let _ = crate::services::git_service::record_ai_snapshot(
+                &project_bg,
+                "Creating Baseline Snapshot",
+            );
+
+            match crate::services::change_set::capture_baseline(
+                std::path::Path::new(&project_bg),
+                &baseline_path,
+            )
+            .and_then(|_| {
+                crate::services::change_set::copy_workspace(std::path::Path::new(&project_bg), &run_dir)
+            }) {
+                Ok(_) => {
+                    state_bg
+                        .task_manager
+                        .update_workspace_baseline(&task_bg, baseline_path.to_string_lossy().to_string());
+                    cwd_path = run_dir.to_string_lossy().to_string();
+                }
+                Err(error) => {
+                    tracing::warn!(
+                        "[run_agent] Failed to prepare isolated workspace ({error}), falling back to direct project: {project_bg}"
+                    );
+                }
+            }
+        }
+
+        let opts = ExecOptions {
+            cwd: Some(cwd_path.clone()).filter(|p| !p.is_empty()),
+            model: model_bg,
+            resume_session_id: resume_bg,
+            thinking_level: thinking_bg,
+            timeout: Some(timeout),
+            ..Default::default()
+        };
+
         if let Ok(kind) = AgentKind::from_str(&agent_name) {
             drive_run(state_bg, task_bg, kind, prompt, opts, cancel_rx).await;
         } else {
@@ -200,7 +191,7 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
     });
     state.task_manager.register_handle(&task_id, handle);
 
-    Json(json!({ "taskId": task_id, "status": "running", "isolatedWorkspace": isolated_workspace }))
+    Json(json!({ "taskId": task_id, "status": "running" }))
         .into_response()
 }
 

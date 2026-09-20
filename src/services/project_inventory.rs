@@ -240,24 +240,39 @@ fn push_bounded(values: &mut Vec<String>, value: &str) {
 }
 
 fn is_generated_directory(path: &Path) -> bool {
-    if !path.is_dir() {
-        return false;
-    }
+    let name = match path.file_name().and_then(|value| value.to_str()) {
+        Some(name) => name,
+        None => return false,
+    };
     matches!(
-        path.file_name().and_then(|value| value.to_str()),
-        Some(
-            ".git"
-                | ".next"
-                | ".deepcloud"
-                | ".shadow-git"
-                | ".supermemory"
-                | "node_modules"
-                | "target"
-                | "dist"
-                | "build"
-                | "vendor"
-                | "coverage"
-        )
+        name,
+        ".git"
+            | ".next"
+            | ".deepcloud"
+            | ".shadow-git"
+            | ".supermemory"
+            | "node_modules"
+            | "target"
+            | "dist"
+            | "build"
+            | "vendor"
+            | "coverage"
+            | "release"
+            | "mpv"
+            | ".cargo"
+            | ".agents"
+            | ".idea"
+            | ".vscode"
+            | "out"
+            | "bin"
+            | "obj"
+            | "venv"
+            | ".venv"
+            | "__pycache__"
+            | ".pytest_cache"
+            | ".turbo"
+            | ".aindex-hub"
+            | ".cache"
     )
 }
 

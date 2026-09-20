@@ -426,40 +426,28 @@ pub fn clone_repo(url: &str, target_path: &str) -> Result<String, String> {
 
 /// 为当前工作区生成一个脱离 HEAD 的影子快照
 pub fn record_ai_snapshot(project_path: &str, message: &str) -> Result<String, String> {
-    let repo = open_repo(project_path, RepoKind::Local)?;
-    let mut index = repo.index().map_err(|e| e.to_string())?;
-
-    // 将工作区所有变动加入内存索引（不影响用户真实的磁盘 staging area）
-    index
-        .add_all(["*", "."].iter(), git2::IndexAddOption::DEFAULT, None)
-        .map_err(|e| e.to_string())?;
-
-    // 生成 Tree
-    let tree_oid = index.write_tree().map_err(|e| e.to_string())?;
-    let tree = repo.find_tree(tree_oid).map_err(|e| e.to_string())?;
-
-    let sig = repo
-        .signature()
-        .or_else(|_| git2::Signature::now("DeepCloud AI", "ai@deepcloud.com"))
-        .map_err(|e| e.to_string())?;
-
-    let ref_name = "refs/deepcloud/ai-history";
-    let mut parents = Vec::new();
-
-    // 尝试寻找上一次的快照作为父节点
-    if let Ok(existing_ref) = repo.find_reference(ref_name) {
-        if let Ok(parent_commit) = existing_ref.peel_to_commit() {
-            parents.push(parent_commit);
+    // 优先尝试原生 git stash create 极速生成快照，原生 git 严格遵循 .gitignore 且耗时仅毫秒级
+    let output = std::process::Command::new("git")
+        .args(["stash", "create", message])
+        .current_dir(project_path)
+        .output();
+    if let Ok(out) = output {
+        if out.status.success() {
+            let hash = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !hash.is_empty() {
+                return Ok(hash);
+            }
         }
     }
 
-    let parent_refs: Vec<&git2::Commit> = parents.iter().collect();
-
-    let commit_oid = repo
-        .commit(Some(ref_name), &sig, &sig, message, &tree, &parent_refs)
-        .map_err(|e| format!("Failed to create snapshot commit: {}", e))?;
-
-    Ok(commit_oid.to_string())
+    // 降级使用轻量 git2 获取 HEAD 作为快照基线，杜绝在千万级大仓库中执行同步 add_all 全量扫描
+    let repo = open_repo(project_path, RepoKind::Local)?;
+    if let Ok(head) = repo.head() {
+        if let Ok(commit) = head.peel_to_commit() {
+            return Ok(commit.id().to_string());
+        }
+    }
+    Ok("0000000000000000000000000000000000000000".to_string())
 }
 
 /// 获取影子快照历史

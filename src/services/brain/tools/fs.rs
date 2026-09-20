@@ -468,7 +468,7 @@ impl ToolExecutor for ReplaceInFileTool {
             None
         };
 
-        let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(path, &content);
+        let arch_advisories = crate::services::brain::architectural_linter::ArchitecturalLinter::lint(&path, &content);
         let mut msg = format!("Successfully replaced text in {}{}", path.display(), repair_msg);
         if let Some(adv_text) = crate::services::brain::architectural_linter::ArchitecturalLinter::format_advisories(&arch_advisories) {
             msg.push_str(&adv_text);
