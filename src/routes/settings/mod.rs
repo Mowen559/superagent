@@ -56,5 +56,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/settings/llm/test", post(test_llm))
         .route("/api/settings/llm/models/test", post(test_models))
         .route("/api/settings/oauth/start", post(start_oauth))
+        .merge(logs::router())
 }
 
+
+pub mod logs;

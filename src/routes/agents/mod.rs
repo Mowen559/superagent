@@ -46,6 +46,8 @@ pub use diff::*;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
+        // Fix 3: Global Concurrency Limiting (Max 100 concurrent agent tasks/requests)
+        .layer(tower::limit::ConcurrencyLimitLayer::new(100))
         .route("/api/agents", get(list_agents))
         .route("/api/agents/run", post(run_agent))
         .route("/api/agents/tasks/{task_id}/events", get(stream_events))

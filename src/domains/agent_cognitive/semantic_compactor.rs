@@ -9,29 +9,36 @@ pub struct CompactionConfig {
     pub max_total_tokens_estimate: usize,
 }
 
-impl Default for CompactionConfig {
-    fn default() -> Self {
-        let settings = AgentSettings::load();
-        Self {
-            max_tool_output_chars: settings.max_tool_output_chars,
-            preserve_recent_messages: 10,
-            max_total_tokens_estimate: settings.user_context_limit as usize,
-        }
-    }
-}
-
 pub struct SemanticCompactor {
     config: CompactionConfig,
 }
 
-impl Default for SemanticCompactor {
-    fn default() -> Self {
-        Self::new(CompactionConfig::default())
-    }
-}
-
 impl SemanticCompactor {
-    pub fn new(config: CompactionConfig) -> Self {
+    /// Creates a compactor dynamically bounded by the model's absolute physical limit,
+    /// but gracefully clamping to the user's soft limit if provided.
+    pub fn new(model_physical_limit: usize) -> Self {
+        let settings = AgentSettings::load();
+        
+        // Dynamic Resolution: min(User Limit, Physical Limit)
+        let active_limit = match settings.user_context_limit {
+            Some(ul) => std::cmp::min(ul as usize, model_physical_limit),
+            None => model_physical_limit,
+        };
+        
+        // Safety Buffer: Trigger compression at 80% capacity
+        let trigger_threshold = (active_limit as f64 * 0.80) as usize;
+        
+        let config = CompactionConfig {
+            max_tool_output_chars: settings.max_tool_output_chars,
+            preserve_recent_messages: 10, // Always preserve last 10 messages (System prompt is handled separately in logic)
+            max_total_tokens_estimate: trigger_threshold,
+        };
+        
+        Self { config }
+    }
+    
+    #[cfg(test)]
+    pub fn new_for_test(config: CompactionConfig) -> Self {
         Self { config }
     }
 
@@ -102,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_trim_tool_output() {
-        let compactor = SemanticCompactor::default();
+        let compactor = SemanticCompactor::new(128000);
         let verbose_text = "A".repeat(5000);
         let trimmed = compactor.trim_tool_output(&verbose_text);
         assert!(trimmed.contains("Truncated"));
@@ -111,7 +118,7 @@ mod tests {
 
     #[test]
     fn test_compact_messages() {
-        let compactor = SemanticCompactor::new(CompactionConfig {
+        let compactor = SemanticCompactor::new_for_test(CompactionConfig {
             max_tool_output_chars: 100,
             preserve_recent_messages: 2,
             max_total_tokens_estimate: 1000,

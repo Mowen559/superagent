@@ -5,7 +5,7 @@ use fastembed::EmbeddingModel;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentSettings {
-    pub user_context_limit: u32,
+    pub user_context_limit: Option<u32>,
     pub max_tool_output_chars: usize,
     pub embedding_model: String,
     pub retrieval_threshold: f32,
@@ -14,7 +14,7 @@ pub struct AgentSettings {
 impl Default for AgentSettings {
     fn default() -> Self {
         Self {
-            user_context_limit: 32000,
+            user_context_limit: None,
             max_tool_output_chars: 1200,
             embedding_model: "AllMiniLML6V2".to_string(),
             retrieval_threshold: 0.6,

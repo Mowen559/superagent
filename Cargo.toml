@@ -19,7 +19,7 @@ snow-stitch-images = { path = "snow-crates/crates/snow-stitch-images" }
 # HTTP framework
 axum = { version = "0.8", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
-tower = "0.5"
+tower = { version = "0.5", features = ["limit"] }
 tower-http = { version = "0.6", features = ["cors", "trace", "fs"] }
 
 # Serialization
