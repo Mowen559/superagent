@@ -15,6 +15,7 @@ impl EpisodicMemoryStore {
     
     fn init_db(db_path: &PathBuf) -> Result<(), String> {
         let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
+        conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;").unwrap_or(());
         conn.execute(
             "CREATE TABLE IF NOT EXISTS skills (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,11 +29,12 @@ impl EpisodicMemoryStore {
     }
 
     pub async fn record_skill(&self, issue: &str, resolution_trace: &str) -> Result<(), String> {
-        let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
-            .map_err(|e| e.to_string())?;
-            
-        let embeddings = model.embed(vec![issue], None).map_err(|e| e.to_string())?;
-        let vector = embeddings.into_iter().next().unwrap();
+        let vector = tokio::task::block_in_place(|| -> Result<Vec<f32>, String> {
+            let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+                .map_err(|e| e.to_string())?;
+            let mut embeddings = model.embed(vec![issue], None).map_err(|e| e.to_string())?;
+            embeddings.into_iter().next().ok_or_else(|| "Embedding model returned empty results".to_string())
+        })?;
         
         // Convert f32 vector to byte array
         let mut vector_bytes = Vec::with_capacity(vector.len() * 4);
@@ -50,11 +52,12 @@ impl EpisodicMemoryStore {
     }
 
     pub async fn recall_skills(&self, current_context: &str) -> Result<Vec<String>, String> {
-        let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
-            .map_err(|e| e.to_string())?;
-            
-        let embeddings = model.embed(vec![current_context], None).map_err(|e| e.to_string())?;
-        let query_vec = embeddings.into_iter().next().unwrap();
+        let query_vec = tokio::task::block_in_place(|| -> Result<Vec<f32>, String> {
+            let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+                .map_err(|e| e.to_string())?;
+            let mut embeddings = model.embed(vec![current_context], None).map_err(|e| e.to_string())?;
+            embeddings.into_iter().next().ok_or_else(|| "Embedding model returned empty results".to_string())
+        })?;
 
         let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
             .map_err(|e| e.to_string())?;

@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use reqwest::Client;
 use serde_json::json;
 use regex::Regex;

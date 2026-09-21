@@ -23,13 +23,13 @@ impl ToolRetriever {
 
     /// Register external Harness/MCP tools and compute their embeddings.
     pub async fn register_and_embed(&mut self, tools: Vec<ToolMetadata>) -> Result<(), String> {
-        let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
-            .map_err(|e| format!("Failed to init embedding model: {}", e))?;
-
         let descriptions: Vec<String> = tools.iter().map(|t| t.description.clone()).collect();
-        
         if !descriptions.is_empty() {
-            let embeddings = model.embed(descriptions, None).map_err(|e| e.to_string())?;
+            let embeddings = tokio::task::block_in_place(|| -> Result<Vec<Vec<f32>>, String> {
+                let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+                    .map_err(|e| format!("Failed to init embedding model: {}", e))?;
+                model.embed(descriptions, None).map_err(|e| e.to_string())
+            })?;
             self.tool_embeddings.extend(embeddings);
         }
         self.registered_tools.extend(tools);
@@ -56,10 +56,12 @@ impl ToolRetriever {
         }
 
         // 3. Embed the prompt
-        let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
-            .map_err(|e| e.to_string())?;
-        let query_embeds = model.embed(vec![prompt], None).map_err(|e| e.to_string())?;
-        let query_vec = query_embeds.into_iter().next().unwrap();
+        let query_vec = tokio::task::block_in_place(|| -> Result<Vec<f32>, String> {
+            let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+                .map_err(|e| e.to_string())?;
+            let mut query_embeds = model.embed(vec![prompt], None).map_err(|e| e.to_string())?;
+            query_embeds.into_iter().next().ok_or_else(|| "Embedding model returned empty results".to_string())
+        })?;
 
         // 4. Compute cosine similarity
         let mut scored_tools: Vec<(&ToolMetadata, f32)> = non_core.into_iter().map(|(idx, tool)| {
