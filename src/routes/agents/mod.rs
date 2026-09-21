@@ -91,5 +91,9 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/agents/{kind}/mcps", get(list_agent_mcps))
         .route("/api/agents/{kind}/models", get(list_agent_models))
         .route("/api/agents/install_missing", post(install_missing_agents))
+        .route("/api/agents/settings", get(settings_api::get_settings).post(settings_api::update_settings))
         .route("/api/agents/{kind}/install", post(install_agent_endpoint))
 }
+
+
+pub mod settings_api;

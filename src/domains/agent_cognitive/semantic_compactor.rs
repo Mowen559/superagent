@@ -1,3 +1,4 @@
+use crate::config::agent_settings::AgentSettings;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -10,10 +11,11 @@ pub struct CompactionConfig {
 
 impl Default for CompactionConfig {
     fn default() -> Self {
+        let settings = AgentSettings::load();
         Self {
-            max_tool_output_chars: 1200,
+            max_tool_output_chars: settings.max_tool_output_chars,
             preserve_recent_messages: 10,
-            max_total_tokens_estimate: 8000,
+            max_total_tokens_estimate: settings.user_context_limit as usize,
         }
     }
 }

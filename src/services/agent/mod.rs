@@ -35,3 +35,5 @@ pub mod sync_utils;
 
 pub use registry::{detect_all, list_models, new, AgentKind};
 pub use types::{AgentMessage, ExecOptions};
+
+pub mod context_prober;
