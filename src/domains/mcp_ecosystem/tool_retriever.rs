@@ -1,3 +1,4 @@
+use crate::config::agent_settings::AgentSettings;
 use fastembed::{TextEmbedding, InitOptions, EmbeddingModel};
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +27,7 @@ impl ToolRetriever {
         let descriptions: Vec<String> = tools.iter().map(|t| t.description.clone()).collect();
         if !descriptions.is_empty() {
             let embeddings = tokio::task::block_in_place(|| -> Result<Vec<Vec<f32>>, String> {
-                let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+                let mut model = TextEmbedding::try_new(InitOptions::new(AgentSettings::load().get_embedding_model()))
                     .map_err(|e| format!("Failed to init embedding model: {}", e))?;
                 model.embed(descriptions, None).map_err(|e| e.to_string())
             })?;
@@ -57,7 +58,7 @@ impl ToolRetriever {
 
         // 3. Embed the prompt
         let query_vec = tokio::task::block_in_place(|| -> Result<Vec<f32>, String> {
-            let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+            let mut model = TextEmbedding::try_new(InitOptions::new(AgentSettings::load().get_embedding_model()))
                 .map_err(|e| e.to_string())?;
             let mut query_embeds = model.embed(vec![prompt], None).map_err(|e| e.to_string())?;
             query_embeds.into_iter().next().ok_or_else(|| "Embedding model returned empty results".to_string())

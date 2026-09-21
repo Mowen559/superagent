@@ -1,3 +1,4 @@
+use crate::config::agent_settings::AgentSettings;
 use rusqlite::{Connection, OpenFlags};
 use std::path::PathBuf;
 use fastembed::{TextEmbedding, InitOptions, EmbeddingModel};
@@ -30,7 +31,7 @@ impl EpisodicMemoryStore {
 
     pub async fn record_skill(&self, issue: &str, resolution_trace: &str) -> Result<(), String> {
         let vector = tokio::task::block_in_place(|| -> Result<Vec<f32>, String> {
-            let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+            let mut model = TextEmbedding::try_new(InitOptions::new(AgentSettings::load().get_embedding_model()))
                 .map_err(|e| e.to_string())?;
             let mut embeddings = model.embed(vec![issue], None).map_err(|e| e.to_string())?;
             embeddings.into_iter().next().ok_or_else(|| "Embedding model returned empty results".to_string())
@@ -53,7 +54,7 @@ impl EpisodicMemoryStore {
 
     pub async fn recall_skills(&self, current_context: &str) -> Result<Vec<String>, String> {
         let query_vec = tokio::task::block_in_place(|| -> Result<Vec<f32>, String> {
-            let mut model = TextEmbedding::try_new(InitOptions::new(EmbeddingModel::AllMiniLML6V2))
+            let mut model = TextEmbedding::try_new(InitOptions::new(AgentSettings::load().get_embedding_model()))
                 .map_err(|e| e.to_string())?;
             let mut embeddings = model.embed(vec![current_context], None).map_err(|e| e.to_string())?;
             embeddings.into_iter().next().ok_or_else(|| "Embedding model returned empty results".to_string())
@@ -91,7 +92,7 @@ impl EpisodicMemoryStore {
         let mut hits = hits.map_err(|e| e.to_string())?;
         hits.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
         
-        Ok(hits.into_iter().filter(|(_, sim)| *sim > 0.6).take(3).map(|(t, _)| t).collect())
+        Ok(hits.into_iter().filter(|(_, sim)| *sim > AgentSettings::load().retrieval_threshold).take(3).map(|(t, _)| t).collect())
     }
 }
 

@@ -433,3 +433,10 @@ mod tests {
         assert_eq!(res["connected"], false);
     }
 }
+
+impl Drop for HarnessAcpClient {
+    fn drop(&mut self) {
+        let _ = self._child.kill();
+        let _ = self._child.wait();
+    }
+}
