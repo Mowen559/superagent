@@ -1,5 +1,34 @@
 use serde_json::{json, Value};
 use std::collections::HashMap;
+
+
+// --- Fix 3: Tool Execution Timeout Guard ---
+fn execute_with_timeout(gateway: std::sync::Arc<crate::services::brain::tool_execution_gateway::ToolExecutionGateway>, req: crate::services::brain::tool_execution_gateway::ToolExecutionRequest, timeout_secs: u64) -> crate::services::brain::tool_execution_gateway::ToolExecutionReceipt {
+    let call_id = req.call_id.clone();
+    let name = req.name.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    
+    std::thread::spawn(move || {
+        let _ = tx.send(gateway.execute(req));
+    });
+    
+    match rx.recv_timeout(std::time::Duration::from_secs(timeout_secs)) {
+        Ok(res) => res,
+        Err(_) => crate::services::brain::tool_execution_gateway::ToolExecutionReceipt {
+            call_id,
+            name,
+            status: crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Failed,
+            duration_ms: timeout_secs * 1000,
+            result: serde_json::json!(format!("Tool execution strictly timed out after {} seconds. Aborted.", timeout_secs)),
+            original_result_chars: 0,
+            truncated: false,
+            stored_result_reference: None,
+            risk: crate::services::brain::tool_policy::ToolRisk::ProcessControl,
+            verification: false,
+        }
+    }
+}
+
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -77,7 +106,7 @@ pub struct AgentLoop {
     pub runtime_config: crate::config::runtime::RuntimeConfig,
     session_ledger: SessionLedger,
     session_lifecycle: SessionLifecycle,
-    tool_gateway: Arc<ToolExecutionGateway>,
+    tool_gateway: std::sync::Arc<crate::services::brain::tool_execution_gateway::ToolExecutionGateway>,
     evolution_memory: EvolutionMemory,
     compaction_runtime: CompactionRuntime,
     model_attempt_router: ModelAttemptRouter,
@@ -405,6 +434,18 @@ impl AgentLoop {
 
     /// 鏍稿績鎬濈淮寰幆锛氬畬鍏ㄧ敱浜嬩欢椹卞姩
     pub async fn run(&mut self, prompt: &str) -> Result<String, String> {
+        // --- Fix 2: Pre-flight Defensive Git Snapshot ---
+        if let Ok(cwd) = std::env::current_dir() {
+            if let Ok(mut cmd) = std::process::Command::new("git")
+                .arg("stash")
+                .arg("save")
+                .arg("Agent Pre-run Snapshot")
+                .current_dir(cwd)
+                .spawn() {
+                let _ = cmd.wait();
+            }
+        }
+        
         self.tool_gateway.begin_run();
         self.transition_session(SessionStatus::Running, None)?;
         let run_id = uuid::Uuid::new_v4().to_string();
@@ -599,7 +640,7 @@ impl AgentLoop {
                                 name: item.func_name,
                                 arguments: item.args,
                             };
-                            handles.push(tokio::task::spawn_blocking(move || gateway.execute(req)));
+                            handles.push(tokio::task::spawn_blocking(move || execute_with_timeout(gateway, req, 60)));
                         }
 
                         for handle in handles {
@@ -634,11 +675,12 @@ impl AgentLoop {
                                 )?;
                             }
 
-                            let receipt = self.tool_gateway.execute(ToolExecutionRequest {
+                            let req = ToolExecutionRequest {
                                 call_id: item.call_id.clone(),
                                 name: item.func_name.clone(),
                                 arguments: item.args,
-                            });
+                            };
+                            let receipt = execute_with_timeout(self.tool_gateway.clone(), req, 60);
 
                             if awaits_user {
                                 self.transition_session(
