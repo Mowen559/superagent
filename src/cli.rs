@@ -205,6 +205,7 @@ pub fn dispatch() {
             rt.block_on(async {
                 crate::services::brain::worker::run_worker(&prompt, project, model).await;
             });
+            std::process::exit(0);
         }
         Some(Commands::Install) => crate::cli_commands::handle_install(),
         Some(Commands::Service { port }) => run_service(port),

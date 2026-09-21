@@ -268,15 +268,32 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
         );
     }
 
+    let usage_val = agent.last_token_usage.as_ref().map(|u| {
+        serde_json::json!({
+            "prompt_tokens": u.prompt_tokens,
+            "completion_tokens": u.completion_tokens,
+            "total_tokens": u.prompt_tokens + u.completion_tokens,
+            "cost": u.cost,
+            "duration_ms": u.duration_ms
+        })
+    });
+
     match run_res {
         Ok(result) => {
             println!(
                 "{}",
-                serde_json::json!({ "type": "status", "status": "completed", "result": result })
+                serde_json::json!({
+                    "type": "status",
+                    "status": "completed",
+                    "result": result,
+                    "usage": usage_val
+                })
             );
         }
         Err(e) => {
             println!("{}", serde_json::json!({ "type": "error", "content": e }));
         }
     }
+    use std::io::Write;
+    let _ = std::io::stdout().flush();
 }

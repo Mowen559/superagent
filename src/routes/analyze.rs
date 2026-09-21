@@ -50,7 +50,8 @@ async fn analyze_architecture(
         Err(err) => return err,
     };
 
-    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone())
+        .with_purpose("analyze:layers");
     let analyzer = crate::domains::code_analysis::architecture_analyzer::ArchitectureAnalyzer::new(llm);
 
     match analyzer
@@ -76,7 +77,8 @@ async fn analyze_domain(
         Err(err) => return err,
     };
 
-    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone())
+        .with_purpose("analyze:domain");
     let analyzer = crate::domains::code_analysis::domain_analyzer::DomainAnalyzer::new(llm);
 
     match analyzer
@@ -102,7 +104,8 @@ async fn analyze_impact(
         Err(err) => return err,
     };
 
-    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone())
+        .with_purpose("analyze:impact");
     let analyzer = crate::domains::code_analysis::impact_analyzer::ImpactAnalyzer::new(llm);
 
     match analyzer
@@ -317,7 +320,8 @@ async fn generate_wiki_markdown(
     trace: &serde_json::Value,
     lang: &str,
 ) -> Result<String, String> {
-    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
+    let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone())
+        .with_purpose("analyze:trace");
     if !llm.is_available() {
         return Err("LLM not configured".to_string());
     }

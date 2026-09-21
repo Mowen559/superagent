@@ -75,9 +75,49 @@ impl AgentBackend for SuperAgentBackend {
                                     content: c.to_string(),
                                 });
                             }
+                        } else if t == "context_usage" {
+                            let p = evt.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                            let max_t = evt.get("max_tokens").and_then(|v| v.as_u64()).unwrap_or(100_000) as u32;
+                            let pct = evt.get("percentage").and_then(|v| v.as_f64()).map(|f| f as f32).unwrap_or_else(|| {
+                                if max_t > 0 { (p as f32 / max_t as f32) * 100.0 } else { 0.0 }
+                            });
+                            out.push(AgentMessage::ContextUsage {
+                                percentage: pct,
+                                prompt_tokens: p,
+                                max_tokens: max_t,
+                            });
+                            let model_name = if st.active_model.is_empty() { "superagent".to_string() } else { st.active_model.clone() };
+                            let c = evt.get("completion_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+                            st.usage.insert(
+                                model_name,
+                                crate::services::agent::types::TokenUsage {
+                                    input_tokens: p as i64,
+                                    output_tokens: c,
+                                    cache_read_tokens: 0,
+                                    cache_write_tokens: 0,
+                                    cost: evt.get("cost").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                                },
+                            );
                         } else if t == "status" {
                             if let Some(s) = evt.get("status").and_then(|v| v.as_str()) {
                                 st.forced_status = Some(s.to_string());
+                            }
+                            if let Some(u) = evt.get("usage") {
+                                let p = u.get("prompt_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+                                let c = u.get("completion_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+                                if p > 0 || c > 0 {
+                                    let model_name = if st.active_model.is_empty() { "superagent".to_string() } else { st.active_model.clone() };
+                                    st.usage.insert(
+                                        model_name,
+                                        crate::services::agent::types::TokenUsage {
+                                            input_tokens: p,
+                                            output_tokens: c,
+                                            cache_read_tokens: 0,
+                                            cache_write_tokens: 0,
+                                            cost: u.get("cost").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                                        },
+                                    );
+                                }
                             }
                             if let Some(res) = evt.get("result").and_then(|v| v.as_str()) {
                                 if !res.trim().is_empty() && !st.output.contains(res) {

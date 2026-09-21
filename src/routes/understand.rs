@@ -220,7 +220,7 @@ async fn understand_file(
                 .await
             }
         } else {
-            let llm = LlmProvider::new(state.http_client.clone());
+            let llm = LlmProvider::new(state.http_client.clone()).with_purpose("understand:file");
             if !llm.is_available() {
                 Err("LLM not configured".to_string())
             } else {
@@ -339,7 +339,7 @@ async fn understand_project(
                 .await
             }
         } else {
-            let llm = LlmProvider::new(state.http_client.clone());
+            let llm = LlmProvider::new(state.http_client.clone()).with_purpose("understand:project");
             if !llm.is_available() {
                 Err("LLM not configured".to_string())
             } else {

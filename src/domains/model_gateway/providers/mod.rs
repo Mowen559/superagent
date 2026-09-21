@@ -23,10 +23,12 @@ pub use analysis::*;
 pub use types::*;
 
 /// Canonical LLM Gateway facade used by the agent runtime.
+#[derive(Clone)]
 pub struct LlmProvider {
     settings: LLMSettings,
     client: reqwest::Client,
     model_override: Option<String>,
+    purpose: Option<String>,
 }
 
 
@@ -36,6 +38,7 @@ impl LlmProvider {
             settings: llm_settings::read_llm_settings(),
             client,
             model_override: None,
+            purpose: None,
         }
     }
 
@@ -49,7 +52,13 @@ impl LlmProvider {
             settings,
             client,
             model_override,
+            purpose: None,
         }
+    }
+
+    pub fn with_purpose(mut self, purpose: impl Into<String>) -> Self {
+        self.purpose = Some(purpose.into());
+        self
     }
 
     fn effective_settings(&self) -> LLMSettings {
@@ -453,13 +462,94 @@ impl LlmProvider {
                     &candidate.resolved_model,
                     usage.prompt_tokens,
                     usage.completion_tokens,
-                    0,
-                    0,
+                    usage.cached_tokens,
+                    usage.cache_write_tokens,
                 );
-                usage.attempt_receipts = receipts;
+                usage.attempt_receipts = receipts.clone();
+
+                let req_summary = {
+                    let full = serde_json::to_string(&json!({
+                        "messages": messages,
+                        "tools": tools,
+                    })).unwrap_or_default();
+                    if full.chars().count() > 200_000 {
+                        let truncated: String = full.chars().take(200_000).collect();
+                        Some(format!("{}\n... truncated ...", truncated))
+                    } else {
+                        Some(full)
+                    }
+                };
+                let resp_summary = {
+                    let full = serde_json::to_string(&message).unwrap_or_default();
+                    if full.chars().count() > 200_000 {
+                        let truncated: String = full.chars().take(200_000).collect();
+                        Some(format!("{}\n... truncated ...", truncated))
+                    } else {
+                        Some(full)
+                    }
+                };
+
+                let path_tag = format!("/agent/{}", self.purpose.as_deref().unwrap_or("cognition"));
+                crate::services::usage_tracker::record_api_call(crate::services::usage_tracker::ApiUsageRecord {
+                    account_id: candidate.account.id.clone(),
+                    model: candidate.resolved_model.clone(),
+                    protocol: crate::routes::proxy::audit::protocol_label(&candidate.account.provider),
+                    method: "POST".to_string(),
+                    path: path_tag,
+                    status: status.as_u16(),
+                    duration_ms: elapsed_ms(started),
+                    prompt_tokens: usage.prompt_tokens,
+                    completion_tokens: usage.completion_tokens,
+                    cached_tokens: usage.cached_tokens,
+                    cache_write_tokens: usage.cache_write_tokens,
+                    total_cost: usage.cost,
+                    request_body: req_summary,
+                    response_body: resp_summary,
+                    attempt_receipts: Some(
+                        serde_json::to_value(&receipts).unwrap_or(Value::Null),
+                    ),
+                });
+
                 return Ok((message.clone(), usage));
             }
         }
+
+        if let Some(last_receipt) = receipts.last() {
+            let last_status = last_receipt.status_code.unwrap_or(500);
+            let path_tag = format!("/agent/{}", self.purpose.as_deref().unwrap_or("cognition"));
+            let req_summary = {
+                let full = serde_json::to_string(&json!({
+                    "messages": messages,
+                    "tools": tools,
+                })).unwrap_or_default();
+                if full.chars().count() > 200_000 {
+                    let truncated: String = full.chars().take(200_000).collect();
+                    Some(format!("{}\n... truncated ...", truncated))
+                } else {
+                    Some(full)
+                }
+            };
+            crate::services::usage_tracker::record_api_call(crate::services::usage_tracker::ApiUsageRecord {
+                account_id: last_receipt.account_id.clone(),
+                model: last_receipt.resolved_model.clone(),
+                protocol: crate::routes::proxy::audit::protocol_label(&last_receipt.provider),
+                method: "POST".to_string(),
+                path: path_tag,
+                status: last_status,
+                duration_ms: elapsed_ms(started),
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                cached_tokens: 0,
+                cache_write_tokens: 0,
+                total_cost: 0.0,
+                request_body: req_summary,
+                response_body: Some(json!({ "error": failed_route_message(&receipts) }).to_string()),
+                attempt_receipts: Some(
+                    serde_json::to_value(&receipts).unwrap_or(Value::Null),
+                ),
+            });
+        }
+
         Err(failed_route_message(&receipts))
     }
 

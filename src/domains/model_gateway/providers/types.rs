@@ -43,6 +43,8 @@ pub fn strip_code_fences(response: &str) -> String {
 pub struct TokenUsage {
     pub prompt_tokens: u32,
     pub completion_tokens: u32,
+    pub cached_tokens: u32,
+    pub cache_write_tokens: u32,
     pub cost: f64,
     pub duration_ms: u64,
     pub account_id: Option<String>,
@@ -105,6 +107,25 @@ pub(crate) fn elapsed_ms(started: Instant) -> u64 {
 
 pub(crate) fn usage_from_standard(response: &Value) -> TokenUsage {
     let usage = response.get("usage").unwrap_or(&Value::Null);
+    let cached_tokens = usage
+        .get("cached_tokens")
+        .or_else(|| usage.get("cache_read_input_tokens"))
+        .or_else(|| usage.get("cached_content_token_count"))
+        .or_else(|| usage.pointer("/prompt_tokens_details/cached_tokens"))
+        .or_else(|| usage.pointer("/input_tokens_details/cached_tokens"))
+        .or_else(|| usage.pointer("/input_token_details/cache_read"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+        .min(u64::from(u32::MAX)) as u32;
+
+    let cache_write_tokens = usage
+        .get("cache_write_tokens")
+        .or_else(|| usage.get("cache_creation_input_tokens"))
+        .or_else(|| usage.pointer("/input_token_details/cache_creation"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+        .min(u64::from(u32::MAX)) as u32;
+
     TokenUsage {
         prompt_tokens: usage
             .get("prompt_tokens")
@@ -118,6 +139,8 @@ pub(crate) fn usage_from_standard(response: &Value) -> TokenUsage {
             .and_then(Value::as_u64)
             .unwrap_or(0)
             .min(u64::from(u32::MAX)) as u32,
+        cached_tokens,
+        cache_write_tokens,
         ..TokenUsage::default()
     }
 }

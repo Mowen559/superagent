@@ -112,6 +112,9 @@ pub struct AgentLoop {
     model_attempt_router: ModelAttemptRouter,
     run_prelude_runtime: RunPreludeRuntime,
     pub emit_jsonl: bool,
+    pub last_token_usage: Option<crate::domains::model_gateway::providers::types::TokenUsage>,
+    pub total_prompt_tokens: u64,
+    pub total_completion_tokens: u64,
 }
 
 impl AgentLoop {
@@ -212,8 +215,10 @@ impl AgentLoop {
             llm_settings.resolved_fast_model()
         };
 
-        let fast_llm_provider = LlmProvider::with_model_override(client.clone(), Some(fast_model));
-        let llm_provider = LlmProvider::with_model_override(client.clone(), Some(target_model));
+        let fast_llm_provider = LlmProvider::with_model_override(client.clone(), Some(fast_model))
+            .with_purpose("cognition:fast");
+        let llm_provider = LlmProvider::with_model_override(client.clone(), Some(target_model))
+            .with_purpose("cognition");
 
         Self {
             ctx: Context::new(),
@@ -235,6 +240,9 @@ impl AgentLoop {
             model_attempt_router: ModelAttemptRouter::default(),
             run_prelude_runtime,
             emit_jsonl: false,
+            last_token_usage: None,
+            total_prompt_tokens: 0,
+            total_completion_tokens: 0,
         }
     }
 
@@ -432,20 +440,8 @@ impl AgentLoop {
         project_events_with_micro_compaction(&self.events, 3)
     }
 
-    /// 鏍稿績鎬濈淮寰幆锛氬畬鍏ㄧ敱浜嬩欢椹卞姩
+    /// 核心思维循环：完全由事件驱动
     pub async fn run(&mut self, prompt: &str) -> Result<String, String> {
-        // --- Fix 2: Pre-flight Defensive Git Snapshot ---
-        if let Ok(cwd) = std::env::current_dir() {
-            if let Ok(mut cmd) = std::process::Command::new("git")
-                .arg("stash")
-                .arg("save")
-                .arg("Agent Pre-run Snapshot")
-                .current_dir(cwd)
-                .spawn() {
-                let _ = cmd.wait();
-            }
-        }
-        
         self.tool_gateway.begin_run();
         self.transition_session(SessionStatus::Running, None)?;
         let run_id = uuid::Uuid::new_v4().to_string();
@@ -553,7 +549,7 @@ impl AgentLoop {
             let projected_messages = self.project_llm_messages();
 
             // 3. 向 LLM 发起请求 (快慢脑双模型协同编排)
-            let llm_message = match self
+            let (llm_message, usage) = match self
                 .call_llm_api(
                     projected_messages,
                     &cognitive_guidance,
@@ -562,12 +558,38 @@ impl AgentLoop {
                 )
                 .await
             {
-                Ok(message) => message,
+                Ok(res) => res,
                 Err(error) => {
                     self.record_evolution(&mut cognition, prompt, false);
                     return Err(error);
                 }
             };
+
+            self.last_token_usage = Some(usage.clone());
+            self.total_prompt_tokens += usage.prompt_tokens as u64;
+            self.total_completion_tokens += usage.completion_tokens as u64;
+
+            if self.emit_jsonl {
+                let max_ctx = self.llm_provider.max_context_tokens();
+                let pct = if max_ctx > 0 {
+                    ((usage.prompt_tokens as f32 / max_ctx as f32) * 100.0).min(100.0)
+                } else {
+                    0.0
+                };
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "type": "context_usage",
+                        "prompt_tokens": usage.prompt_tokens,
+                        "completion_tokens": usage.completion_tokens,
+                        "total_tokens": usage.prompt_tokens + usage.completion_tokens,
+                        "max_tokens": max_ctx,
+                        "percentage": pct
+                    })
+                );
+                use std::io::Write;
+                let _ = std::io::stdout().flush();
+            }
 
             // 4. 解析 LLM 回复，发射模型思考事件 / 工具调用事件
             if let Some(tool_calls) = llm_message.get("tool_calls").and_then(|v| v.as_array()) {
@@ -779,7 +801,7 @@ impl AgentLoop {
         cognitive_guidance: &str,
         run_prelude: &str,
         brain_tier: crate::domains::model_gateway::model_attempt_router::BrainTier,
-    ) -> Result<Value, String> {
+    ) -> Result<(Value, crate::domains::model_gateway::providers::types::TokenUsage), String> {
         let (provider, tier_label) = match brain_tier {
             crate::domains::model_gateway::model_attempt_router::BrainTier::Fast => {
                 (&self.fast_llm_provider, "Fast Brain")
@@ -841,7 +863,7 @@ impl AgentLoop {
                 Ok((msg, usage)) => {
                     eprintln!("\n\x1b[45;37m[Token Usage - {}] Prompt: {}, Completion: {}, Cost: ${:.4}, Latency: {}ms\x1b[0m\n",
                         tier_label, usage.prompt_tokens, usage.completion_tokens, usage.cost, usage.duration_ms);
-                    return Ok(msg);
+                    return Ok((msg, usage));
                 }
                 Err(error) => {
                     if brain_tier == crate::domains::model_gateway::model_attempt_router::BrainTier::Fast && attempt == 1 {

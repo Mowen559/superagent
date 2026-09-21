@@ -18,11 +18,32 @@ pub struct FastEmbedService {
 }
 
 impl FastEmbedService {
-    /// 初始化本地 Embedding 模型（第一次运行时可能会下载模型文件约22MB）
+    /// 初始化本地 Embedding 模型
+    /// 若未开启显式下载且本地缓存不存在，则直接安全降级，避免网络超时导致主进程死锁
     pub fn new() -> Result<Self> {
-        // 使用轻量级的多语言或代码专用模型，例如 BGE 或是 AllMiniLML6V2
+        if std::env::var("DISABLE_FASTEMBED")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false)
+        {
+            anyhow::bail!("FastEmbed is disabled via DISABLE_FASTEMBED");
+        }
+
+        let allow_auto_download = std::env::var("ALLOW_FASTEMBED_DOWNLOAD")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+
+        let temp_cache = std::env::temp_dir().join("fastembed_cache");
+        let has_local_cache = temp_cache.exists()
+            && std::fs::read_dir(&temp_cache)
+                .map(|mut d| d.next().is_some())
+                .unwrap_or(false);
+
+        if !has_local_cache && !allow_auto_download {
+            anyhow::bail!("FastEmbed local model cache not found. Bypassing embedding to prevent network hang; fallback to lexical search.");
+        }
+
         let mut options = InitOptions::new(EmbeddingModel::AllMiniLML6V2);
-        options.show_download_progress = true;
+        options.show_download_progress = false;
         let model =
             TextEmbedding::try_new(options).context("Failed to initialize FastEmbed model")?;
 
@@ -61,6 +82,7 @@ impl EmbeddingService for FastEmbedService {
 
 lazy_static::lazy_static! {
     static ref GLOBAL_EMBEDDING_SERVICE: Arc<std::sync::Mutex<Option<Arc<FastEmbedService>>>> = Arc::new(std::sync::Mutex::new(None));
+    static ref EMBEDDING_FAILED_ONCE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 }
 
 /// 获取全局唯一的 EmbeddingService 实例 (同步)
@@ -70,11 +92,21 @@ pub fn get_embedding_service() -> Result<Arc<FastEmbedService>> {
         return Ok(Arc::clone(svc));
     }
 
-    // 如果没有初始化，则在此处初始化（可能耗时，例如下载模型）
-    let svc = Arc::new(FastEmbedService::new()?);
-    *lock = Some(Arc::clone(&svc));
+    if EMBEDDING_FAILED_ONCE.load(std::sync::atomic::Ordering::Relaxed) {
+        anyhow::bail!("FastEmbed unavailable or disabled");
+    }
 
-    Ok(svc)
+    match FastEmbedService::new() {
+        Ok(service) => {
+            let svc = Arc::new(service);
+            *lock = Some(Arc::clone(&svc));
+            Ok(svc)
+        }
+        Err(e) => {
+            EMBEDDING_FAILED_ONCE.store(true, std::sync::atomic::Ordering::Relaxed);
+            Err(e)
+        }
+    }
 }
 
 /// 计算两个向量的余弦相似度 (Cosine Similarity)
