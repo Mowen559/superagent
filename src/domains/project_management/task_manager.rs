@@ -713,5 +713,6 @@ fn human_readable(event: &AgentMessage) -> String {
             question,
             ..
         } => format!("[NeedsInput:{request_id}] {question}"),
+        AgentMessage::ContextUsage { percentage, .. } => format!("[ContextUsage] {:.1}%", percentage * 100.0),
     }
 }

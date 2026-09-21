@@ -59,6 +59,7 @@ pub fn handle_agent(cmd: AgentCommand) {
                                     println!("\x1b[31m[Error: {}]\x1b[0m", content);
                                 }
                                 AgentMessage::InteractionRequest { .. } => {}
+                                AgentMessage::ContextUsage { .. } => {}
                                 AgentMessage::Log { level, content } => {
                                     println!("\x1b[90m[Log {}: {}]\x1b[0m", level, content);
                                 }

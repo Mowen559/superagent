@@ -17,6 +17,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum AgentMessage {
+    /// Real-time token context usage broadcast.
+    ContextUsage { percentage: f32, prompt_tokens: u32, max_tokens: u32 },
     /// Assistant answer text (may arrive as many fragments).
     Text { content: String },
     /// Reasoning / thinking content, kept distinct from user-facing text.

@@ -106,6 +106,7 @@ pub(crate) fn to_sse_event(message: AgentMessage) -> Result<Event, Infallible> {
         AgentMessage::Error { .. } => "error",
         AgentMessage::Log { .. } => "log",
         AgentMessage::InteractionRequest { .. } => "interaction-request",
+        AgentMessage::ContextUsage { .. } => "context-usage",
     };
     let data = serde_json::to_string(&message).unwrap_or_else(|_| "{}".to_string());
     Ok(Event::default().event(name).data(data))
