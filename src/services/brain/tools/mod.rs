@@ -34,3 +34,5 @@ pub mod repo_map_tool;
 pub mod verify_task;
 pub mod project_index_tool;
 
+
+pub mod browser_vision;

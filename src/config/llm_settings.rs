@@ -11,6 +11,41 @@ fn default_weight() -> f32 {
     1.0
 }
 
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ModelCategory {
+    Chat,
+    Embedding,
+    Vision,
+    Audio,
+    Multimodal,
+    Reasoning,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelCapabilities {
+    pub category: ModelCategory,
+    pub context_length: Option<u32>,
+    pub max_output_tokens: Option<u32>,
+    pub supports_function_calling: bool,
+    pub supports_vision: bool,
+}
+
+impl Default for ModelCapabilities {
+    fn default() -> Self {
+        Self {
+            category: ModelCategory::Unknown,
+            context_length: None,
+            max_output_tokens: None,
+            supports_function_calling: false,
+            supports_vision: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LLMAccount {
@@ -25,6 +60,8 @@ pub struct LLMAccount {
     pub models_info: Option<std::collections::HashMap<String, serde_json::Value>>,
     #[serde(default)]
     pub model_mapping: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub model_capabilities: Option<std::collections::HashMap<String, ModelCapabilities>>,
     pub base_url: String,
     pub api_key: String,
     pub refresh_token: Option<String>,
@@ -50,6 +87,7 @@ impl Default for LLMAccount {
             models: vec![],
             models_info: None,
             model_mapping: std::collections::HashMap::new(),
+            model_capabilities: None,
             base_url: String::new(),
             api_key: String::new(),
             refresh_token: None,

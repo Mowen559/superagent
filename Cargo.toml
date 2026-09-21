@@ -113,6 +113,7 @@ xcap = { version = "0.9.8", optional = true, features = ["wgc"] }
 imageproc = "0.27.0"
 tts = "0.26.3"
 once_cell = "1.21.4"
+playwright = "0.0.20"
 
 [features]
 default = ["vision-xcap", "vision-paddleocr", "vision-snowcapture", "vision-rapidocr", "win_native_cropper"]

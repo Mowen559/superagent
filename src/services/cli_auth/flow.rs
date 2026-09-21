@@ -134,6 +134,7 @@ pub async fn handle_openai_pkce_flow(account_name: Option<String>) -> Result<LLM
         tags: vec![],
         priority: 0,
         weight: 1.0,
+        model_capabilities: None,
     })
 }
 
@@ -269,6 +270,7 @@ pub async fn handle_github_copilot_flow(
                 tags: vec![],
                 priority: 0,
                 weight: 1.0,
+        model_capabilities: None,
             });
         }
     }
@@ -403,6 +405,7 @@ pub async fn handle_gemini_oauth_flow(account_name: Option<String>) -> Result<LL
         tags: vec![],
         priority: 0,
         weight: 1.0,
+        model_capabilities: None,
     })
 }
 
@@ -634,6 +637,7 @@ pub async fn handle_claude_oauth_flow(
         tags: vec![],
         priority: 0,
         weight: 1.0,
+        model_capabilities: None,
     })
 }
 

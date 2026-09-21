@@ -269,6 +269,7 @@ pub(crate) async fn handle_custom_api_key() -> Result<LLMAccount, String> {
         tags: vec![],
         priority: 0,
         weight: 1.0,
+        model_capabilities: None,
     })
 }
 
@@ -311,6 +312,7 @@ pub(crate) async fn handle_custom_api_key_with_defaults(
         tags: vec![],
         priority: 0,
         weight: 1.0,
+        model_capabilities: None,
     })
 }
 
