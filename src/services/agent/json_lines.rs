@@ -75,7 +75,7 @@ pub async fn run(
     opts: ExecOptions,
     mut cancel_rx: tokio::sync::watch::Receiver<bool>,
     mut control_rx: Option<
-        tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+        tokio::sync::mpsc::UnboundedReceiver<crate::domains::project_management::task_manager::TaskControl>,
     >,
 ) -> BackendResult<AgentSession> {
     let mut cmd = agent_command(&spec.command);
@@ -106,7 +106,7 @@ pub async fn run(
             while let Some(control) = rx.recv().await {
                 // For superagent IPC, we serialize it as UserResponse or Intervene.
                 let msg = match control {
-                    crate::services::task_manager::TaskControl::UserResponse {
+                    crate::domains::project_management::task_manager::TaskControl::UserResponse {
                         request_id,
                         response,
                     } => {
@@ -118,7 +118,7 @@ pub async fn run(
                             }
                         })
                     }
-                    crate::services::task_manager::TaskControl::Intervene { instruction } => {
+                    crate::domains::project_management::task_manager::TaskControl::Intervene { instruction } => {
                         serde_json::json!({
                             "type": "Intervene",
                             "payload": instruction

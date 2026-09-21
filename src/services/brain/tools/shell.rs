@@ -4,7 +4,7 @@
 //! 2. 正交结果独立上报 (timed_out, exit_code, success, signal)
 //! 3. 完整的超时回收与子进程完全停稳 Disposal
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::process::Command;

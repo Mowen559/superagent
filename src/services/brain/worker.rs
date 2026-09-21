@@ -10,7 +10,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
         }
     }
     use crate::services::brain::capabilities::shell::LocalShellProvider;
-    use crate::services::brain::executor::AgentLoop;
+    use crate::domains::agent_cognitive::executor::AgentLoop;
     use crate::services::brain::subagent_runtime::SubagentRuntime;
     use crate::services::brain::tools::fs::{
         FindByNameTool, GrepSearchTool, ListDirectoryTool, MultiReplaceTool, ReadFileTool,
@@ -177,7 +177,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     )));
     agent.register_tool(Box::new(
         crate::services::brain::tools::blackboard_tool::BlackboardTool::new(
-            crate::services::brain::agent_blackboard::AgentBlackboard::global(),
+            crate::domains::agent_cognitive::agent_blackboard::AgentBlackboard::global(),
             "SubagentWorker",
         ),
     ));
@@ -256,7 +256,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     stdin_handle.abort();
 
     // 自动触发会话轨迹经验自省与自愈提炼，持久化写入 SuperMemory
-    let persisted_count = crate::services::brain::plan_reflection::ReflectionEngine::distill_and_persist(
+    let persisted_count = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
         &agent.events,
         &runtime_config,
         Some(&project_path_str),

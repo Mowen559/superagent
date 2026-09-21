@@ -1,4 +1,4 @@
-use crate::services::brain::executor::AgentLoop;
+use crate::domains::agent_cognitive::executor::AgentLoop;
 use crate::services::brain::ipc::{IpcClient, IpcMessage};
 use serde_json::{json, Value};
 use std::path::Path;

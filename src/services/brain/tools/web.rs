@@ -1,7 +1,7 @@
 //! 网络爬取工具 (Web Fetch Tool)
 //! 赋予大脑 B 通过网络拉取网页内容的能力
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 
 /// 网页内容拉取工具

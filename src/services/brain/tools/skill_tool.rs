@@ -7,7 +7,7 @@ use walkdir::WalkDir;
 use crate::config::app_paths::AppPaths;
 use crate::config::runtime::RuntimeConfig;
 use crate::models::memory::SupermemoryRecord;
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use crate::services::supermemory_store::SupermemoryStore;
 
 pub struct SkillTool {

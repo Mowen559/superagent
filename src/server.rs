@@ -17,7 +17,7 @@ use crate::config::runtime::RuntimeConfig;
 use crate::services::brain::capabilities::certification::CertificationGatekeeper;
 use crate::services::brain::evolution_memory::EvolutionMemory;
 use crate::services::brain::tool_approval_store::ToolApprovalStore;
-use crate::services::task_manager::TaskManager;
+use crate::domains::project_management::task_manager::TaskManager;
 use crate::services::visual_pipeline::VisualPipelineRuntime;
 use crate::services::workspace_capability::WorkspaceCapabilityRegistry;
 

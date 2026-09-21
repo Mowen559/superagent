@@ -51,7 +51,7 @@ async fn analyze_architecture(
     };
 
     let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
-    let analyzer = crate::services::architecture_analyzer::ArchitectureAnalyzer::new(llm);
+    let analyzer = crate::domains::code_analysis::architecture_analyzer::ArchitectureAnalyzer::new(llm);
 
     match analyzer
         .analyze_layers(&db_path_str, body.lang.as_deref())
@@ -77,7 +77,7 @@ async fn analyze_domain(
     };
 
     let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
-    let analyzer = crate::services::domain_analyzer::DomainAnalyzer::new(llm);
+    let analyzer = crate::domains::code_analysis::domain_analyzer::DomainAnalyzer::new(llm);
 
     match analyzer
         .analyze_domain_flows(&db_path_str, body.lang.as_deref())
@@ -103,7 +103,7 @@ async fn analyze_impact(
     };
 
     let llm = crate::domains::model_gateway::providers::LlmProvider::new(state.http_client.clone());
-    let analyzer = crate::services::impact_analyzer::ImpactAnalyzer::new(llm);
+    let analyzer = crate::domains::code_analysis::impact_analyzer::ImpactAnalyzer::new(llm);
 
     match analyzer
         .analyze_impact(
@@ -132,7 +132,7 @@ async fn analyze_tour(
         Err(err) => return err,
     };
 
-    let builder = crate::services::tour_builder::TourBuilder::new();
+    let builder = crate::domains::project_management::tour_builder::TourBuilder::new();
 
     match builder.build_tour(&db_path_str) {
         Ok(report) => Json(json!({ "success": true, "report": report })).into_response(),
@@ -154,7 +154,7 @@ async fn analyze_wiki(
         Err(err) => return err,
     };
 
-    let project_overview = crate::services::understand_service::understand_project(&db_path_str)
+    let project_overview = crate::domains::knowledge_graph::understand_service::understand_project(&db_path_str)
         .unwrap_or_else(|error| json!({ "indexed": false, "error": error }));
     let indexed = project_overview
         .get("indexed")
@@ -163,8 +163,8 @@ async fn analyze_wiki(
     let files = collect_top_files(&db_path_str, 24).unwrap_or_default();
     let symbols = collect_top_symbols(&db_path_str, 24).unwrap_or_default();
     let documents = collect_knowledge_documents(&state, &project);
-    let git_status = crate::services::git_service::get_status(&project).ok();
-    let ai_history = crate::services::git_service::get_ai_history(&project, 12).unwrap_or_default();
+    let git_status = crate::domains::version_control::git_service::get_status(&project).ok();
+    let ai_history = crate::domains::version_control::git_service::get_ai_history(&project, 12).unwrap_or_default();
     let changed_files = git_status
         .as_ref()
         .map(|status| {

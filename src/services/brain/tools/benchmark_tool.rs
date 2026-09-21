@@ -1,5 +1,5 @@
 use crate::services::brain::eval_harness::{run_golden_benchmark, verify_workspace_syntax};
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 
 /// 黄金架构基准评测工具 (Golden Benchmark Eval Tool)

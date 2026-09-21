@@ -1,4 +1,4 @@
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 
 /// 原生图谱搜索中枢 (Native Graph Search Organ)
@@ -116,12 +116,12 @@ impl ToolExecutor for NativeSearchGraphTool {
 
         match action {
             "get_schema" => {
-                let schema = crate::services::graph_service::get_graph_schema(&db_path_str)
+                let schema = crate::domains::knowledge_graph::graph_service::get_graph_schema(&db_path_str)
                     .map_err(|e| format!("Get graph schema failed: {}", e))?;
                 Ok(json!({ "status": "success", "schema": schema }))
             }
             "get_dead_code" => {
-                let dead = crate::services::graph_service::get_dead_code(&db_path_str, limit)
+                let dead = crate::domains::knowledge_graph::graph_service::get_dead_code(&db_path_str, limit)
                     .map_err(|e| format!("Get dead code failed: {}", e))?;
                 Ok(json!({ "status": "success", "dead_code": dead }))
             }
@@ -129,7 +129,7 @@ impl ToolExecutor for NativeSearchGraphTool {
                 if query.is_empty() {
                     return Err("trace_path requires 'query' as root symbol name".to_string());
                 }
-                let trace = crate::services::graph_service::trace_path(
+                let trace = crate::domains::knowledge_graph::graph_service::trace_path(
                     &db_path_str,
                     query,
                     direction,
@@ -143,7 +143,7 @@ impl ToolExecutor for NativeSearchGraphTool {
                 if query.is_empty() {
                     return Err("get_code_snippet requires 'query' as symbol qualified_name".to_string());
                 }
-                let snippet = crate::services::graph_service::get_code_snippet(
+                let snippet = crate::domains::knowledge_graph::graph_service::get_code_snippet(
                     &db_path_str,
                     query,
                     include_neighbors,
@@ -156,7 +156,7 @@ impl ToolExecutor for NativeSearchGraphTool {
                 if query.is_empty() {
                     return Err("get_impact requires 'query' as target node id".to_string());
                 }
-                let nodes = crate::services::graph_service::get_impact(&db_path_str, query, depth)
+                let nodes = crate::domains::knowledge_graph::graph_service::get_impact(&db_path_str, query, depth)
                     .map_err(|e| format!("Get impact failed: {}", e))?;
                 Ok(json!({ "status": "success", "impact_nodes": nodes }))
             }
@@ -164,7 +164,7 @@ impl ToolExecutor for NativeSearchGraphTool {
                 if query.is_empty() {
                     return Err("get_callers requires 'query' as target node id".to_string());
                 }
-                let nodes = crate::services::graph_service::get_callers(&db_path_str, query, limit)
+                let nodes = crate::domains::knowledge_graph::graph_service::get_callers(&db_path_str, query, limit)
                     .map_err(|e| format!("Get callers failed: {}", e))?;
                 Ok(json!({ "status": "success", "nodes": nodes }))
             }
@@ -172,12 +172,12 @@ impl ToolExecutor for NativeSearchGraphTool {
                 if query.is_empty() {
                     return Err("get_callees requires 'query' as source node id".to_string());
                 }
-                let nodes = crate::services::graph_service::get_callees(&db_path_str, query, limit)
+                let nodes = crate::domains::knowledge_graph::graph_service::get_callees(&db_path_str, query, limit)
                     .map_err(|e| format!("Get callees failed: {}", e))?;
                 Ok(json!({ "status": "success", "nodes": nodes }))
             }
             _ => {
-                let nodes = crate::services::graph_service::search_nodes(&db_path_str, query, limit)
+                let nodes = crate::domains::knowledge_graph::graph_service::search_nodes(&db_path_str, query, limit)
                     .map_err(|e| format!("Native graph search failed: {}", e))?;
                 let nodes_json: Vec<Value> = nodes
                     .into_iter()

@@ -1,8 +1,8 @@
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
-use crate::services::brain::executor::ToolExecutor;
-use crate::services::repo_map::RepoMapEngine;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
+use crate::domains::version_control::repo_map::RepoMapEngine;
 
 pub struct RepoMapTool {
     pub workspace_root: PathBuf,

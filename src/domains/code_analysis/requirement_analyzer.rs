@@ -40,7 +40,7 @@ impl RequirementAnalyzer {
         let mut project_language = "unknown".to_string();
         {
             project_language =
-                crate::services::understand_service::detect_primary_language(db_path)
+                crate::domains::knowledge_graph::understand_service::detect_primary_language(db_path)
                     .unwrap_or_else(|_| "unknown".to_string());
             let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
                 .context("Failed to open graph DB for requirement analysis")?;

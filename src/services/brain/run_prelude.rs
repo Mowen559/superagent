@@ -1,5 +1,5 @@
 use crate::config::runtime::RuntimeConfig;
-use crate::services::graph_service;
+use crate::domains::knowledge_graph::graph_service;
 use crate::services::supermemory_store::SupermemoryStore;
 
 const MAX_PRELUDE_CHARS: usize = 6_000;

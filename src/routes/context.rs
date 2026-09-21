@@ -1,4 +1,4 @@
-use crate::services::{graph_service, vector_service};
+use crate::domains::knowledge_graph::{graph_service, vector_service};
 use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};

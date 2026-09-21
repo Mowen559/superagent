@@ -3,7 +3,7 @@
 //! 允许外部微服务（如 Java Spring Boot、Python FastAPI）在运行时通过 HTTP 注册自身业务工具，
 //! 智能体大脑在推理时能够直接将该工具暴露给大模型，并在模型调用时自动向微服务回调执行。
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

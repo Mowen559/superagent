@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use crate::services::brain::subagent_runtime::{SubagentLaunchRequest, SubagentRuntime};
 
 pub struct InvokeSubagentTool {

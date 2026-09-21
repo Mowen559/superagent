@@ -90,7 +90,7 @@ impl IpcClient {
 }
 
 /// 大脑 B 内部启动的独立进程事件循环
-pub async fn start_worker_loop(mut engine: super::executor::AgentLoop) {
+pub async fn start_worker_loop(mut engine: crate::domains::agent_cognitive::executor::AgentLoop) {
     let steering_queue = engine.steering_queue.clone();
     let interaction_runtime = engine.interaction_runtime.clone();
 

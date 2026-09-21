@@ -1,6 +1,6 @@
 use std::path::Path;
 use serde::{Deserialize, Serialize};
-use crate::services::architecture_analyzer::ArchitectureAnalyzer;
+use crate::domains::code_analysis::architecture_analyzer::ArchitectureAnalyzer;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

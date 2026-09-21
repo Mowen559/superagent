@@ -1,6 +1,6 @@
 use crate::models::task::TaskStatus;
 use crate::services::destructive_ops::DestructiveOps;
-use crate::services::git_service::{self, RepoKind};
+use crate::domains::version_control::git_service::{self, RepoKind};
 use crate::services::workspace_guard::WorkspaceGuard;
 use crate::AppState;
 use axum::http::StatusCode;

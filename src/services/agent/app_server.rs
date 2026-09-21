@@ -28,7 +28,7 @@ impl AgentBackend for AppServerBackend {
         opts: ExecOptions,
         mut cancel_rx: tokio::sync::watch::Receiver<bool>,
         _control_rx: Option<
-            tokio::sync::mpsc::UnboundedReceiver<crate::services::task_manager::TaskControl>,
+            tokio::sync::mpsc::UnboundedReceiver<crate::domains::project_management::task_manager::TaskControl>,
         >,
     ) -> BackendResult<AgentSession> {
         let run_timeout = opts.timeout;

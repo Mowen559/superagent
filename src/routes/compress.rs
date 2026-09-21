@@ -2,8 +2,9 @@
 //! file to its structural skeleton (imports + signatures + types), cutting the
 //! tokens that downstream LLM calls would otherwise spend.
 
-use crate::services::token_filter::FilterLevel;
-use crate::services::{file_service, token_filter};
+use crate::domains::token_compression::FilterLevel;
+use crate::services::file_service;
+use crate::domains::token_compression;
 use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -78,14 +79,14 @@ async fn compress_pipeline(
 }
 
 async fn get_compress_stats() -> Response {
-    let stats = crate::services::token_filter::TokenSavingsTracker::global().get_stats();
+    let stats = crate::domains::token_compression::TokenSavingsTracker::global().get_stats();
     Json(stats).into_response()
 }
 
 async fn compress_command(
     Json(body): Json<CompressCommandRequest>,
 ) -> Response {
-    let result = crate::services::token_filter::compress_by_command(&body.cmd, &body.output);
+    let result = crate::domains::token_compression::compress_by_command(&body.cmd, &body.output);
     Json(result).into_response()
 }
 
@@ -134,7 +135,7 @@ async fn compress(
         }
     };
 
-    let result = token_filter::compress(&content, &hint, level);
+    let result = token_compression::compress(&content, &hint, level);
     Json(result).into_response()
 }
 

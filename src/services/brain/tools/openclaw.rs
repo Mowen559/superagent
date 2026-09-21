@@ -1,5 +1,5 @@
-use crate::services::brain::executor::ToolExecutor;
-use crate::services::token_filter::{compress, FilterLevel};
+use crate::domains::agent_cognitive::executor::ToolExecutor;
+use crate::domains::token_compression::{compress, FilterLevel};
 use serde_json::{json, Value};
 
 pub struct OpenclawTool;

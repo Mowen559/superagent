@@ -1,6 +1,6 @@
 //! 管理后台进程工具 (Manage Process)
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 
 /// 后台进程管理工具 (Manage Process Tool)

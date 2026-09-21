@@ -1,4 +1,4 @@
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use lazy_static::lazy_static;
 use serde_json::{json, Value};
 use std::collections::HashMap;

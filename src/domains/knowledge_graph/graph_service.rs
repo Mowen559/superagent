@@ -1,5 +1,5 @@
 use crate::models::graph::{GraphEdge, GraphNode, GraphResponse};
-use crate::services::code_intelligence::{
+use crate::domains::code_analysis::code_intelligence::{
     CodeIntelligenceRuntime, CodeSnippetResult, DeadCodeSymbol, GraphSchema, TracePathResult,
 };
 use std::collections::HashSet;

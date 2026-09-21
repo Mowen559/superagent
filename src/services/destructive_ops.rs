@@ -1,4 +1,4 @@
-use crate::services::git_service::{self, RepoKind};
+use crate::domains::version_control::git_service::{self, RepoKind};
 use crate::services::workspace_guard::WorkspaceGuard;
 
 pub struct DestructiveOps<'a> {

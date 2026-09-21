@@ -5,7 +5,7 @@ use crate::models::reverse::*;
 use crate::domains::model_gateway::providers::{self, LlmProvider};
 use crate::services::progress::{ProgressReporter, StepStatus};
 use crate::services::supermemory_store::SupermemoryStore;
-use crate::services::understand_service;
+use crate::domains::knowledge_graph::understand_service;
 use serde_json::{json, Value};
 
 /// Execute the full reverse engineering pipeline:

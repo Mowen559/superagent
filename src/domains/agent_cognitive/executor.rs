@@ -703,7 +703,7 @@ impl AgentLoop {
                 }
                 self.save_session();
                 self.record_evolution(&mut cognition, prompt, true);
-                let _ = crate::services::brain::plan_reflection::ReflectionEngine::distill_and_persist(
+                let _ = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
                     &self.events,
                     &self.runtime_config,
                     Some(self.run_prelude_runtime.project_path()),

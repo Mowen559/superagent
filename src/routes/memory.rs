@@ -86,7 +86,7 @@ async fn supermemory_chat(
     let db_path_str = db_path.to_string_lossy().to_string();
     let msg_for_search = message.clone();
     let graph_hits = tokio::task::spawn_blocking(move || {
-        crate::services::vector_service::hybrid_search(&db_path_str, &msg_for_search, 8)
+        crate::domains::knowledge_graph::vector_service::hybrid_search(&db_path_str, &msg_for_search, 8)
     })
     .await
     .ok()

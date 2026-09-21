@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::services::brain::agent_tracing::{AgentSpan, SpanKind};
+use crate::domains::agent_cognitive::agent_tracing::{AgentSpan, SpanKind};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalCriteria {
@@ -99,7 +99,7 @@ impl AgentEvaluator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::brain::agent_tracing::AgentTracingRecorder;
+    use crate::domains::agent_cognitive::agent_tracing::AgentTracingRecorder;
 
     #[test]
     fn test_evaluator_assertions() {

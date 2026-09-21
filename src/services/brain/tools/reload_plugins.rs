@@ -2,7 +2,7 @@
 //! 允许 Agent 在运行时动态扫描 `skills/plugins/` 或 `dynamic_tools/` 目录下的 `.tool.json`，
 //! 将新的外部脚本工具热加载到内存中的工具列表中，无需重新编译 `.exe`！
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use crate::services::brain::tools::dynamic_tool::scan_dynamic_tools;
 use serde_json::{json, Value};
 use std::collections::HashMap;

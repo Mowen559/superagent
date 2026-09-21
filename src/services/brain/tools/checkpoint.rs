@@ -1,4 +1,4 @@
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
@@ -50,7 +50,7 @@ impl ToolExecutor for CreateCheckpointTool {
             .unwrap_or("Manual checkpoint");
 
         let cwd_str = self.workspace_root.to_string_lossy().to_string();
-        let checkpoint = crate::services::git_service::create_checkpoint(&cwd_str, description)?;
+        let checkpoint = crate::domains::version_control::git_service::create_checkpoint(&cwd_str, description)?;
 
         Ok(json!({
             "status": "success",
@@ -112,7 +112,7 @@ impl ToolExecutor for RevertToCheckpointTool {
         let reason = args.get("reason").and_then(|v| v.as_str()).unwrap_or("Abandoning dead end hypothesis");
 
         let cwd_str = self.workspace_root.to_string_lossy().to_string();
-        let message = crate::services::git_service::revert_to_checkpoint(&cwd_str, checkpoint_id)?;
+        let message = crate::domains::version_control::git_service::revert_to_checkpoint(&cwd_str, checkpoint_id)?;
 
         Ok(json!({
             "status": "success",
@@ -152,7 +152,7 @@ impl ToolExecutor for ListCheckpointsTool {
 
     fn execute(&self, _args: Value) -> Result<Value, String> {
         let cwd_str = self.workspace_root.to_string_lossy().to_string();
-        let checkpoints = crate::services::git_service::list_checkpoints(&cwd_str)?;
+        let checkpoints = crate::domains::version_control::git_service::list_checkpoints(&cwd_str)?;
         Ok(json!({
             "status": "success",
             "total": checkpoints.len(),

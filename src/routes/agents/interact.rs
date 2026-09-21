@@ -66,12 +66,12 @@ pub(crate) async fn interact_with_task(
                 )
                     .into_response();
             };
-            crate::services::task_manager::TaskControl::UserResponse {
+            crate::domains::project_management::task_manager::TaskControl::UserResponse {
                 request_id,
                 response: body.response,
             }
         }
-        "steer" => crate::services::task_manager::TaskControl::Intervene {
+        "steer" => crate::domains::project_management::task_manager::TaskControl::Intervene {
             instruction: body.response,
         },
         _ => {

@@ -8,7 +8,7 @@
 
 use crate::config::claude_settings;
 use crate::models::task::TaskStatus;
-use crate::services::task_manager::TaskManager;
+use crate::domains::project_management::task_manager::TaskManager;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;

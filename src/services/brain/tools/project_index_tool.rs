@@ -1,5 +1,5 @@
-use crate::services::brain::executor::ToolExecutor;
-use crate::services::understand_service;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
+use crate::domains::knowledge_graph::understand_service;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 

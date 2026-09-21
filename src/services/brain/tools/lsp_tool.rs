@@ -1,7 +1,7 @@
 //! LSP 大模型调度工具 (LSP Tool)
 //! 让大模型可以使用语言服务器查询定义、悬停文档和引用
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 use std::path::Path;
 

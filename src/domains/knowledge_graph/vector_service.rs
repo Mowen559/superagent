@@ -7,7 +7,7 @@
 //!   3. L2-normalize + int8-quantize each keyword vector
 //!   4. score = min over keywords of cosine(keyword_vec, node_vec)
 
-use crate::services::graph_service;
+use crate::domains::knowledge_graph::graph_service;
 use rusqlite::{Connection, OpenFlags};
 use serde::Serialize;
 use std::path::Path;

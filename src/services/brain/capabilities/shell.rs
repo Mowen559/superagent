@@ -197,14 +197,14 @@ impl ShellService for LocalShellProvider {
                     let stdout_raw = strip_ansi_escapes(&String::from_utf8_lossy(&stdout_bytes));
                     let stderr_raw = strip_ansi_escapes(&String::from_utf8_lossy(&stderr_bytes));
 
-                    let stdout_res = crate::services::token_filter::compress_by_command(cmd, &stdout_raw);
+                    let stdout_res = crate::domains::token_compression::compress_by_command(cmd, &stdout_raw);
                     let stderr_res = if stderr_raw.lines().count() > 20 || stderr_raw.len() > 1000 {
-                        crate::services::token_filter::compress_terminal_output(&stderr_raw, 60)
+                        crate::domains::token_compression::compress_terminal_output(&stderr_raw, 60)
                     } else {
-                        crate::services::token_filter::compress(
+                        crate::domains::token_compression::compress(
                             &stderr_raw,
                             "log.txt",
-                            crate::services::token_filter::FilterLevel::None,
+                            crate::domains::token_compression::FilterLevel::None,
                         )
                     };
 
@@ -217,7 +217,7 @@ impl ShellService for LocalShellProvider {
                         "rtk_metrics": {
                             "stdout_reduction_percent": stdout_res.reduction_percent,
                             "tokens_saved_est": stdout_res.original_tokens_est.saturating_sub(stdout_res.compressed_tokens_est),
-                            "tracker_stats": crate::services::token_filter::TokenSavingsTracker::global().get_stats()
+                            "tracker_stats": crate::domains::token_compression::TokenSavingsTracker::global().get_stats()
                         }
                     }));
                 }

@@ -2,7 +2,7 @@
 //! 允许从 json 配置载入外部脚本（Python, Node.js, Shell, Executable 等），
 //! 无需重新编译 Rust 代码即可将外部技能热插拔注入到 AgentLoop 中。
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;

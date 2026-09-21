@@ -36,7 +36,7 @@ use super::*;
 pub(crate) struct DevelopmentRunPaths {
     project: std::path::PathBuf,
     run_dir: std::path::PathBuf,
-    baseline: crate::services::change_set::BaselineManifest,
+    baseline: crate::domains::version_control::change_set::BaselineManifest,
 }
 
 pub(crate) fn development_run_paths(
@@ -80,7 +80,7 @@ pub(crate) fn development_run_paths(
     if !run_dir.is_dir() {
         return Err("Isolated Agent workspace is unavailable".to_string());
     }
-    let baseline = crate::services::change_set::load_baseline(&baseline_path)?;
+    let baseline = crate::domains::version_control::change_set::load_baseline(&baseline_path)?;
     Ok(DevelopmentRunPaths {
         project,
         run_dir,
@@ -109,7 +109,7 @@ pub(crate) async fn get_task_diff(
                 .into_response()
         }
     };
-    let change_set = match crate::services::change_set::inspect_changes(
+    let change_set = match crate::domains::version_control::change_set::inspect_changes(
         &paths.baseline,
         &paths.project,
         &paths.run_dir,
@@ -520,7 +520,7 @@ pub(crate) async fn review_task_changes(
             return (StatusCode::CONFLICT, Json(json!({ "error": error }))).into_response()
         }
     };
-    let changed_files: Vec<String> = crate::services::change_set::inspect_changes(
+    let changed_files: Vec<String> = crate::domains::version_control::change_set::inspect_changes(
         &paths.baseline,
         &paths.project,
         &paths.run_dir,
@@ -562,7 +562,7 @@ pub(crate) async fn verify_task_changes(
             return (StatusCode::CONFLICT, Json(json!({ "error": error }))).into_response()
         }
     };
-    let fingerprint = match crate::services::change_set::workspace_fingerprint(&paths.run_dir) {
+    let fingerprint = match crate::domains::version_control::change_set::workspace_fingerprint(&paths.run_dir) {
         Ok(fingerprint) => fingerprint,
         Err(error) => {
             return (
@@ -572,7 +572,7 @@ pub(crate) async fn verify_task_changes(
                 .into_response()
         }
     };
-    let changed_files: Vec<String> = crate::services::change_set::inspect_changes(
+    let changed_files: Vec<String> = crate::domains::version_control::change_set::inspect_changes(
         &paths.baseline,
         &paths.project,
         &paths.run_dir,
@@ -686,7 +686,7 @@ pub(crate) async fn apply_task_changes(
     let body = payload.map(|Json(body)| body).unwrap_or_default();
     let forced = body.force.unwrap_or(false);
     let proposed_fingerprint =
-        match crate::services::change_set::workspace_fingerprint(&paths.run_dir) {
+        match crate::domains::version_control::change_set::workspace_fingerprint(&paths.run_dir) {
             Ok(fingerprint) => fingerprint,
             Err(error) => {
                 return (
@@ -713,7 +713,7 @@ pub(crate) async fn apply_task_changes(
         )
             .into_response();
     }
-    let change_set = match crate::services::change_set::inspect_changes(
+    let change_set = match crate::domains::version_control::change_set::inspect_changes(
         &paths.baseline,
         &paths.project,
         &paths.run_dir,
@@ -741,7 +741,7 @@ pub(crate) async fn apply_task_changes(
         )
             .into_response();
     }
-    let snapshot_hash = match crate::services::git_service::record_ai_snapshot(
+    let snapshot_hash = match crate::domains::version_control::git_service::record_ai_snapshot(
         &task.project_path,
         &format!("Before applying AI task {task_id}"),
     ) {
@@ -751,7 +751,7 @@ pub(crate) async fn apply_task_changes(
             "unversioned".to_string()
         }
     };
-    let apply_receipt = match crate::services::change_set::apply_changes(
+    let apply_receipt = match crate::domains::version_control::change_set::apply_changes(
         &change_set,
         &paths.project,
         &paths.run_dir,

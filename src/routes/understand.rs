@@ -12,14 +12,16 @@
 //! calls the LLM (used by the frontend to probe for a pre-generated overview).
 
 use crate::domains::model_gateway::providers::{self, LlmProvider};
-use crate::services::adr_service::AdrService;
-use crate::services::change_classifier::ChangeClassifier;
-use crate::services::code_intelligence::CodeIntelligenceRuntime;
-use crate::services::diff_impact::DiffImpactAnalyzer;
-use crate::services::onboard_service::OnboardService;
-use crate::services::token_filter::FilterLevel;
-use crate::services::understanding_cache::UnderstandingCache;
-use crate::services::{claude_cli, file_service, token_filter, understand_service};
+use crate::domains::project_management::adr_service::AdrService;
+use crate::domains::version_control::change_classifier::ChangeClassifier;
+use crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime;
+use crate::domains::version_control::diff_impact::DiffImpactAnalyzer;
+use crate::domains::project_management::onboard_service::OnboardService;
+use crate::domains::token_compression::FilterLevel;
+use crate::domains::knowledge_graph::understanding_cache::UnderstandingCache;
+use crate::services::{claude_cli, file_service};
+use crate::domains::token_compression;
+use crate::domains::knowledge_graph::understand_service;
 use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -182,7 +184,7 @@ async fn understand_file(
         // consume the same token-frugal input.
         let (skeleton, compression) = match &source {
             Some(content) => {
-                let compressed = token_filter::compress(content, &path, FilterLevel::Aggressive);
+                let compressed = token_compression::compress(content, &path, FilterLevel::Aggressive);
                 let stats = json!({
                     "level": compressed.level,
                     "language": compressed.language,
@@ -791,7 +793,7 @@ async fn understand_freshness(
     let project_dir = resolve_project_path(&state, &project);
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));
 
-    let res = crate::services::graph_freshness::GraphFreshnessDetector::check_freshness(
+    let res = crate::domains::knowledge_graph::graph_freshness::GraphFreshnessDetector::check_freshness(
         &db_path,
         &project_dir,
     );
@@ -817,7 +819,7 @@ async fn understand_complexity(
     let db_path_str = db_path.to_string_lossy().to_string();
     let limit = params.limit.unwrap_or(20);
 
-    match crate::services::code_complexity::ComplexityAnalyzer::analyze_project_complexity(&db_path_str, limit) {
+    match crate::domains::code_analysis::code_complexity::ComplexityAnalyzer::analyze_project_complexity(&db_path_str, limit) {
         Ok(report) => Json(json!(report)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e }))).into_response(),
     }
@@ -832,7 +834,7 @@ pub struct UnderstandSimilarityPayload {
 async fn understand_similarity(
     Json(payload): Json<UnderstandSimilarityPayload>,
 ) -> Response {
-    let sim = crate::services::code_similarity::CodeSimilarityDetector::compare_snippets(
+    let sim = crate::domains::code_analysis::code_similarity::CodeSimilarityDetector::compare_snippets(
         &payload.code_a,
         &payload.code_b,
     );
@@ -856,7 +858,7 @@ async fn understand_projects(
     State(state): State<Arc<AppState>>,
 ) -> Response {
     let root = &state.runtime_config.projects_root;
-    let projects = crate::services::project_manager::ProjectIndexManager::discover_projects(root);
+    let projects = crate::domains::project_management::project_manager::ProjectIndexManager::discover_projects(root);
     Json(json!(projects)).into_response()
 }
 
@@ -894,7 +896,7 @@ async fn understand_repo_map(
         .into_response();
     }
 
-    let generator = crate::services::repo_map::RepoMapEngine::new(db_path);
+    let generator = crate::domains::version_control::repo_map::RepoMapEngine::new(db_path);
     let max_syms = params.max_symbols.unwrap_or(60);
     match generator.generate_map(params.focus_path.as_deref(), params.query.as_deref(), max_syms) {
         Ok(repo_map) => {

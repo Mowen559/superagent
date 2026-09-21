@@ -4,7 +4,7 @@
 //! Project level: summary, totals, label/edge distributions, languages, modules,
 //! and the most referenced symbols.
 
-use crate::services::code_intelligence::CodeIntelligenceRuntime;
+use crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime;
 use rusqlite::Connection;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;

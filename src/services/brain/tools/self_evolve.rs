@@ -1,7 +1,7 @@
 //! 自举重载工具 (Self-Evolve Tool)
 //! 当大模型修改了自身代码后，调用此工具向守护进程 (Brain A) 发出重新编译并拉起新版本的请求。
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use crate::services::brain::ipc::{send_to_hub, IpcMessage};
 use serde_json::{json, Value};
 

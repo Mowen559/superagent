@@ -1,5 +1,6 @@
-use crate::services::token_filter::{self, FilterLevel};
-use crate::services::{file_service, graph_service};
+use crate::domains::token_compression::{self, FilterLevel};
+use crate::services::file_service;
+use crate::domains::knowledge_graph::graph_service;
 use crate::AppState;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -133,7 +134,7 @@ async fn get_file_content(
             // Optional token-killer compression before returning content.
             match params.filter.as_deref().map(FilterLevel::from_str) {
                 Some(Ok(level)) if level != FilterLevel::None => {
-                    let r = token_filter::compress(&content, &file_path, level);
+                    let r = token_compression::compress(&content, &file_path, level);
                     Json(json!({
                         "content": r.content,
                         "path": file_path,
@@ -220,7 +221,7 @@ async fn analyze_file(
 
     // Token-killer: compress the file to its structural skeleton before spending
     // LLM tokens on it. Falls back to raw content if compression would not help.
-    let compressed = token_filter::compress(&content, &file_path, FilterLevel::Aggressive);
+    let compressed = token_compression::compress(&content, &file_path, FilterLevel::Aggressive);
 
     // Try graph DB enrichment
     let db_path = state.runtime_config.codebase_memory_db_path(Some(&project));

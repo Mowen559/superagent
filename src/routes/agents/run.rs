@@ -144,17 +144,17 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
             let run_dir = run_root.join("workspace");
             let baseline_path = run_root.join("baseline.json");
 
-            let _ = crate::services::git_service::record_ai_snapshot(
+            let _ = crate::domains::version_control::git_service::record_ai_snapshot(
                 &project_bg,
                 "Creating Baseline Snapshot",
             );
 
-            match crate::services::change_set::capture_baseline(
+            match crate::domains::version_control::change_set::capture_baseline(
                 std::path::Path::new(&project_bg),
                 &baseline_path,
             )
             .and_then(|_| {
-                crate::services::change_set::copy_workspace(std::path::Path::new(&project_bg), &run_dir)
+                crate::domains::version_control::change_set::copy_workspace(std::path::Path::new(&project_bg), &run_dir)
             }) {
                 Ok(_) => {
                     state_bg

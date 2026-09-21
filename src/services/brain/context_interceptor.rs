@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use crate::services::token_filter::{compress, FilterLevel};
+use crate::domains::token_compression::{compress, FilterLevel};
 use crate::services::brain::tool_execution_gateway::ToolExecutionRequest;
 
 /// Intelligently compresses tool results to fit within context limits.
@@ -38,7 +38,7 @@ pub fn intelligent_compress(
         }
     } else if request.name == "run_command" {
         if let Some(content) = result.get("stdout").and_then(|v| v.as_str()) {
-            let filter_result = crate::services::token_filter::compress_terminal_output(content, 200);
+            let filter_result = crate::domains::token_compression::compress_terminal_output(content, 200);
             result["stdout"] = json!(filter_result.content);
             result["rtk_compression"] = json!("SmartLog");
             result["reduction_percent"] = json!(filter_result.reduction_percent);

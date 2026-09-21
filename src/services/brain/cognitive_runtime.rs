@@ -1,5 +1,5 @@
 use crate::services::brain::evolution_memory::{DistilledLesson, EvolutionReport};
-use crate::services::brain::intent::{ActionGoal, DynamicIntent, DynamicIntentEngine};
+use crate::domains::agent_cognitive::intent::{ActionGoal, DynamicIntent, DynamicIntentEngine};
 use crate::services::brain::run_plan::RunPlan;
 pub use crate::services::brain::run_plan::TaskKind;
 use crate::services::brain::tool_execution_gateway::ToolExecutionStatus;

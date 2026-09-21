@@ -1,5 +1,5 @@
-﻿use crate::services::brain::executor::ToolExecutor;
-use crate::services::diff_impact::DiffImpactAnalyzer;
+﻿use crate::domains::agent_cognitive::executor::ToolExecutor;
+use crate::domains::version_control::diff_impact::DiffImpactAnalyzer;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 

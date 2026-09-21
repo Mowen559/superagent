@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use serde_json::{json, Value};
 
-use crate::services::brain::agent_blackboard::AgentBlackboard;
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::agent_blackboard::AgentBlackboard;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 
 pub struct BlackboardTool {
     blackboard: Arc<AgentBlackboard>,

@@ -1,7 +1,7 @@
 use crate::models::memory::SupermemoryRecord;
 use crate::models::reverse::{ReverseEngineeringOptions, ReverseEngineeringRequest};
 use crate::services::brain::knowledge_corpus::KnowledgeCorpusRuntime;
-use crate::services::project_inventory::{inspect_project, InventoryLimits};
+use crate::domains::project_management::project_inventory::{inspect_project, InventoryLimits};
 use crate::services::supermemory_store::SupermemoryStore;
 use crate::AppState;
 use axum::http::StatusCode;
@@ -254,7 +254,7 @@ async fn workspace_intelligence(
     let limit = params.limit.unwrap_or(20);
     let graph_db = state.runtime_config.codebase_memory_db_path(Some(&project));
     let graph_db_str = graph_db.to_string_lossy().to_string();
-    let overview = crate::services::understand_service::understand_project(&graph_db_str)
+    let overview = crate::domains::knowledge_graph::understand_service::understand_project(&graph_db_str)
         .unwrap_or_else(|error| json!({ "indexed": false, "error": error }));
     let indexed = overview
         .get("indexed")
@@ -265,9 +265,9 @@ async fn workspace_intelligence(
     let mut data = store.load();
     let should_refresh_wiki = params.refresh.unwrap_or(false);
     if indexed && should_refresh_wiki {
-        let git_status = crate::services::git_service::get_status(&project).ok();
+        let git_status = crate::domains::version_control::git_service::get_status(&project).ok();
         let shadow_history =
-            crate::services::git_service::get_ai_history(&project, limit).unwrap_or_default();
+            crate::domains::version_control::git_service::get_ai_history(&project, limit).unwrap_or_default();
         let wiki = synthesize_workspace_wiki(
             &state,
             &project,
@@ -317,9 +317,9 @@ async fn workspace_intelligence(
         .collect();
     let memories: Vec<SupermemoryRecord> = data.memories.iter().take(limit).cloned().collect();
     let documents = data.corpus.documents;
-    let git_status = crate::services::git_service::get_status(&project).ok();
+    let git_status = crate::domains::version_control::git_service::get_status(&project).ok();
     let shadow_history =
-        crate::services::git_service::get_ai_history(&project, limit).unwrap_or_default();
+        crate::domains::version_control::git_service::get_ai_history(&project, limit).unwrap_or_default();
     let latest_analysis = state.task_manager.latest_project_analysis(&project);
     let latest_development_run = state.task_manager.latest_project_task(&project, "agent");
 
@@ -593,7 +593,7 @@ async fn workspace_shadow_history(
         Ok(project) => project,
         Err(response) => return response,
     };
-    match crate::services::git_service::get_ai_history(&project, params.limit.unwrap_or(50)) {
+    match crate::domains::version_control::git_service::get_ai_history(&project, params.limit.unwrap_or(50)) {
         Ok(history) => Json(json!({ "history": history })).into_response(),
         Err(error) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -614,7 +614,7 @@ async fn workspace_shadow_snapshot(
     let message = body
         .message
         .unwrap_or_else(|| "Workspace intelligence snapshot".to_string());
-    match crate::services::git_service::record_ai_snapshot(&project, &message) {
+    match crate::domains::version_control::git_service::record_ai_snapshot(&project, &message) {
         Ok(hash) => Json(json!({ "success": true, "hash": hash })).into_response(),
         Err(error) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -630,8 +630,8 @@ async fn synthesize_workspace_wiki(
     graph_db: &str,
     overview: &serde_json::Value,
     memory_data: &crate::models::memory::SupermemoryStoreData,
-    git_status: &Option<crate::services::git_service::GitStatus>,
-    shadow_history: &[crate::services::git_service::GitCommit],
+    git_status: &Option<crate::domains::version_control::git_service::GitStatus>,
+    shadow_history: &[crate::domains::version_control::git_service::GitCommit],
     model: Option<String>,
 ) -> String {
     let trace = json!({

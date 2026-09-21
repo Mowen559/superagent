@@ -1,4 +1,4 @@
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use crate::services::brain::tools::dynamic_tool::scan_dynamic_tools;
 use std::collections::HashMap;
 use std::path::PathBuf;

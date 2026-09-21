@@ -185,7 +185,7 @@ pub fn handle_agent(cmd: AgentCommand) {
 
 pub fn handle_task(cmd: TaskCommand) {
     let app_paths = crate::config::app_paths::AppPaths::new();
-    let task_manager = crate::services::task_manager::TaskManager::new(&app_paths);
+    let task_manager = crate::domains::project_management::task_manager::TaskManager::new(&app_paths);
     match cmd {
         TaskCommand::List => {
             println!("Task List:");

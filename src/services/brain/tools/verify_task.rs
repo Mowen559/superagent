@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::services::brain::capabilities::shell::{LocalShellProvider, ShellService};
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 
 pub struct VerifyTaskTool {
     pub shell: Arc<LocalShellProvider>,

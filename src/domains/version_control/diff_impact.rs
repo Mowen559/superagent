@@ -1,7 +1,7 @@
 use std::collections::{HashSet, HashMap};
 use std::path::Path;
 use serde::{Deserialize, Serialize};
-use crate::services::code_intelligence::CodeIntelligenceRuntime;
+use crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

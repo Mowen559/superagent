@@ -1,7 +1,7 @@
 //! 文件系统工具集 (Filesystem Tools)
 //! 为大脑 B (Superagent) 赋予文件读写与修改的物理操作能力
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
@@ -224,7 +224,7 @@ impl ToolExecutor for ReadFileTool {
             .and_then(|v| v.as_str())
             .unwrap_or("none");
         let filter_level = std::str::FromStr::from_str(filter_level_str)
-            .unwrap_or(crate::services::token_filter::FilterLevel::None);
+            .unwrap_or(crate::domains::token_compression::FilterLevel::None);
 
         match fs::read_to_string(&resolved_path) {
             Ok(full_content) => {
@@ -241,9 +241,9 @@ impl ToolExecutor for ReadFileTool {
                 }
 
                 let mut rtk_metrics = json!({});
-                if filter_level != crate::services::token_filter::FilterLevel::None {
-                    let comp = crate::services::token_filter::compress(&content, path_str, filter_level);
-                    crate::services::token_filter::TokenSavingsTracker::global().record_savings(&comp);
+                if filter_level != crate::domains::token_compression::FilterLevel::None {
+                    let comp = crate::domains::token_compression::compress(&content, path_str, filter_level);
+                    crate::domains::token_compression::TokenSavingsTracker::global().record_savings(&comp);
                     content = comp.content;
                     rtk_metrics = json!({
                         "level": comp.level,
@@ -332,7 +332,7 @@ impl ToolExecutor for WriteFileTool {
             path.display()
         );
         let cwd_str = self.workspace_root.to_string_lossy().to_string();
-        let _ = crate::services::git_service::record_ai_snapshot(
+        let _ = crate::domains::version_control::git_service::record_ai_snapshot(
             &cwd_str,
             &format!(
                 "[Shadow Backup] Auto-backup before modifying {}",
@@ -411,7 +411,7 @@ impl ToolExecutor for ReplaceInFileTool {
         let mut content =
             std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
         let (actual_search, repair_msg) = if let Some(alignment) =
-            crate::services::diff_relocation::AnchorAligner::align(&content, search_text)
+            crate::domains::version_control::diff_relocation::AnchorAligner::align(&content, search_text)
         {
             if alignment.repaired {
                 (
@@ -429,7 +429,7 @@ impl ToolExecutor for ReplaceInFileTool {
         };
 
         let cwd_str = self.workspace_root.to_string_lossy().to_string();
-        let _ = crate::services::git_service::record_ai_snapshot(
+        let _ = crate::domains::version_control::git_service::record_ai_snapshot(
             &cwd_str,
             &format!(
                 "[Shadow Backup] Auto-backup before replace_in_file {}",
@@ -441,12 +441,12 @@ impl ToolExecutor for ReplaceInFileTool {
         let diagnostics = collect_file_diagnostics(&path, &content);
 
         // 改前/改中符号波及面推演 (Call-Graph Impact Radar)
-        let impact_warning = if let Some(sym) = crate::services::diff_impact::extract_declared_symbol(&actual_search) {
+        let impact_warning = if let Some(sym) = crate::domains::version_control::diff_impact::extract_declared_symbol(&actual_search) {
             let app_paths = crate::config::app_paths::AppPaths::new();
             let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
             let db_path = config.codebase_memory_db_path(Some(&cwd_str));
             let db_path_str = db_path.to_string_lossy().to_string();
-            if let Ok(radar) = crate::services::diff_impact::DiffImpactAnalyzer::analyze_symbol_impact(
+            if let Ok(radar) = crate::domains::version_control::diff_impact::DiffImpactAnalyzer::analyze_symbol_impact(
                 &self.workspace_root,
                 &db_path_str,
                 &sym,
@@ -561,7 +561,7 @@ impl ToolExecutor for MultiReplaceTool {
 
             let actual_search = if content.contains(search_text) {
                 search_text.to_string()
-            } else if let Some(alignment) = crate::services::diff_relocation::AnchorAligner::align(&content, search_text) {
+            } else if let Some(alignment) = crate::domains::version_control::diff_relocation::AnchorAligner::align(&content, search_text) {
                 alignment.matched_text
             } else {
                 // Rollback
@@ -570,7 +570,7 @@ impl ToolExecutor for MultiReplaceTool {
             };
 
             let cwd_str = self.workspace_root.to_string_lossy().to_string();
-            let _ = crate::services::git_service::record_ai_snapshot(
+            let _ = crate::domains::version_control::git_service::record_ai_snapshot(
                 &cwd_str,
                 &format!(
                     "[Shadow Backup] Auto-backup before replace_in_file {}",
@@ -596,13 +596,13 @@ impl ToolExecutor for MultiReplaceTool {
             "diagnostics": diagnostics
         });
 
-        if let Some(sym) = crate::services::diff_impact::extract_declared_symbol(&content) {
+        if let Some(sym) = crate::domains::version_control::diff_impact::extract_declared_symbol(&content) {
             let app_paths = crate::config::app_paths::AppPaths::new();
             let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
             let cwd_str = self.workspace_root.to_string_lossy().to_string();
             let db_path = config.codebase_memory_db_path(Some(&cwd_str));
             let db_path_str = db_path.to_string_lossy().to_string();
-            if let Ok(radar) = crate::services::diff_impact::DiffImpactAnalyzer::analyze_symbol_impact(
+            if let Ok(radar) = crate::domains::version_control::diff_impact::DiffImpactAnalyzer::analyze_symbol_impact(
                 &self.workspace_root,
                 &db_path_str,
                 &sym,

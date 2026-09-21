@@ -1,7 +1,7 @@
 use crate::config::runtime::RuntimeConfig;
-use crate::services::git_service;
+use crate::domains::version_control::git_service;
 use crate::domains::model_gateway::providers::LlmProvider;
-use crate::services::requirement_analyzer::RequirementAnalyzer;
+use crate::domains::code_analysis::requirement_analyzer::RequirementAnalyzer;
 use crate::services::workspace_guard::WorkspaceGuard;
 use reqwest::Client;
 use serde_json::{json, Value};
@@ -469,7 +469,7 @@ async fn handle_request(
                     let analyzer = RequirementAnalyzer::new(llm);
                     let db_path = config.codebase_memory_db_path(Some(&safe_project));
                     let rt =
-                        crate::services::code_intelligence::CodeIntelligenceRuntime::new(&db_path);
+                        crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime::new(&db_path);
                     match analyzer
                         .analyze_requirement(
                             std::path::Path::new(&safe_project),
@@ -694,7 +694,7 @@ async fn handle_request(
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(50) as usize;
                     let offset = args.get("offset").and_then(|o| o.as_u64()).unwrap_or(0) as usize;
 
-                    let rt = crate::services::code_intelligence::CodeIntelligenceRuntime::new(&db_path_str);
+                    let rt = crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime::new(&db_path_str);
                     match rt.search_graph(label, query, file_pattern, min_degree, max_degree, limit, offset) {
                         Ok(results) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&results).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Search graph failed: {}", e) }] }),
@@ -709,7 +709,7 @@ async fn handle_request(
                     let file_pattern = args.get("file_pattern").and_then(|f| f.as_str());
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(50) as usize;
 
-                    let rt = crate::services::code_intelligence::CodeIntelligenceRuntime::new(&db_path_str);
+                    let rt = crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime::new(&db_path_str);
                     let proj_path = std::path::Path::new(&safe_project);
                     match rt.search_code(query, file_pattern, Some(proj_path), limit) {
                         Ok(matches) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&matches).unwrap_or_default() }] }),
@@ -722,7 +722,7 @@ async fn handle_request(
                         Err(err_json) => return Ok(err_json),
                     };
                     let proj_path = std::path::Path::new(&safe_project);
-                    match crate::services::change_classifier::ChangeClassifier::classify_changes(proj_path, Some(&db_path_str)) {
+                    match crate::domains::version_control::change_classifier::ChangeClassifier::classify_changes(proj_path, Some(&db_path_str)) {
                         Ok(decision) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&decision).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Classify update failed: {}", e) }] }),
                     }
@@ -750,7 +750,7 @@ async fn handle_request(
                     };
                     let proj_path = std::path::Path::new(&safe_project);
                     let db_path = std::path::Path::new(&db_path_str);
-                    let result = crate::services::graph_freshness::GraphFreshnessDetector::check_freshness(db_path, proj_path);
+                    let result = crate::domains::knowledge_graph::graph_freshness::GraphFreshnessDetector::check_freshness(db_path, proj_path);
                     json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&result).unwrap_or_default() }] })
                 }
                 "query_complexity" => {
@@ -759,7 +759,7 @@ async fn handle_request(
                         Err(err_json) => return Ok(err_json),
                     };
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(20) as usize;
-                    match crate::services::code_complexity::ComplexityAnalyzer::analyze_project_complexity(&db_path_str, limit) {
+                    match crate::domains::code_analysis::code_complexity::ComplexityAnalyzer::analyze_project_complexity(&db_path_str, limit) {
                         Ok(report) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&report).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Query complexity failed: {}", e) }] }),
                     }
@@ -767,7 +767,7 @@ async fn handle_request(
                 "detect_code_clones" => {
                     let code_a = args.get("code_a").and_then(|c| c.as_str()).unwrap_or("");
                     let code_b = args.get("code_b").and_then(|c| c.as_str()).unwrap_or("");
-                    let sim = crate::services::code_similarity::CodeSimilarityDetector::compare_snippets(code_a, code_b);
+                    let sim = crate::domains::code_analysis::code_similarity::CodeSimilarityDetector::compare_snippets(code_a, code_b);
                     let clone_type = if sim >= 0.90 {
                         "EXACT_OR_RENAME"
                     } else if sim >= 0.70 {
@@ -784,7 +784,7 @@ async fn handle_request(
                 }
                 "list_indexed_projects" => {
                     let root = &config.projects_root;
-                    let projects = crate::services::project_manager::ProjectIndexManager::discover_projects(root);
+                    let projects = crate::domains::project_management::project_manager::ProjectIndexManager::discover_projects(root);
                     json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&projects).unwrap_or_default() }] })
                 }
                 "pipeline_compress" => {
@@ -808,7 +808,7 @@ async fn handle_request(
                     };
                     let target_id = args.get("target_id").and_then(|q| q.as_str()).unwrap_or("");
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(20) as usize;
-                    match crate::services::graph_service::get_callers(&db_path_str, target_id, limit) {
+                    match crate::domains::knowledge_graph::graph_service::get_callers(&db_path_str, target_id, limit) {
                         Ok(nodes) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&nodes).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Get callers failed: {}", e) }] }),
                     }
@@ -820,7 +820,7 @@ async fn handle_request(
                     };
                     let source_id = args.get("source_id").and_then(|q| q.as_str()).unwrap_or("");
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(20) as usize;
-                    match crate::services::graph_service::get_callees(&db_path_str, source_id, limit) {
+                    match crate::domains::knowledge_graph::graph_service::get_callees(&db_path_str, source_id, limit) {
                         Ok(nodes) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&nodes).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Get callees failed: {}", e) }] }),
                     }
@@ -832,7 +832,7 @@ async fn handle_request(
                     };
                     let target_id = args.get("target_id").and_then(|q| q.as_str()).unwrap_or("");
                     let depth = args.get("depth").and_then(|d| d.as_u64()).unwrap_or(3) as usize;
-                    match crate::services::graph_service::get_impact(&db_path_str, target_id, depth) {
+                    match crate::domains::knowledge_graph::graph_service::get_impact(&db_path_str, target_id, depth) {
                         Ok(nodes) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&nodes).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Get impact failed: {}", e) }] }),
                     }
@@ -845,7 +845,7 @@ async fn handle_request(
                     let function_name = args.get("function_name").and_then(|f| f.as_str()).unwrap_or("");
                     let direction = args.get("direction").and_then(|d| d.as_str()).unwrap_or("outbound");
                     let depth = args.get("depth").and_then(|d| d.as_u64()).unwrap_or(3) as usize;
-                    match crate::services::graph_service::trace_path(&db_path_str, function_name, direction, depth, "calls") {
+                    match crate::domains::knowledge_graph::graph_service::trace_path(&db_path_str, function_name, direction, depth, "calls") {
                         Ok(trace) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&trace).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Trace path failed: {}", e) }] }),
                     }
@@ -855,7 +855,7 @@ async fn handle_request(
                         Ok(pair) => pair,
                         Err(err_json) => return Ok(err_json),
                     };
-                    match crate::services::graph_service::get_graph_schema(&db_path_str) {
+                    match crate::domains::knowledge_graph::graph_service::get_graph_schema(&db_path_str) {
                         Ok(schema) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&schema).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Get graph schema failed: {}", e) }] }),
                     }
@@ -867,7 +867,7 @@ async fn handle_request(
                     };
                     let qualified_name = args.get("qualified_name").and_then(|q| q.as_str()).unwrap_or("");
                     let include_neighbors = args.get("include_neighbors").and_then(|b| b.as_bool()).unwrap_or(true);
-                    match crate::services::graph_service::get_code_snippet(
+                    match crate::domains::knowledge_graph::graph_service::get_code_snippet(
                         &db_path_str,
                         qualified_name,
                         include_neighbors,
@@ -883,7 +883,7 @@ async fn handle_request(
                         Err(err_json) => return Ok(err_json),
                     };
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(20) as usize;
-                    match crate::services::graph_service::get_dead_code(&db_path_str, limit) {
+                    match crate::domains::knowledge_graph::graph_service::get_dead_code(&db_path_str, limit) {
                         Ok(dead) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&dead).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Get dead code failed: {}", e) }] }),
                     }
@@ -893,7 +893,7 @@ async fn handle_request(
                         Ok(pair) => pair,
                         Err(err_json) => return Ok(err_json),
                     };
-                    match crate::services::architecture_analyzer::ArchitectureAnalyzer::detect_layers_deterministic(&db_path_str) {
+                    match crate::domains::code_analysis::architecture_analyzer::ArchitectureAnalyzer::detect_layers_deterministic(&db_path_str) {
                         Ok(arch_report) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&arch_report).unwrap_or_default() }] }),
                         Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Architecture analysis failed: {}", e) }] }),
                     }
@@ -903,7 +903,7 @@ async fn handle_request(
                         Ok(pair) => pair,
                         Err(err_json) => return Ok(err_json),
                     };
-                    match crate::services::diff_impact::DiffImpactAnalyzer::detect_changes(
+                    match crate::domains::version_control::diff_impact::DiffImpactAnalyzer::detect_changes(
                         std::path::Path::new(&safe_project),
                         &db_path_str,
                     ) {
@@ -925,20 +925,20 @@ async fn handle_request(
                             let context = args.get("context").and_then(|c| c.as_str()).unwrap_or("");
                             let decision = args.get("decision").and_then(|d| d.as_str()).unwrap_or("");
                             let consequences = args.get("consequences").and_then(|c| c.as_str()).unwrap_or("");
-                            match crate::services::adr_service::AdrService::create_adr(root, title, status, context, decision, consequences) {
+                            match crate::domains::project_management::adr_service::AdrService::create_adr(root, title, status, context, decision, consequences) {
                                 Ok(meta) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&meta).unwrap_or_default() }] }),
                                 Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Create ADR failed: {}", e) }] }),
                             }
                         }
                         "get" => {
                             let id = args.get("id").and_then(|i| i.as_str()).unwrap_or("");
-                            match crate::services::adr_service::AdrService::get_adr(root, id) {
+                            match crate::domains::project_management::adr_service::AdrService::get_adr(root, id) {
                                 Ok(detail) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&detail).unwrap_or_default() }] }),
                                 Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("Get ADR failed: {}", e) }] }),
                             }
                         }
                         _ => {
-                            match crate::services::adr_service::AdrService::list_adrs(root) {
+                            match crate::domains::project_management::adr_service::AdrService::list_adrs(root) {
                                 Ok(list) => json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&list).unwrap_or_default() }] }),
                                 Err(e) => json!({ "isError": true, "content": [{ "type": "text", "text": format!("List ADRs failed: {}", e) }] }),
                             }
@@ -950,7 +950,7 @@ async fn handle_request(
                         Ok(pair) => pair,
                         Err(err_json) => return Ok(err_json),
                     };
-                    match crate::services::onboard_service::OnboardService::generate_guide(
+                    match crate::domains::project_management::onboard_service::OnboardService::generate_guide(
                         std::path::Path::new(&safe_project),
                         Some(&db_path_str),
                     ) {
@@ -959,7 +959,7 @@ async fn handle_request(
                     }
                 }
                 "get_token_savings" => {
-                    let stats = crate::services::token_filter::TokenSavingsTracker::global().get_stats();
+                    let stats = crate::domains::token_compression::TokenSavingsTracker::global().get_stats();
                     json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&stats).unwrap_or_default() }] })
                 }
                 _ => {

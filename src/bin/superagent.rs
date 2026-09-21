@@ -2,7 +2,7 @@
 //! 作为子进程被 `hub` 拉起，专职负责执行具体的思维流和任务处理
 //! 可以通过修改自身代码，并触发重新编译实现热重载自举
 
-use hub_rs::services::brain::executor::AgentLoop;
+use hub_rs::domains::agent_cognitive::executor::AgentLoop;
 use hub_rs::services::brain::subagent_runtime::SubagentRuntime;
 use hub_rs::services::brain::tools::fs::{ReadFileTool, WriteFileTool};
 use hub_rs::services::brain::tools::harness_acp::HarnessAcpClientTool;
@@ -135,7 +135,7 @@ async fn main() {
     engine.register_tool(Box::new(HarnessAcpClientTool));
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::blackboard_tool::BlackboardTool::new(
-            hub_rs::services::brain::agent_blackboard::AgentBlackboard::global(),
+            hub_rs::domains::agent_cognitive::agent_blackboard::AgentBlackboard::global(),
             "Supervisor",
         ),
     ));

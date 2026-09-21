@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::services::brain::agent_blackboard::AgentBlackboard;
+use crate::domains::agent_cognitive::agent_blackboard::AgentBlackboard;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TopologyNode {

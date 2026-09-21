@@ -1,7 +1,7 @@
 //! DeepSeek Harness ACP (Agent Client Protocol) 跨进程桥接客户端与工具
 //! 用于在 Rust 中拉起并控制 Node.js/TS 编写的 DeepSeek Harness ACP 服务器
 
-use crate::services::brain::executor::ToolExecutor;
+use crate::domains::agent_cognitive::executor::ToolExecutor;
 use lazy_static::lazy_static;
 use serde_json::{json, Value};
 use std::collections::HashMap;
