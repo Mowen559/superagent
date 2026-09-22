@@ -27,11 +27,23 @@ impl TddEvaluator {
     /// Pre-flight check before returning to user.
     /// If it fails, returns Err with the compiler/test error string.
     pub async fn evaluate_codebase(&self, cmd: &str) -> Result<(), String> {
-        let output = tokio::process::Command::new("cmd")
-            .args(&["/c", cmd])
-            .output()
-            .await
-            .map_err(|e| format!("Failed to execute verification command: {}", e))?;
+        // --- FIX 2: TDD Deadlock Prevention ---
+        // 1. Timeout prevents eternal hangs on `npm start` or infinite loops
+        // 2. kill_on_drop(true) guarantees the zombie cmd process is murdered when timeout drops the Future
+        let timeout_duration = std::time::Duration::from_secs(120);
+        let output_result = tokio::time::timeout(
+            timeout_duration,
+            tokio::process::Command::new("cmd")
+                .args(&["/c", cmd])
+                .kill_on_drop(true)
+                .output()
+        ).await;
+
+        let output = match output_result {
+            Ok(Ok(out)) => out,
+            Ok(Err(e)) => return Err(format!("Failed to execute verification command: {}", e)),
+            Err(_) => return Err(format!("TDD Verification strictly timed out after {} seconds. The command likely launched a persistent dev server or hung infinitely.", timeout_duration.as_secs())),
+        };
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

@@ -33,13 +33,26 @@ impl BrowserDriver {
         
         let chromium = p.chromium();
         let browser = chromium.launcher().headless(self.headless).launch().await.map_err(|e| format!("Launch error: {}", e))?;
-        let context = browser.context_builder().build().await.map_err(|e| format!("Context error: {}", e))?;
-        let page = context.new_page().await.map_err(|e| format!("Page error: {}", e))?;
         
-        page.goto_builder(url).goto().await.map_err(|e| format!("Navigation error: {}", e))?;
+        // Wrap the risky operations in an async block so we can catch any early returns
+        // and GUARANTEE the browser process gets killed afterwards.
+        let run_task = async {
+            let context = browser.context_builder().build().await.map_err(|e| format!("Context error: {}", e))?;
+            let page = context.new_page().await.map_err(|e| format!("Page error: {}", e))?;
+            page.goto_builder(url).goto().await.map_err(|e| format!("Navigation error: {}", e))?;
+            let bytes = page.screenshot_builder().screenshot().await.map_err(|e| format!("Screenshot error: {}", e))?;
+            // Optional: Close context cleanly
+            let _ = context.close().await;
+            Ok(bytes)
+        };
         
-        let bytes = page.screenshot_builder().screenshot().await.map_err(|e| format!("Screenshot error: {}", e))?;
-        Ok(bytes)
+        let result = run_task.await;
+        
+        // --- FIX 1: Prevent Zombie Chrome Leak ---
+        // Playwright browsers MUST be explicitly closed to terminate the child process.
+        let _ = browser.close().await;
+        
+        result
     }
 }
 
