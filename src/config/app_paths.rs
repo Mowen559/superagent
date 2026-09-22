@@ -47,10 +47,10 @@ impl AppPaths {
     /// Falls back to `cwd/.aindex-hub` only when no home directory is available.
     fn default_app_data_root() -> PathBuf {
         match Self::home_dir() {
-            Some(h) => h.join(".aindex-hub"),
+            Some(h) => h.join(".gemini").join("antigravity"),
             None => std::env::current_dir()
                 .unwrap_or_else(|_| PathBuf::from("."))
-                .join(".aindex-hub"),
+                .join(".gemini").join("antigravity"),
         }
     }
 
@@ -59,7 +59,7 @@ impl AppPaths {
     pub fn migrate_legacy_data(&self) {
         let legacy_root = std::env::current_dir()
             .unwrap_or_else(|_| PathBuf::from("."))
-            .join(".aindex-hub");
+            .join(".gemini").join("antigravity");
         if legacy_root == self.app_data_root {
             return;
         }

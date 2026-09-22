@@ -24,13 +24,8 @@ impl Default for AgentSettings {
 
 impl AgentSettings {
     pub fn get_path() -> PathBuf {
-        let mut dir = dirs::data_dir().unwrap_or_else(|| std::env::current_dir().unwrap());
-        dir.push(".gemini");
-        dir.push("antigravity");
-        dir.push("config");
-        std::fs::create_dir_all(&dir).unwrap_or(());
-        dir.push("agent_settings.json");
-        dir
+        let app_paths = crate::config::app_paths::AppPaths::new();
+        app_paths.ensure_data_dir(&["config"]).join("agent_settings.json")
     }
 
     pub fn load() -> Self {
