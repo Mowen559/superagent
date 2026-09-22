@@ -31,7 +31,7 @@ pub fn resolve_safe_path(raw_path: &str, workspace_root: &Path) -> Result<PathBu
     let norm_slash = trimmed.replace('\\', "/");
 
     // 1. 历史沙箱路径自愈：若大模型误传了历史 run 的 workspace 绝对路径（例如 .../runs/<old_id>/workspace/src/...）
-    if norm_slash.contains(".aindex-hub") && norm_slash.contains("/runs/") && norm_slash.contains("/workspace") {
+    if norm_slash.contains(".superagent") && norm_slash.contains("/runs/") && norm_slash.contains("/workspace") {
         if let Some(pos) = norm_slash.find("/workspace") {
             let sub = &norm_slash[pos + "/workspace".len()..];
             let sub_clean = sub.trim_start_matches('/');

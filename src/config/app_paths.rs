@@ -43,23 +43,23 @@ impl AppPaths {
             .map(PathBuf::from)
     }
 
-    /// Stable, cwd-independent app data root: `{HOME|USERPROFILE}/.aindex-hub`.
-    /// Falls back to `cwd/.aindex-hub` only when no home directory is available.
+    /// Stable, cwd-independent app data root: `{HOME|USERPROFILE}/.superagent`.
+    /// Falls back to `cwd/.superagent` only when no home directory is available.
     fn default_app_data_root() -> PathBuf {
         match Self::home_dir() {
-            Some(h) => h.join(".gemini").join("antigravity"),
+            Some(h) => h.join(".superagent"),
             None => std::env::current_dir()
                 .unwrap_or_else(|_| PathBuf::from("."))
-                .join(".gemini").join("antigravity"),
+                .join(".superagent"),
         }
     }
 
     /// One-time migration: copy settings from the legacy cwd-relative location
-    /// (`cwd/.aindex-hub`) into the stable app data root if they only exist there.
+    /// (`cwd/.superagent`) into the stable app data root if they only exist there.
     pub fn migrate_legacy_data(&self) {
         let legacy_root = std::env::current_dir()
             .unwrap_or_else(|_| PathBuf::from("."))
-            .join(".gemini").join("antigravity");
+            .join(".superagent");
         if legacy_root == self.app_data_root {
             return;
         }

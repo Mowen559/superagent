@@ -1,5 +1,5 @@
 /target
-.aindex-hub/
+.superagent/
 errors.json
 rust_errors.txt
 fix*.py

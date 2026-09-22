@@ -118,8 +118,8 @@ impl ToolExecutor for RunCommandTool {
 
         // 1. 命令行文本自愈：若大模型在命令行参数中硬编码了历史 run 的沙箱绝对路径，自愈替换为当前 workspace_root
         let mut repaired_cmd = cmd_str.to_string();
-        if repaired_cmd.contains(".aindex-hub") && repaired_cmd.contains("runs") && repaired_cmd.contains("workspace") {
-            if let Ok(re) = regex::Regex::new(r#"[A-Za-z]:[\\/][^"'\s\n]*\.aindex-hub[\\/]runs[\\/][^\\/]+[\\/]workspace"#) {
+        if repaired_cmd.contains(".superagent") && repaired_cmd.contains("runs") && repaired_cmd.contains("workspace") {
+            if let Ok(re) = regex::Regex::new(r#"[A-Za-z]:[\\/][^"'\s\n]*\.superagent[\\/]runs[\\/][^\\/]+[\\/]workspace"#) {
                 let current_ws = self.workspace_root.to_string_lossy();
                 repaired_cmd = re.replace_all(&repaired_cmd, current_ws.as_ref()).to_string();
             }
@@ -133,7 +133,7 @@ impl ToolExecutor for RunCommandTool {
                 let trimmed = raw.trim();
                 let norm_slash = trimmed.replace('\\', "/");
                 // 若大模型误引用了历史 run 目录或其它沙箱 workspace，自动重定向至当前任务的对应子目录或根目录
-                if norm_slash.contains(".aindex-hub") && norm_slash.contains("/runs/") && norm_slash.contains("/workspace") {
+                if norm_slash.contains(".superagent") && norm_slash.contains("/runs/") && norm_slash.contains("/workspace") {
                     if let Some(pos) = norm_slash.find("/workspace") {
                         let sub = &norm_slash[pos + "/workspace".len()..];
                         let sub_clean = sub.trim_start_matches('/');

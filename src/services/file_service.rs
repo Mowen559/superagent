@@ -20,7 +20,7 @@ const EXCLUDED_DIRS: &[&str] = &[
     ".understand-anything",
     ".supermemory",
     ".shadow-git",
-    ".aindex-hub",
+    ".superagent",
     ".idea",
     ".vscode",
     "node_modules",

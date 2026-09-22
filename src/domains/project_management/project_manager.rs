@@ -32,7 +32,7 @@ impl ProjectIndexManager {
             ".codebase-memory/graph.db",
             ".codebase-memory/index.db",
             "codebase-memory.db",
-            ".aindex-hub/index.db",
+            ".superagent/index.db",
             ".supermemory/supermemory.db",
         ];
 

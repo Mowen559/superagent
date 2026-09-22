@@ -271,7 +271,7 @@ fn is_generated_directory(path: &Path) -> bool {
             | "__pycache__"
             | ".pytest_cache"
             | ".turbo"
-            | ".aindex-hub"
+            | ".superagent"
             | ".cache"
     )
 }
