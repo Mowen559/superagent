@@ -95,343 +95,7 @@ async fn handle_request(
                 }
             }))
         }
-        "tools/list" => Ok(json!({
-            "tools": [
-                {
-                    "name": "analyze_requirement",
-                    "description": "Analyze a requirement and predict impacted files",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" },
-                            "requirement": { "type": "string" }
-                        },
-                        "required": ["project_path", "requirement"]
-                    }
-                },
-                {
-                    "name": "shadow_git_snapshot",
-                    "description": "Create a shadow git snapshot of current working directory",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" },
-                            "message": { "type": "string" }
-                        },
-                        "required": ["project_path", "message"]
-                    }
-                },
-                {
-                    "name": "shadow_git_history",
-                    "description": "Get history of shadow git snapshots",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" },
-                            "limit": { "type": "number" }
-                        },
-                        "required": ["project_path"]
-                    }
-                },
-                {
-                    "name": "shadow_git_rollback",
-                    "description": "Rollback working directory to a specific shadow git snapshot",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" },
-                            "hash": { "type": "string" }
-                        },
-                        "required": ["project_path", "hash"]
-                    }
-                },
-                {
-                    "name": "supermemory_search",
-                    "description": "Search user preferences and project key information from supermemory",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" },
-                            "query": { "type": "string" },
-                            "limit": { "type": "number" }
-                        },
-                        "required": ["project_path", "query"]
-                    }
-                },
-                {
-                    "name": "supermemory_write",
-                    "description": "Write a user preference, context, or key project information into supermemory",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" },
-                            "name": { "type": "string" },
-                            "summary": { "type": "string" },
-                            "tags": {
-                                "type": "array",
-                                "items": { "type": "string" }
-                            }
-                        },
-                        "required": ["project_path", "name", "summary"]
-                    }
-                },
-                {
-                    "name": "capability_catalog",
-                    "description": "List certified and experimental hub-rs capabilities with evidence",
-                    "inputSchema": { "type": "object", "properties": {} }
-                },
-                {
-                    "name": "search_graph",
-                    "description": "Search code symbols and files in the Knowledge Graph by label, regex, file pattern, and degree filters",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "query": { "type": "string", "description": "Symbol name or search query" },
-                            "label": { "type": "string", "description": "Filter by label (Function, Class, Interface, Route, File)" },
-                            "name_pattern": { "type": "string", "description": "Name wildcard pattern" },
-                            "file_pattern": { "type": "string", "description": "File path pattern" },
-                            "min_degree": { "type": "number", "description": "Minimum node degree (in + out edges)" },
-                            "max_degree": { "type": "number", "description": "Maximum node degree" },
-                            "limit": { "type": "number", "description": "Max results to return (default 50)" },
-                            "offset": { "type": "number", "description": "Pagination offset (default 0)" },
-                            "project_path": { "type": "string", "description": "Optional project root path" }
-                        }
-                    }
-                },
-                {
-                    "name": "search_code",
-                    "description": "Perform scoped text search strictly within indexed repository source files",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "query": { "type": "string", "description": "Text or regex to search" },
-                            "file_pattern": { "type": "string", "description": "File glob or pattern (e.g. *.rs)" },
-                            "limit": { "type": "number", "description": "Max matches (default 50)" },
-                            "project_path": { "type": "string" }
-                        },
-                        "required": ["query"]
-                    }
-                },
-                {
-                    "name": "classify_update",
-                    "description": "Evaluate workspace changes to decide incremental graph update strategy (SKIP, PARTIAL_UPDATE, ARCHITECTURE_UPDATE, FULL_UPDATE)",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" }
-                        }
-                    }
-                },
-                {
-                    "name": "detect_language_concepts",
-                    "description": "Detect software engineering design patterns and programming paradigms (DI, Observer, Middleware, Singleton, Repository, Concurrency, etc.)",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string", "description": "Optional project root path" },
-                            "content": { "type": "string", "description": "Optional raw code content to analyze directly" },
-                            "limit": { "type": "number", "description": "Max nodes to sample from graph (default 200)" }
-                        }
-                    }
-                },
-                {
-                    "name": "check_graph_freshness",
-                    "description": "Detect synchronization freshness and Git commit drift between knowledge graph and physical repo",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string", "description": "Optional project root path" }
-                        }
-                    }
-                },
-                {
-                    "name": "query_complexity",
-                    "description": "Query code complexity, nesting loop depth, and detect hot-path bottlenecks like linear scans in loops",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string", "description": "Optional project root path" },
-                            "limit": { "type": "number", "description": "Top N complexity functions to return (default 20)" }
-                        }
-                    }
-                },
-                {
-                    "name": "detect_code_clones",
-                    "description": "Calculate MinHash approximate Jaccard similarity between two code snippets to detect duplication or clones",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "code_a": { "type": "string", "description": "First code snippet" },
-                            "code_b": { "type": "string", "description": "Second code snippet" }
-                        },
-                        "required": ["code_a", "code_b"]
-                    }
-                },
-                {
-                    "name": "list_indexed_projects",
-                    "description": "Discover all indexed knowledge graph databases and their node/edge scale and health metadata",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                },
-                {
-                    "name": "pipeline_compress",
-                    "description": "Compress command output using RTK 8-stage declarative pipeline filter engine",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "output": { "type": "string", "description": "Raw terminal or command output" },
-                            "rule_name": { "type": "string", "description": "Built-in rule name (e.g. cargo-clippy, eslint, terraform-plan)" }
-                        },
-                        "required": ["output"]
-                    }
-                },
-                {
-                    "name": "get_callers",
-                    "description": "Find all functions or methods that call the target symbol ID",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "target_id": { "type": "string", "description": "Target symbol ID" },
-                            "limit": { "type": "number", "description": "Max results (default 20)" },
-                            "project_path": { "type": "string" }
-                        },
-                        "required": ["target_id"]
-                    }
-                },
-                {
-                    "name": "get_callees",
-                    "description": "Find all functions or methods called by the source symbol ID",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "source_id": { "type": "string", "description": "Source symbol ID" },
-                            "limit": { "type": "number", "description": "Max results (default 20)" },
-                            "project_path": { "type": "string" }
-                        },
-                        "required": ["source_id"]
-                    }
-                },
-                {
-                    "name": "get_impact",
-                    "description": "Analyze change blast radius and transitive downstream impact of a symbol",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "target_id": { "type": "string", "description": "Target symbol ID" },
-                            "depth": { "type": "number", "description": "Impact analysis depth (default 3)" },
-                            "project_path": { "type": "string" }
-                        },
-                        "required": ["target_id"]
-                    }
-                },
-                {
-                    "name": "trace_path",
-                    "description": "Trace multi-hop call chain and dependency paths between symbols",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "function_name": { "type": "string", "description": "Symbol name or qualified name" },
-                            "direction": { "type": "string", "enum": ["inbound", "outbound", "both"], "description": "Trace direction (default: outbound)" },
-                            "depth": { "type": "number", "description": "Max traversal depth (default: 3)" },
-                            "project_path": { "type": "string" }
-                        },
-                        "required": ["function_name"]
-                    }
-                },
-                {
-                    "name": "get_graph_schema",
-                    "description": "Inspect knowledge graph schema, node label distribution, and edge types",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" }
-                        }
-                    }
-                },
-                {
-                    "name": "get_code_snippet",
-                    "description": "Retrieve precise source code snippet with line numbers and caller/callee neighbors",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "qualified_name": { "type": "string", "description": "Symbol qualified name" },
-                            "include_neighbors": { "type": "boolean", "description": "Whether to include callers/callees (default: true)" },
-                            "project_path": { "type": "string" }
-                        },
-                        "required": ["qualified_name"]
-                    }
-                },
-                {
-                    "name": "get_dead_code",
-                    "description": "Detect orphan / unreferenced code symbols (in-degree 0 without callers)",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "limit": { "type": "number", "description": "Max symbols to return (default 20)" },
-                            "project_path": { "type": "string" }
-                        }
-                    }
-                },
-                {
-                    "name": "get_architecture",
-                    "description": "Get deterministic architectural layer analysis and dependency violations",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" }
-                        }
-                    }
-                },
-                {
-                    "name": "detect_changes",
-                    "description": "Analyze uncommitted git changes and map downstream impact & risk level",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" }
-                        }
-                    }
-                },
-                {
-                    "name": "manage_adr",
-                    "description": "Manage Architecture Decision Records (list, get, create)",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "action": { "type": "string", "enum": ["list", "get", "create"], "description": "Action to perform" },
-                            "id": { "type": "string", "description": "ADR number or ID (for get)" },
-                            "title": { "type": "string", "description": "ADR title (for create)" },
-                            "status": { "type": "string", "description": "ADR status (Proposed, Accepted, etc.)" },
-                            "context": { "type": "string", "description": "ADR background context" },
-                            "decision": { "type": "string", "description": "ADR decision statement" },
-                            "consequences": { "type": "string", "description": "ADR positive/negative consequences" },
-                            "project_path": { "type": "string" }
-                        },
-                        "required": ["action"]
-                    }
-                },
-                {
-                    "name": "get_onboarding_guide",
-                    "description": "Generate comprehensive project onboarding guide with tech stack, layers, and reading order",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "project_path": { "type": "string" }
-                        }
-                    }
-                },
-                {
-                    "name": "get_token_savings",
-                    "description": "Get global RTK token savings metrics and reduction statistics",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
-            ]
-        })),
+        "tools/list" => Ok(crate::interfaces::mcp::build_tools_list_response()),
         "tools/call" => {
             let name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
             let empty_args = json!({});
@@ -439,37 +103,19 @@ async fn handle_request(
 
             let res = match name {
                 "analyze_requirement" => {
-                    let project = args
-                        .get("project_path")
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
                     let req = args
                         .get("requirement")
                         .and_then(|r| r.as_str())
                         .unwrap_or("");
-
-                    let guard = match WorkspaceGuard::new(&config.projects_root) {
-                        Ok(g) => g,
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
-                            )
-                        }
-                    };
-                    let safe_project = match guard.resolve_safe(project) {
-                        Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
-                            )
-                        }
+                    let (safe_project, db_path_str) = match resolve_safe_project(args, config) {
+                        Ok(pair) => pair,
+                        Err(err_json) => return Ok(err_json),
                     };
 
                     let llm = LlmProvider::new(Client::new());
                     let analyzer = RequirementAnalyzer::new(llm);
-                    let db_path = config.codebase_memory_db_path(Some(&safe_project));
                     let rt =
-                        crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime::new(&db_path);
+                        crate::domains::code_analysis::code_intelligence::CodeIntelligenceRuntime::new(&db_path_str);
                     match analyzer
                         .analyze_requirement(
                             std::path::Path::new(&safe_project),
@@ -488,30 +134,13 @@ async fn handle_request(
                     }
                 }
                 "shadow_git_snapshot" => {
-                    let project = args
-                        .get("project_path")
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
                     let msg = args
                         .get("message")
                         .and_then(|m| m.as_str())
                         .unwrap_or("AI Edit Snapshot");
-
-                    let guard = match WorkspaceGuard::new(&config.projects_root) {
-                        Ok(g) => g,
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
-                            )
-                        }
-                    };
-                    let safe_project = match guard.resolve_safe(project) {
-                        Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
-                            )
-                        }
+                    let (safe_project, _) = match resolve_safe_project(args, config) {
+                        Ok(pair) => pair,
+                        Err(err_json) => return Ok(err_json),
                     };
 
                     match git_service::record_ai_snapshot(&safe_project, msg) {
@@ -524,27 +153,10 @@ async fn handle_request(
                     }
                 }
                 "shadow_git_history" => {
-                    let project = args
-                        .get("project_path")
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(20) as usize;
-
-                    let guard = match WorkspaceGuard::new(&config.projects_root) {
-                        Ok(g) => g,
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
-                            )
-                        }
-                    };
-                    let safe_project = match guard.resolve_safe(project) {
-                        Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
-                            )
-                        }
+                    let (safe_project, _) = match resolve_safe_project(args, config) {
+                        Ok(pair) => pair,
+                        Err(err_json) => return Ok(err_json),
                     };
 
                     match git_service::get_ai_history(&safe_project, limit) {
@@ -557,27 +169,10 @@ async fn handle_request(
                     }
                 }
                 "shadow_git_rollback" => {
-                    let project = args
-                        .get("project_path")
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
                     let hash = args.get("hash").and_then(|h| h.as_str()).unwrap_or("");
-
-                    let guard = match WorkspaceGuard::new(&config.projects_root) {
-                        Ok(g) => g,
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
-                            )
-                        }
-                    };
-                    let safe_project = match guard.resolve_safe(project) {
-                        Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
-                            )
-                        }
+                    let (safe_project, _) = match resolve_safe_project(args, config) {
+                        Ok(pair) => pair,
+                        Err(err_json) => return Ok(err_json),
                     };
 
                     match git_service::rollback_to_snapshot(&safe_project, hash) {
@@ -590,28 +185,11 @@ async fn handle_request(
                     }
                 }
                 "supermemory_search" => {
-                    let project = args
-                        .get("project_path")
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
                     let query = args.get("query").and_then(|q| q.as_str()).unwrap_or("");
                     let limit = args.get("limit").and_then(|l| l.as_u64()).unwrap_or(5) as usize;
-
-                    let guard = match WorkspaceGuard::new(&config.projects_root) {
-                        Ok(g) => g,
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
-                            )
-                        }
-                    };
-                    let safe_project = match guard.resolve_safe(project) {
-                        Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
-                            )
-                        }
+                    let (safe_project, _) = match resolve_safe_project(args, config) {
+                        Ok(pair) => pair,
+                        Err(err_json) => return Ok(err_json),
                     };
 
                     let store = crate::services::supermemory_store::SupermemoryStore::new(
@@ -623,10 +201,6 @@ async fn handle_request(
                     json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&results).unwrap_or_default() }] })
                 }
                 "supermemory_write" => {
-                    let project = args
-                        .get("project_path")
-                        .and_then(|p| p.as_str())
-                        .unwrap_or("");
                     let name = args.get("name").and_then(|n| n.as_str()).unwrap_or("");
                     let summary = args.get("summary").and_then(|s| s.as_str()).unwrap_or("");
                     let tags: Vec<String> = args
@@ -639,21 +213,9 @@ async fn handle_request(
                         })
                         .unwrap_or_default();
 
-                    let guard = match WorkspaceGuard::new(&config.projects_root) {
-                        Ok(g) => g,
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }),
-                            )
-                        }
-                    };
-                    let safe_project = match guard.resolve_safe(project) {
-                        Ok(p) => p.to_string_lossy().to_string(),
-                        Err(e) => {
-                            return Ok(
-                                json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }),
-                            )
-                        }
+                    let (safe_project, _) = match resolve_safe_project(args, config) {
+                        Ok(pair) => pair,
+                        Err(err_json) => return Ok(err_json),
                     };
 
                     let store = crate::services::supermemory_store::SupermemoryStore::new(
@@ -767,20 +329,8 @@ async fn handle_request(
                 "detect_code_clones" => {
                     let code_a = args.get("code_a").and_then(|c| c.as_str()).unwrap_or("");
                     let code_b = args.get("code_b").and_then(|c| c.as_str()).unwrap_or("");
-                    let sim = crate::domains::code_analysis::code_similarity::CodeSimilarityDetector::compare_snippets(code_a, code_b);
-                    let clone_type = if sim >= 0.90 {
-                        "EXACT_OR_RENAME"
-                    } else if sim >= 0.70 {
-                        "HIGH_SIMILARITY"
-                    } else if sim >= 0.30 {
-                        "STRUCTURAL_SIMILARITY"
-                    } else {
-                        "DISTINCT"
-                    };
-                    json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&json!({
-                        "similarity": (sim * 1000.0).round() / 1000.0,
-                        "cloneType": clone_type,
-                    })).unwrap_or_default() }] })
+                    let res = crate::domains::code_analysis::code_similarity::CodeSimilarityDetector::compare_and_classify(code_a, code_b);
+                    json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&res).unwrap_or_default() }] })
                 }
                 "list_indexed_projects" => {
                     let root = &config.projects_root;
@@ -986,18 +536,9 @@ fn resolve_safe_project(args: &Value, config: &RuntimeConfig) -> Result<(String,
                 .unwrap_or_else(|_| ".".to_string())
         }
     } else {
-        let guard = match WorkspaceGuard::new(&config.projects_root) {
-            Ok(g) => g,
-            Err(e) => {
-                return Err(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid root: {}", e) }] }));
-            }
-        };
-        match guard.resolve_safe(project) {
-            Ok(p) => p.to_string_lossy().to_string(),
-            Err(e) => {
-                return Err(json!({ "isError": true, "content": [{ "type": "text", "text": format!("Invalid project path: {}", e) }] }));
-            }
-        }
+        WorkspaceGuard::resolve_project_str(&config.projects_root, project).map_err(|msg| {
+            json!({ "isError": true, "content": [{ "type": "text", "text": msg }] })
+        })?
     };
     let db_path = config.codebase_memory_db_path(Some(&safe_project));
     let db_path_str = db_path.to_string_lossy().to_string();

@@ -27,11 +27,14 @@ impl DualBrainRouter {
         consecutive_failures: usize,
     ) -> BrainTier {
         use crate::services::brain::cognitive_runtime::{ReasoningMode, TaskKind};
-        if reasoning_mode == ReasoningMode::Fast || task_kind == TaskKind::Conversational {
+        if reasoning_mode == ReasoningMode::Fast {
             return BrainTier::Fast;
         }
         if reasoning_mode == ReasoningMode::Deliberate {
             return BrainTier::Slow;
+        }
+        if task_kind == TaskKind::Conversational {
+            return BrainTier::Fast;
         }
         // Adaptive mode:
         if failed_tools > 0 || consecutive_failures > 0 {

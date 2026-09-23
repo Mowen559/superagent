@@ -1,22 +1,11 @@
 use crate::config::llm_settings::{self, LLMAccount};
-use axum::{
-    extract::{Query, State},
-    response::{Html, IntoResponse},
-    routing::get,
-    Router,
-};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use dialoguer::{theme::ColorfulTheme, Input, Select};
-use rand::Rng;
+use dialoguer::{theme::ColorfulTheme, Input};
 use reqwest::Client;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
-use std::net::SocketAddr;
-use tokio::sync::oneshot;
 use uuid::Uuid;
 
 
-use super::*;
+use super::server::execute_pkce_flow;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TokenRes {
@@ -33,10 +22,6 @@ pub(crate) struct DeviceAuthRes {
     pub(crate) verification_uri: String,
     pub(crate) expires_in: i64,
     pub(crate) interval: u64,
-}
-
-pub(crate) fn b64url(bytes: &[u8]) -> String {
-    URL_SAFE_NO_PAD.encode(bytes)
 }
 
 pub async fn handle_openai_pkce_flow(account_name: Option<String>) -> Result<LLMAccount, String> {
@@ -466,17 +451,7 @@ pub async fn handle_claude_oauth_flow(
         .ok_or("No organization found")?;
 
     // 2. PKCE params
-    let mut verifier_bytes = [0u8; 32];
-    rand::rng().fill_bytes(&mut verifier_bytes);
-    let verifier = b64url(&verifier_bytes);
-
-    let mut hasher = Sha256::new();
-    hasher.update(verifier.as_bytes());
-    let challenge = b64url(&hasher.finalize());
-
-    let mut state_bytes = [0u8; 16];
-    rand::rng().fill_bytes(&mut state_bytes);
-    let state = b64url(&state_bytes);
+    let (verifier, challenge, state) = crate::shared_kernel::crypto::generate_pkce_params();
 
     // 3. Get Auth Code
     println!("[Auth] Getting authorization code...");

@@ -40,6 +40,7 @@ pub(crate) fn elapsed_ms(started: Instant) -> u64 {
 pub(crate) struct ExtractedUsage {
     pub(crate) prompt_tokens: u32,
     pub(crate) completion_tokens: u32,
+    pub(crate) reasoning_tokens: u32,
     pub(crate) cached_tokens: u32,
     pub(crate) cache_write_tokens: u32,
 }
@@ -51,6 +52,15 @@ pub(crate) fn usage_from_value(usage: Option<&Value>) -> ExtractedUsage {
     ExtractedUsage {
         prompt_tokens: token_field(usage, &["prompt_tokens", "input_tokens"]),
         completion_tokens: token_field(usage, &["completion_tokens", "output_tokens"]),
+        reasoning_tokens: token_field(
+            usage,
+            &[
+                "completion_tokens_details.reasoning_tokens",
+                "prompt_tokens_details.reasoning_tokens",
+                "reasoning_tokens",
+                "thinking_tokens",
+            ],
+        ),
         cached_tokens: token_field(
             usage,
             &[
@@ -111,6 +121,7 @@ pub(crate) struct StreamAuditState {
     pub(crate) path: String,
     pub(crate) status: u16,
     pub(crate) started: Instant,
+    pub(crate) ttft_ms: Option<u64>,
     pub(crate) request_body: String,
     pub(crate) response_body: String,
     pub(crate) attempt_receipts: Vec<ProviderAttemptReceipt>,
@@ -138,11 +149,18 @@ impl StreamAuditState {
             path,
             status,
             started,
+            ttft_ms: None,
             request_body,
             response_body: String::new(),
             attempt_receipts,
             usage: ExtractedUsage::default(),
             recorded: false,
+        }
+    }
+
+    pub(crate) fn record_ttft(&mut self) {
+        if self.ttft_ms.is_none() {
+            self.ttft_ms = Some(elapsed_ms(self.started));
         }
     }
 
@@ -178,8 +196,10 @@ impl StreamAuditState {
             path: self.path.clone(),
             status: self.status,
             duration_ms: elapsed_ms(self.started),
+            ttft_ms: self.ttft_ms,
             prompt_tokens: self.usage.prompt_tokens,
             completion_tokens: self.usage.completion_tokens,
+            reasoning_tokens: self.usage.reasoning_tokens,
             cached_tokens: self.usage.cached_tokens,
             cache_write_tokens: self.usage.cache_write_tokens,
             total_cost: cost,

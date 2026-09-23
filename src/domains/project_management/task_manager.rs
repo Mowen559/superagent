@@ -527,7 +527,7 @@ impl TaskManager {
 
 fn same_project_path(left: &str, right: &str) -> bool {
     let clean = |s: &str| -> String {
-        let trimmed = s.trim_start_matches(r"\\?\");
+        let trimmed = crate::infrastructure::fs_path::strip_unc_prefix(s);
         trimmed.replace('/', "\\").to_ascii_lowercase()
     };
     clean(left) == clean(right)

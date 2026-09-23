@@ -75,12 +75,7 @@ impl CliConfigAdapter for CodexConfigAdapter {
             }
         }
 
-        use sha2::Digest;
-        let mut hasher = sha2::Sha256::new();
-        hasher.update(content.as_bytes());
-        let hash = hasher.finalize();
-        let hex_string: String = hash.iter().map(|b| format!("{:02x}", b)).collect();
-        let revision = format!("sha256:{}", hex_string);
+        let revision = format!("sha256:{}", crate::shared_kernel::crypto::sha256_str(&content));
 
         Ok(EffectiveCliConfig {
             requested_model: requested_model.clone(),

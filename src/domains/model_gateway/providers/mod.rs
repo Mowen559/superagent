@@ -19,8 +19,11 @@ use super::*;
 pub mod analysis;
 pub mod types;
 
-pub use analysis::*;
-pub use types::*;
+pub use types::{lang_directive, strip_code_fences, TokenUsage};
+pub(crate) use types::{
+    elapsed_ms, failed_route_message, failure_receipt, max_context_chars_for, render_receipts,
+    usage_from_standard,
+};
 
 /// Canonical LLM Gateway facade used by the agent runtime.
 #[derive(Clone)]
@@ -472,21 +475,11 @@ impl LlmProvider {
                         "messages": messages,
                         "tools": tools,
                     })).unwrap_or_default();
-                    if full.chars().count() > 200_000 {
-                        let truncated: String = full.chars().take(200_000).collect();
-                        Some(format!("{}\n... truncated ...", truncated))
-                    } else {
-                        Some(full)
-                    }
+                    Some(crate::shared_kernel::text::truncate_with_suffix(&full, 200_000, "\n... truncated ..."))
                 };
                 let resp_summary = {
                     let full = serde_json::to_string(&message).unwrap_or_default();
-                    if full.chars().count() > 200_000 {
-                        let truncated: String = full.chars().take(200_000).collect();
-                        Some(format!("{}\n... truncated ...", truncated))
-                    } else {
-                        Some(full)
-                    }
+                    Some(crate::shared_kernel::text::truncate_with_suffix(&full, 200_000, "\n... truncated ..."))
                 };
 
                 let path_tag = format!("/agent/{}", self.purpose.as_deref().unwrap_or("cognition"));
@@ -498,8 +491,10 @@ impl LlmProvider {
                     path: path_tag,
                     status: status.as_u16(),
                     duration_ms: elapsed_ms(started),
+                    ttft_ms: Some(elapsed_ms(started)),
                     prompt_tokens: usage.prompt_tokens,
                     completion_tokens: usage.completion_tokens,
+                    reasoning_tokens: 0,
                     cached_tokens: usage.cached_tokens,
                     cache_write_tokens: usage.cache_write_tokens,
                     total_cost: usage.cost,
@@ -522,12 +517,7 @@ impl LlmProvider {
                     "messages": messages,
                     "tools": tools,
                 })).unwrap_or_default();
-                if full.chars().count() > 200_000 {
-                    let truncated: String = full.chars().take(200_000).collect();
-                    Some(format!("{}\n... truncated ...", truncated))
-                } else {
-                    Some(full)
-                }
+                Some(crate::shared_kernel::text::truncate_with_suffix(&full, 200_000, "\n... truncated ..."))
             };
             crate::services::usage_tracker::record_api_call(crate::services::usage_tracker::ApiUsageRecord {
                 account_id: last_receipt.account_id.clone(),
@@ -537,8 +527,10 @@ impl LlmProvider {
                 path: path_tag,
                 status: last_status,
                 duration_ms: elapsed_ms(started),
+                ttft_ms: None,
                 prompt_tokens: 0,
                 completion_tokens: 0,
+                reasoning_tokens: 0,
                 cached_tokens: 0,
                 cache_write_tokens: 0,
                 total_cost: 0.0,

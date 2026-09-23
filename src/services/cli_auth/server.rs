@@ -5,18 +5,14 @@ use axum::{
     routing::get,
     Router,
 };
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use dialoguer::{theme::ColorfulTheme, Input, Select};
-use rand::Rng;
 use reqwest::Client;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use std::net::SocketAddr;
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
 
-use super::*;
+use super::flow::TokenRes;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct CallbackQuery {
@@ -41,18 +37,7 @@ pub(crate) async fn execute_pkce_flow(
     redirect_path: &str,
     extra_auth_params: &str,
 ) -> Result<(String, Option<String>, Option<i64>), String> {
-    // Generate PKCE params
-    let mut verifier_bytes = [0u8; 32];
-    rand::rng().fill_bytes(&mut verifier_bytes);
-    let verifier = b64url(&verifier_bytes);
-
-    let mut hasher = Sha256::new();
-    hasher.update(verifier.as_bytes());
-    let challenge = b64url(&hasher.finalize());
-
-    let mut state_bytes = [0u8; 16];
-    rand::rng().fill_bytes(&mut state_bytes);
-    let state = b64url(&state_bytes);
+    let (verifier, challenge, state) = crate::shared_kernel::crypto::generate_pkce_params();
 
     // Construct Authorization URL
     let auth_url = format!(

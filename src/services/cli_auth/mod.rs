@@ -1,27 +1,15 @@
-use crate::config::llm_settings::{self, LLMAccount};
-use axum::{
-    extract::{Query, State},
-    response::{Html, IntoResponse},
-    routing::get,
-    Router,
-};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use dialoguer::{theme::ColorfulTheme, Input, Select};
-use rand::Rng;
-use reqwest::Client;
-use serde::Deserialize;
-use sha2::{Digest, Sha256};
-use std::net::SocketAddr;
-use tokio::sync::oneshot;
-use uuid::Uuid;
-
+//! CLI 认证与 OAuth / PKCE 登录流程
 
 pub mod flow;
-pub use flow::*;
-pub mod server;
-pub use server::*;
-pub mod ui;
-pub use ui::*;
-
 pub mod runtime;
-pub use runtime::*;
+pub mod server;
+pub mod ui;
+
+pub use flow::{
+    clear_deepcloud_token, force_refresh_account_token, get_deepcloud_token,
+    handle_claude_oauth_flow, handle_gemini_oauth_flow, handle_github_copilot_flow,
+    handle_openai_pkce_flow, refresh_account_token_if_needed,
+};
+pub use runtime::AuthRuntime;
+pub use server::handle_deepcloud_flow;
+pub use ui::ensure_logged_in;

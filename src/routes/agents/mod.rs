@@ -31,18 +31,26 @@ use crate::services::agent::{
 use crate::AppState;
 
 
-pub mod run;
-pub use run::*;
-pub mod interact;
-pub use interact::*;
 pub mod config;
-pub use config::*;
-pub mod skills;
-pub use skills::*;
-pub mod models;
-pub use models::*;
 pub mod diff;
-pub use diff::*;
+pub mod interact;
+pub mod models;
+pub mod run;
+pub mod skills;
+
+pub(crate) use run::stream_events;
+use config::{
+    install_agent_endpoint, install_missing_agents, list_agents, preview_agent_config,
+    sync_agent_config,
+};
+use diff::{apply_task_changes, get_task_diff, review_task_changes, verify_task_changes};
+use interact::interact_with_task;
+use models::list_agent_models;
+use run::run_agent;
+use skills::{
+    install_agent_skill, list_agent_mcps, list_agent_skills, uninstall_agent_skill,
+    update_agent_skill,
+};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()

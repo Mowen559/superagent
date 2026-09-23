@@ -4,19 +4,7 @@ use serde_json::{json, Value};
 
 pub struct AnthropicConverter;
 
-fn truncate_utf8(text: &str, max_bytes: usize) -> &str {
-    if text.len() <= max_bytes {
-        return text;
-    }
-
-    let mut end = max_bytes;
-
-    while end > 0 && !text.is_char_boundary(end) {
-        end -= 1;
-    }
-
-    &text[..end]
-}
+use crate::shared_kernel::text::truncate_utf8;
 
 impl ProtocolConverter for AnthropicConverter {
     fn request_to_standard(&self, body: Value) -> Result<Value, anyhow::Error> {

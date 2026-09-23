@@ -31,7 +31,7 @@ use crate::services::agent::{
 use crate::AppState;
 
 
-use super::*;
+use super::models::{MAX_DIFF_CHARS, VERIFICATION_TIMEOUT_SECONDS};
 
 pub(crate) struct DevelopmentRunPaths {
     project: std::path::PathBuf,
@@ -179,7 +179,7 @@ pub(crate) async fn get_task_diff(
             .unwrap_or_default()
     };
     let truncated = diff.chars().count() > MAX_DIFF_CHARS;
-    let diff = diff.chars().take(MAX_DIFF_CHARS).collect::<String>();
+    let diff = crate::shared_kernel::text::truncate_chars(&diff, MAX_DIFF_CHARS);
     Json(json!({
         "diff": diff,
         "diffTruncated": truncated,
@@ -822,6 +822,8 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let run_dir = temp.path();
         std::fs::write(run_dir.join("pom.xml"), "<project></project>").unwrap();
+        std::fs::create_dir_all(run_dir.join("common")).unwrap();
+        std::fs::write(run_dir.join("common/pom.xml"), "<project></project>").unwrap();
 
         let changed = vec!["common/src/test/java/common/agent/AgentSdkTest.java".to_string()];
         let plan = verification_plan_with_changes(run_dir, &changed);
@@ -852,8 +854,7 @@ mod tests {
 diff --git a/service/src/main/java/com/deepcloud/User.java b/service/src/main/java/com/deepcloud/User.java
 --- a/service/src/main/java/com/deepcloud/User.java
 +++ b/service/src/main/java/com/deepcloud/User.java
-@@ -1,3 +1,5 @@
-+import javax.persistence.Entity;
+@@ -1,3 +1,4 @@
 +@Entity
  public class User {}
 diff --git a/ui/src/App.tsx b/ui/src/App.tsx

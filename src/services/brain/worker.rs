@@ -74,33 +74,10 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     let cwd_path = project.map(std::path::PathBuf::from).unwrap_or_else(|| {
         std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
     });
-    let resolved_project_path = {
-        if cwd_path.join(".supermemory").exists() {
-            cwd_path.clone()
-        } else if let Some(parent) = cwd_path.parent() {
-            let baseline_file = parent.join("baseline.json");
-            if baseline_file.exists() {
-                if let Ok(content) = std::fs::read_to_string(&baseline_file) {
-                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
-                        if let Some(p) = v.get("projectPath").and_then(|p| p.as_str()) {
-                            let norm = p.trim_start_matches(r"\\?\");
-                            std::path::PathBuf::from(norm)
-                        } else {
-                            cwd_path.clone()
-                        }
-                    } else {
-                        cwd_path.clone()
-                    }
-                } else {
-                    cwd_path.clone()
-                }
-            } else {
-                cwd_path.clone()
-            }
-        } else {
-            cwd_path.clone()
-        }
-    };
+    let resolved_project_path = crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
+        &cwd_path,
+        &[".supermemory"],
+    );
     let project_path_str = resolved_project_path.to_string_lossy().to_string();
 
     // 潜意识唤醒：从 SuperMemory 检索与当前 Prompt 最相关的项目规范与历史经验

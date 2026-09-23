@@ -23,12 +23,7 @@ fn get_sanitized_env() -> HashMap<String, String> {
 
 fn normalize_path(p: &std::path::Path) -> std::path::PathBuf {
     let s = p.to_string_lossy();
-    let stripped = if s.starts_with(r"\\?\") {
-        &s[4..]
-    } else {
-        &s
-    };
-    std::path::PathBuf::from(stripped.to_lowercase())
+    std::path::PathBuf::from(crate::infrastructure::fs_path::strip_unc_prefix(&s).to_lowercase())
 }
 
 use crate::services::brain::capabilities::shell::ShellService;

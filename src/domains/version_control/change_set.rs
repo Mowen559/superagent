@@ -186,10 +186,7 @@ pub fn workspace_fingerprint(root: &Path) -> Result<String, String> {
         hasher.update(fingerprint.bytes.to_le_bytes());
         hasher.update(fingerprint.sha256.as_bytes());
     }
-    Ok(Sha256::digest(hasher.finalize())
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect())
+    Ok(crate::shared_kernel::crypto::sha256_hex(&hasher.finalize()))
 }
 
 pub fn inspect_changes(
@@ -422,10 +419,7 @@ fn scan_files(root: &Path) -> Result<BTreeMap<String, FileFingerprint>, String> 
                 MAX_HASHED_BYTES
             ));
         }
-        let sha256 = Sha256::digest(&payload)
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect();
+        let sha256 = crate::shared_kernel::crypto::sha256_hex(&payload);
         if files.len() >= MAX_CHANGESET_FILES {
             return Err(format!("Change set exceeds {MAX_CHANGESET_FILES} files"));
         }

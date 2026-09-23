@@ -16,7 +16,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 
-use super::*;
+use super::capabilities::commit_capability_report;
 use super::types::*;
 
 pub(crate) async fn test_llm(Json(body): Json<TestLlmBody>) -> axum::response::Response {

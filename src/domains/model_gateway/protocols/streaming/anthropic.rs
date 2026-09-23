@@ -16,9 +16,8 @@ use serde_json::{json, Value};
 
 use std::collections::{HashMap, HashSet};
 
-
-use super::*;
 use super::types::*;
+use super::*;
 
 pub(crate) fn build_anthropic_usage_json(usage: &Usage) -> Value {
     // OpenAI prompt_tokens 鍚缂撳瓨锛孉nthropic input_tokens 涓嶅惈锛岄渶鍑忓幓 cache_read ?cache_creation
@@ -63,7 +62,10 @@ pub(crate) fn default_anthropic_usage_json() -> Value {
     })
 }
 
-pub(crate) fn build_message_delta_event(stop_reason: Option<String>, usage_json: Option<Value>) -> Value {
+pub(crate) fn build_message_delta_event(
+    stop_reason: Option<String>,
+    usage_json: Option<Value>,
+) -> Value {
     let usage = usage_json
         .filter(|usage| usage.is_object())
         .unwrap_or_else(default_anthropic_usage_json);
@@ -1185,4 +1187,3 @@ pub(crate) fn map_stop_reason(finish_reason: Option<&str>) -> Option<String> {
         .to_string()
     })
 }
-

@@ -21,26 +21,10 @@ impl SkillTool {
 
     /// 智能定位宿主工程绝对路径（实现沙箱自愈逃逸）
     fn resolve_project_path(&self) -> PathBuf {
-        if self.workspace_root.join(".supermemory").exists()
-            || self.workspace_root.join(".agents").exists()
-        {
-            self.workspace_root.clone()
-        } else if let Some(parent) = self.workspace_root.parent() {
-            let baseline_file = parent.join("baseline.json");
-            if baseline_file.exists() {
-                if let Ok(content) = fs::read_to_string(&baseline_file) {
-                    if let Ok(v) = serde_json::from_str::<Value>(&content) {
-                        if let Some(p) = v.get("projectPath").and_then(|p| p.as_str()) {
-                            let norm = p.trim_start_matches(r"\\?\");
-                            return PathBuf::from(norm);
-                        }
-                    }
-                }
-            }
-            self.workspace_root.clone()
-        } else {
-            self.workspace_root.clone()
-        }
+        crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
+            &self.workspace_root,
+            &["skills", ".agents"],
+        )
     }
 
     fn extract_frontmatter(content: &str) -> Option<(String, String)> {

@@ -33,6 +33,28 @@ pub struct CodeCloneMatch {
 pub struct CodeSimilarityDetector;
 
 impl CodeSimilarityDetector {
+    /// 统一根据 Jaccard 相似度判定代码克隆等级（消除 HTTP Route 与 MCP 入口层的重复阈值判断）
+    pub fn classify_clone_type(sim: f64) -> &'static str {
+        if sim >= 0.90 {
+            "EXACT_OR_RENAME"
+        } else if sim >= 0.70 {
+            "HIGH_SIMILARITY"
+        } else if sim >= 0.30 {
+            "STRUCTURAL_SIMILARITY"
+        } else {
+            "DISTINCT"
+        }
+    }
+
+    /// 对比两段代码并返回标准化的 JSON 结果（包含 `similarity` 与 `cloneType`）
+    pub fn compare_and_classify(code_a: &str, code_b: &str) -> serde_json::Value {
+        let sim = Self::compare_snippets(code_a, code_b);
+        serde_json::json!({
+            "similarity": (sim * 1000.0).round() / 1000.0,
+            "cloneType": Self::classify_clone_type(sim),
+        })
+    }
+
     /// Tokenizes source code, stripping comments and trivial punctuation
     pub fn tokenize(code: &str) -> Vec<String> {
         let mut tokens = Vec::new();

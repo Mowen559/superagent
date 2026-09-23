@@ -1,22 +1,11 @@
 use crate::config::llm_settings::{self, LLMAccount};
-use axum::{
-    extract::{Query, State},
-    response::{Html, IntoResponse},
-    routing::get,
-    Router,
-};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
-use rand::Rng;
-use reqwest::Client;
-use serde::Deserialize;
-use sha2::{Digest, Sha256};
-use std::net::SocketAddr;
-use tokio::sync::oneshot;
 use uuid::Uuid;
 
-
-use super::*;
+use super::flow::{
+    handle_claude_oauth_flow, handle_gemini_oauth_flow, handle_github_copilot_flow,
+    handle_openai_pkce_flow,
+};
 
 pub async fn ensure_logged_in(force: bool) -> Result<(), String> {
     let mut settings = llm_settings::read_llm_settings();

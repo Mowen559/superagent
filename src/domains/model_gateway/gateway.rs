@@ -349,8 +349,8 @@ pub async fn execute_model_request(
             .unwrap_or(false);
 
         if is_stream {
-            health.finish_attempt(&mod_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
-            health.finish_attempt(&acc_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
+            // Streaming attempt health lifecycle is managed by `track_provider_stream`,
+            // preventing duplicate success counts and EMA latency jitter.
             receipts.push(ProviderAttemptReceipt::new(
                 &candidate,
                 attempt,

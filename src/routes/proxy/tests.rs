@@ -75,3 +75,62 @@ use crate::domains::model_gateway::health::{ProviderAdmission, ProviderHealthRun
         health.reset(&acc_inc_key);
         health.reset(&mod_inc_key);
     }
+
+    #[test]
+    fn test_usage_from_value_extracts_reasoning_tokens() {
+        use super::audit::usage_from_value;
+        use serde_json::json;
+
+        // OpenAI o1 / DeepSeek format
+        let usage_json = json!({
+            "prompt_tokens": 100,
+            "completion_tokens": 80,
+            "completion_tokens_details": {
+                "reasoning_tokens": 50
+            },
+            "prompt_tokens_details": {
+                "cached_tokens": 30
+            }
+        });
+
+        let extracted = usage_from_value(Some(&usage_json));
+        assert_eq!(extracted.prompt_tokens, 100);
+        assert_eq!(extracted.completion_tokens, 80);
+        assert_eq!(extracted.reasoning_tokens, 50);
+        assert_eq!(extracted.cached_tokens, 30);
+
+        // Kimi / Direct reasoning_tokens format
+        let usage_direct = json!({
+            "prompt_tokens": 40,
+            "completion_tokens": 60,
+            "reasoning_tokens": 25
+        });
+        let extracted_direct = usage_from_value(Some(&usage_direct));
+        assert_eq!(extracted_direct.reasoning_tokens, 25);
+    }
+
+    #[tokio::test]
+    async fn test_stream_audit_ttft_recording_single_event() {
+        use super::audit::StreamAuditState;
+
+        let mut audit = StreamAuditState::new(
+            "test-acc".to_string(),
+            "deepseek-chat".to_string(),
+            "OpenAI".to_string(),
+            "POST".to_string(),
+            "/v1/chat/completions".to_string(),
+            200,
+            Instant::now(),
+            "{}".to_string(),
+            vec![],
+        );
+
+        assert!(audit.ttft_ms.is_none());
+        audit.record_ttft();
+        assert!(audit.ttft_ms.is_some());
+        let first_ttft = audit.ttft_ms.unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        audit.record_ttft();
+        assert_eq!(audit.ttft_ms, Some(first_ttft));
+    }

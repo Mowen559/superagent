@@ -62,7 +62,7 @@ pub struct ShadowFileChange {
 fn open_repo(project_path: &str, kind: RepoKind) -> Result<Repository, String> {
     match kind {
         RepoKind::Local => {
-            let clean = project_path.trim_start_matches(r"\\?\");
+            let clean = crate::infrastructure::fs_path::strip_unc_prefix(project_path);
             Repository::discover(clean)
                 .or_else(|_| Repository::open(clean))
                 .or_else(|_| Repository::open(project_path))

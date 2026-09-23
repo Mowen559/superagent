@@ -12,7 +12,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 
-use super::*;
+use super::extractors::{
+    citation_for, derive_global_context, normalize_context, DocxDocumentAdapter, DocumentExtractor,
+    PdfDocumentAdapter, TextDocumentAdapter,
+};
 use super::types::*;
 
 pub struct KnowledgeCorpusRuntime {
@@ -455,8 +458,7 @@ pub fn shared_runtime(config: &RuntimeConfig) -> Result<Arc<KnowledgeCorpusRunti
 
 
 pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    crate::shared_kernel::crypto::sha256_hex(bytes)
 }
 
 pub(crate) fn receipt_for(
@@ -476,7 +478,7 @@ pub(crate) fn receipt_for(
 }
 
 pub(crate) fn truncate_chars(value: &str, max_chars: usize) -> String {
-    value.chars().take(max_chars).collect()
+    crate::shared_kernel::text::truncate_with_suffix(value, max_chars, "")
 }
 
 pub(crate) fn round_score(value: f32) -> f32 {

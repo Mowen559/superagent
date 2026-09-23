@@ -25,7 +25,10 @@ use std::{
 };
 
 
-use super::*;
+use super::audit::{
+    pretty_json, protocol_label, record_proxy_audit, StreamAuditState, usage_from_value,
+};
+use super::health_check::track_provider_stream;
 
 pub(crate) async fn handle_request(
     state: State<Arc<AppState>>,
@@ -165,6 +168,34 @@ pub(crate) async fn handle_request(
                     for line in text.lines() {
                         if line.starts_with("data: ") && line != "data: [DONE]" {
                             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line[6..]) {
+                                // 1. Check for first token (TTFT)
+                                if let Some(choices) = json.get("choices").and_then(Value::as_array) {
+                                    for choice in choices {
+                                        if let Some(delta) = choice.get("delta") {
+                                            let has_content = delta
+                                                .get("content")
+                                                .and_then(Value::as_str)
+                                                .is_some_and(|s| !s.is_empty());
+                                            let has_reasoning = delta
+                                                .get("reasoning")
+                                                .or_else(|| delta.get("reasoning_content"))
+                                                .and_then(Value::as_str)
+                                                .is_some_and(|s| !s.is_empty());
+                                            let has_tools = delta
+                                                .get("tool_calls")
+                                                .and_then(Value::as_array)
+                                                .is_some_and(|arr| !arr.is_empty());
+
+                                            if has_content || has_reasoning || has_tools {
+                                                if let Ok(mut audit) = stream_audit.lock() {
+                                                    audit.record_ttft();
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
                                 if let Some(usage) = json.get("usage") {
                                     if let Ok(mut audit) = stream_audit.lock() {
                                         audit.apply_usage(usage_from_value(Some(usage)));
@@ -216,8 +247,10 @@ pub(crate) async fn handle_request(
                 path: path.clone(),
                 status: res.status.as_u16(),
                 duration_ms: crate::domains::model_gateway::providers::elapsed_ms(attempt_started),
+                ttft_ms: None,
                 prompt_tokens: 0,
                 completion_tokens: 0,
+                reasoning_tokens: 0,
                 cached_tokens: 0,
                 cache_write_tokens: 0,
                 total_cost: 0.0,
@@ -250,10 +283,12 @@ pub(crate) async fn handle_request(
         path,
         status: res.status.as_u16(),
         duration_ms: usage.duration_ms,
+        ttft_ms: Some(usage.duration_ms),
         prompt_tokens: usage.prompt_tokens as u32,
         completion_tokens: usage.completion_tokens as u32,
-        cached_tokens: 0,
-        cache_write_tokens: 0,
+        reasoning_tokens: 0,
+        cached_tokens: usage.cached_tokens as u32,
+        cache_write_tokens: usage.cache_write_tokens as u32,
         total_cost: usage.cost,
         request_body: Some(inbound_body_text),
         response_body: Some(response_body_text.clone()),

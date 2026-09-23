@@ -34,6 +34,9 @@ pub mod cli_commands;
 
 pub mod application;
 pub mod domains;
+pub mod infrastructure;
+pub mod interfaces;
+pub mod shared_kernel;
 
 pub mod config;
 

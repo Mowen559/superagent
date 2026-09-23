@@ -16,9 +16,12 @@ impl<'a> DestructiveOps<'a> {
         hash: Option<&str>,
         kind: RepoKind,
     ) -> Result<(), String> {
-        let safe_project = self.guard.resolve_safe("").map_err(|e| format!("Security violation (project): {}", e))?;
-
+        let safe_project = self.guard.project_root();
         let safe_file = self.guard.resolve_safe(file_path).map_err(|e| format!("Security violation (file): {}", e))?;
+        let safe_rel_file = safe_file
+            .strip_prefix(safe_project)
+            .unwrap_or(&safe_file)
+            .to_string_lossy();
 
         tracing::info!(
             "DESTRUCTIVE OP: git restore in {} for file {} (hash: {:?})",
@@ -26,7 +29,7 @@ impl<'a> DestructiveOps<'a> {
             safe_file.display(),
             hash
         );
-        git_service::restore_file(&safe_project.to_string_lossy(), file_path, hash, kind)
+        git_service::restore_file(&safe_project.to_string_lossy(), &safe_rel_file, hash, kind)
     }
 
     pub fn shadow_rollback(&self, hash: &str) -> Result<(), String> {

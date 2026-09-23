@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 
-use super::*;
+use crate::shared_kernel::text::truncate_chars;
 use super::types::*;
 
 pub(crate) trait DocumentExtractor: Send + Sync {

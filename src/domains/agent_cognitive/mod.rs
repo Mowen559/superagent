@@ -7,5 +7,6 @@ pub mod intent;
 pub mod semantic_compactor;
 pub mod hitl_continuation;
 pub mod executor;
+pub mod event_projection;
 
 pub mod tdd_evaluator;

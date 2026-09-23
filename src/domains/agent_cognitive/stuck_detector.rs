@@ -58,11 +58,10 @@ impl StuckDetector {
     }
 
     pub fn record_call(&mut self, tool_name: &str, args_json: &str, success: bool) -> StuckState {
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(tool_name.as_bytes());
-        hasher.update(args_json.as_bytes());
-        let hash_result = hasher.finalize().iter().map(|b| format!("{:02x}", b)).collect::<String>();
+        let hash_result = crate::shared_kernel::crypto::sha256_multi_hex(&[
+            tool_name.as_bytes(),
+            args_json.as_bytes(),
+        ]);
 
         let record = ToolCallRecord {
             tool_name: tool_name.to_string(),

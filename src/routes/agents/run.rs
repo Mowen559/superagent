@@ -31,7 +31,7 @@ use crate::services::agent::{
 use crate::AppState;
 
 
-use super::*;
+use super::interact::to_sse_event;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -612,7 +612,7 @@ fn sync_overview_memory(
 }
 
 fn truncate_error(error: &str) -> String {
-    error.chars().take(400).collect()
+    crate::shared_kernel::text::truncate_with_suffix(error, 400, "")
 }
 
 #[cfg(test)]

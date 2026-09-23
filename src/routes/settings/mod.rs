@@ -23,12 +23,16 @@ pub mod oauth;
 pub mod routing;
 pub mod types;
 
-pub use accounts::*;
-pub use capabilities::*;
-pub use llm::*;
-pub use oauth::*;
-pub use routing::*;
-pub use types::*;
+use accounts::{get_accounts, remove_account, toggle_account};
+use capabilities::{discover_capabilities, get_recertification_plan};
+use llm::{fetch_models, fetch_quota, get_llm_settings, put_llm_settings, test_llm, test_models};
+use oauth::start_oauth;
+use routing::update_routing;
+
+#[cfg(test)]
+pub(crate) use types::require_capability_discovery_header;
+#[cfg(test)]
+pub(crate) use llm::{redacted_settings_value, restore_redacted_secrets};
 
 #[cfg(test)]
 mod tests;
