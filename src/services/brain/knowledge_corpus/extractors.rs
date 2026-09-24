@@ -133,8 +133,23 @@ impl DocumentExtractor for PdfDocumentAdapter {
         bytes: &[u8],
         _extension: &str,
     ) -> Result<ExtractedDocument, KnowledgeCorpusError> {
-        let pages = pdf_extract::extract_text_from_mem_by_pages(bytes)
+        let extraction = pdf_inspector::extract_pages_markdown_mem(bytes, None)
             .map_err(|error| KnowledgeCorpusError::Extraction(error.to_string()))?;
+
+        if !extraction.pages_needing_ocr.is_empty() {
+            tracing::info!(
+                "[KnowledgeCorpus] PDF extraction noted {} pages needing OCR: {:?}",
+                extraction.pages_needing_ocr.len(),
+                extraction.pages_needing_ocr
+            );
+        }
+
+        let pages = extraction
+            .pages
+            .into_iter()
+            .map(|page| page.markdown)
+            .collect::<Vec<String>>();
+
         Ok(ExtractedDocument {
             format: DocumentFormat::Pdf,
             content: ExtractedContent::Pages(pages),

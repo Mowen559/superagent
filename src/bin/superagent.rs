@@ -47,6 +47,7 @@ async fn main() {
    - `run_command`: 在主机的 Shell 环境中执行动作。对于启动服务器或长期阻塞的脚本，**务必**设置 `RunInBackground: true`。
    - `manage_process`: 用于轮询后台进程日志、检查进程状态或安全终止后台任务（要求 dispose must reach complete settlement）。
 4. 🛡️ 防御与自愈 (Defense Reflexes):
+   - `code_review`: 借鉴 Alibaba OpenCodeReview 架构，五重门降噪过滤，捕获空指针/并发安全/资源泄漏/SQL注入等缺陷并给出结构化修改建议。
    - **注意**：底层的 Rust 神经元已经在 `write_to_file` 和 `run_command` 上硬连线了“脊髓反射”。当你执行这些动作时，系统会自动在底层调用 `ShadowGit` 进行无感知快照备份！
    - 你依然可以使用原生的 `shadow_git` 手动执行 `restore` 紧急回滚。
 5. 🧬 自举进化 (Evolution & Pluggable Organs):
@@ -205,6 +206,9 @@ async fn main() {
             shell_provider.clone(),
             cwd_path.clone(),
         ),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::code_review::CodeReviewTool::new(cwd_path.clone()),
     ));
 
     // 自动扫描与装载动态插件工具

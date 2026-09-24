@@ -156,3 +156,10 @@ use crate::services::supermemory_store::SupermemoryStore;
         .unwrap();
         pdf.into_bytes()
     }
+
+    #[test]
+    fn pdf_adapter_handles_invalid_bytes_gracefully() {
+        let invalid_bytes = b"Not a valid PDF file at all";
+        let result = PdfDocumentAdapter.extract(invalid_bytes, "pdf");
+        assert!(result.is_err(), "Invalid PDF bytes should return an error");
+    }

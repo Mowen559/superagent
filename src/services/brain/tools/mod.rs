@@ -36,3 +36,4 @@ pub mod project_index_tool;
 
 
 pub mod browser_vision;
+pub mod code_review;

@@ -30,7 +30,8 @@ impl CodeIntelligenceRuntime {
     }
 
     pub fn is_indexed(&self) -> bool {
-        self.db_path.exists()
+        let s = self.db_path.to_string_lossy();
+        !s.trim().is_empty() && self.db_path.is_file()
     }
 
     pub fn db_path_str(&self) -> String {

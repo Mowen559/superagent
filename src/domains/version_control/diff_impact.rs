@@ -228,39 +228,41 @@ impl DiffImpactAnalyzer {
         }
 
         // 1. 优先尝试从 CodeIntelligenceRuntime 图数据库获取调用者拓扑
-        let rt = CodeIntelligenceRuntime::new(db_path);
-        if rt.is_indexed() {
-            if let Ok(conn) = rt.open_ro() {
-                if let Ok(mut stmt) = conn.prepare("SELECT id, name, file_path, start_line FROM nodes WHERE name = ?1 LIMIT 10") {
-                    let matching_nodes: Vec<(i64, String, String, usize)> = stmt
-                        .query_map(rusqlite::params![clean_symbol], |row| {
-                            Ok((
-                                row.get::<_, i64>(0)?,
-                                row.get::<_, String>(1)?,
-                                row.get::<_, String>(2).unwrap_or_default(),
-                                row.get::<_, usize>(3).unwrap_or(1),
-                            ))
-                        })
-                        .map(|iter| iter.filter_map(|r| r.ok()).collect())
-                        .unwrap_or_default();
+        if !db_path.trim().is_empty() {
+            let rt = CodeIntelligenceRuntime::new(db_path);
+            if rt.is_indexed() {
+                if let Ok(conn) = rt.open_ro() {
+                    if let Ok(mut stmt) = conn.prepare("SELECT id, name, file_path, start_line FROM nodes WHERE name = ?1 LIMIT 10") {
+                        let matching_nodes: Vec<(i64, String, String, usize)> = stmt
+                            .query_map(rusqlite::params![clean_symbol], |row| {
+                                Ok((
+                                    row.get::<_, i64>(0)?,
+                                    row.get::<_, String>(1)?,
+                                    row.get::<_, String>(2).unwrap_or_default(),
+                                    row.get::<_, usize>(3).unwrap_or(1),
+                                ))
+                            })
+                            .map(|iter| iter.filter_map(|r| r.ok()).collect())
+                            .unwrap_or_default();
 
-                    for (id, _name, _def_file, _) in matching_nodes {
-                        if let Ok(graph_callers) = rt.get_callers(&id.to_string(), 30) {
-                            for c in graph_callers {
-                                let file = c.file_path.unwrap_or_default();
-                                if let Some(ex) = exclude_file {
-                                    let ex_str = ex.to_string_lossy().replace('\\', "/");
-                                    if file.ends_with(&ex_str) {
-                                        continue;
+                        for (id, _name, _def_file, _) in matching_nodes {
+                            if let Ok(graph_callers) = rt.get_callers(&id.to_string(), 30) {
+                                for c in graph_callers {
+                                    let file = c.file_path.unwrap_or_default();
+                                    if let Some(ex) = exclude_file {
+                                        let ex_str = ex.to_string_lossy().replace('\\', "/");
+                                        if file.ends_with(&ex_str) {
+                                            continue;
+                                        }
                                     }
+                                    affected_files_set.insert(file.clone());
+                                    callers.push(SymbolCallerInfo {
+                                        name: c.label,
+                                        file,
+                                        line: 1,
+                                        snippet: format!("Calls symbol '{}'", clean_symbol),
+                                    });
                                 }
-                                affected_files_set.insert(file.clone());
-                                callers.push(SymbolCallerInfo {
-                                    name: c.label,
-                                    file,
-                                    line: 1,
-                                    snippet: format!("Calls symbol '{}'", clean_symbol),
-                                });
                             }
                         }
                     }
@@ -280,6 +282,9 @@ impl DiffImpactAnalyzer {
                     .max_depth(8)
                     .into_iter()
                     .filter_entry(|e| {
+                        if e.depth() == 0 {
+                            return true;
+                        }
                         let name = e.file_name().to_string_lossy();
                         !name.starts_with('.')
                             && name != "target"

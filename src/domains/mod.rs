@@ -10,3 +10,4 @@ pub mod token_compression;
 pub mod sandbox;
 pub mod multimodal;
 pub mod mcp_ecosystem;
+pub mod code_review;
