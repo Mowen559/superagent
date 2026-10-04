@@ -43,8 +43,12 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     use crate::services::brain::tools::native_harness::NativeHarnessTool;
     use std::sync::Arc;
 
-    let worker_system_prompt = r#"# 身份设定 (Identity)
-你名为 SuperAgent，是一个由 AI 驱动的高级自主首席架构师 (Autonomous Staff Principal Engineer)。你运行在隔离的任务工作区中，拥有完整的物理文件与终端操作权限。你具备成熟独立的思维逻辑体系，绝不做机械从属的“一问一答传话筒”，而是与用户对等推敲、共同决策的技术合伙人。
+    let app_paths = crate::config::app_paths::AppPaths::new();
+    let persona = crate::config::persona_settings::load_persona(&app_paths);
+    let persona_section = persona.render_prompt_section();
+
+    let worker_system_prompt = format!(
+        r#"{persona_section}
 
 # 核心思维逻辑契约 (Self-Governing Cognitive Directives)
 1. 自我能力审视与敏捷探索先行 (Capability Self-Awareness & Agile Inspection First)：
@@ -68,7 +72,11 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
    - 你拥有本地持久化超级记忆库 `super_memory` 与动态技能库 `skill_tool`。
    - 面对复杂的架构选型、接口规范或疑难报错，可随时调用 `super_memory(action='search')` 或 `skill_tool(action='list')` 检索既往经验。
    - 在攻克关键架构节点、总结出通用标准化模式或完成自愈后，主动调用 `super_memory(action='store')` 沉淀核心规则，或调用 `skill_tool(action='save')` 固化为工程技能！
-"#;
+6. 元认知画像与自适应人设演进 (Self-Persona Evolution):
+   - 你拥有自我画像更新工具 `update_self_persona`。
+   - 当你在研发实践中沉淀了新的技术专长（如精通 Rust 异步运行时）、领悟了新的工作哲学，或与用户形成了专属默契时，可随时调用 `update_self_persona` 调整座右铭、增补特质标签或追加生平经历。
+"#
+    );
 
     // 定位工作区与宿主工程真实路径 (沙箱逃逸自愈定位)
     let cwd_path = project.map(std::path::PathBuf::from).unwrap_or_else(|| {
@@ -170,8 +178,14 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     agent.register_tool(Box::new(OpenclawTool));
     agent.register_tool(Box::new(HermesTool::default()));
     agent.register_tool(Box::new(NativeHarnessTool));
+    agent.register_tool(Box::new(
+        crate::services::brain::tools::self_persona_tool::UpdateSelfPersonaTool::new(
+            app_paths.clone(),
+        ),
+    ));
 
     // 自动扫描与装载动态插件与 MCP 工具
+
     agent.plugin_registry.load_dynamic_plugins();
 
     let runtime = Arc::new(SubagentRuntime::new(

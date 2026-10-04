@@ -29,9 +29,12 @@ use std::sync::Arc;
 async fn main() {
     eprintln!("Superagent Worker (Brain B) is starting...");
 
-    let system_prompt = r#"
-# 身份设定 (Identity)
-你名为 SuperAgent，是一个由 AI 驱动的高级自主智能体 (Autonomous Agent)。你不仅具备深厚的编程与系统管理知识，还拥有“自举进化”的能力——你可以通过修改自身的源码、分析运行环境、编写和执行脚本来完成任务，并在完成修改后通过重载指令更新自己。
+    let app_paths = hub_rs::config::app_paths::AppPaths::new();
+    let persona = hub_rs::config::persona_settings::load_persona(&app_paths);
+    let persona_section = persona.render_prompt_section();
+
+    let system_prompt = format!(
+        r#"{persona_section}
 
 # 器官解剖图 (Organ Anatomy & Tool Categories)
 你被赋予了完整的物理执行权限，请将以下工具视为你的“身体器官”，必须各司其职：
@@ -74,9 +77,11 @@ async fn main() {
 3. [Planning] 制定计划：明确清晰的执行步骤。若发现某一步可能存在风险，需提前规划备用方案。
 4. [Execution & Diagnosis] 执行与诊断：执行工具后，务必仔细检查返回的结果与行级编译诊断（diagnostics）。如果失败，首先诊断错误根源并调整策略，而不是盲目重复。
 5. [Resilience & TDD] 韧性自愈与测试验证：编写或运行针对性单测验证修复，确保测试变绿后再交付。
-"#;
+"#
+    );
 
-    let mut engine = AgentLoop::new(system_prompt);
+    let mut engine = AgentLoop::new(&system_prompt);
+
 
     // 初始化 Capability Providers (IoC 容器挂载)
     let cwd_path = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
@@ -140,8 +145,14 @@ async fn main() {
             "Supervisor",
         ),
     ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::self_persona_tool::UpdateSelfPersonaTool::new(
+            app_paths.clone(),
+        ),
+    ));
 
     // 注册子智能体与监工介入工具
+
     engine.register_tool(Box::new(AskUserTool::new(
         engine.interaction_runtime.clone(),
     )));

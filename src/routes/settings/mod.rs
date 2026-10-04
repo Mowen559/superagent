@@ -20,6 +20,7 @@ pub mod accounts;
 pub mod capabilities;
 pub mod llm;
 pub mod oauth;
+pub mod persona;
 pub mod routing;
 pub mod types;
 
@@ -27,6 +28,7 @@ use accounts::{get_accounts, remove_account, toggle_account};
 use capabilities::{discover_capabilities, get_recertification_plan};
 use llm::{fetch_models, fetch_quota, get_llm_settings, put_llm_settings, test_llm, test_models};
 use oauth::start_oauth;
+pub(crate) use persona::{get_persona, put_persona, reset_persona};
 use routing::update_routing;
 
 #[cfg(test)]
@@ -43,6 +45,15 @@ pub fn router() -> Router<Arc<AppState>> {
             "/api/settings/llm",
             get(get_llm_settings).put(put_llm_settings),
         )
+        .route(
+            "/api/settings/persona",
+            get(get_persona).put(put_persona),
+        )
+        .route(
+            "/api/settings/persona/reset",
+            post(reset_persona),
+        )
+
         .route("/api/settings/models_fetch", get(fetch_models))
         .route(
             "/api/settings/llm/capabilities/discover",
@@ -65,3 +76,4 @@ pub fn router() -> Router<Arc<AppState>> {
 
 
 pub mod logs;
+

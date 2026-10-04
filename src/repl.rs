@@ -63,11 +63,15 @@ pub fn run_chat() -> ! {
                         break;
                     }
 
-                    conversation_history.push(json!({ "role": "user", "content": text }));
-
-                    let mut system_prompt = "You are DeepCloud Hub, an advanced AI programming assistant and workflow orchestrator running in the user's terminal. Follow the Engineering & Orchestration Principles strictly. Be concise, diagnostic, and truthful.".to_string();
+                    let app_paths = crate::config::app_paths::AppPaths::new();
+                    let persona = crate::config::persona_settings::load_persona(&app_paths);
+                    let mut system_prompt = format!(
+                        "{}\n\nFollow the Engineering & Orchestration Principles strictly. Be concise, diagnostic, and truthful.",
+                        persona.render_prompt_section()
+                    );
 
                     if let Some(instructions) = crate::services::project_context::load_project_instructions(None) {
+
                         system_prompt.push_str(&format!("\n\n[Project Instructions from .deepcloud.md]:\n{}", instructions));
                     }
 

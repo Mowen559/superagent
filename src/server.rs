@@ -123,9 +123,12 @@ fn build_state() -> Arc<AppState> {
     app_paths.migrate_legacy_data();
     let llm_settings_path = crate::config::llm_settings::ensure_persisted();
     let claude_settings_path = crate::config::claude_settings::ensure_persisted();
+    let persona_settings_path = crate::config::persona_settings::ensure_persisted(&app_paths);
     tracing::info!("App data root: {}", app_paths.app_data_root.display());
     tracing::info!("LLM settings file: {}", llm_settings_path.display());
     tracing::info!("Claude settings file: {}", claude_settings_path.display());
+    tracing::info!("Persona settings file: {}", persona_settings_path.display());
+
 
     let runtime_config = RuntimeConfig::from_env(&app_paths);
     let task_manager = Arc::new(TaskManager::new(&app_paths));

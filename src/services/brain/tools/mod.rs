@@ -33,7 +33,7 @@ pub mod blackboard_tool;
 pub mod repo_map_tool;
 pub mod verify_task;
 pub mod project_index_tool;
-
-
 pub mod browser_vision;
 pub mod code_review;
+pub mod self_persona_tool;
+
