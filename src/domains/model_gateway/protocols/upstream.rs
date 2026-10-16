@@ -16,10 +16,13 @@ pub fn adapter_for_provider(settings: &LLMSettings) -> Box<dyn UpstreamAdapter> 
             model: settings.model.clone(),
         });
     }
-    match settings.provider.to_ascii_lowercase().as_str() {
-        "anthropic" | "claude" => Box::new(AnthropicUpstreamAdapter),
-        "gemini_native" => Box::new(GeminiInternalUpstreamAdapter),
-        "github_copilot" => Box::new(CopilotUpstreamAdapter),
+    let clean_provider = settings.provider.to_ascii_lowercase().replace([' ', '-'], "_");
+    match clean_provider.as_str() {
+        "anthropic" | "claude" | "claude_official" | "claude_desktop_official" => {
+            Box::new(AnthropicUpstreamAdapter)
+        }
+        "gemini_native" | "google_gemini_native" => Box::new(GeminiInternalUpstreamAdapter),
+        "github_copilot" | "copilot" => Box::new(CopilotUpstreamAdapter),
         _ => Box::new(OpenAiUpstreamAdapter),
     }
 }
@@ -266,17 +269,19 @@ fn bearer_headers(api_key: &str) -> Result<HeaderMap, anyhow::Error> {
 
 fn openai_chat_url(settings: &LLMSettings) -> String {
     let base = settings.base_url.trim_end_matches('/');
-    let provider = settings.provider.to_ascii_lowercase();
+    let provider = settings.provider.to_ascii_lowercase().replace([' ', '-'], "_");
     let is_google_openai = provider.contains("gemini")
         || provider.contains("google")
         || base.contains("generativelanguage.googleapis.com");
 
     if is_google_openai {
-        if base.ends_with("/v1beta/openai") {
+        if base.ends_with("/openapi") || base.contains("/endpoints/openapi") {
             format!("{base}/chat/completions")
-        } else if base.ends_with("/v1beta") {
+        } else if base.ends_with("/v1beta/openai") || base.ends_with("/v1beta1/openai") {
+            format!("{base}/chat/completions")
+        } else if base.ends_with("/v1beta") || base.ends_with("/v1beta1") {
             format!("{base}/openai/chat/completions")
-        } else if base.contains("/v1beta/") {
+        } else if base.contains("/v1beta/") || base.contains("/v1beta1/") {
             format!("{base}/chat/completions")
         } else {
             format!("{base}/v1beta/openai/chat/completions")
@@ -314,6 +319,18 @@ mod tests {
         assert_eq!(
             openai_chat_url(&settings),
             "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        );
+
+        // Google Vertex AI OpenAPI 端点测试
+        let vertex_settings = LLMSettings {
+            provider: "Gemini Native".to_string(),
+            base_url: "https://us-central1-aiplatform.googleapis.com/v1beta1/projects/my-proj/locations/us-central1/endpoints/openapi".to_string(),
+            api_key: "ya29.test".to_string(),
+            ..LLMSettings::default()
+        };
+        assert_eq!(
+            openai_chat_url(&vertex_settings),
+            "https://us-central1-aiplatform.googleapis.com/v1beta1/projects/my-proj/locations/us-central1/endpoints/openapi/chat/completions"
         );
     }
 }

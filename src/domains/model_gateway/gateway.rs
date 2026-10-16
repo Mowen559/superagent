@@ -100,7 +100,13 @@ pub async fn execute_model_request(
             continue;
         }
 
-        if attempt_settings.provider == "gemini_native"
+        let is_gemini_native = attempt_settings
+            .provider
+            .to_ascii_lowercase()
+            .replace([' ', '-'], "_")
+            == "gemini_native";
+
+        if is_gemini_native
             && attempt_settings
                 .project_id
                 .as_deref()
@@ -197,7 +203,7 @@ pub async fn execute_model_request(
             req_builder = req_builder.header(k, v);
         }
 
-        if attempt_settings.provider != "gemini_native" {
+        if !is_gemini_native {
             if let Some(project_id) = &attempt_settings.project_id {
                 req_builder = req_builder.header("x-goog-user-project", project_id);
             }
@@ -261,7 +267,7 @@ pub async fn execute_model_request(
                                 retry_req_builder = retry_req_builder.header(k, v);
                             }
                         }
-                        if attempt_settings.provider != "gemini_native" {
+                        if !is_gemini_native {
                             if let Some(project_id) = &attempt_settings.project_id {
                                 retry_req_builder =
                                     retry_req_builder.header("x-goog-user-project", project_id);

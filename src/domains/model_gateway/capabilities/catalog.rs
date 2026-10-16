@@ -38,16 +38,16 @@ pub(crate) enum CatalogAdapter {
 
 impl CatalogAdapter {
     pub(crate) fn for_account(account: &LLMAccount) -> Result<Self, CapabilityDiscoveryError> {
-        let provider = account.provider.to_ascii_lowercase();
-        if provider == "anthropic" || provider == "claude" {
+        let clean_provider = account.provider.to_ascii_lowercase().replace([' ', '-'], "_");
+        if clean_provider == "anthropic" || clean_provider == "claude" {
             Ok(Self::Anthropic)
-        } else if provider == "gemini" || provider == "google" {
-            Ok(Self::Gemini)
-        } else if provider == "gemini_native" {
+        } else if clean_provider == "gemini_native" || clean_provider == "google_gemini_native" {
             Err(CapabilityDiscoveryError::new(
                 CapabilityDiscoveryErrorKind::UnsupportedProvider,
                 "gemini_native does not expose an account-scoped catalog endpoint",
             ))
+        } else if clean_provider == "gemini" || clean_provider == "google" {
+            Ok(Self::Gemini)
         } else {
             Ok(Self::OpenAiCompatible)
         }
