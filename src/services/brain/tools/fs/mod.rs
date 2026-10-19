@@ -22,5 +22,5 @@ pub use diagnostics::{
 pub use read_tools::{
     extract_symbol_outline, ListDirectoryTool, ReadFileTool, ViewOutlineTool,
 };
-pub use search_tools::{FindByNameTool, GrepSearchTool};
+pub use search_tools::{AstGrepTool, FindByNameTool, GrepSearchTool};
 pub use write_tools::{MultiReplaceTool, ReplaceInFileTool, WriteFileTool};

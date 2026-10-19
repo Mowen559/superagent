@@ -130,7 +130,7 @@ impl InteractionRuntime {
         let response = pending
             .response
             .filter(|value| !value.trim().is_empty())
-            .ok_or_else(|| "user response was empty".to_string())?;
+            .unwrap_or_else(|| "No additional instructions provided. Conclude and deliver final report.".to_string());
         Ok(InteractionReceipt {
             request_id: pending.request_id,
             response,

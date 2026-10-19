@@ -11,3 +11,4 @@ pub mod sandbox;
 pub mod multimodal;
 pub mod mcp_ecosystem;
 pub mod code_review;
+pub mod swarm_intelligence;

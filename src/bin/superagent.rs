@@ -33,58 +33,15 @@ async fn main() {
     let persona = hub_rs::config::persona_settings::load_persona(&app_paths);
     let persona_section = persona.render_prompt_section();
 
-    let system_prompt = format!(
-        r#"{persona_section}
-
-# 器官解剖图 (Organ Anatomy & Tool Categories)
-你被赋予了完整的物理执行权限，请将以下工具视为你的“身体器官”，必须各司其职：
-1. 👁️ 感知中枢 (Sensory Organs):
-   - `list_dir`: 列出目录下的所有文件和文件夹。面对未知仓库（如 openclaw），**必须**先用它探索目录树！
-   - `view_file`: 读取本地文件。
-   - `search_graph`, `trace_path`: 通过 codebase-memory-mcp 调用图谱。
-2. 🧠 海马体记忆 (Memory System):
-   - `super_memory`: `store`/`retrieve` 用于长期持久化记录（如设计决策、全局状态），你的潜意识会自动加载它！
-3. 🦾 运动中枢 (Motor Organs):
-   - `write_to_file`: 修改本地文件。
-   - `replace_in_file`: 【推荐】精确替换特定代码块。严禁使用 Python 脚本替换源码！。
-   - `run_command`: 在主机的 Shell 环境中执行动作。对于启动服务器或长期阻塞的脚本，**务必**设置 `RunInBackground: true`。
-   - `manage_process`: 用于轮询后台进程日志、检查进程状态或安全终止后台任务（要求 dispose must reach complete settlement）。
-4. 🛡️ 防御与自愈 (Defense Reflexes):
-   - `code_review`: 借鉴 Alibaba OpenCodeReview 架构，五重门降噪过滤，捕获空指针/并发安全/资源泄漏/SQL注入等缺陷并给出结构化修改建议。
-   - **注意**：底层的 Rust 神经元已经在 `write_to_file` 和 `run_command` 上硬连线了“脊髓反射”。当你执行这些动作时，系统会自动在底层调用 `ShadowGit` 进行无感知快照备份！
-   - 你依然可以使用原生的 `shadow_git` 手动执行 `restore` 紧急回滚。
-5. 🧬 自举进化 (Evolution & Pluggable Organs):
-   - `reload_plugins`: 随时在内存中热插拔外部 Python/Node 脚本（Dynamic Tool）。
-   - `request_reload`: 核心源码修改后触发自编译重载。
-   - `harness_acp`: 跨进程统御 Node.js 的 Harness ACP 外骨骼。
-6. 👥 神经元分裂 (Subagent Division):
-   - `invoke_subagent`: 派发子智能体分身进行异步并行探索。
-   - `intervene_worker`: 在安全边界向分身追加纠偏指令；`cancel_subagent` 才会终止分身。
-
-# 功能边界与原生基建强制法则 (Boundaries & Core Directives)
-1. 专注于用户意图：始终围绕用户的核心需求执行，不可自行添加过度复杂或无关的功能（Precision over Scope）。
-2. 安全与破坏防范：在执行删除等高危命令前，必须经过反复确认。遇到错误时必须先阅读错误日志，结合编译器诊断修复，严禁盲目重复无效命令。
-3. 务实与诚实 (Pragmatic & Honest)：任务完成后必须如实反馈成功或失败的细节，不得掩盖失败。
-4. 【原生高能动性探索与精确重构】(Proactive Exploration & Precision Editing)：
-   - 你具备强大的图谱（`search_graph`）与文件级搜索能力（`list_dir`, `find_by_name`, `grep_search`）。在探索代码库时，灵活组合这些工具以极高效率定位关键逻辑。
-   - 【外科手术式修改】：代码修改必须优先使用 `replace_in_file` 或 `multi_replace_file_content` 进行精准替换，严禁全量覆写无需变动的大文件。
-   - 充分复用原生基建：RTK Token 压缩、Supermemory (超级记忆)、影子 Git 以及 LSP 编译器即时诊断。
-
-# 思维逻辑与执行策略 (Thinking & Logical Reasoning)
-在处理任何任务时，你必须遵循严格的逻辑推理循环：
-1. [Observation & Topography] 敏锐感知：先用工具探明代码结构、API 契约或运行测试，迅速建立代码上下文。
-2. [Reasoning] 深度推理：在内心拆解问题的本质，思考“为什么发生这种情况？”以及“为了达到目标，我需要跨越哪些障碍？”。
-3. [Planning] 制定计划：明确清晰的执行步骤。若发现某一步可能存在风险，需提前规划备用方案。
-4. [Execution & Diagnosis] 执行与诊断：执行工具后，务必仔细检查返回的结果与行级编译诊断（diagnostics）。如果失败，首先诊断错误根源并调整策略，而不是盲目重复。
-5. [Resilience & TDD] 韧性自愈与测试验证：编写或运行针对性单测验证修复，确保测试变绿后再交付。
-"#
+    let cwd_path = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let system_prompt = hub_rs::domains::agent_cognitive::prompt_composer::PromptComposer::compose(
+        &cwd_path,
+        Some(&persona_section),
     );
 
     let mut engine = AgentLoop::new(&system_prompt);
 
-
     // 初始化 Capability Providers (IoC 容器挂载)
-    let cwd_path = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
     let shell_provider = Arc::new(LocalShellProvider);
     engine.ctx.provide("shell_service", shell_provider.clone());
 
@@ -108,6 +65,9 @@ async fn main() {
     ));
     engine.register_tool(Box::new(
         hub_rs::services::brain::tools::fs::GrepSearchTool::new(cwd_path.clone()),
+    ));
+    engine.register_tool(Box::new(
+        hub_rs::services::brain::tools::fs::AstGrepTool::new(cwd_path.clone()),
     ));
     engine.register_tool(Box::new(RunCommandTool::new(
         shell_provider.clone(),
@@ -228,8 +188,19 @@ async fn main() {
     // 如果通过命令行传入了测试文件，直接解析并执行；否则进入 IPC 循环
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
+        let first_arg = args[1].as_str();
+        if first_arg == "--capabilities"
+            || first_arg == "capabilities"
+            || first_arg == "-c"
+            || first_arg == "--capabilities-json"
+        {
+            let as_json = first_arg == "--capabilities-json";
+            print_capabilities(&engine, as_json);
+            return;
+        }
+
+        engine.interaction_runtime.use_console();
         if args[1] == "chat" {
-            engine.interaction_runtime.use_console();
             eprintln!(
                 "\x1b[36m============================================================\x1b[0m"
             );
@@ -274,7 +245,13 @@ async fn main() {
                 .to_string(),
             Err(_) => file_content,
         };
-        match engine.run(&prompt_text).await {
+        let batch_prompt = format!(
+            "[Execution Directive: Single-Pass Batch Mode]\n\
+            Execute the following instructions thoroughly, verify the results, and deliver your comprehensive final summary directly without asking for follow-up guidance.\n\n\
+            {}",
+            prompt_text
+        );
+        match engine.run(&batch_prompt).await {
             Ok(res) => eprintln!("[Brain B] Result: {}", res),
             Err(e) => eprintln!("[Brain B] Error: {}", e),
         }
@@ -286,3 +263,89 @@ async fn main() {
 
     eprintln!("Worker loop exiting.");
 }
+
+fn print_capabilities(engine: &AgentLoop, as_json: bool) {
+    let tools_guard = engine.get_tools_ref();
+    let tools_map = tools_guard.lock().unwrap();
+
+    let mut tools_list: Vec<serde_json::Value> = Vec::new();
+    for (name, tool) in tools_map.iter() {
+        tools_list.push(serde_json::json!({
+            "name": name,
+            "description": tool.description(),
+            "parameters": tool.parameters_schema()
+        }));
+    }
+    tools_list.sort_by(|a, b| {
+        a["name"].as_str().unwrap_or("").cmp(b["name"].as_str().unwrap_or(""))
+    });
+
+    if as_json {
+        let output = serde_json::json!({
+            "agent": "MoZhi SuperAgent (Brain B)",
+            "dual_brain": {
+                "fast_brain": "Active (Token Compaction & Low Latency Turns)",
+                "slow_brain": "Active (Deep Reasoning & Escalation on Failure)",
+                "mid_flight_preemption": true
+            },
+            "tools_count": tools_list.len(),
+            "tools": tools_list,
+            "integrations": {
+                "ruflo_hive_mind": "Compatible via MCP & Subagent runtime",
+                "hermes_distillation": "Active",
+                "process_manager": "Active"
+            }
+        });
+        println!("{}", serde_json::to_string_pretty(&output).unwrap());
+        return;
+    }
+
+    println!("\x1b[36m================================================================================\x1b[0m");
+    println!("\x1b[1;36m       🚀 MoZhi SuperAgent Capability & Plugin Matrix (能力全景看板)\x1b[0m");
+    println!("\x1b[36m================================================================================\x1b[0m");
+    println!("\x1b[1;33m[1. Cognitive Architecture / 认知双脑架构]\x1b[0m");
+    println!("  • Dual-Brain Engine: Fast Brain (Low latency / Triage) + Slow Brain (Deep Reasoning)");
+    println!("  • Context Compression: RTK Compactor + Mid-flight Preemption Guard");
+    println!("  • Session Event Ledger: Strong-typed event sourcing & auto-repair");
+    println!("  • Composable Prompt: Modular XML with zero-compile workspace rule hot-reload");
+    println!();
+    println!("\x1b[1;32m[2. Registered Tool Arsenal / 工具军火库] (Total: {} registered tools)\x1b[0m", tools_list.len());
+
+    let categories = [
+        ("📁 File System & AST", vec!["read_file", "write_file", "replace_in_file", "multi_replace_file_content", "view_outline", "ast_grep"]),
+        ("⚡ Terminal & Process Guard", vec!["run_command", "manage_process", "shadow_git"]),
+        ("🐝 Subagent Swarm & Hive-Mind", vec!["invoke_subagent", "check_worker_status", "intervene_worker", "cancel_subagent"]),
+        ("🔍 Code Intelligence & LSP", vec!["search_graph", "lsp_client", "repo_map_tool", "impact_radar", "code_review"]),
+        ("🧠 Cognitive & Self-Evolution", vec!["manage_task", "ask_user", "super_memory", "verify_task", "run_benchmark", "synthesize_tool", "request_reload"]),
+        ("🧩 Dynamic Plugins & Extensions", vec!["reload_plugins", "mcp_client"]),
+    ];
+
+    let mut categorized_names = std::collections::HashSet::new();
+    for (cat_name, tool_names) in &categories {
+        println!("  \x1b[1m{}\x1b[0m:", cat_name);
+        for tname in tool_names {
+            if let Some(tool) = tools_map.get(*tname) {
+                categorized_names.insert((*tname).to_string());
+                println!("    • \x1b[32m{:26}\x1b[0m - {}", tname, tool.description());
+            }
+        }
+    }
+
+    let remaining: Vec<_> = tools_map.keys().filter(|k| !categorized_names.contains(*k)).collect();
+    if !remaining.is_empty() {
+        println!("  \x1b[1m🔌 Dynamic Plugins & MCP Tools (动态扩展)\x1b[0m:");
+        for tname in remaining {
+            if let Some(tool) = tools_map.get(tname) {
+                println!("    • \x1b[35m{:26}\x1b[0m - {}", tname, tool.description());
+            }
+        }
+    }
+
+    println!();
+    println!("\x1b[1;35m[3. External Integration & Swarm Readiness / 蜂群与外部协同]\x1b[0m");
+    println!("  • RuFlo Hive-Mind / Swarm Workflow: Fully compatible (via MCP & Subagent runtime)");
+    println!("  • Rule Hot-Reload: Automatically loads .superagentrules / AGENTS.md / .clinerules");
+    println!("  • Shell Guard: Windows PowerShell alias auto-sanitization enabled");
+    println!("\x1b[36m================================================================================\x1b[0m");
+}
+

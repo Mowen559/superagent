@@ -95,22 +95,61 @@ impl ToolExecutor for ReadFileTool {
 
         match fs::read_to_string(&resolved_path) {
             Ok(full_content) => {
-                let mut content = full_content.clone();
-                let mut is_paginated = false;
-                if start_line.is_some() || end_line.is_some() {
-                    let lines: Vec<&str> = full_content.lines().collect();
-                    let start_idx = start_line.unwrap_or(1).saturating_sub(1);
-                    let end_idx = end_line.unwrap_or(lines.len()).min(lines.len());
-                    if start_idx < lines.len() && start_idx < end_idx {
-                        content = lines[start_idx..end_idx].join("\n");
-                        is_paginated = true;
+                let all_lines: Vec<&str> = full_content.lines().collect();
+                let total_lines = all_lines.len();
+
+                let (start_idx, end_idx, is_truncated) = match (start_line, end_line) {
+                    (Some(s), Some(e)) => {
+                        let start = s.saturating_sub(1);
+                        let end = e.min(total_lines);
+                        (start, end, false)
                     }
+                    (Some(s), None) => {
+                        let start = s.saturating_sub(1);
+                        let end = (start + 400).min(total_lines);
+                        (start, end, end < total_lines)
+                    }
+                    (None, Some(e)) => {
+                        let end = e.min(total_lines);
+                        (0, end, false)
+                    }
+                    (None, None) => {
+                        if total_lines > 400 {
+                            (0, 400, true)
+                        } else {
+                            (0, total_lines, false)
+                        }
+                    }
+                };
+
+                let slice_lines = if start_idx < total_lines && start_idx < end_idx {
+                    &all_lines[start_idx..end_idx]
+                } else {
+                    &all_lines[..0]
+                };
+
+                let mut numbered_content = String::new();
+                for (offset, line) in slice_lines.iter().enumerate() {
+                    let line_no = start_idx + offset + 1;
+                    numbered_content.push_str(&format!("{}: {}\n", line_no, line));
                 }
 
+                if is_truncated {
+                    numbered_content.push_str(&format!(
+                        "\n[NOTE: File has {} total lines. Showing lines {}-{} (truncated for token efficiency). Specify start_line: {}, end_line: {} to view the next chunk.]",
+                        total_lines,
+                        start_idx + 1,
+                        end_idx,
+                        end_idx + 1,
+                        (end_idx + 400).min(total_lines)
+                    ));
+                }
+
+                let mut content = numbered_content;
                 let mut rtk_metrics = json!({});
                 if filter_level != crate::domains::token_compression::FilterLevel::None {
                     let comp =
-                        crate::domains::token_compression::compress(&content, path_str, filter_level);
+                        crate::domains::token_compression::compress(&full_content, path_str, filter_level);
                     crate::domains::token_compression::TokenSavingsTracker::global()
                         .record_savings(&comp);
                     content = comp.content;
@@ -123,7 +162,10 @@ impl ToolExecutor for ReadFileTool {
 
                 Ok(json!({
                     "content": content,
-                    "paginated": is_paginated,
+                    "total_lines": total_lines,
+                    "start_line": start_idx + 1,
+                    "end_line": end_idx,
+                    "truncated": is_truncated,
                     "bytes": content.len(),
                     "file_path": resolved_path.to_string_lossy().to_string(),
                     "rtk_metrics": rtk_metrics

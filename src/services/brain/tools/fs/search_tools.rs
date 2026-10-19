@@ -152,3 +152,104 @@ impl ToolExecutor for GrepSearchTool {
         Ok(json!({ "matches": results }))
     }
 }
+
+/// AST 级别结构化代码搜索与模式重写工具 (Powered by ast-grep)
+pub struct AstGrepTool {
+    pub workspace_root: PathBuf,
+}
+
+impl AstGrepTool {
+    pub fn new(workspace_root: PathBuf) -> Self {
+        Self { workspace_root }
+    }
+}
+
+impl ToolExecutor for AstGrepTool {
+    fn name(&self) -> &'static str {
+        "ast_grep"
+    }
+
+    fn description(&self) -> &'static str {
+        "Perform AST-level structural code search or rewriting using ast-grep patterns. Tolerates whitespace/newline variations. Use $VAR for single nodes and $$$VARS for multiple statements/parameters."
+    }
+
+    fn parameters_schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "pattern": { "type": "string", "description": "The AST pattern to search for (e.g. 'fn $NAME($$$ARGS) -> Result<$T> { $$$BODY }')" },
+                "rewrite": { "type": "string", "description": "Optional rewrite replacement pattern (e.g. 'fn $NAME($$$ARGS) -> Result<$T, AppError> { $$$BODY }')" },
+                "path": { "type": "string", "description": "Target file or directory path relative to workspace or absolute." },
+                "language": { "type": "string", "description": "Optional language selector: rust, typescript, python, javascript, etc." }
+            },
+            "required": ["pattern"]
+        })
+    }
+
+    fn execute(&self, args: Value) -> Result<Value, String> {
+        let pattern = args
+            .get("pattern")
+            .and_then(|v| v.as_str())
+            .ok_or("Missing pattern")?;
+        let rewrite = args.get("rewrite").and_then(|v| v.as_str());
+        let path_str = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .unwrap_or(".");
+        let language = args.get("language").and_then(|v| v.as_str());
+
+        let target_path = resolve_safe_path(path_str, &self.workspace_root)?;
+        if !target_path.exists() {
+            return Err(format!("Target path '{}' does not exist", path_str));
+        }
+
+        let mut cmd = std::process::Command::new("ast-grep");
+        cmd.arg("run");
+        cmd.arg("--pattern").arg(pattern);
+
+        if let Some(rw) = rewrite {
+            super::diagnostics::record_shadow_backup(&self.workspace_root, &target_path, "ast_grep_rewrite");
+            cmd.arg("--rewrite").arg(rw);
+            cmd.arg("--update-all");
+        } else {
+            cmd.arg("--json=stream");
+        }
+
+        if let Some(lang) = language {
+            cmd.arg("--lang").arg(lang);
+        }
+
+        cmd.arg(target_path.to_string_lossy().to_string());
+        cmd.current_dir(&self.workspace_root);
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+
+        let output = cmd.output().map_err(|e| format!("Failed to execute ast-grep: {}. Make sure ast-grep is on PATH.", e))?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        if rewrite.is_some() {
+            Ok(json!({
+                "status": "success",
+                "mode": "rewrite",
+                "message": format!("AST rewrite executed successfully on '{}'", target_path.display()),
+                "output": stdout.trim()
+            }))
+        } else {
+            let mut matches = Vec::new();
+            for line in stdout.lines() {
+                if let Ok(item) = serde_json::from_str::<Value>(line) {
+                    matches.push(item);
+                }
+            }
+            if matches.is_empty() && !stdout.trim().is_empty() {
+                Ok(json!({ "matches_raw": stdout.trim(), "status": "success" }))
+            } else {
+                Ok(json!({ "matches": matches, "count": matches.len(), "status": "success" }))
+            }
+        }
+    }
+}

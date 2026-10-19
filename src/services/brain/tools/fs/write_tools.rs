@@ -83,6 +83,26 @@ impl ToolExecutor for WriteFileTool {
                 if let Some(adv_text) = format_arch_advisories(&path, code_content) {
                     message.push_str(&adv_text);
                 }
+
+                let has_compiler_errors = diagnostics
+                    .iter()
+                    .any(|d| d.get("severity").and_then(|s| s.as_str()) == Some("error"));
+                if has_compiler_errors {
+                    let error_summaries: Vec<String> = diagnostics
+                        .iter()
+                        .filter(|d| d.get("severity").and_then(|s| s.as_str()) == Some("error"))
+                        .map(|d| {
+                            let line = d.get("line").and_then(|l| l.as_u64()).unwrap_or(0);
+                            let m = d.get("message").and_then(|m| m.as_str()).unwrap_or("syntax error");
+                            format!("- Line {}: {}", line, m)
+                        })
+                        .collect();
+                    message.push_str(&format!(
+                        "\n\n⚠️ [CRITICAL COMPILER/SYNTAX ERROR DETECTED]: The file contains syntax/compilation errors after writing!\n{}\nAction required: You must IMMEDIATELY fix these errors before declaring the task finished!",
+                        error_summaries.join("\n")
+                    ));
+                }
+
                 Ok(json!({
                     "status": "success",
                     "message": message,
@@ -165,7 +185,30 @@ impl ToolExecutor for ReplaceInFileTool {
                 (search_text.to_string(), String::new())
             }
         } else {
-            return Err("Search text not found in the file even after fuzzy anchor repair. Please check surrounding code.".into());
+            let hint_msg = if let Some(candidate) =
+                crate::domains::version_control::diff_relocation::AnchorAligner::find_closest_candidate(
+                    &content,
+                    search_text,
+                ) {
+                format!(
+                    "Search text not found in '{}'.\n\
+                    [SWE-agent Actionable Hint]: A near-matching code block was located at lines {}-{}:\n\
+                    --------------------------------------------------\n\
+                    {}\n\
+                    --------------------------------------------------\n\
+                    Guidance: Please inspect the actual lines above. Use `view_file` to verify line numbers or adjust your `search_text` to match the exact code shown above.",
+                    path.display(),
+                    candidate.start_line,
+                    candidate.end_line,
+                    candidate.snippet
+                )
+            } else {
+                format!(
+                    "Search text not found in '{}'. Please call `view_file` to read the current file content before attempting replacement.",
+                    path.display()
+                )
+            };
+            return Err(hint_msg);
         };
 
         record_shadow_backup(&self.workspace_root, &path, "replace_in_file");
@@ -180,6 +223,26 @@ impl ToolExecutor for ReplaceInFileTool {
         if let Some(adv_text) = format_arch_advisories(&path, &content) {
             msg.push_str(&adv_text);
         }
+
+        let has_compiler_errors = diagnostics
+            .iter()
+            .any(|d| d.get("severity").and_then(|s| s.as_str()) == Some("error"));
+        if has_compiler_errors {
+            let error_summaries: Vec<String> = diagnostics
+                .iter()
+                .filter(|d| d.get("severity").and_then(|s| s.as_str()) == Some("error"))
+                .map(|d| {
+                    let line = d.get("line").and_then(|l| l.as_u64()).unwrap_or(0);
+                    let m = d.get("message").and_then(|m| m.as_str()).unwrap_or("syntax error");
+                    format!("- Line {}: {}", line, m)
+                })
+                .collect();
+            msg.push_str(&format!(
+                "\n\n⚠️ [CRITICAL COMPILER/SYNTAX ERROR DETECTED]: The file contains syntax/compilation errors after this edit!\n{}\nAction required: You must IMMEDIATELY fix these errors before declaring the task finished!",
+                error_summaries.join("\n")
+            ));
+        }
+
         let mut res = json!({
             "success": true,
             "message": msg,

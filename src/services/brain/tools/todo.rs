@@ -44,15 +44,24 @@ impl ToolExecutor for ManageTaskTool {
     fn execute(&self, args: Value) -> Result<Value, String> {
         let action = args
             .get("Action")
+            .or_else(|| args.get("action"))
+            .or_else(|| args.get("operation"))
             .and_then(|v| v.as_str())
-            .unwrap_or("read");
-        let content = args.get("Content").and_then(|v| v.as_str()).unwrap_or("");
+            .unwrap_or("read")
+            .to_ascii_lowercase();
+
+        let content = args
+            .get("Content")
+            .or_else(|| args.get("content"))
+            .or_else(|| args.get("text"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
 
         let file_path = std::env::current_dir()
             .unwrap_or_default()
             .join(".superagent_todo.md");
 
-        match action {
+        match action.as_str() {
             "read" => {
                 let current = fs::read_to_string(&file_path)
                     .unwrap_or_else(|_| "No todo list found. Start by writing one.".to_string());
@@ -61,7 +70,16 @@ impl ToolExecutor for ManageTaskTool {
             "write" => {
                 fs::write(&file_path, content)
                     .map_err(|e| format!("Failed to write todo list: {}", e))?;
-                Ok(json!({ "status": "success", "message": "Todo list updated." }))
+                let has_unfinished = content.lines().any(|l| {
+                    let t = l.trim();
+                    t.starts_with("- [ ]") || t.starts_with("* [ ]") || t.contains("[in_progress]") || t.contains("[pending]")
+                });
+                let message = if !has_unfinished && !content.trim().is_empty() {
+                    "All tasks marked as completed. You may now conclude the turn and present the final summary to the user. Do NOT call manage_task again."
+                } else {
+                    "Todo list updated."
+                };
+                Ok(json!({ "status": "success", "message": message }))
             }
             "append" => {
                 use std::io::Write;
@@ -75,6 +93,12 @@ impl ToolExecutor for ManageTaskTool {
                     .map_err(|e| format!("Failed to append to todo list: {}", e))?;
 
                 Ok(json!({ "status": "success", "message": "Content appended to todo list." }))
+            }
+            "clear" | "reset" => {
+                if file_path.exists() {
+                    let _ = fs::remove_file(&file_path);
+                }
+                Ok(json!({ "status": "success", "message": "Todo list cleared. Checklist is now empty." }))
             }
             _ => Err(format!("Unknown action: {}", action)),
         }

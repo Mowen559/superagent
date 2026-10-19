@@ -10,3 +10,4 @@ pub mod executor;
 pub mod event_projection;
 
 pub mod tdd_evaluator;
+pub mod prompt_composer;

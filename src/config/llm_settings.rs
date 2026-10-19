@@ -169,7 +169,7 @@ impl Default for LLMSettings {
             base_url: "http://127.0.0.1:8045".into(),
             api_key: std::env::var("DEEPCLOUD_API_KEY").unwrap_or_default(),
             project_id: None,
-            model: "gemini-3-flash".into(),
+            model: "claude-sonnet-4-6".into(),
             fast_model: None,
             temperature: 0.2,
             max_tokens: 16000,

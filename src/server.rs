@@ -215,6 +215,7 @@ fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::mcp::router())
         .merge(routes::stats::router())
         .merge(routes::openapi::router())
+        .merge(routes::ruflo_adapter::router())
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state)

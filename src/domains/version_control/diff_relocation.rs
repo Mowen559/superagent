@@ -102,10 +102,76 @@ pub struct AlignmentResult {
     pub confidence: f32,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClosestCandidate {
+    pub start_line: usize,
+    pub end_line: usize,
+    pub snippet: String,
+    pub similarity: f32,
+}
+
 /// 弹性锚点对齐器：解决大模型输出代码块时的缩进微差、换行符差异和轻度漂移
 pub struct AnchorAligner;
 
 impl AnchorAligner {
+    /// 寻找文件中与 needle 最相似的代码块候选（供 SWE-agent 风格的诊断引导使用）
+    pub fn find_closest_candidate(haystack: &str, needle: &str) -> Option<ClosestCandidate> {
+        let needle_lines: Vec<&str> = needle.lines().map(str::trim).filter(|s| !s.is_empty()).collect();
+        if needle_lines.is_empty() {
+            return None;
+        }
+
+        let haystack_lines: Vec<&str> = haystack.lines().collect();
+        if haystack_lines.is_empty() {
+            return None;
+        }
+
+        let n_len = needle_lines.len().min(haystack_lines.len());
+        let mut best: Option<(usize, usize, f32)> = None;
+
+        for i in 0..=(haystack_lines.len().saturating_sub(n_len)) {
+            let mut match_score = 0.0f32;
+            for j in 0..n_len {
+                let h_trim = haystack_lines[i + j].trim();
+                let n_trim = needle_lines[j];
+                if h_trim == n_trim {
+                    match_score += 1.0;
+                } else if !h_trim.is_empty() && !n_trim.is_empty() {
+                    if h_trim.contains(n_trim) || n_trim.contains(h_trim) {
+                        match_score += 0.8;
+                    } else {
+                        let sim = simple_token_similarity(h_trim, n_trim);
+                        match_score += sim;
+                    }
+                }
+            }
+
+            let avg_sim = match_score / (n_len as f32);
+            if avg_sim > 0.15 {
+                match best {
+                    None => best = Some((i, i + n_len, avg_sim)),
+                    Some((_, _, prev_sim)) => {
+                        if avg_sim > prev_sim {
+                            best = Some((i, i + n_len, avg_sim));
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some((start_line_idx, end_line_idx, sim)) = best {
+            let snippet = haystack_lines[start_line_idx..end_line_idx].join("\n");
+            return Some(ClosestCandidate {
+                start_line: start_line_idx + 1,
+                end_line: end_line_idx,
+                snippet,
+                similarity: sim,
+            });
+        }
+
+        None
+    }
+
     /// 在 haystack 中搜索 needle，如果精确匹配失败，则使用降级容错算法定位唯一的对应代码块
     pub fn align(haystack: &str, needle: &str) -> Option<AlignmentResult> {
         if needle.is_empty() {
@@ -281,6 +347,25 @@ fn simple_jaccard_similarity(a: &str, b: &str) -> f32 {
     }
 }
 
+/// Token 级别的代码相似度（按词切分，精准比对变量名和符号）
+fn simple_token_similarity(a: &str, b: &str) -> f32 {
+    let tokens_a: std::collections::HashSet<&str> = a
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .filter(|t| !t.is_empty())
+        .collect();
+    let tokens_b: std::collections::HashSet<&str> = b
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .filter(|t| !t.is_empty())
+        .collect();
+    let intersection = tokens_a.intersection(&tokens_b).count();
+    let union = tokens_a.union(&tokens_b).count();
+    if union == 0 {
+        1.0
+    } else {
+        intersection as f32 / union as f32
+    }
+}
+
 fn map_normalized_index_to_original(haystack: &str, norm_target_idx: usize) -> Option<usize> {
     let mut norm_count = 0;
     let mut orig_idx = 0;
@@ -390,5 +475,15 @@ mod tests {
         assert!(res.repaired);
         assert_eq!(res.repair_strategy, "line_trimmed_unique");
         assert!(res.matched_text.contains("def execute():"));
+    }
+
+    #[test]
+    fn anchor_aligner_closest_candidate_hint() {
+        let content = "line 1\nline 2: fn process_order(id: u64) -> Result<()> {\nline 3:     let valid = true;\nline 4: }\nline 5\n";
+        // LLM hallucinated slightly different signature
+        let search = "fn process_order(order_id: u64) {\n    let valid = true;\n}";
+        let candidate = AnchorAligner::find_closest_candidate(content, search).expect("should find closest candidate");
+        assert!(candidate.snippet.contains("process_order"));
+        assert!(candidate.start_line >= 2);
     }
 }
