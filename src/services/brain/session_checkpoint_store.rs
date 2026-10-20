@@ -56,6 +56,8 @@ pub struct SessionCheckpointRecord {
     pub current_step: usize,
     pub total_steps: usize,
     pub step_description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context_snapshot: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -108,7 +110,7 @@ impl SessionCheckpointStore {
         Ok(())
     }
 
-    /// 获取特定会话的断点记录
+    /// 获取特定会话的断点记录（包含完整上下文快照）
     pub fn get_checkpoint(session_id: &str) -> Result<Option<SessionCheckpointRecord>, String> {
         init_checkpoint_db();
         let db_path = get_checkpoint_db_path();
@@ -116,7 +118,7 @@ impl SessionCheckpointStore {
             .map_err(|e| format!("Failed to open checkpoints.db: {}", e))?;
 
         let mut stmt = conn.prepare(
-            "SELECT session_id, goal, status, current_step, total_steps, step_description, created_at, updated_at
+            "SELECT session_id, goal, status, current_step, total_steps, step_description, context_snapshot, created_at, updated_at
              FROM session_checkpoints WHERE session_id = ?1"
         ).map_err(|e| e.to_string())?;
 
@@ -130,15 +132,16 @@ impl SessionCheckpointStore {
                 current_step: row.get::<_, i64>(3).unwrap_or(0).max(0) as usize,
                 total_steps: row.get::<_, i64>(4).unwrap_or(0).max(0) as usize,
                 step_description: row.get(5).unwrap_or_default(),
-                created_at: row.get(6).unwrap_or_default(),
-                updated_at: row.get(7).unwrap_or_default(),
+                context_snapshot: row.get(6).ok(),
+                created_at: row.get(7).unwrap_or_default(),
+                updated_at: row.get(8).unwrap_or_default(),
             }))
         } else {
             Ok(None)
         }
     }
 
-    /// 列出所有会话快照（按更新时间降序）
+    /// 列出所有会话快照（按更新时间降序，不包含庞大的 context_snapshot 以保证轻量）
     pub fn list_checkpoints(limit: usize) -> Result<Vec<SessionCheckpointRecord>, String> {
         init_checkpoint_db();
         let db_path = get_checkpoint_db_path();
@@ -160,6 +163,7 @@ impl SessionCheckpointStore {
                 current_step: row.get::<_, i64>(3)?.max(0) as usize,
                 total_steps: row.get::<_, i64>(4)?.max(0) as usize,
                 step_description: row.get(5)?,
+                context_snapshot: None,
                 created_at: row.get(6)?,
                 updated_at: row.get(7)?,
             })
@@ -185,6 +189,26 @@ impl SessionCheckpointStore {
         Ok(None)
     }
 
+    /// 唤醒并恢复断点会话，将状态更新为 in_progress
+    pub fn resume_checkpoint(session_id: &str) -> Result<SessionCheckpointRecord, String> {
+        init_checkpoint_db();
+        let db_path = get_checkpoint_db_path();
+        let conn = Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_WRITE)
+            .map_err(|e| format!("Failed to open checkpoints.db: {}", e))?;
+
+        let now = Utc::now().to_rfc3339();
+        let rows_affected = conn.execute(
+            "UPDATE session_checkpoints SET status = 'in_progress', updated_at = ?1 WHERE session_id = ?2",
+            rusqlite::params![now, session_id],
+        ).map_err(|e| e.to_string())?;
+
+        if rows_affected == 0 {
+            return Err(format!("Session {} not found", session_id));
+        }
+
+        Self::get_checkpoint(session_id)?.ok_or_else(|| format!("Session {} disappeared", session_id))
+    }
+
     /// 标记会话已圆满完成
     pub fn mark_completed(session_id: &str) -> Result<(), String> {
         init_checkpoint_db();
@@ -196,6 +220,21 @@ impl SessionCheckpointStore {
         conn.execute(
             "UPDATE session_checkpoints SET status = 'completed', updated_at = ?1 WHERE session_id = ?2",
             rusqlite::params![now, session_id],
+        ).map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    /// 删除特定会话快照
+    pub fn delete_checkpoint(session_id: &str) -> Result<(), String> {
+        init_checkpoint_db();
+        let db_path = get_checkpoint_db_path();
+        let conn = Connection::open_with_flags(&db_path, OpenFlags::SQLITE_OPEN_READ_WRITE)
+            .map_err(|e| format!("Failed to open checkpoints.db: {}", e))?;
+
+        conn.execute(
+            "DELETE FROM session_checkpoints WHERE session_id = ?1",
+            rusqlite::params![session_id],
         ).map_err(|e| e.to_string())?;
 
         Ok(())
@@ -214,7 +253,7 @@ mod tests {
         let res = SessionCheckpointStore::save_checkpoint(
             &test_session_id,
             "逆向目标网页并抓取海阔视界规则",
-            "in_progress",
+            "interrupted",
             2,
             5,
             "正在使用 spider_runner 运行本地沙箱测试",
@@ -229,13 +268,24 @@ mod tests {
         assert_eq!(rec.session_id, test_session_id);
         assert_eq!(rec.current_step, 2);
         assert_eq!(rec.total_steps, 5);
-        assert_eq!(rec.status, "in_progress");
+        assert_eq!(rec.status, "interrupted");
+        assert_eq!(rec.context_snapshot, Some("{\"state\": \"ok\"}".to_string()));
 
-        // 3. 标记完成
+        // 3. 一键断点续跑 (Resume)
+        let resumed = SessionCheckpointStore::resume_checkpoint(&test_session_id).unwrap();
+        assert_eq!(resumed.status, "in_progress");
+
+        // 4. 标记完成
         let comp_res = SessionCheckpointStore::mark_completed(&test_session_id);
         assert!(comp_res.is_ok());
 
         let finished = SessionCheckpointStore::get_checkpoint(&test_session_id).unwrap().unwrap();
         assert_eq!(finished.status, "completed");
+
+        // 5. 删除快照
+        let del_res = SessionCheckpointStore::delete_checkpoint(&test_session_id);
+        assert!(del_res.is_ok());
+        let after_del = SessionCheckpointStore::get_checkpoint(&test_session_id).unwrap();
+        assert!(after_del.is_none());
     }
 }

@@ -1,11 +1,13 @@
 use crate::AppState;
+use crate::services::brain::session_checkpoint_store::SessionCheckpointStore;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{
-    extract::{Path, State},
-    routing::{get, post},
+    extract::{Path, Query, State},
+    routing::{delete, get, post},
     Json, Router,
 };
+use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -23,6 +25,90 @@ pub fn router() -> Router<Arc<AppState>> {
             get(get_task_events_list),
         )
         .route("/api/tasks/{task_id}/cancel", post(cancel_task))
+        // 智能体断点快照与端点续跑 (Session Checkpoints & Resume)
+        .route("/api/agent/sessions", get(list_agent_sessions))
+        .route("/api/agent/sessions/last-interrupted", get(get_last_interrupted_session))
+        .route("/api/agent/sessions/{session_id}", get(get_agent_session))
+        .route("/api/agent/sessions/{session_id}/resume", post(resume_agent_session))
+        .route("/api/agent/sessions/{session_id}/complete", post(complete_agent_session))
+        .route("/api/agent/sessions/{session_id}", delete(delete_agent_session))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ListSessionsQuery {
+    pub limit: Option<usize>,
+}
+
+async fn list_agent_sessions(Query(query): Query<ListSessionsQuery>) -> Response {
+    let limit = query.limit.unwrap_or(50);
+    match SessionCheckpointStore::list_checkpoints(limit) {
+        Ok(sessions) => Json(json!({ "sessions": sessions })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+async fn get_last_interrupted_session() -> Response {
+    match SessionCheckpointStore::get_last_interrupted_session() {
+        Ok(session) => Json(json!({ "session": session })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+async fn get_agent_session(Path(session_id): Path<String>) -> Response {
+    match SessionCheckpointStore::get_checkpoint(&session_id) {
+        Ok(Some(session)) => Json(json!({ "session": session })).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "Session checkpoint not found" })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+async fn resume_agent_session(Path(session_id): Path<String>) -> Response {
+    match SessionCheckpointStore::resume_checkpoint(&session_id) {
+        Ok(session) => Json(json!({ "resumed": true, "session": session })).into_response(),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+async fn complete_agent_session(Path(session_id): Path<String>) -> Response {
+    match SessionCheckpointStore::mark_completed(&session_id) {
+        Ok(()) => Json(json!({ "completed": true, "sessionId": session_id })).into_response(),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
+}
+
+async fn delete_agent_session(Path(session_id): Path<String>) -> Response {
+    match SessionCheckpointStore::delete_checkpoint(&session_id) {
+        Ok(()) => Json(json!({ "deleted": true, "sessionId": session_id })).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e })),
+        )
+            .into_response(),
+    }
 }
 
 async fn list_tasks(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
