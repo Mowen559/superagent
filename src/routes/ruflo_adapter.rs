@@ -246,10 +246,15 @@ async fn list_agents(State(_state): State<Arc<AppState>>) -> Json<serde_json::Va
                 SwarmRole::Tester => "tester",
                 SwarmRole::Custom(s) => s.as_str(),
             };
+            let settings = crate::config::llm_settings::read_llm_settings();
+            let effective_model = n.model_override.clone().unwrap_or_else(|| {
+                settings.resolved_role_model(role_str)
+            });
             json!({
                 "id": n.id,
                 "name": n.name,
                 "type": role_str,
+                "model": effective_model,
                 "status": n.status,
                 "load": n.load,
                 "capabilities": n.capabilities,
@@ -266,6 +271,7 @@ struct SpawnAgentPayload {
     #[serde(rename = "type")]
     agent_type: String,
     name: String,
+    model: Option<String>,
     capabilities: Option<Vec<String>>,
 }
 
@@ -292,6 +298,7 @@ async fn spawn_agent(
         capabilities: payload.capabilities.unwrap_or_else(|| vec!["autonomous_worker".into()]),
         load: 0.0,
         last_active: chrono::Utc::now(),
+        model_override: payload.model.clone(),
     };
     mgr.register_node(node);
 

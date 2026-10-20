@@ -687,7 +687,33 @@ impl AgentLoop {
             }
 
             // 5. 解析 LLM 回复，发射工具调用事件
-            if let Some(tool_calls) = llm_message.get("tool_calls").and_then(|v| v.as_array()) {
+            // 5. 解析 LLM 回复（结合小模型脏 JSON 自愈与内嵌工具提取器）
+            let raw_tool_calls_opt = llm_message.get("tool_calls").and_then(|v| v.as_array());
+            let synthesized_calls: Vec<Value> = if raw_tool_calls_opt.is_none() || raw_tool_calls_opt.map(|a| a.is_empty()).unwrap_or(true) {
+                // 如果模型没有发射原生 tool_calls，尝试从小模型文本 content 中嗅探内嵌工具
+                if let Some(content_str) = llm_message.get("content").and_then(|v| v.as_str()) {
+                    if let Some((tool_name, tool_args)) = super::fuzzy_json_repair::FuzzyJsonRepair::extract_embedded_tool_call(content_str) {
+                        eprintln!("\x1b[36;1m[FuzzyRepair] ⚡ 从开源小模型正文中成功捕获内嵌工具调用: '{}'\x1b[0m", tool_name);
+                        vec![json!({
+                            "id": format!("call_fuzzy_{}", &uuid::Uuid::new_v4().to_string().replace('-', "")[..8]),
+                            "type": "function",
+                            "function": {
+                                "name": tool_name,
+                                "arguments": serde_json::to_string(&tool_args).unwrap_or_default()
+                            }
+                        })]
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    Vec::new()
+                }
+            } else {
+                raw_tool_calls_opt.cloned().unwrap_or_default()
+            };
+
+            if !synthesized_calls.is_empty() {
+                let tool_calls = &synthesized_calls;
                 struct ParsedCall {
                     call_id: String,
                     func_name: String,
@@ -699,7 +725,7 @@ impl AgentLoop {
                 for call in tool_calls {
                     let func_name = call["function"]["name"].as_str().unwrap_or("").to_string();
                     let args_str = call["function"]["arguments"].as_str().unwrap_or("{}");
-                    let args: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
+                    let args: Value = super::fuzzy_json_repair::FuzzyJsonRepair::parse_or_repair(args_str).unwrap_or(json!({}));
                     let call_id = call["id"].as_str().unwrap_or("").to_string();
                     let is_read_only = is_read_only_tool(&func_name);
 
@@ -777,6 +803,9 @@ impl AgentLoop {
                                 );
                                 cognition.observe_tool(receipt.status, receipt.risk);
                                 let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
+                                let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
+                                cognition.observe_tool_execution_details(&receipt.name, None, is_succeeded, &output_str);
+                                let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
                                 let stuck_state = self.stuck_detector.record_call(&receipt.name, "{}", is_succeeded);
                                 if let crate::domains::agent_cognitive::stuck_detector::StuckState::StuckDetected { reason, suggested_action } = stuck_state {
                                     let reflection_prompt = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::build_stuck_reflection_prompt(
@@ -816,6 +845,7 @@ impl AgentLoop {
                             }
 
                             let args_str = serde_json::to_string(&item.args).unwrap_or_default();
+                            let cmd_arg = item.args.get("command").or_else(|| item.args.get("cmd")).and_then(|v| v.as_str()).map(|s| s.to_string());
                             let req = ToolExecutionRequest {
                                 call_id: item.call_id.clone(),
                                 name: item.func_name.clone(),
@@ -835,6 +865,9 @@ impl AgentLoop {
                                 receipt.name, receipt.status, receipt.duration_ms
                             );
                             cognition.observe_tool(receipt.status, receipt.risk);
+                            let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
+                            let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
+                            cognition.observe_tool_execution_details(&receipt.name, cmd_arg, is_succeeded, &output_str);
                             let tool_result = receipt.result;
 
                             self.push_event(SessionEvent::ToolResult {

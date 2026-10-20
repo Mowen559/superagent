@@ -1,5 +1,6 @@
 use crate::services::brain::evolution_memory::{DistilledLesson, EvolutionReport};
 use crate::domains::agent_cognitive::intent::{ActionGoal, DynamicIntent, DynamicIntentEngine};
+use crate::domains::agent_cognitive::verification_gate::{GateDecision, VerificationGateGuard, VerificationPolicy};
 use crate::services::brain::run_plan::RunPlan;
 pub use crate::services::brain::run_plan::TaskKind;
 use crate::services::brain::tool_execution_gateway::ToolExecutionStatus;
@@ -58,6 +59,7 @@ pub struct CognitiveRuntime {
     learned_guidance: Vec<String>,
     anchor_constraints: Vec<String>,
     distilled_lessons: Vec<DistilledLesson>,
+    pub verification_gate: VerificationGateGuard,
 }
 
 impl CognitiveRuntime {
@@ -114,6 +116,14 @@ impl CognitiveRuntime {
             learned_guidance: Vec::new(),
             anchor_constraints: default_anchors,
             distilled_lessons: Vec::new(),
+            verification_gate: VerificationGateGuard::new(
+                if task_kind == TaskKind::Conversational {
+                    VerificationPolicy::Permissive
+                } else {
+                    VerificationPolicy::Strict
+                },
+                3,
+            ),
         }
     }
 
@@ -275,6 +285,10 @@ impl CognitiveRuntime {
         self.tool_calls += 1;
         if risk == ToolRisk::WorkspaceMutation && status == ToolExecutionStatus::Succeeded {
             self.mutation_tool_calls += 1;
+            self.verification_gate.observe_tool_execution("write_to_file", None, true, "");
+        }
+        if risk == ToolRisk::ProcessControl && status == ToolExecutionStatus::Succeeded {
+            self.verification_gate.observe_tool_execution("run_command", None, true, "Execution succeeded");
         }
         self.plan.observe_tool(status, risk);
         if status == ToolExecutionStatus::Succeeded {
@@ -293,7 +307,42 @@ impl CognitiveRuntime {
         }
     }
 
+    pub fn observe_tool_execution_details(
+        &mut self,
+        tool_name: &str,
+        command_arg: Option<String>,
+        success: bool,
+        output_snippet: &str,
+    ) {
+        self.tool_calls += 1;
+        self.verification_gate
+            .observe_tool_execution(tool_name, command_arg, success, output_snippet);
+    }
+
     pub fn review_completion(&mut self, draft: &str) -> CompletionDecision {
+        let is_conversational = self.task_kind == TaskKind::Conversational;
+        match self.verification_gate.evaluate_conclusion_attempt(is_conversational) {
+            GateDecision::RejectAndSteer {
+                reason,
+                suggested_action,
+                current_attempt,
+                max_attempts,
+            } => {
+                return CompletionDecision::Revise {
+                    reason: format!(
+                        "【DoD 自动化验证门禁拦截 (第 {}/{} 次)】: {}\n【必须行动】: {}",
+                        current_attempt, max_attempts, reason, suggested_action
+                    ),
+                };
+            }
+            GateDecision::MaxRetriesDegraded { attempts, diagnostic } => {
+                eprintln!(
+                    "\x1b[33;1m[DoD Gate Alert] 自检重试超限 ({} 次)，转为诚实透明报告结题: {}\x1b[0m",
+                    attempts, diagnostic
+                );
+            }
+            GateDecision::Passed => {}
+        }
         if self.completion_review_used || self.mode == ReasoningMode::Fast {
             return CompletionDecision::Accept;
         }
@@ -574,6 +623,48 @@ mod tests {
             }
             _ => panic!("Expected Revise decision from Proactive Alignment Gate!"),
         }
+    }
+
+    #[test]
+    fn test_dod_verification_gate_end_to_end() {
+        let mut runtime = CognitiveRuntime::begin("编写并验证爬虫脚本 spider.py");
+        
+        // 0. 先期探索 (满足 RunPlan 的 Inspect 阶段)
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
+
+        // 1. 模拟写盘修改
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
+        
+        // 2. 试图直接交卷，必须被 DoD 门禁拦截打回
+        let decision1 = runtime.review_completion("我已经写好了 spider.py 脚本。");
+        match decision1 {
+            CompletionDecision::Revise { reason } => {
+                assert!(reason.contains("DoD 自动化验证门禁拦截"));
+                assert!(reason.contains("尚未执行任何运行验证或测试"));
+            }
+            _ => panic!("Expected DoD rejection due to unverified mutation!"),
+        }
+
+        // 3. 运行了验证，但是验证报错了
+        runtime.observe_tool_execution_details("run_command", Some("python spider.py".into()), false, "ConnectionRefusedError: port 8080");
+
+        // 4. 再次试图交卷，必须被拦截提示报错未修复
+        let decision2 = runtime.review_completion("我运行了，现在为您提供结果。");
+        match decision2 {
+            CompletionDecision::Revise { reason } => {
+                assert!(reason.contains("DoD 自动化验证门禁拦截"));
+                assert!(reason.contains("ConnectionRefusedError"));
+            }
+            _ => panic!("Expected DoD rejection due to failed test!"),
+        }
+
+        // 5. 修复代码并重新运行，测试全绿通过
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl);
+
+        // 6. 再次交卷，顺利通过门禁放行
+        let decision3 = runtime.review_completion("修改已经完成，并通过读取和验证确认新行为符合目标；同时保留了既有接口，未发现额外风险或尚未处理的失败路径。");
+        assert_eq!(decision3, CompletionDecision::Accept);
     }
 }
 

@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 pub struct ExecutionResult {
     pub exit_code: i32,
     pub stdout: String,
@@ -13,4 +14,3 @@ pub trait SandboxRuntime: Send + Sync {
     async fn write_file(&self, path: &str, content: &str) -> Result<(), String>;
     async fn read_file(&self, path: &str) -> Result<String, String>;
 }
-

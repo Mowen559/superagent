@@ -5,3 +5,4 @@ pub mod diff_relocation;
 pub mod change_classifier;
 pub mod change_set;
 pub mod repo_map;
+pub mod diff_transaction;

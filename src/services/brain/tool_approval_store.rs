@@ -1,3 +1,6 @@
+use crate::domains::version_control::diff_transaction::{
+    compute_sha256, generate_unified_and_reverse_diff, is_path_in_sandbox, ApprovalPayload,
+};
 use crate::services::brain::tool_call_identity::fingerprint;
 use crate::services::brain::tool_policy::ToolRisk;
 use serde::{Deserialize, Serialize};
@@ -42,6 +45,70 @@ pub struct ToolApprovalRecord {
     pub expires_at: String,
     pub expires_at_ms: i64,
     pub status: ApprovalStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diff_payload: Option<ApprovalPayload>,
+}
+
+/// 尝试为代码/文件变动类工具预演行级 Unified Diff 审批载荷
+pub fn preview_diff_payload(tool_name: &str, arguments: &Value) -> Option<ApprovalPayload> {
+    let name_lower = tool_name.to_lowercase();
+    let is_mutation = matches!(
+        name_lower.as_str(),
+        "write_to_file" | "write_file" | "replace_in_file" | "multi_replace_file_content"
+    );
+    if !is_mutation {
+        return None;
+    }
+
+    let path_str = arguments
+        .get("TargetFile")
+        .or_else(|| arguments.get("path"))
+        .or_else(|| arguments.get("file_path"))
+        .and_then(Value::as_str)?;
+
+    let path = PathBuf::from(path_str);
+    let original_content = if path.exists() {
+        fs::read_to_string(&path).unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    let new_content = match name_lower.as_str() {
+        "write_to_file" | "write_file" => {
+            arguments
+                .get("CodeContent")
+                .or_else(|| arguments.get("content"))
+                .and_then(Value::as_str)?
+                .to_string()
+        }
+        "replace_in_file" => {
+            let search = arguments.get("search_text").and_then(Value::as_str)?;
+            let replace = arguments.get("replace_text").and_then(Value::as_str)?;
+            if !original_content.contains(search) {
+                return None;
+            }
+            original_content.replacen(search, replace, 1)
+        }
+        _ => return None,
+    };
+
+    let pre_sha256 = compute_sha256(original_content.as_bytes());
+    let post_sha256 = compute_sha256(new_content.as_bytes());
+    let (forward_diff, reverse_diff, hunks, summary) =
+        generate_unified_and_reverse_diff(&original_content, &new_content, &path);
+
+    Some(ApprovalPayload {
+        transaction_id: format!("preview-{}", Uuid::new_v4()),
+        file_path: path.to_string_lossy().to_string(),
+        is_sandbox: is_path_in_sandbox(&path),
+        forward_diff,
+        reverse_diff,
+        hunks,
+        summary,
+        pre_sha256,
+        post_sha256,
+        audit_reason: Some(format!("工具 '{}' 拟对文件进行行级变更", tool_name)),
+    })
 }
 
 /// File-backed approval control plane shared by the Hub HTTP process and
@@ -68,6 +135,17 @@ impl ToolApprovalStore {
         arguments: &Value,
         risk: ToolRisk,
     ) -> io::Result<ToolApprovalRecord> {
+        let diff = preview_diff_payload(tool_name, arguments);
+        self.request_with_diff(tool_name, arguments, risk, diff)
+    }
+
+    pub fn request_with_diff(
+        &self,
+        tool_name: &str,
+        arguments: &Value,
+        risk: ToolRisk,
+        diff_payload: Option<ApprovalPayload>,
+    ) -> io::Result<ToolApprovalRecord> {
         self.ensure_directories()?;
         let request_hash = fingerprint(tool_name, arguments);
         let now_ms = chrono::Utc::now().timestamp_millis();
@@ -89,6 +167,7 @@ impl ToolApprovalStore {
             expires_at: expires.to_rfc3339(),
             expires_at_ms: expires.timestamp_millis(),
             status: ApprovalStatus::Pending,
+            diff_payload,
         };
         self.write_new(&record)?;
         Ok(record)
@@ -343,5 +422,25 @@ mod tests {
             store.get("../approved").unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
+    }
+
+    #[test]
+    fn previews_diff_payload_on_write() {
+        let dir = tempdir().unwrap();
+        let test_file = dir.path().join("rule.js");
+        fs::write(&test_file, "console.log('old');\n").unwrap();
+
+        let (_directory, store) = store();
+        let args = json!({
+            "TargetFile": test_file.to_str().unwrap(),
+            "CodeContent": "console.log('new');\n"
+        });
+
+        let rec = store.request("write_to_file", &args, ToolRisk::WorkspaceMutation).unwrap();
+        assert!(rec.diff_payload.is_some());
+        let diff = rec.diff_payload.unwrap();
+        assert_eq!(diff.summary.lines_added, 1);
+        assert_eq!(diff.summary.lines_deleted, 1);
+        assert!(diff.forward_diff.contains("+console.log('new');"));
     }
 }

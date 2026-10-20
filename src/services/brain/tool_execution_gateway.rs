@@ -155,7 +155,20 @@ impl ToolExecutionGateway {
                 }),
             );
         }
-        if decision == ToolPolicyDecision::RequireApproval {
+        let in_sandbox = request
+            .arguments
+            .get("TargetFile")
+            .or_else(|| request.arguments.get("path"))
+            .or_else(|| request.arguments.get("file_path"))
+            .and_then(Value::as_str)
+            .map(|p| {
+                crate::domains::version_control::diff_transaction::is_path_in_sandbox(
+                    std::path::Path::new(p),
+                )
+            })
+            .unwrap_or(false);
+
+        if decision == ToolPolicyDecision::RequireApproval && !in_sandbox {
             match self
                 .approval_store
                 .consume_matching(&request.name, &request.arguments)
@@ -177,6 +190,7 @@ impl ToolExecutionGateway {
                                 "tool": approval.tool_name,
                                 "risk": approval.risk,
                                 "expires_at": approval.expires_at,
+                                "diff_payload": approval.diff_payload,
                                 "control_plane": {
                                     "approve": format!("POST /api/tool-approvals/{}/approve", approval.id),
                                     "deny": format!("POST /api/tool-approvals/{}/deny", approval.id),

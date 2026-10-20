@@ -227,6 +227,58 @@ pub fn handle_task(cmd: TaskCommand) {
 
 pub fn handle_config(cmd: ConfigCommand) {
     match cmd {
+        ConfigCommand::List => {
+            let settings = crate::config::llm_settings::read_llm_settings();
+            println!("\x1b[1m=== LLM Configuration Summary ===\x1b[0m");
+            println!("  • \x1b[1mDefault Model\x1b[0m     : \x1b[32m{}\x1b[0m", settings.model);
+            println!("  • \x1b[1mFast Model\x1b[0m        : \x1b[36m{}\x1b[0m", settings.resolved_fast_model());
+            println!("  • \x1b[1mProvider\x1b[0m          : {}", if settings.provider.is_empty() { "default" } else { &settings.provider });
+            println!("  • \x1b[1mBase URL\x1b[0m          : {}", if settings.base_url.is_empty() { "(not set / upstream default)" } else { &settings.base_url });
+            println!("  • \x1b[1mActive Account ID\x1b[0m : {}", settings.active_account_id.as_deref().unwrap_or("(auto / primary)"));
+            println!("  • \x1b[1mRouting Strategy\x1b[0m  : {}", settings.routing_strategy);
+            println!("  • \x1b[1mTemperature\x1b[0m       : {:.2}", settings.temperature);
+            println!("  • \x1b[1mMax Tokens\x1b[0m        : {}", settings.max_tokens);
+            println!("  • \x1b[1mConfigured Accounts\x1b[0m: {} accounts", settings.accounts.len());
+            for acc in &settings.accounts {
+                let status = if acc.enabled { "\x1b[32menabled\x1b[0m" } else { "\x1b[90mdisabled\x1b[0m" };
+                println!("    - [{}] {} ({}) | Models: {:?}", acc.id, acc.name, status, acc.models);
+            }
+
+            println!("\n\x1b[1m=== Swarm Role-to-Model Matrix (蜂群异构模型矩阵) ===\x1b[0m");
+            let predefined_roles = ["coordinator", "coder", "reviewer", "tester", "spider_copilot"];
+            for r in predefined_roles {
+                let resolved = settings.resolved_role_model(r);
+                let is_custom = settings.role_models.contains_key(r);
+                let tag = if is_custom { "\x1b[32m(dedicated)\x1b[0m" } else { "\x1b[90m(fallback)\x1b[0m" };
+                println!("    • {:<16} : \x1b[1m{:<20}\x1b[0m {}", r, resolved, tag);
+            }
+            for (custom_role, model_name) in &settings.role_models {
+                if !predefined_roles.contains(&custom_role.as_str()) {
+                    println!("    • {:<16} : \x1b[1m{:<20}\x1b[0m \x1b[32m(custom)\x1b[0m", custom_role, model_name);
+                }
+            }
+        }
+        ConfigCommand::SetRoleModel { role, model } => {
+            let mut settings = crate::config::llm_settings::read_llm_settings();
+            let key = role.to_ascii_lowercase();
+            settings.role_models.insert(key.clone(), model.clone());
+            crate::config::llm_settings::write_llm_settings(
+                serde_json::to_value(&settings).unwrap_or_default()
+            );
+            println!("\x1b[32m✓ Swarm role '{}' is now bound to model: {}\x1b[0m", key, model);
+        }
+        ConfigCommand::SetModel { model } => {
+            let mut patch = serde_json::Map::new();
+            patch.insert("model".to_string(), serde_json::Value::String(model.clone()));
+            crate::config::llm_settings::write_llm_settings(serde_json::Value::Object(patch));
+            println!("\x1b[32m✓ Successfully set default chat model to:\x1b[0m {}", model);
+        }
+        ConfigCommand::SetFastModel { model } => {
+            let mut patch = serde_json::Map::new();
+            patch.insert("fastModel".to_string(), serde_json::Value::String(model.clone()));
+            crate::config::llm_settings::write_llm_settings(serde_json::Value::Object(patch));
+            println!("\x1b[32m✓ Successfully set fast brain model to:\x1b[0m {}", model);
+        }
         ConfigCommand::Set { key, value } => {
             let mut patch = serde_json::Map::new();
             let val = if value == "true" {
@@ -669,4 +721,152 @@ pub fn handle_auth(cmd: AuthCommand) {
             }
         }
     });
+}
+
+
+pub fn handle_ask(prompt: Vec<String>, model: Option<String>, project: Option<String>) {
+    let question = prompt.join(" ").trim().to_string();
+    if question.is_empty() {
+        eprintln!("Error: Prompt cannot be empty. Usage: hub ask <prompt> [--model <name>]");
+        return;
+    }
+
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to build Tokio runtime");
+
+    runtime.block_on(async {
+        let client = reqwest::Client::new();
+        let llm = crate::domains::model_gateway::providers::LlmProvider::with_model_override(client, model);
+
+        let app_paths = crate::config::app_paths::AppPaths::new();
+        let persona = crate::config::persona_settings::load_persona(&app_paths);
+        let mut system_prompt = format!(
+            "{}\n\nFollow the Engineering & Orchestration Principles strictly. Be concise, diagnostic, and truthful.",
+            persona.render_prompt_section()
+        );
+
+        let proj_path = project.as_deref().map(std::path::PathBuf::from);
+        if let Some(instructions) = crate::services::project_context::load_project_instructions(proj_path.as_deref()) {
+            system_prompt.push_str(&format!("\n\n[Project Instructions from .deepcloud.md]:\n{}", instructions));
+        }
+
+        let messages = vec![serde_json::json!({
+            "role": "user",
+            "content": question
+        })];
+
+        match llm.chat(messages, Some(&system_prompt)).await {
+            Ok((response, usage)) => {
+                println!("{}", response);
+                eprintln!(
+                    "\n\x1b[90m[Model: {} | Tokens: In {}, Out {} | Cost: ${:.4} | Time: {}ms]\x1b[0m",
+                    llm.current_model(), usage.prompt_tokens, usage.completion_tokens, usage.cost, usage.duration_ms
+                );
+            }
+            Err(e) => {
+                eprintln!("\x1b[31mError:\x1b[0m {}", e);
+                std::process::exit(1);
+            }
+        }
+    });
+}
+
+pub fn handle_models_shortcut() {
+    let settings = crate::config::llm_settings::read_llm_settings();
+    println!("\x1b[1m=== Configured Models ===\x1b[0m");
+    println!("  • \x1b[1mActive Model\x1b[0m    : \x1b[32m{}\x1b[0m", settings.model);
+    println!("  • \x1b[1mFast Model\x1b[0m      : \x1b[36m{}\x1b[0m", settings.resolved_fast_model());
+    println!("  • \x1b[1mProvider\x1b[0m        : {}", if settings.provider.is_empty() { "default" } else { &settings.provider });
+    println!("  • \x1b[1mRouting\x1b[0m         : {}", settings.routing_strategy);
+    if !settings.role_models.is_empty() {
+        println!("  • \x1b[1mRole Bindings\x1b[0m   : {} dedicated roles configured", settings.role_models.len());
+    }
+
+    let client = reqwest::Client::new();
+    let provider = crate::domains::model_gateway::providers::LlmProvider::new(client);
+    let models = provider.list_configured_models();
+
+    println!("\n\x1b[1mCandidate Model Pool:\x1b[0m");
+    if models.is_empty() {
+        println!("  - \x1b[32m{} (active)\x1b[0m", settings.model);
+    } else {
+        for m in models {
+            if m == settings.model {
+                println!("  * \x1b[32m{} (active)\x1b[0m", m);
+            } else if Some(&m) == settings.fast_model.as_ref() {
+                println!("  * \x1b[36m{} (fast)\x1b[0m", m);
+            } else {
+                println!("  - {}", m);
+            }
+        }
+    }
+    println!("\n\x1b[90mTips: Run 'hub config set-model <name>' to switch default model, or 'hub chat -m <name>' for a specific session.\x1b[0m");
+}
+
+pub fn handle_sessions(limit: usize) {
+    use crate::services::brain::session_checkpoint_store::SessionCheckpointStore;
+    println!("\x1b[1m=== Agent Session Checkpoints ===\x1b[0m");
+    match SessionCheckpointStore::list_checkpoints(limit) {
+        Ok(list) => {
+            if list.is_empty() {
+                println!("  暂无已记录的会话断点。");
+                return;
+            }
+            for rec in list {
+                let status_badge = match rec.status.as_str() {
+                    "in_progress" => "\x1b[33m[进行中]\x1b[0m",
+                    "interrupted" => "\x1b[31m[已中断]\x1b[0m",
+                    "completed" => "\x1b[32m[已完成]\x1b[0m",
+                    _ => "\x1b[90m[未知]\x1b[0m",
+                };
+                let progress = if rec.total_steps > 0 {
+                    format!("({}/{})", rec.current_step, rec.total_steps)
+                } else {
+                    "".to_string()
+                };
+                println!(
+                    "  • \x1b[1m{}\x1b[0m {} {} - \x1b[36m{}\x1b[0m",
+                    rec.session_id, status_badge, progress, rec.goal
+                );
+                if !rec.step_description.is_empty() {
+                    println!("    \x1b[90m当前步骤: {}\x1b[0m", rec.step_description);
+                }
+                println!("    \x1b[90m更新时间: {}\x1b[0m", rec.updated_at);
+            }
+            println!("\n\x1b[90m提示: 运行 'hub resume <session_id>' 可一键恢复指定断点继续执行。\x1b[0m");
+        }
+        Err(e) => {
+            eprintln!("读取会话快照失败: {}", e);
+        }
+    }
+}
+
+pub fn handle_resume(session_id_opt: Option<String>, model_override: Option<String>) {
+    use crate::services::brain::session_checkpoint_store::SessionCheckpointStore;
+    let target_session = if let Some(sid) = session_id_opt {
+        sid
+    } else {
+        match SessionCheckpointStore::get_last_interrupted_session() {
+            Ok(Some(rec)) => {
+                println!("\x1b[33m自动捕获到最近未完成的会话: {} [目标: {}]\x1b[0m", rec.session_id, rec.goal);
+                rec.session_id
+            }
+            Ok(None) => {
+                eprintln!("\x1b[31m未找到任何处于未完成/中断状态的会话。请使用 'hub sessions' 查看历史列表。\x1b[0m");
+                return;
+            }
+            Err(e) => {
+                eprintln!("查询会话失败: {}", e);
+                return;
+            }
+        }
+    };
+
+    println!("\x1b[32;1m⚡ 正在从断点恢复会话 [{}]...\x1b[0m", target_session);
+    unsafe {
+        std::env::set_var("HUB_AGENT_SESSION_ID", &target_session);
+    }
+    crate::repl::run_chat(model_override, None, None);
 }

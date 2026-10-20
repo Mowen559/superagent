@@ -5,6 +5,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use crate::domains::swarm_intelligence::swarm_channel::{ChannelMessageType, SwarmChannel};
+use crate::domains::swarm_intelligence::swarm_heartbeat::{HeartbeatPulseResult, NodeHeartbeat, SwarmHeartbeatMonitor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -35,6 +37,8 @@ pub struct SwarmNode {
     pub capabilities: Vec<String>,
     pub load: f32,
     pub last_active: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_override: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -75,6 +79,8 @@ pub struct SwarmManager {
     nodes: HashMap<String, SwarmNode>,
     proposals: HashMap<String, ConsensusProposal>,
     start_time: DateTime<Utc>,
+    pub channel: SwarmChannel,
+    pub heartbeat_monitor: SwarmHeartbeatMonitor,
 }
 
 impl SwarmManager {
@@ -85,6 +91,8 @@ impl SwarmManager {
             nodes: HashMap::new(),
             proposals: HashMap::new(),
             start_time: Utc::now(),
+            channel: SwarmChannel::default(),
+            heartbeat_monitor: SwarmHeartbeatMonitor::default(),
         };
 
         // 预设默认蜂群核心角色节点 (Leader, Coder, Reviewer, Tester)
@@ -96,6 +104,7 @@ impl SwarmManager {
             capabilities: vec!["planning".into(), "orchestration".into(), "consensus".into()],
             load: 0.0,
             last_active: Utc::now(),
+            model_override: None,
         });
         mgr.register_node(SwarmNode {
             id: "agent-coder".to_string(),
@@ -105,6 +114,7 @@ impl SwarmManager {
             capabilities: vec!["file_edit".into(), "ast_grep".into(), "code_gen".into()],
             load: 0.0,
             last_active: Utc::now(),
+            model_override: None,
         });
         mgr.register_node(SwarmNode {
             id: "agent-reviewer".to_string(),
@@ -114,6 +124,7 @@ impl SwarmManager {
             capabilities: vec!["code_review".into(), "impact_radar".into(), "security".into()],
             load: 0.0,
             last_active: Utc::now(),
+            model_override: None,
         });
         mgr.register_node(SwarmNode {
             id: "agent-tester".to_string(),
@@ -123,6 +134,7 @@ impl SwarmManager {
             capabilities: vec!["verify_task".into(), "test_runner".into(), "benchmark".into()],
             load: 0.0,
             last_active: Utc::now(),
+            model_override: None,
         });
 
         mgr
@@ -188,6 +200,44 @@ impl SwarmManager {
         Ok(prop.status.clone())
     }
 
+    /// 子智能体向蜂群中枢上报心跳
+    pub fn report_node_heartbeat(&mut self, node_id: &str, status: &str, current_task: Option<String>, progress: f32) {
+        if let Some(node) = self.nodes.get_mut(node_id) {
+            node.status = status.to_string();
+            node.last_active = Utc::now();
+        }
+        self.heartbeat_monitor.record_heartbeat(NodeHeartbeat {
+            node_id: node_id.to_string(),
+            status: status.to_string(),
+            current_task,
+            progress,
+            timestamp: Utc::now(),
+        });
+    }
+
+    /// 执行双轨心跳脉冲巡检：检查子节点健康 + 检查群聊阻塞与收敛
+    pub fn pulse_heartbeat(&mut self) -> HeartbeatPulseResult {
+        self.heartbeat_monitor.pulse(&mut self.nodes, &self.channel)
+    }
+
+    /// 向统一群聊信息区发布消息
+    pub fn post_channel_message(
+        &mut self,
+        sender: &str,
+        target: Option<&str>,
+        msg_type: ChannelMessageType,
+        summary: &str,
+        payload: serde_json::Value,
+        is_urgent: bool,
+    ) -> String {
+        self.channel.post_message(sender, target, msg_type, summary, payload, is_urgent)
+    }
+
+    /// 获取群聊最新结构化归纳提炼（供中枢大脑无痛阅读）
+    pub fn get_channel_digest(&self) -> String {
+        self.channel.generate_digest()
+    }
+
     pub fn status_report(&self) -> SwarmStatusReport {
         let active = self.nodes.values().filter(|n| n.status != "offline").count();
         let uptime = (Utc::now() - self.start_time).num_seconds().max(0) as u64;
@@ -205,4 +255,36 @@ impl SwarmManager {
 
 lazy_static::lazy_static! {
     pub static ref GLOBAL_SWARM_MANAGER: Arc<RwLock<SwarmManager>> = Arc::new(RwLock::new(SwarmManager::new()));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_swarm_channel_and_heartbeat_integration() {
+        let mut mgr = SwarmManager::new();
+
+        // 1. 测试子智能体心跳上报
+        mgr.report_node_heartbeat("agent-coder", "working", Some("编写爬虫模块".into()), 0.4);
+        assert_eq!(mgr.nodes.get("agent-coder").unwrap().status, "working");
+
+        // 2. 测试群聊信息区发布
+        mgr.post_channel_message(
+            "agent-coder",
+            None,
+            ChannelMessageType::Progress,
+            "解析器已适配抖音 HTML 结构",
+            serde_json::json!({ "progress": 0.4 }),
+            false,
+        );
+
+        let digest = mgr.get_channel_digest();
+        assert!(digest.contains("解析器已适配抖音 HTML 结构"));
+
+        // 3. 执行双轨脉冲
+        let pulse_res = mgr.pulse_heartbeat();
+        assert!(!pulse_res.needs_brain_awakening);
+        assert!(pulse_res.executive_summary.contains("运行健康"));
+    }
 }

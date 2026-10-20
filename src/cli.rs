@@ -33,7 +33,34 @@ pub enum Commands {
         port: u16,
     },
     /// Launch the interactive chat session
-    Chat,
+    Chat {
+        /// Target model name override (e.g. gpt-4o, claude-3-5-sonnet, deepseek-chat)
+        #[arg(short, long)]
+        model: Option<String>,
+
+        /// Project workspace root directory
+        #[arg(short, long)]
+        project: Option<String>,
+
+        /// Custom system prompt override
+        #[arg(short, long)]
+        system: Option<String>,
+    },
+    /// Ask a single question directly without entering interactive chat
+    Ask {
+        /// The question or prompt to ask
+        prompt: Vec<String>,
+
+        /// Target model name override
+        #[arg(short, long)]
+        model: Option<String>,
+
+        /// Project workspace root directory
+        #[arg(short, long)]
+        project: Option<String>,
+    },
+    /// Quick shortcut to list all available and configured models
+    Models,
     /// Run the MCP server
     McpServer,
     /// Agent operations
@@ -67,6 +94,20 @@ pub enum Commands {
     Mcp {
         #[command(subcommand)]
         command: McpCommand,
+    },
+    /// List agent session checkpoints
+    Sessions {
+        /// Maximum number of sessions to list
+        #[arg(short, long, default_value_t = 10)]
+        limit: usize,
+    },
+    /// Resume an interrupted agent session from its checkpoint
+    Resume {
+        /// The session ID to resume (or omit to resume the most recent interrupted session)
+        session_id: Option<String>,
+        /// Target model name override
+        #[arg(short, long)]
+        model: Option<String>,
     },
     #[command(external_subcommand)]
     External(Vec<OsString>),
@@ -118,6 +159,14 @@ pub enum TaskCommand {
 
 #[derive(Subcommand, Debug)]
 pub enum ConfigCommand {
+    /// Show all current configuration values and active models
+    List,
+    /// Set default chat model (e.g. hub config set-model deepseek-chat)
+    SetModel { model: String },
+    /// Set fast brain model (e.g. hub config set-fast-model deepseek-chat)
+    SetFastModel { model: String },
+    /// Bind a dedicated LLM model to a specific swarm role (e.g. hub config set-role-model coder deepseek-coder)
+    SetRoleModel { role: String, model: String },
     /// Set a configuration value
     Set { key: String, value: String },
     /// Get a configuration value
@@ -209,7 +258,15 @@ pub fn dispatch() {
         }
         Some(Commands::Install) => crate::cli_commands::handle_install(),
         Some(Commands::Service { port }) => run_service(port),
-        Some(Commands::Chat) => crate::repl::run_chat(),
+        Some(Commands::Chat { model, project, system }) => {
+            crate::repl::run_chat(model, project, system);
+        }
+        Some(Commands::Ask { prompt, model, project }) => {
+            crate::cli_commands::handle_ask(prompt, model, project);
+        }
+        Some(Commands::Models) => {
+            crate::cli_commands::handle_models_shortcut();
+        }
         Some(Commands::McpServer) => crate::mcp_server::run_mcp(),
         Some(Commands::Agent { command }) => crate::cli_commands::handle_agent(command),
         Some(Commands::Task { command }) => crate::cli_commands::handle_task(command),
@@ -218,6 +275,8 @@ pub fn dispatch() {
         Some(Commands::Sync) => crate::cli_commands::handle_sync(),
         Some(Commands::Skill { command }) => crate::cli_commands::handle_skill(command),
         Some(Commands::Mcp { command }) => crate::cli_commands::handle_mcp(command),
+        Some(Commands::Sessions { limit }) => crate::cli_commands::handle_sessions(limit),
+        Some(Commands::Resume { session_id, model }) => crate::cli_commands::handle_resume(session_id, model),
         Some(Commands::External(ext)) => {
             if ext.first().map(|s| s.to_string_lossy()) == Some("mcp".into()) && ext.len() == 1 {
                 crate::mcp_server::run_mcp()
