@@ -1,6 +1,17 @@
-pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<String>) {
+pub async fn run_worker(
+    prompt: &str,
+    project: Option<String>,
+    model: Option<String>,
+    resume_session_id: Option<String>,
+) {
     // 确保每个 worker 拥有专属干净的 session，避免背负历史默认 session 的海量事件包袱
-    if std::env::var("HUB_AGENT_SESSION_ID")
+    if let Some(ref sid) = resume_session_id {
+        if !sid.trim().is_empty() {
+            unsafe {
+                std::env::set_var("HUB_AGENT_SESSION_ID", sid);
+            }
+        }
+    } else if std::env::var("HUB_AGENT_SESSION_ID")
         .map(|s| s == "default" || s.is_empty())
         .unwrap_or(true)
     {
@@ -118,6 +129,20 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
         );
     }
 
+    // 动态技能侦测与挂载 (Proactive Domain Skill Scouting & Mounting)
+    let matched_skills = crate::domains::agent_cognitive::capability_scout::CapabilityScout::scout_and_match_skills(prompt, &cwd_path);
+    if !matched_skills.is_empty() {
+        full_system_prompt.push_str("\n\n# 🎯 动态装载的业务技能规约 (Active Domain Skill Directives)\n");
+        full_system_prompt.push_str("【中枢已根据用户意图自动识别并装载以下专属业务技能契约，你必须强制严格遵守】：\n\n");
+        for skill in &matched_skills {
+            full_system_prompt.push_str(&skill.render_system_prompt_section());
+            eprintln!(
+                "\x1b[32;1m[Skill Scout] 🎯 Successfully matched and loaded Skill '{}' (score: {:.1})\x1b[0m",
+                skill.name, skill.score
+            );
+        }
+    }
+
     let mut agent = AgentLoop::with_model(&full_system_prompt, model.as_deref());
     agent.emit_jsonl = true;
 
@@ -203,7 +228,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     agent.register_tool(Box::new(InterveneWorkerTool::new(runtime.clone())));
     agent.register_tool(Box::new(CancelSubagentTool::new(runtime.clone())));
 
-    let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(cwd_path);
+    let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(cwd_path.clone());
     agent.register_tool(Box::new(ReadToolResultTool::new(result_store)));
 
     // 启动后台 Stdin 异步消息循环，打通与 Hub 主进程的双向交互（支持 AskUser 回复与动态干预）
@@ -256,6 +281,18 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
         eprintln!(
             "\x1b[32m[SuperMemory] 🧬 Distilled & persisted {} golden rules to {}\x1b[0m",
             persisted_count, project_path_str
+        );
+    }
+
+    // 自动技能结晶飞轮 (Auto-Skill Crystallization Flywheel)
+    if let Some(crystallized) = crate::domains::agent_cognitive::skill_crystallizer::AutoSkillCrystallizer::crystallize_from_trajectory(
+        prompt,
+        &agent.events,
+        &cwd_path,
+    ) {
+        eprintln!(
+            "\x1b[36;1m[Skill Crystallizer] 💎 Successfully crystallized new durable Skill '{}' at {}\x1b[0m",
+            crystallized.name, crystallized.path
         );
     }
 

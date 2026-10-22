@@ -59,6 +59,7 @@ pub struct CognitiveRuntime {
     learned_guidance: Vec<String>,
     anchor_constraints: Vec<String>,
     distilled_lessons: Vec<DistilledLesson>,
+    pub socratic_payload: Option<crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryPayload>,
     pub verification_gate: VerificationGateGuard,
 }
 
@@ -116,6 +117,7 @@ impl CognitiveRuntime {
             learned_guidance: Vec::new(),
             anchor_constraints: default_anchors,
             distilled_lessons: Vec::new(),
+            socratic_payload: crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryEngine::evaluate(objective, None),
             verification_gate: VerificationGateGuard::new(
                 if task_kind == TaskKind::Conversational {
                     VerificationPolicy::Permissive
@@ -249,7 +251,16 @@ impl CognitiveRuntime {
             self.intent.ambiguity_score
         );
 
-        let inquiry_block = if self.intent.capability.requires_user_inquiry && self.inquiry_tool_calls == 0 && self.tool_calls == 0 {
+        let inquiry_block = if let Some(ref payload) = self.socratic_payload {
+            if self.inquiry_tool_calls == 0 && self.tool_calls == 0 {
+                format!(
+                    "\n[PROACTIVE SOCRATIC INQUIRY MANDATE - 结构化技术推敲要求]\n{}\n\n【行动指引】: 面对高歧义需求，禁止直接动手盲目修改代码！你必须优先调用轻量感知工具（`project_index`/`search_graph`）摸清现状，然后通过 `ask_user` 或在本次回复中清晰输出上述三段式推敲（事实+权衡+推荐），引导用户对齐后再执行！",
+                    payload.render_socratic_prompt()
+                )
+            } else {
+                String::new()
+            }
+        } else if self.intent.capability.requires_user_inquiry && self.inquiry_tool_calls == 0 && self.tool_calls == 0 {
             format!(
                 "\n[PROACTIVE INQUIRY REQUIRED - Socratic Principal Mindset]\nWait! This requirement has key technical branches or underspecified details (Score: {:.2}).\nDO NOT rush into blind implementation! Adopt the dual-track approach:\n1. Use read-only tools (`project_index`, `search_graph`) to inspect the current codebase.\n2. In parallel, formulate proactive, structured questions to the user (via `ask_user` or text) with:\n   - Verified codebase facts\n   - Trade-offs (Option A vs Option B)\n   - Concrete recommendations\nSuggested inquiry angles:\n- {}",
                 self.intent.ambiguity_score,

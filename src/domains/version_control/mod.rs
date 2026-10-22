@@ -6,3 +6,4 @@ pub mod change_classifier;
 pub mod change_set;
 pub mod repo_map;
 pub mod diff_transaction;
+pub mod regression_guard;

@@ -33,6 +33,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::services::brain::cognitive_runtime::{CognitiveRuntime, CompletionDecision};
+use crate::domains::version_control::regression_guard::{AuditVerdict, RegressionRollbackGuard};
+use crate::domains::agent_cognitive::circuit_breaker::CircuitBreakerGuard;
 use crate::services::brain::compaction_runtime::{CompactionOutcome, CompactionRuntime};
 use crate::services::brain::context::Context;
 use crate::services::brain::events::{EventBus, RunOutcome, SessionEvent, SessionStatus};
@@ -496,6 +498,16 @@ impl AgentLoop {
         self.save_session();
         let run_prelude = self.run_prelude_runtime.prepare(prompt);
         eprintln!("[Run Prelude] capability route: {:?}", run_prelude.routes);
+
+        // 初始化防改坏守卫并毫秒级捕获入场基线快照 (Git Baseline Checkpoint)
+        let mut rollback_guard = RegressionRollbackGuard::new(
+            self.run_prelude_runtime.project_path(),
+            &uuid::Uuid::new_v4().to_string()[..8],
+        ).with_default_architectural_rules();
+        if let Err(e) = rollback_guard.capture_baseline() {
+            eprintln!("[RegressionGuard] Warning: Failed to capture baseline snapshot: {e}");
+        }
+        let mut circuit_breaker = CircuitBreakerGuard::default();
         let mut cognition = CognitiveRuntime::begin(prompt);
         match self
             .evolution_memory
@@ -573,7 +585,10 @@ impl AgentLoop {
             let cognitive_guidance = match cognition.next_guidance() {
                 Ok(guidance) => guidance,
                 Err(error) => {
-                    self.record_evolution(&mut cognition, prompt, false);
+                    if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                let _ = rollback_guard.rollback_workspace("智能体异常中断，自动还原工作区以保护代码纯净");
+            }
+            self.record_evolution(&mut cognition, prompt, false);
                     return Err(error);
                 }
             };
@@ -631,7 +646,10 @@ impl AgentLoop {
             {
                 Ok(res) => res,
                 Err(error) => {
-                    self.record_evolution(&mut cognition, prompt, false);
+                    if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                let _ = rollback_guard.rollback_workspace("智能体异常中断，自动还原工作区以保护代码纯净");
+            }
+            self.record_evolution(&mut cognition, prompt, false);
                     return Err(error);
                 }
             };
@@ -836,6 +854,33 @@ impl AgentLoop {
                             });
                             self.save_session();
 
+                            // 防改坏差分作用域审计 (Diff Scope Guard)
+                            if crate::domains::agent_cognitive::verification_gate::VerificationGateGuard::is_mutation_tool(&item.func_name) {
+                                let target_path_opt = item.args.get("path")
+                                    .or_else(|| item.args.get("file_path"))
+                                    .or_else(|| item.args.get("target_path"))
+                                    .or_else(|| item.args.get("file"))
+                                    .and_then(|v| v.as_str());
+
+                                if let Some(target_path_str) = target_path_opt {
+                                    match rollback_guard.audit_mutation_path(target_path_str) {
+                                        AuditVerdict::Violated { rule_description, suggested_action, .. } => {
+                                            let block_msg = format!("【架构铁律越界硬拦截】: {}\n【必须遵守的行动指引】: {}", rule_description, suggested_action);
+                                            eprintln!("\x1b[31;1m[RegressionGuard Block] 🛡️ {}\x1b[0m", block_msg);
+                                            self.push_event(SessionEvent::ToolResult {
+                                                id: item.call_id,
+                                                result: json!({ "error": block_msg }),
+                                            });
+                                            self.save_session();
+                                            continue;
+                                        }
+                                        AuditVerdict::Allowed => {
+                                            rollback_guard.observe_mutation(target_path_str);
+                                        }
+                                    }
+                                }
+                            }
+
                             let awaits_user = item.func_name == "ask_user";
                             if awaits_user {
                                 self.transition_session(
@@ -886,6 +931,31 @@ impl AgentLoop {
                                 self.push_event(SessionEvent::SystemWarning(reflection_prompt));
                             }
 
+                            // 认知熔断器防卡死突围逻辑 (Meta-Cognitive Circuit Breaker)
+                            if is_succeeded {
+                                circuit_breaker.record_success();
+                            } else if let Some(directive) = circuit_breaker.record_failure(&item.func_name, &output_str) {
+                                eprintln!("\x1b[31;1m[CircuitBreaker Alert] ⚡ {}\x1b[0m", directive.trip_reason);
+                                self.push_event(SessionEvent::SystemWarning(format!(
+                                    "{}\n\n{}\n\n【突围破局建议】: {}",
+                                    directive.trip_reason,
+                                    directive.aha_epiphany_prompt,
+                                    directive.suggested_isolated_probe
+                                )));
+
+                                // 熔断器红牌强制自动回滚脏代码，跳出死胡同！
+                                if directive.should_rollback_workspace && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                                    if let Ok(rc) = rollback_guard.rollback_workspace("认知熔断器红牌触发：相同错误连续死循环，强制自动秒级还原工作区") {
+                                        let rb_msg = format!(
+                                            "【熔断沙箱自动回滚】: 检测到同一错误模式连续失败 {} 次，为防止产生沉没成本已自动秒级还原 {} 个脏文件，清理 {} 个临时新增文件。请彻底更换解题思路！",
+                                            directive.consecutive_failures, rc.reverted_files.len(), rc.cleaned_untracked_files.len()
+                                        );
+                                        eprintln!("\x1b[33;1m[CircuitBreaker] 🛡️ {}\x1b[0m", rb_msg);
+                                        self.push_event(SessionEvent::SystemWarning(rb_msg));
+                                    }
+                                }
+                            }
+
                             if item.func_name == "revert_to_checkpoint"
                                 && receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded
                             {
@@ -932,7 +1002,17 @@ impl AgentLoop {
                                 eprintln!("\x1b[32;1m[Terminal Guard] All tasks verified & checklist settled. Returning final delivery report.\x1b[0m");
                                 self.events.push(SessionEvent::ModelThought(trimmed.to_string()));
                                 self.save_session();
-                                self.record_evolution(&mut cognition, prompt, true);
+                                if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
+                        let alert = format!(
+                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
+                            receipt.reverted_files, receipt.cleaned_untracked_files
+                        );
+                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
+                        self.push_event(SessionEvent::SystemWarning(alert));
+                    }
+                }
+                self.record_evolution(&mut cognition, prompt, true);
                                 return Ok(trimmed.to_string());
                             }
                         }
@@ -944,7 +1024,17 @@ impl AgentLoop {
                         }) {
                             eprintln!("\x1b[32;1m[Terminal Guard] Checklist fully settled. Returning previous comprehensive report.\x1b[0m");
                             self.save_session();
-                            self.record_evolution(&mut cognition, prompt, true);
+                            if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
+                        let alert = format!(
+                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
+                            receipt.reverted_files, receipt.cleaned_untracked_files
+                        );
+                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
+                        self.push_event(SessionEvent::SystemWarning(alert));
+                    }
+                }
+                self.record_evolution(&mut cognition, prompt, true);
                             return Ok(recent_thought);
                         }
                     }
@@ -969,6 +1059,16 @@ impl AgentLoop {
                     println!("{}", serde_json::json!({ "type": "text", "content": content }));
                 }
                 self.save_session();
+                if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
+                        let alert = format!(
+                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
+                            receipt.reverted_files, receipt.cleaned_untracked_files
+                        );
+                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
+                        self.push_event(SessionEvent::SystemWarning(alert));
+                    }
+                }
                 self.record_evolution(&mut cognition, prompt, true);
                 let _ = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
                     &self.events,
@@ -978,6 +1078,9 @@ impl AgentLoop {
                 return Ok(content.to_string());
             }
 
+            if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                let _ = rollback_guard.rollback_workspace("智能体异常中断，自动还原工作区以保护代码纯净");
+            }
             self.record_evolution(&mut cognition, prompt, false);
             return Err("Unexpected empty response from LLM".to_string());
         }

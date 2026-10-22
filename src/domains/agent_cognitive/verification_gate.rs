@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::domains::version_control::regression_guard::{RegressionAuditReport, RegressionRollbackGuard};
 
 /// 验证状态凭据
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,7 +54,8 @@ pub struct VerificationGateGuard {
     mutation_count_since_last_verification: usize,
     total_mutation_count: usize,
     latest_receipt: Option<VerificationReceipt>,
-    rejection_count: usize,
+    pub latest_regression_report: Option<RegressionAuditReport>,
+    pub rejection_count: usize,
 }
 
 impl Default for VerificationGateGuard {
@@ -70,17 +72,19 @@ impl VerificationGateGuard {
             mutation_count_since_last_verification: 0,
             total_mutation_count: 0,
             latest_receipt: None,
+            latest_regression_report: None,
             rejection_count: 0,
         }
     }
 
-    /// 判断是否属于写盘或代码修改类工具
+
     pub fn is_mutation_tool(tool_name: &str) -> bool {
         matches!(
             tool_name,
             "write_to_file"
                 | "write_file"
                 | "replace_in_file"
+                | "multi_replace"
                 | "apply_patch"
                 | "patch_file"
                 | "create_file"
@@ -96,6 +100,7 @@ impl VerificationGateGuard {
             "run_command"
                 | "run_spider"
                 | "evaluate_codebase"
+                | "verify_task"
                 | "cargo_test"
                 | "node_test"
                 | "python_test"
@@ -118,17 +123,29 @@ impl VerificationGateGuard {
             self.mutation_count_since_last_verification += 1;
             // 铁律：任何新的代码改动，立即令先前的验证凭据失效！
             self.latest_receipt = None;
+            self.latest_regression_report = None;
             return;
         }
 
         if Self::is_verification_tool(tool_name) {
-            let verdict = if success {
+            let reg_report = RegressionRollbackGuard::audit_regression_from_output(output_snippet);
+            let has_regression = reg_report.has_regression;
+            let verdict = if success && !has_regression {
                 VerificationVerdict::Passed
             } else {
-                VerificationVerdict::Failed {
-                    reason: output_snippet.chars().take(200).collect(),
-                }
+                let reason = if has_regression {
+                    format!("存量回归硬拦截: {}", reg_report.summary)
+                } else {
+                    output_snippet.chars().take(200).collect()
+                };
+                VerificationVerdict::Failed { reason }
             };
+
+            if has_regression {
+                self.latest_regression_report = Some(reg_report);
+            } else {
+                self.latest_regression_report = None;
+            }
 
             self.latest_receipt = Some(VerificationReceipt {
                 tool_name: tool_name.to_string(),
@@ -154,6 +171,19 @@ impl VerificationGateGuard {
         // 如果纯属闲聊问答，且从未改动过任何代码/文件，免检放行
         if is_conversational_only && self.total_mutation_count == 0 {
             return GateDecision::Passed;
+        }
+
+        // 核心检查 0：优先硬拦截存量测试回归 (Stock Regression)
+        if let Some(ref reg) = self.latest_regression_report {
+            if reg.has_regression {
+                return self.trigger_rejection(
+                    &format!(
+                        "【致命存量回归事故 (Stock Regression Alert)】: 检测到改动导致既有存量测试失败！失败清单: {:?}。",
+                        reg.failed_tests
+                    ),
+                    "严禁拆东墙补西墙！本次改动破坏了系统原有的存量功能。请立即排查由于代码修改带来的连带副作用，修复所有失败用例，直到全绿后再结题！",
+                );
+            }
         }
 
         // 核心检查 1：最近一次执行的验证是失败的
@@ -204,6 +234,8 @@ impl VerificationGateGuard {
         self.latest_receipt = None;
         self.rejection_count = 0;
     }
+
+
 
     pub fn rejection_count(&self) -> usize {
         self.rejection_count
@@ -322,6 +354,33 @@ mod tests {
                 assert!(diagnostic.contains("禁止假装完成"));
             }
             _ => panic!("Expected MaxRetriesDegraded"),
+        }
+    }
+
+    #[test]
+    fn test_stock_regression_interception() {
+        let mut gate = VerificationGateGuard::default();
+        gate.observe_tool_execution("replace_in_file", None, true, "ok");
+
+        let cargo_output = r#"
+running 3 tests
+test stock_login ... FAILED
+test new_feature ... ok
+
+failures:
+    stock_login
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured
+        "#;
+        gate.observe_tool_execution("cargo_test", Some("cargo test".into()), false, cargo_output);
+
+        let decision = gate.evaluate_conclusion_attempt(false);
+        match decision {
+            GateDecision::RejectAndSteer { ref reason, .. } => {
+                assert!(reason.contains("致命存量回归事故"));
+                assert!(reason.contains("stock_login"));
+            }
+            _ => panic!("Expected rejection due to stock regression"),
         }
     }
 }

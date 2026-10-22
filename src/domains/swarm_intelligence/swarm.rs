@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use crate::domains::swarm_intelligence::message_bus::{LocalQueueBus, SwarmMessageBus};
 use crate::domains::swarm_intelligence::swarm_channel::{ChannelMessageType, SwarmChannel};
 use crate::domains::swarm_intelligence::swarm_heartbeat::{HeartbeatPulseResult, NodeHeartbeat, SwarmHeartbeatMonitor};
 
@@ -81,6 +82,7 @@ pub struct SwarmManager {
     start_time: DateTime<Utc>,
     pub channel: SwarmChannel,
     pub heartbeat_monitor: SwarmHeartbeatMonitor,
+    pub message_bus: Arc<dyn SwarmMessageBus>,
 }
 
 impl SwarmManager {
@@ -93,6 +95,7 @@ impl SwarmManager {
             start_time: Utc::now(),
             channel: SwarmChannel::default(),
             heartbeat_monitor: SwarmHeartbeatMonitor::default(),
+            message_bus: Arc::new(LocalQueueBus::default()),
         };
 
         // 预设默认蜂群核心角色节点 (Leader, Coder, Reviewer, Tester)
@@ -155,6 +158,48 @@ impl SwarmManager {
         if let Some(s) = strategy {
             self.strategy = s;
         }
+    }
+
+    /// 根据任务特征自适应自重构拓扑并动态选举新任领袖
+    pub fn adapt_topology_and_elect_lead(
+        &mut self,
+        prompt: &str,
+    ) -> Result<(crate::domains::swarm_intelligence::swarm_topology::TaskTopologyProfile, crate::domains::swarm_intelligence::swarm_topology::ElectionReceipt), String> {
+        let profile = crate::domains::swarm_intelligence::swarm_topology::SwarmTopologyEngine::profile_task(prompt);
+        let election = crate::domains::swarm_intelligence::swarm_topology::SwarmTopologyEngine::elect_lead(&self.nodes, &profile)?;
+
+        // 自重构拓扑
+        self.topology = profile.recommended_topology.clone();
+
+        // 重新分配领袖角色
+        for node in self.nodes.values_mut() {
+            if node.id == election.elected_lead_id {
+                node.role = SwarmRole::Leader;
+            } else if node.role == SwarmRole::Leader {
+                node.role = SwarmRole::Architect;
+            }
+        }
+
+        // 向全蜂群信道广播自重构通知
+        let notice = format!(
+            "蜂群拓扑已自适应重构为 [{:?}]，领袖选举由 '{}' ({}) 担任指挥官！选举理由: {}",
+            self.topology, election.elected_lead_name, election.elected_lead_id, election.election_reason
+        );
+        self.post_channel_message(
+            "SwarmManager",
+            None,
+            ChannelMessageType::SystemNotice,
+            &notice,
+            serde_json::json!({
+                "topology": self.topology,
+                "lead_id": election.elected_lead_id,
+                "term_id": election.term_id,
+                "complexity_level": profile.complexity_level,
+            }),
+            false,
+        );
+
+        Ok((profile, election))
     }
 
     pub fn submit_proposal(&mut self, topic: String, options: Vec<String>) -> String {
@@ -230,7 +275,35 @@ impl SwarmManager {
         payload: serde_json::Value,
         is_urgent: bool,
     ) -> String {
-        self.channel.post_message(sender, target, msg_type, summary, payload, is_urgent)
+        let topic = match msg_type {
+            ChannelMessageType::BlockerAlert => "swarm.blocker",
+            ChannelMessageType::Progress => "swarm.progress",
+            ChannelMessageType::BrainDirective => "swarm.directive",
+            ChannelMessageType::ConsensusCall => "swarm.consensus",
+            ChannelMessageType::Hypothesis => "swarm.hypothesis",
+            ChannelMessageType::SystemNotice => "swarm.notice",
+        };
+        let id = self.channel.post_message(sender, target, msg_type, summary, payload, is_urgent);
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            if let Some(msg) = self.channel.recent_messages(1).into_iter().next() {
+                let bus = self.message_bus.clone();
+                let topic_str = topic.to_string();
+                handle.spawn(async move {
+                    let _ = bus.publish(&topic_str, msg).await;
+                });
+            }
+        }
+        id
+    }
+
+    /// 获取底层消息总线引用
+    pub fn message_bus(&self) -> Arc<dyn SwarmMessageBus> {
+        self.message_bus.clone()
+    }
+
+    /// 切换底层消息总线实现（如切换至分布式 RabbitMQ）
+    pub fn set_message_bus(&mut self, bus: Arc<dyn SwarmMessageBus>) {
+        self.message_bus = bus;
     }
 
     /// 获取群聊最新结构化归纳提炼（供中枢大脑无痛阅读）
@@ -286,5 +359,20 @@ mod tests {
         let pulse_res = mgr.pulse_heartbeat();
         assert!(!pulse_res.needs_brain_awakening);
         assert!(pulse_res.executive_summary.contains("运行健康"));
+    }
+
+    #[test]
+    fn test_adapt_topology_and_elect_lead() {
+        let mut mgr = SwarmManager::new();
+
+        let prompt = "需要同时在 engine-service 增加任务调度并在 scraper-service 客户端边缘引擎增加对应抓取处理";
+        let (profile, election) = mgr.adapt_topology_and_elect_lead(prompt).unwrap();
+
+        assert_eq!(profile.recommended_topology, SwarmTopology::Hierarchical);
+        assert_eq!(mgr.topology, SwarmTopology::Hierarchical);
+        assert!(!election.elected_lead_id.is_empty());
+
+        let current_leader = mgr.nodes.values().find(|n| n.role == SwarmRole::Leader).unwrap();
+        assert_eq!(current_leader.id, election.elected_lead_id);
     }
 }

@@ -22,6 +22,9 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/swarm/health", get(get_swarm_health))
         .route("/api/swarm/init", post(init_swarm))
         .route("/api/swarm/shutdown", post(shutdown_swarm))
+        .route("/api/swarm/tasks/enqueue", post(enqueue_swarm_task))
+        .route("/api/swarm/tasks/{queue}/stats", get(get_queue_stats))
+        .route("/api/swarm/tasks/{queue}/dlq", get(get_queue_dlq))
         // ── 2. 集体意识与共识黑板 (Hive-Mind & Consciousness) ──
         .route("/api/hive-mind/status", get(get_hive_mind_status))
         .route("/api/hive-mind/memory", get(get_hive_mind_memory))
@@ -56,6 +59,7 @@ async fn get_swarm_status(State(_state): State<Arc<AppState>>) -> Json<serde_jso
         "status": "active",
         "topology": report.topology,
         "strategy": report.strategy,
+        "messageBus": mgr.message_bus.bus_type(),
         "activeAgents": report.active_nodes,
         "totalAgents": report.total_nodes,
         "uptime": report.uptime_seconds,
@@ -103,6 +107,65 @@ async fn init_swarm(
 
 async fn shutdown_swarm(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(json!({ "ok": true, "message": "Swarm entered sleep state." }))
+}
+
+#[derive(Deserialize)]
+struct EnqueueTaskPayload {
+    queue: String,
+    role: String,
+    payload: serde_json::Value,
+    priority: Option<u8>,
+}
+
+async fn enqueue_swarm_task(
+    State(_state): State<Arc<AppState>>,
+    Json(payload): Json<EnqueueTaskPayload>,
+) -> Json<serde_json::Value> {
+    let bus = {
+        let mgr = GLOBAL_SWARM_MANAGER.read().unwrap();
+        mgr.message_bus.clone()
+    };
+    let mut task = crate::domains::swarm_intelligence::SwarmTaskItem::new(
+        &payload.queue,
+        &payload.role,
+        payload.payload,
+    );
+    if let Some(p) = payload.priority {
+        task = task.with_priority(p);
+    }
+    match bus.enqueue_task(&payload.queue, task).await {
+        Ok(task_id) => Json(json!({ "ok": true, "taskId": task_id })),
+        Err(e) => Json(json!({ "ok": false, "error": e })),
+    }
+}
+
+async fn get_queue_stats(
+    State(_state): State<Arc<AppState>>,
+    Path(queue): Path<String>,
+) -> Json<serde_json::Value> {
+    let mgr = GLOBAL_SWARM_MANAGER.read().unwrap();
+    let (pending, in_flight, dlq) = mgr.message_bus.queue_stats(&queue);
+    Json(json!({
+        "ok": true,
+        "queue": queue,
+        "pending": pending,
+        "inFlight": in_flight,
+        "dlq": dlq
+    }))
+}
+
+async fn get_queue_dlq(
+    State(_state): State<Arc<AppState>>,
+    Path(queue): Path<String>,
+) -> Json<serde_json::Value> {
+    let bus = {
+        let mgr = GLOBAL_SWARM_MANAGER.read().unwrap();
+        mgr.message_bus.clone()
+    };
+    match bus.get_dlq(&queue).await {
+        Ok(items) => Json(json!({ "ok": true, "items": items })),
+        Err(e) => Json(json!({ "ok": false, "error": e })),
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

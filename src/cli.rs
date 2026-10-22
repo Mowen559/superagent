@@ -19,6 +19,9 @@ pub enum Commands {
         /// Base prompt
         #[arg(long)]
         prompt: String,
+        /// Resume previous session ID
+        #[arg(long)]
+        resume_session_id: Option<String>,
         /// Project workspace root
         #[arg(long)]
         project: Option<String>,
@@ -249,10 +252,10 @@ pub fn dispatch() {
     };
 
     match cli.command {
-        Some(Commands::SuperagentWorker { prompt, project, model }) => {
+        Some(Commands::SuperagentWorker { prompt, project, model, resume_session_id }) => {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                crate::services::brain::worker::run_worker(&prompt, project, model).await;
+                crate::services::brain::worker::run_worker(&prompt, project, model, resume_session_id).await;
             });
             std::process::exit(0);
         }
