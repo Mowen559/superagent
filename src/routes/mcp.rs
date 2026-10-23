@@ -25,6 +25,19 @@ pub struct InvokeToolRequest {
     pub arguments: Value,
 }
 
+#[derive(Debug, Deserialize, Default)]
+pub struct DiscoverMcpRequest {
+    #[serde(default)]
+    pub plugins_dir: Option<String>,
+    #[serde(default)]
+    pub config_file: Option<String>,
+}
+
+lazy_static::lazy_static! {
+    pub static ref GLOBAL_MCP_DISCOVERY: std::sync::Mutex<crate::domains::mcp_ecosystem::McpDiscoveryClient> =
+        std::sync::Mutex::new(crate::domains::mcp_ecosystem::McpDiscoveryClient::new());
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/mcp", get(list_mcp))
@@ -33,6 +46,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/mcp/tools", get(list_mcp_tools))
         .route("/api/mcp/tools/register", post(register_mcp_tools))
         .route("/api/mcp/tools/invoke", post(invoke_mcp_tool))
+        .route("/api/mcp/discover", post(discover_mcp))
+        .route("/api/mcp/discovered", get(get_discovered_mcp))
 }
 
 async fn list_mcp_tools() -> axum::response::Response {
@@ -156,3 +171,74 @@ async fn remove_mcp(Path(name): Path<String>) -> axum::response::Response {
     .into_response()
 }
 
+
+
+async fn discover_mcp(
+    Json(req): Json<DiscoverMcpRequest>,
+) -> axum::response::Response {
+    let mut client = GLOBAL_MCP_DISCOVERY.lock().unwrap();
+
+    let mut discovered_count = 0;
+
+    // 1. 如果指定了配置文件，优先扫描
+    if let Some(cfg) = &req.config_file {
+        if let Ok(cnt) = client.discover_from_file(cfg) {
+            discovered_count += cnt;
+        }
+    }
+
+    // 2. 扫描插件目录
+    let candidate_dirs = if let Some(p) = &req.plugins_dir {
+        vec![std::path::PathBuf::from(p)]
+    } else {
+        vec![
+            std::path::PathBuf::from("packages"),
+            std::path::PathBuf::from("../packages"),
+            std::path::PathBuf::from("../../packages"),
+        ]
+    };
+
+    for dir in candidate_dirs {
+        if dir.exists() && dir.is_dir() {
+            if let Ok(cnt) = client.discover_from_plugins_dir(&dir) {
+                discovered_count += cnt;
+            }
+        }
+    }
+
+    // 3. 将发现的 MCP Server 注册到大脑的动态工具注册表
+    let servers = client.get_registered_servers().to_vec();
+    for s in &servers {
+        let tool_name = format!("mcp_{}", s.name.replace(|c: char| !c.is_alphanumeric() && c != '_', "_"));
+        let raw_tool = json!({
+            "name": tool_name,
+            "description": format!("外部 MCP 插件服务 [{}]，执行命令: {} {:?}", s.name, s.command, s.args),
+            "inputSchema": { "type": "object", "properties": {} }
+        });
+        crate::services::brain::tools::dynamic_mcp::GLOBAL_DYNAMIC_MCP_REGISTRY
+            .lock()
+            .unwrap()
+            .register_service_tools(&s.name, "http://127.0.0.1:3000", vec![raw_tool]);
+    }
+
+    Json(json!({
+        "success": true,
+        "discoveredCount": discovered_count,
+        "totalRegistered": servers.len(),
+        "servers": servers,
+        "message": format!("Successfully discovered {} MCP servers from plugins", servers.len())
+    }))
+    .into_response()
+}
+
+async fn get_discovered_mcp() -> axum::response::Response {
+    let client = GLOBAL_MCP_DISCOVERY.lock().unwrap();
+    let servers = client.get_registered_servers().to_vec();
+
+    Json(json!({
+        "success": true,
+        "count": servers.len(),
+        "servers": servers
+    }))
+    .into_response()
+}
