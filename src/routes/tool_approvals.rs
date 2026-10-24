@@ -14,9 +14,12 @@ type ApiError = (StatusCode, Json<Value>);
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/tool-approvals", get(list_approvals))
+        .route("/api/tool-approvals/session-rules", get(list_session_rules))
         .route("/api/tool-approvals/{id}", get(get_approval))
         .route("/api/tool-approvals/{id}/approve", post(approve))
+        .route("/api/tool-approvals/{id}/approve-session", post(approve_session))
         .route("/api/tool-approvals/{id}/deny", post(deny))
+        .route("/api/tool-approvals/{id}/revoke", post(revoke_session_rule))
 }
 
 async fn list_approvals(State(state): State<Arc<AppState>>) -> Result<Json<Value>, ApiError> {
@@ -61,6 +64,37 @@ async fn deny(
         .deny(&id)
         .map(record_response)
         .map_err(transition_error)
+}
+
+async fn approve_session(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    require_control_plane_header(&headers, "approve-session")?;
+    state
+        .approval_store
+        .approve_session(&id)
+        .map(record_response)
+        .map_err(transition_error)
+}
+
+async fn revoke_session_rule(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    require_control_plane_header(&headers, "revoke")?;
+    state
+        .approval_store
+        .revoke_session_rule(&id)
+        .map(record_response)
+        .map_err(transition_error)
+}
+
+async fn list_session_rules(State(state): State<Arc<AppState>>) -> Result<Json<Value>, ApiError> {
+    let rules = state.approval_store.list_session_rules().map_err(store_error)?;
+    Ok(Json(json!({ "rules": rules, "count": rules.len() })))
 }
 
 fn require_control_plane_header(headers: &HeaderMap, expected: &str) -> Result<(), ApiError> {

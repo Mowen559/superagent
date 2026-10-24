@@ -56,7 +56,36 @@ pub enum AgentMessage {
         question: String,
         #[serde(default)]
         choices: Vec<String>,
+        /// Structured choice metadata (ZCode AskUserQuestion / DeepSeek
+        /// AskUserQuestionItem contract): label + description + recommended.
+        #[serde(
+            default,
+            skip_serializing_if = "Vec::is_empty",
+            deserialize_with = "crate::services::agent::types::deserialize_interaction_choices"
+        )]
+        choice_details: Vec<InteractionChoiceView>,
     },
+}
+
+/// Wire view of a structured interaction choice, shared by SSE and event log.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InteractionChoiceView {
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub recommended: bool,
+}
+
+fn deserialize_interaction_choices<'de, D>(deserializer: D) -> Result<Vec<InteractionChoiceView>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw = Option::<serde_json::Value>::deserialize(deserializer)?;
+    let Some(value) = raw else {
+        return Ok(Vec::new());
+    };
+    serde_json::from_value(value).map_err(serde::de::Error::custom)
 }
 
 /// Per-model token accounting, mirrors multica `agent.TokenUsage`.
@@ -131,6 +160,12 @@ pub struct ExecOptions {
     pub openclaw_mode: Option<String>,
     /// Daemon-owned, task-local settings file passed through Claude Code's `--settings` flag.
     pub claude_settings_path: Option<String>,
+    /// Superagent work mode ("plan" | "build" | "edit" | "yolo" | "guarded");
+    /// forwarded as `--tool-policy` to the superagent worker.
+    pub tool_policy: Option<String>,
+    /// Image attachment paths (hub-side staging files) forwarded as repeatable
+    /// `--image` flags to the superagent worker.
+    pub image_paths: Vec<String>,
 }
 
 /// A running agent execution: read [`Self::messages`] for streaming events and

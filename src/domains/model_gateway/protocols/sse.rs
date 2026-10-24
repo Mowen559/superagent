@@ -4,6 +4,79 @@ pub(crate) fn strip_sse_field<'a>(line: &'a str, field: &str) -> Option<&'a str>
         .or_else(|| line.strip_prefix(&format!("{field}:")))
 }
 
+/// Incremental SSE event-block scanner.
+///
+/// Feed raw response chunks; complete event blocks (the text between blank-line
+/// delimiters) are returned in order. Correctly survives both multi-byte UTF-8
+/// characters and SSE events that are split across chunk boundaries — a naive
+/// per-chunk `from_utf8` + line parse silently drops such events, losing TTFT,
+/// usage and finish markers (and mislabeling healthy streams as failures).
+pub(crate) struct SseEventScanner {
+    buffer: String,
+    utf8_remainder: Vec<u8>,
+    /// Defensive cap: a single event block larger than this is flushed as-is so
+    /// a hostile upstream cannot grow the buffer unbounded.
+    max_block_bytes: usize,
+}
+
+impl Default for SseEventScanner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SseEventScanner {
+    pub(crate) fn new() -> Self {
+        Self {
+            buffer: String::new(),
+            utf8_remainder: Vec::new(),
+            max_block_bytes: 4 * 1024 * 1024,
+        }
+    }
+
+    /// Feed one raw chunk; returns the complete event blocks it finalized.
+    pub(crate) fn push_chunk(&mut self, bytes: &[u8]) -> Vec<String> {
+        append_utf8_safe(&mut self.buffer, &mut self.utf8_remainder, bytes);
+        let mut blocks = Vec::new();
+        loop {
+            if self.buffer.len() > self.max_block_bytes {
+                // No delimiter within the cap: flush everything buffered.
+                blocks.push(std::mem::take(&mut self.buffer));
+                continue;
+            }
+            match take_sse_block(&mut self.buffer) {
+                Some(block) => {
+                    if !block.trim().is_empty() {
+                        blocks.push(block);
+                    }
+                }
+                None => break,
+            }
+        }
+        blocks
+    }
+
+    /// Flush any buffered tail when the stream ends without a trailing
+    /// delimiter (some upstreams close right after the last `data:` line).
+    pub(crate) fn flush(&mut self) -> Option<String> {
+        if self.utf8_remainder.is_empty() && self.buffer.trim().is_empty() {
+            return None;
+        }
+        if !self.utf8_remainder.is_empty() {
+            self.buffer
+                .push_str(&String::from_utf8_lossy(&self.utf8_remainder));
+            self.utf8_remainder.clear();
+        }
+        let tail = std::mem::take(&mut self.buffer);
+        let trimmed = tail.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    }
+}
+
 #[inline]
 pub(crate) fn take_sse_block(buffer: &mut String) -> Option<String> {
     let mut best: Option<(usize, usize)> = None;
@@ -341,5 +414,52 @@ mod tests {
             replacement_count, 4,
             "each invalid byte should produce one U+FFFD"
         );
+    }
+}
+
+#[cfg(test)]
+mod scanner_tests {
+    use super::SseEventScanner;
+
+    #[test]
+    fn event_split_across_chunks_is_reassembled() {
+        let mut scanner = SseEventScanner::new();
+        assert!(scanner.push_chunk(b"data: {\"choices\":[{\"delta\":{\"content\":\"he").is_empty());
+        assert!(scanner.push_chunk(b"llo\"}}]}\n").is_empty());
+        // 该 chunk 同时补齐第一个事件的空行分隔并完整投递第二个事件
+        let blocks = scanner.push_chunk(b"\ndata: [DONE]\n\n");
+        assert_eq!(blocks.len(), 2);
+        assert!(blocks[0].contains("hello"));
+        assert!(blocks[1].contains("[DONE]"));
+        assert!(scanner.push_chunk(b"").is_empty());
+    }
+
+    #[test]
+    fn multibyte_char_split_across_chunks_survives() {
+        let mut scanner = SseEventScanner::new();
+        let event = "data: {\"delta\":{\"content\":\"推理中\"}}\n\n".as_bytes();
+        let split = event.len() / 2;
+        assert!(scanner.push_chunk(&event[..split]).is_empty());
+        let blocks = scanner.push_chunk(&event[split..]);
+        assert_eq!(blocks.len(), 1);
+        assert!(blocks[0].contains("推理中"));
+    }
+
+    #[test]
+    fn flush_emits_undelimited_tail() {
+        let mut scanner = SseEventScanner::new();
+        scanner.push_chunk(b"data: [DONE]");
+        let tail = scanner.flush();
+        assert_eq!(tail.as_deref(), Some("data: [DONE]"));
+        assert!(scanner.flush().is_none());
+    }
+
+    #[test]
+    fn crlf_delimiters_and_multiple_events() {
+        let mut scanner = SseEventScanner::new();
+        let blocks = scanner.push_chunk(b"data: one\r\n\r\ndata: two\r\n\r\n");
+        assert_eq!(blocks.len(), 2);
+        assert!(blocks[0].contains("one"));
+        assert!(blocks[1].contains("two"));
     }
 }

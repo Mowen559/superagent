@@ -448,12 +448,22 @@ impl AgentLoop {
 
     /// 核心思维循环：完全由事件驱动
     pub async fn run(&mut self, prompt: &str) -> Result<String, String> {
+        self.run_with_images(prompt, Vec::new()).await
+    }
+
+    /// 多模态入口：`images` 为 data URL（由 worker 从落盘文件读回并内联）。
+    /// 空图片列表等价于 [`Self::run`]。
+    pub async fn run_with_images(
+        &mut self,
+        prompt: &str,
+        images: Vec<String>,
+    ) -> Result<String, String> {
         self.tool_gateway.begin_run();
         self.transition_session(SessionStatus::Running, None)?;
         let run_id = uuid::Uuid::new_v4().to_string();
         start_run(&mut self.events, run_id.clone())?;
         self.save_session();
-        let result = self.run_active(prompt).await;
+        let result = self.run_active(prompt, images).await;
         match &result {
             Ok(_) => finish_run(&mut self.events, &run_id, RunOutcome::Completed, None)?,
             Err(error) => finish_run(
@@ -472,7 +482,11 @@ impl AgentLoop {
         result
     }
 
-    async fn run_active(&mut self, prompt: &str) -> Result<String, String> {
+    async fn run_active(
+        &mut self,
+        prompt: &str,
+        initial_images: Vec<String>,
+    ) -> Result<String, String> {
         // Clean legacy completed todo file if no tasks remain unfinished
         let todo_path = std::env::current_dir()
             .unwrap_or_default()
@@ -492,9 +506,16 @@ impl AgentLoop {
             }
         }
 
-        // 1. 发射用户输入事件
-        self.events
-            .push(SessionEvent::UserInput(prompt.to_string()));
+        // 1. 发射用户输入事件（含图片时走多模态事件，投影为 content 数组）
+        if initial_images.is_empty() {
+            self.events
+                .push(SessionEvent::UserInput(prompt.to_string()));
+        } else {
+            self.events.push(SessionEvent::UserInputWithImages {
+                text: prompt.to_string(),
+                images: initial_images,
+            });
+        }
         self.save_session();
         let run_prelude = self.run_prelude_runtime.prepare(prompt);
         eprintln!("[Run Prelude] capability route: {:?}", run_prelude.routes);
@@ -681,14 +702,28 @@ impl AgentLoop {
             }
 
             // 4. 解析并高亮模型的思维推演流 (Inner Thinking / Extended Reasoning)
-            let thought_content = llm_message
+            // 仅将真正的 reasoning_content 归类为 thinking 事件；content 的兜底
+            // 只进会话账本，避免与正文 text 事件在前端重复渲染。
+            let reasoning_only = llm_message
                 .get("reasoning_content")
-                .or_else(|| llm_message.get("content"))
                 .and_then(|v| v.as_str());
+            let thought_content = reasoning_only.or_else(|| {
+                llm_message.get("content").and_then(|v| v.as_str())
+            });
             if let Some(thought) = thought_content {
                 let trimmed = thought.trim();
                 if !trimmed.is_empty() {
                     eprintln!("\x1b[36;1m[Inner Thinking / 推演沙盘]\x1b[0m\n{}\n", trimmed);
+                    if let Some(reasoning) = reasoning_only.map(str::trim).filter(|s| !s.is_empty()) {
+                        if self.emit_jsonl {
+                            println!(
+                                "{}",
+                                serde_json::json!({ "type": "thinking", "content": reasoning })
+                            );
+                            use std::io::Write;
+                            let _ = std::io::stdout().flush();
+                        }
+                    }
                     self.events.push(SessionEvent::ModelThought(trimmed.to_string()));
                     self.save_session();
 

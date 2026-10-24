@@ -41,7 +41,7 @@ pub use assessment::{
 };
 pub use catalog::ModelCatalogSnapshot;
 
-use self::catalog::{known_models, normalize_catalog, CatalogAdapter, DiscoveredCatalog};
+use self::catalog::{known_models, normalize_catalog, static_gemini_native_catalog, CatalogAdapter, DiscoveredCatalog};
 use self::discovery::{validate_account, validate_request};
 use self::assessment::{observation, plan_recertification_for_account_at};
 use self::probe::{probe_body, read_bounded, read_probe_body, validate_adapted_probe, validate_probe_response, ProbeFailure};
@@ -169,6 +169,10 @@ impl ProviderCapabilityRuntime {
         &self,
         account: &LLMAccount,
     ) -> Result<DiscoveredCatalog, CapabilityDiscoveryError> {
+        let clean_provider = account.provider.to_ascii_lowercase().replace([' ', '-'], "_");
+        if clean_provider == "gemini_native" || clean_provider == "google_gemini_native" {
+            return Ok(static_gemini_native_catalog(account, self.evidence_policy));
+        }
         let adapter = CatalogAdapter::for_account(account)?;
         let (url, headers) = adapter.prepare(account)?;
         let response = self

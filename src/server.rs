@@ -141,8 +141,15 @@ fn build_state() -> Arc<AppState> {
     let workspace_capabilities = Arc::new(WorkspaceCapabilityRegistry::new(
         &runtime_config.projects_root,
     ));
+    // 反代/网关共享出网 client：
+    // - connect_timeout：上游不可达时快速失败进入 failover，不再挂死连接阶段；
+    // - read_timeout：两次读之间的空闲上限（对流式 LLM 响应安全，慢推理模型
+    //   首字节间隔远小于该值），防止上游 hang 死导致反代请求永久挂起。
+    //   不设总超时，避免误杀长流式生成。
     let http_client = reqwest::Client::builder()
         .http1_only()
+        .connect_timeout(std::time::Duration::from_secs(30))
+        .read_timeout(std::time::Duration::from_secs(600))
         .build()
         .unwrap_or_else(|_| reqwest::Client::new());
     let visual_pipeline = Arc::new(VisualPipelineRuntime::new(&app_paths, http_client.clone()));

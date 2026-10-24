@@ -87,7 +87,7 @@ pub fn project_events_with_micro_compaction(
 
     for (i, evt) in events.iter().enumerate() {
         match evt {
-            SessionEvent::UserInput(_) => {
+            SessionEvent::UserInput(_) | SessionEvent::UserInputWithImages { .. } => {
                 if i > 0 {
                     current_turn += 1;
                 }

@@ -36,10 +36,19 @@ pub(crate) fn track_provider_stream(
 > {
     Box::pin(async_stream::stream! {
         let mut guard = ProviderStreamHealthGuard::new(acc_key, mod_key, started);
+        // 跨 chunk 安全的事件块扫描：SSE 事件或 UTF-8 多字节字符被网络分片时，
+        // 逐 chunk 解析会漏检 [DONE]/finish_reason，把健康流误判为 Transient 失败。
+        let mut scanner = crate::domains::model_gateway::protocols::sse::SseEventScanner::new();
         while let Some(item) = futures::StreamExt::next(&mut stream).await {
             match &item {
                 Ok(chunk) => {
-                    if let Some(outcome) = canonical_stream_terminal_outcome(chunk) {
+                    let mut terminal = None;
+                    for block in scanner.push_chunk(chunk) {
+                        if let Some(outcome) = stream_block_terminal_outcome(&block) {
+                            terminal = Some(outcome);
+                        }
+                    }
+                    if let Some(outcome) = terminal {
                         guard.finish(outcome);
                     }
                 }
@@ -49,6 +58,12 @@ pub(crate) fn track_provider_stream(
             yield item;
             if failed {
                 break;
+            }
+        }
+        // 流自然结束但缓冲里还挂着未分隔的尾部事件：补检一次终态
+        if let Some(tail) = scanner.flush() {
+            if let Some(outcome) = stream_block_terminal_outcome(&tail) {
+                guard.finish(outcome);
             }
         }
     })
@@ -110,9 +125,9 @@ impl Drop for ProviderStreamHealthGuard {
     }
 }
 
-pub(crate) fn canonical_stream_terminal_outcome(chunk: &bytes::Bytes) -> Option<ProviderAttemptOutcome> {
-    let text = std::str::from_utf8(chunk).ok()?;
-    for line in text.lines() {
+/// 解析一个完整的 SSE 事件块（可能含多行 data:），判定流的终态。
+pub(crate) fn stream_block_terminal_outcome(block: &str) -> Option<ProviderAttemptOutcome> {
+    for line in block.lines() {
         let Some(data) = line
             .strip_prefix("data: ")
             .or_else(|| line.strip_prefix("data:"))

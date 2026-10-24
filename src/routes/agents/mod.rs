@@ -113,6 +113,12 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/agents/install_missing", post(install_missing_agents))
         .route("/api/agents/settings", get(settings_api::get_settings).post(settings_api::update_settings))
         .route("/api/agents/{kind}/install", post(install_agent_endpoint))
+        // 图片附件经 data URL 内联上传：单张 6MB、至多 6 张，base64 膨胀 1.37x
+        // 后接近 48MB。axum 默认 2MB body limit 会把任何真实截图直接打成
+        // 413，且 hyper 超限即 RST 连接——Electron 本地网关的转发管道写侧
+        // 随之报错，前端表现为网关 502 / "hub 异常"。本地回环控制面放宽到 64MB。
+        // 注意：Router::layer 只作用于调用时已注册的路由，必须放在所有 route 之后。
+        .layer(axum::extract::DefaultBodyLimit::max(64 * 1024 * 1024))
 }
 
 

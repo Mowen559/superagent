@@ -7,15 +7,59 @@ use crate::domains::model_gateway::health::{ProviderAdmission, ProviderHealthRun
     #[test]
     fn detects_stream_success_and_error_terminals() {
         assert_eq!(
-            canonical_stream_terminal_outcome(&bytes::Bytes::from_static(b"data: [DONE]\n\n")),
+            stream_block_terminal_outcome("data: [DONE]"),
             Some(ProviderAttemptOutcome::Succeeded)
         );
         assert_eq!(
-            canonical_stream_terminal_outcome(&bytes::Bytes::from_static(
-                b"data: {\"error\":{\"message\":\"failed\"}}\n\n"
-            )),
+            stream_block_terminal_outcome("data: {\"error\":{\"message\":\"failed\"}}"),
             Some(ProviderAttemptOutcome::Transient)
         );
+    }
+
+    #[tokio::test]
+    async fn stream_tracker_survives_chunk_split_terminals() {
+        // 回归测试：[DONE] 与多字节内容被网络分片时，逐 chunk 解析会漏检终态，
+        // 健康流会被 Drop 兜底误记为 Transient 失败并污染断路器。
+        let health = ProviderHealthRuntime::global();
+        let acc_key = format!("proxy-split-acc-{}", uuid::Uuid::new_v4());
+        let mod_key = format!("proxy-split-mod-{}", uuid::Uuid::new_v4());
+        health.reset(&acc_key);
+        health.reset(&mod_key);
+        assert_eq!(health.begin_attempt(&acc_key), ProviderAdmission::Allowed);
+        assert_eq!(health.begin_attempt(&mod_key), ProviderAdmission::Allowed);
+
+        // 同一条 SSE 流被切成三个不齐整的 chunk：JSON 增量被拦腰截断、
+        // [DONE] 跨 chunk、且无尾部空行分隔符
+        let split_stream = futures::stream::iter(vec![
+            Ok(bytes::Bytes::from_static(
+                "data: {\"choices\":[{\"delta\":{\"content\":\"推\"".as_bytes(),
+            )),
+            Ok(bytes::Bytes::from_static(
+                "理中\"}}]}\n\ndata: [DO".as_bytes(),
+            )),
+            Ok(bytes::Bytes::from_static("NE]".as_bytes())),
+        ]);
+        track_provider_stream(
+            Box::pin(split_stream),
+            acc_key.clone(),
+            mod_key.clone(),
+            Instant::now(),
+        )
+        .collect::<Vec<_>>()
+        .await;
+
+        let acc_snapshot = health.snapshot(&acc_key).unwrap();
+        assert_eq!(
+            acc_snapshot.total_recoverable_failures, 0,
+            "分片流不应被误判为失败"
+        );
+        let mod_snapshot = health.snapshot(&mod_key).unwrap();
+        assert_eq!(
+            mod_snapshot.total_recoverable_failures, 0,
+            "分片 [DONE] 必须被识别为成功终态"
+        );
+        health.reset(&acc_key);
+        health.reset(&mod_key);
     }
 
     #[tokio::test]

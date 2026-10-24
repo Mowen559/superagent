@@ -309,3 +309,54 @@ pub(crate) fn known_models(account: &LLMAccount, catalog: Option<&ModelCatalogSn
         .collect()
 }
 
+
+
+pub(crate) fn static_gemini_native_catalog(
+    account: &LLMAccount,
+    evidence_policy: CapabilityEvidencePolicy,
+) -> DiscoveredCatalog {
+    let observed_at = Utc::now();
+    let observed_at_text = observed_at.to_rfc3339();
+    let expires_at = evidence_policy.expires_at(observed_at, CapabilityEvidenceSource::Catalog);
+    let models = vec![
+        "gemini-2.5-flash".to_string(),
+        "gemini-2.5-pro".to_string(),
+        "gemini-2.5-flash-thinking".to_string(),
+        "gemini-3-flash".to_string(),
+        "gemini-3.8-flash-high".to_string(),
+        "gemini-3.1-pro-high".to_string(),
+        "gemini-1.5-pro".to_string(),
+        "gemini-1.5-flash".to_string(),
+    ];
+    let mut metadata = HashMap::new();
+    let mut observations = Vec::new();
+    for model_id in &models {
+        let safe = json!({
+            "id": model_id,
+            "displayName": model_id,
+            "supportsTools": true,
+            "supportsVision": true,
+            "supportsStreaming": true,
+        });
+        observations.extend(explicit_catalog_observations(
+            account,
+            model_id,
+            &safe,
+            observed_at,
+            evidence_policy,
+        ));
+        metadata.insert(model_id.clone(), safe);
+    }
+    DiscoveredCatalog {
+        snapshot: ModelCatalogSnapshot {
+            account_id: account.id.clone(),
+            provider: account.provider.clone(),
+            observed_at: observed_at_text,
+            expires_at,
+            models,
+            truncated: false,
+        },
+        metadata,
+        observations,
+    }
+}

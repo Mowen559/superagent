@@ -124,15 +124,24 @@ pub(crate) async fn handle_request(
 
     let mut response_builder = axum::response::Response::builder().status(res.status);
 
-    if let Some(raw_res) = res.raw_response.take() {
-        if let Some(content_type) = raw_res.headers().get("Content-Type") {
+    if let Some(raw_stream) = res.raw_stream.take() {
+        if let Some(content_type) = res.content_type.as_ref() {
             response_builder = response_builder.header("Content-Type", content_type);
         }
 
-        let raw_stream = raw_res.bytes_stream();
-        let io_stream = futures::stream::StreamExt::map(raw_stream, |r| {
+        // 首事件缓冲期间读出的字节前插回流头部，保证转发流的字节序完整
+        let mapped_rest = futures::stream::StreamExt::map(raw_stream, |r| {
             r.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
         });
+        let io_stream: std::pin::Pin<
+            Box<dyn futures::Stream<Item = Result<bytes::Bytes, std::io::Error>> + Send>,
+        > = match res.stream_head.take() {
+            Some(head) => Box::pin(futures::StreamExt::chain(
+                futures::stream::iter(vec![Ok::<bytes::Bytes, std::io::Error>(head)]),
+                mapped_rest,
+            )),
+            None => Box::pin(mapped_rest),
+        };
         
         let account = res.account.unwrap_or_default();
         let dummy_settings = crate::config::llm_settings::LLMSettings {
@@ -159,76 +168,104 @@ pub(crate) async fn handle_request(
             inbound_body_text.clone(),
             res.receipts,
         )));
+        // 先取扫描阶段的共享句柄，map 闭包随后 move 走原句柄
+        let audit_for_scan = stream_audit.clone();
         let intercepted_stream = futures::stream::StreamExt::map(standard_stream, move |chunk_res| {
             if let Ok(chunk) = &chunk_res {
-                if let Ok(text) = std::str::from_utf8(chunk) {
-                    if let Ok(mut audit) = stream_audit.lock() {
-                        audit.push_response(text);
-                    }
-                    for line in text.lines() {
-                        if line.starts_with("data: ") && line != "data: [DONE]" {
-                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line[6..]) {
-                                // 1. Check for first token (TTFT)
-                                if let Some(choices) = json.get("choices").and_then(Value::as_array) {
-                                    for choice in choices {
-                                        if let Some(delta) = choice.get("delta") {
-                                            let has_content = delta
-                                                .get("content")
-                                                .and_then(Value::as_str)
-                                                .is_some_and(|s| !s.is_empty());
-                                            let has_reasoning = delta
-                                                .get("reasoning")
-                                                .or_else(|| delta.get("reasoning_content"))
-                                                .and_then(Value::as_str)
-                                                .is_some_and(|s| !s.is_empty());
-                                            let has_tools = delta
-                                                .get("tool_calls")
-                                                .and_then(Value::as_array)
-                                                .is_some_and(|arr| !arr.is_empty());
-
-                                            if has_content || has_reasoning || has_tools {
-                                                if let Ok(mut audit) = stream_audit.lock() {
-                                                    audit.record_ttft();
-                                                }
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if let Some(usage) = json.get("usage") {
-                                    if let Ok(mut audit) = stream_audit.lock() {
-                                        audit.apply_usage(usage_from_value(Some(usage)));
-                                    }
-                                }
-                                let finished = json
-                                    .get("choices")
-                                    .and_then(Value::as_array)
-                                    .is_some_and(|choices| {
-                                        choices.iter().any(|choice| {
-                                            choice
-                                                .get("finish_reason")
-                                                .is_some_and(|reason| !reason.is_null())
-                                        })
-                                    });
-                                if finished {
-                                    if let Ok(mut audit) = stream_audit.lock() {
-                                        audit.record_once();
-                                    }
-                                }
-                            }
-                        } else if line == "data: [DONE]" {
-                            if let Ok(mut audit) = stream_audit.lock() {
-                                audit.record_once();
-                            }
-                        }
-                    }
+                if let Ok(mut audit) = stream_audit.lock() {
+                    audit.push_response(&String::from_utf8_lossy(chunk));
                 }
             }
             chunk_res
         });
 
-        let final_stream = converter.standard_to_response_stream(Box::pin(intercepted_stream));
+        // 终态/TTFT/usage 解析放在独立的行缓冲阶段：SSE 事件被网络分片时，
+        // 逐 chunk 解析会静默丢失首 token 与用量统计。扫描器只在拿到
+        // 完整事件块后才做 JSON 解析，天然免疫分片与多字节字符跨界。
+        let mut scan_state = (
+            audit_for_scan,
+            crate::domains::model_gateway::protocols::sse::SseEventScanner::new(),
+        );
+        let audited_stream = futures::stream::StreamExt::scan(
+            intercepted_stream,
+            scan_state,
+            |(audit, scanner), chunk_res: Result<bytes::Bytes, std::io::Error>| {
+                if let Ok(chunk) = &chunk_res {
+                    for block in scanner.push_chunk(chunk) {
+                        for line in block.lines() {
+                            let Some(data) = line
+                                .strip_prefix("data: ")
+                                .or_else(|| line.strip_prefix("data:"))
+                            else {
+                                continue;
+                            };
+                            if data.trim() == "[DONE]" {
+                                if let Ok(mut audit) = audit.lock() {
+                                    audit.record_once();
+                                }
+                                continue;
+                            }
+                            let Ok(json) = serde_json::from_str::<serde_json::Value>(data) else {
+                                continue;
+                            };
+                            // 首个内容/推理/工具增量 → TTFT
+                            let has_first_token = json
+                                .get("choices")
+                                .and_then(Value::as_array)
+                                .is_some_and(|choices| {
+                                    choices.iter().any(|choice| {
+                                        let Some(delta) = choice.get("delta") else {
+                                            return false;
+                                        };
+                                        let has_content = delta
+                                            .get("content")
+                                            .and_then(Value::as_str)
+                                            .is_some_and(|s| !s.is_empty());
+                                        let has_reasoning = delta
+                                            .get("reasoning")
+                                            .or_else(|| delta.get("reasoning_content"))
+                                            .and_then(Value::as_str)
+                                            .is_some_and(|s| !s.is_empty());
+                                        let has_tools = delta
+                                            .get("tool_calls")
+                                            .and_then(Value::as_array)
+                                            .is_some_and(|arr| !arr.is_empty());
+                                        has_content || has_reasoning || has_tools
+                                    })
+                                });
+                            if has_first_token {
+                                if let Ok(mut audit) = audit.lock() {
+                                    audit.record_ttft();
+                                }
+                            }
+                            if let Some(usage) = json.get("usage") {
+                                if let Ok(mut audit) = audit.lock() {
+                                    audit.apply_usage(usage_from_value(Some(usage)));
+                                }
+                            }
+                            let finished = json
+                                .get("choices")
+                                .and_then(Value::as_array)
+                                .is_some_and(|choices| {
+                                    choices.iter().any(|choice| {
+                                        choice
+                                            .get("finish_reason")
+                                            .is_some_and(|reason| !reason.is_null())
+                                    })
+                                });
+                            if finished {
+                                if let Ok(mut audit) = audit.lock() {
+                                    audit.record_once();
+                                }
+                            }
+                        }
+                    }
+                }
+                futures::future::ready(Some(chunk_res))
+            },
+        );
+
+        let final_stream = converter.standard_to_response_stream(Box::pin(audited_stream));
         let body_stream = axum::body::Body::from_stream(final_stream);
 
         return response_builder
@@ -444,6 +481,22 @@ fn build_source_info(account: &LLMAccount, model_name: &str) -> serde_json::Valu
 }
 
 pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
+    // /v1/models 被客户端高频轮询（CLI 启动/模型选择器刷新）；列表构建需
+    // 磁盘读 settings 并为每个模型取健康快照。3 秒 TTL 进程内缓存将高频
+    // 轮询摊平为常数开销，配置变更最多延迟一个 TTL 窗口可见。
+    static MODELS_CACHE: once_cell::sync::Lazy<
+        std::sync::Mutex<Option<(Instant, serde_json::Value)>>,
+    > = once_cell::sync::Lazy::new(|| std::sync::Mutex::new(None));
+    const MODELS_CACHE_TTL_MS: u128 = 3_000;
+
+    if let Ok(cache) = MODELS_CACHE.lock() {
+        if let Some((cached_at, payload)) = cache.as_ref() {
+            if cached_at.elapsed().as_millis() < MODELS_CACHE_TTL_MS {
+                return Ok(Json(payload.clone()).into_response());
+            }
+        }
+    }
+
     let settings = llm_settings::read_llm_settings();
     let mut unique_models: std::collections::HashMap<String, serde_json::Value> =
         std::collections::HashMap::new();
@@ -573,67 +626,9 @@ pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, Str
         "data": data
     });
 
-    Ok(Json(res).into_response())
-}
-
-pub(crate) async fn load_gemini_native_project(
-    client: &reqwest::Client,
-    access_token: &str,
-) -> Option<String> {
-    for base_url in [
-        "https://daily-cloudcode-pa.googleapis.com",
-        "https://daily-cloudcode-pa.sandbox.googleapis.com",
-    ] {
-        let response = client
-            .post(format!("{base_url}/v1internal:loadCodeAssist"))
-            .bearer_auth(access_token)
-            .header("User-Agent", "vscode/1.X.X (Antigravity/4.3.0)")
-            .header("Content-Type", "application/json")
-            .json(&serde_json::json!({
-                "metadata": { "ideType": "ANTIGRAVITY" }
-            }))
-            .timeout(std::time::Duration::from_secs(10))
-            .send()
-            .await;
-
-        let Ok(response) = response else {
-            tracing::warn!(
-                base_url,
-                "failed to request gemini_native Cloud AI companion project"
-            );
-            continue;
-        };
-        let status = response.status();
-        let body_text = response.text().await.unwrap_or_default();
-        if !status.is_success() {
-            tracing::warn!(
-                base_url,
-                status = status.as_u16(),
-                body = %body_text,
-                "failed to load gemini_native Cloud AI companion project"
-            );
-            continue;
-        }
-
-        let body = serde_json::from_str::<Value>(&body_text).ok()?;
-        if let Some(project) = body
-            .get("cloudaicompanionProject")
-            .and_then(|value| {
-                value.as_str().map(ToString::to_string).or_else(|| {
-                    value
-                        .get("id")
-                        .or_else(|| value.get("projectId"))
-                        .and_then(Value::as_str)
-                        .map(ToString::to_string)
-                })
-            })
-            .filter(|project| !project.is_empty())
-        {
-            return Some(project);
-        }
+    if let Ok(mut cache) = MODELS_CACHE.lock() {
+        *cache = Some((Instant::now(), res.clone()));
     }
 
-    None
+    Ok(Json(res).into_response())
 }
-
-

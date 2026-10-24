@@ -3,7 +3,24 @@ pub async fn run_worker(
     project: Option<String>,
     model: Option<String>,
     resume_session_id: Option<String>,
+    tool_policy: Option<String>,
+    image_paths: Vec<String>,
 ) {
+    // 解析工作模式：写入 HUB_TOOL_POLICY_MODE 供 ToolExecutionGateway 在
+    // AgentLoop 构造期消费（plan→只读、build→审批、edit→自动改、yolo→放行、guarded→危险审批）。
+    let work_mode = tool_policy
+        .as_deref()
+        .and_then(crate::services::brain::tool_policy::WorkMode::parse);
+    if let Some(mode) = work_mode {
+        unsafe {
+            std::env::set_var("HUB_TOOL_POLICY_MODE", mode.as_str());
+        }
+        eprintln!(
+            "\x1b[33m[WorkMode] 🔧 Superagent worker starting in '{}' mode\x1b[0m",
+            mode.as_str()
+        );
+    }
+
     // 确保每个 worker 拥有专属干净的 session，避免背负历史默认 session 的海量事件包袱
     if let Some(ref sid) = resume_session_id {
         if !sid.trim().is_empty() {
@@ -109,6 +126,36 @@ pub async fn run_worker(
 
     let relevant_memories = store.search(prompt, 5);
     let mut full_system_prompt = worker_system_prompt.to_string();
+    if let Some(mode) = work_mode {
+        full_system_prompt.push_str("\n\n# 当前协作工作模式 (Active Collaboration Mode)\n");
+        full_system_prompt.push_str(match mode {
+            crate::services::brain::tool_policy::WorkMode::Plan => {
+                "当前处于【计划模式 Plan Mode】：只读探索、严禁改动。\n\
+                 - 你只能调用只读工具（project_index / search_graph / view_outline / grep_search / read_file 等）完成调研。\n\
+                 - 写文件、执行命令等变更工具已被系统硬性拒绝，不要尝试调用。\n\
+                 - 你必须产出一份结构化实施计划：目标、改动清单（文件+要点）、风险与回滚、验收标准，等待用户批准后再切换模式执行。"
+            }
+            crate::services::brain::tool_policy::WorkMode::Build => {
+                "当前处于【构建模式 Build Mode】：变更前确认。\n\
+                 - 只读工具自由使用；写文件、执行命令等变更操作会触发用户审批门禁。\n\
+                 - 收到审批拒绝时，必须调整方案而不是反复重试同一操作。"
+            }
+            crate::services::brain::tool_policy::WorkMode::Edit => {
+                "当前处于【自动编辑模式 Edit Mode】：代码改动直接落地。\n\
+                 - 文件级编辑（write_to_file / replace_in_file / multi_replace_file_content）无需确认，直接外科手术式落地。\n\
+                 - 执行命令、联网等高风险操作仍会触发审批；请优先用编辑工具完成改动并用轻量命令验证。"
+            }
+            crate::services::brain::tool_policy::WorkMode::Yolo => {
+                "当前处于【完全自主模式 Yolo Mode】：全程无人工确认。\n\
+                 - 所有工具直接放行；请保持外科手术式修改与验证闭环，仍然严禁虚假承诺。"
+            }
+            crate::services::brain::tool_policy::WorkMode::Guarded => {
+                "当前处于【守护自主模式 Guarded Mode】：自主执行、危险操作审批。\n\
+                 - 常规读写与命令直接执行；不可逆破坏性操作（回滚/删除/重置）会触发用户审批。"
+            }
+        });
+        full_system_prompt.push('\n');
+    }
     if !relevant_memories.is_empty() {
         full_system_prompt.push_str("\n\n# 潜意识架构记忆库 (SuperMemory Subconscious Context)\n");
         full_system_prompt.push_str("【系统已从宿主工程 SuperMemory 记忆库中预先召回与当前任务高度相关的工程规范与沉淀经验】：\n");
@@ -268,7 +315,7 @@ pub async fn run_worker(
         }
     });
 
-    let run_res = agent.run(prompt).await;
+    let run_res = agent.run_with_images(prompt, load_image_data_urls(&image_paths)).await;
     stdin_handle.abort();
 
     // 自动触发会话轨迹经验自省与自愈提炼，持久化写入 SuperMemory
@@ -324,4 +371,51 @@ pub async fn run_worker(
     }
     use std::io::Write;
     let _ = std::io::stdout().flush();
+}
+
+/// 将落盘图片读取为 data URL（worker 侧一次性内联，投影阶段零 IO）。
+/// 已是 data URL 的输入原样透传；读取失败或超出体积上限的条目跳过并告警，
+/// 不阻断整次运行。
+fn load_image_data_urls(paths: &[String]) -> Vec<String> {
+    const MAX_IMAGE_BYTES: usize = 6 * 1024 * 1024;
+    let mut urls = Vec::with_capacity(paths.len());
+    for path in paths {
+        let trimmed = path.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.starts_with("data:") {
+            urls.push(trimmed.to_string());
+            continue;
+        }
+        let mime = match std::path::Path::new(trimmed)
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_ascii_lowercase())
+            .as_deref()
+        {
+            Some("png") => "image/png",
+            Some("jpg") | Some("jpeg") => "image/jpeg",
+            Some("webp") => "image/webp",
+            Some("gif") => "image/gif",
+            _ => "image/png",
+        };
+        match std::fs::read(trimmed) {
+            Ok(bytes) if bytes.len() <= MAX_IMAGE_BYTES => {
+                use base64::Engine as _;
+                let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                urls.push(format!("data:{mime};base64,{encoded}"));
+            }
+            Ok(bytes) => {
+                eprintln!(
+                    "\x1b[33m[Images] skipped '{trimmed}': {} bytes exceeds {MAX_IMAGE_BYTES} limit\x1b[0m",
+                    bytes.len()
+                );
+            }
+            Err(error) => {
+                eprintln!("\x1b[33m[Images] failed to read '{trimmed}': {error}\x1b[0m");
+            }
+        }
+    }
+    urls
 }

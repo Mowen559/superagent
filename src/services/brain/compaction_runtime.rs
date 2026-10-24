@@ -336,6 +336,14 @@ fn checkpoint_line(event: &SessionEvent) -> String {
         SessionEvent::UserInput(text) => {
             format!("user_goal: {}", bounded(text, MAX_EVENT_CHARS))
         }
+        // 压缩检查点不携带图片数据（体积与隐私），只保留文字意图
+        SessionEvent::UserInputWithImages { text, images } => {
+            format!(
+                "user_goal: {} [attached {} image(s)]",
+                bounded(text, MAX_EVENT_CHARS),
+                images.len()
+            )
+        }
         SessionEvent::ModelThought(text) => {
             format!("assistant_finding: {}", bounded(text, MAX_EVENT_CHARS))
         }

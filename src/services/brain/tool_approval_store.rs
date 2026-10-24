@@ -11,6 +11,9 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 const DEFAULT_TTL_SECONDS: i64 = 15 * 60;
+/// Session-scope allow rules outlive single-use tickets (OpenClaw allow-always
+/// / Hermes "session" decision), but stay bounded so stale grants self-expire.
+const SESSION_RULE_TTL_SECONDS: i64 = 4 * 60 * 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -20,6 +23,8 @@ pub enum ApprovalStatus {
     Denied,
     Consumed,
     Expired,
+    /// Session-scope rule: matched by tool name, reusable until expiry.
+    SessionAllowed,
 }
 
 impl ApprovalStatus {
@@ -30,6 +35,7 @@ impl ApprovalStatus {
             Self::Denied => "denied",
             Self::Consumed => "consumed",
             Self::Expired => "expired",
+            Self::SessionAllowed => "session_allowed",
         }
     }
 }
@@ -181,6 +187,39 @@ impl ToolApprovalStore {
         self.transition(id, ApprovalStatus::Pending, ApprovalStatus::Denied)
     }
 
+    /// Promote a pending request to a session-scope rule: every later call of
+    /// the same tool passes the gate without re-asking, until the rule expires.
+    pub fn approve_session(&self, id: &str) -> io::Result<ToolApprovalRecord> {
+        let mut record = self.transition(id, ApprovalStatus::Pending, ApprovalStatus::SessionAllowed)?;
+        let now = chrono::Utc::now();
+        let expires = now + chrono::Duration::seconds(SESSION_RULE_TTL_SECONDS);
+        record.expires_at = expires.to_rfc3339();
+        record.expires_at_ms = expires.timestamp_millis();
+        record.status = ApprovalStatus::SessionAllowed;
+        let destination = self.record_path(ApprovalStatus::SessionAllowed, id);
+        fs::write(
+            &destination,
+            serde_json::to_vec_pretty(&record).map_err(json_error)?,
+        )?;
+        Ok(record)
+    }
+
+    /// Revoke a session rule (e.g. user changes their mind mid-session).
+    pub fn revoke_session_rule(&self, id: &str) -> io::Result<ToolApprovalRecord> {
+        self.transition(id, ApprovalStatus::SessionAllowed, ApprovalStatus::Expired)
+    }
+
+    /// List active session-scope rules (for the web control plane).
+    pub fn list_session_rules(&self) -> io::Result<Vec<ToolApprovalRecord>> {
+        self.ensure_directories()?;
+        let now_ms = chrono::Utc::now().timestamp_millis();
+        Ok(self
+            .records_in(ApprovalStatus::SessionAllowed)?
+            .into_iter()
+            .filter(|record| record.expires_at_ms > now_ms)
+            .collect())
+    }
+
     pub fn consume_matching(
         &self,
         tool_name: &str,
@@ -189,6 +228,22 @@ impl ToolApprovalStore {
         self.ensure_directories()?;
         let expected_hash = fingerprint(tool_name, arguments);
         let now_ms = chrono::Utc::now().timestamp_millis();
+
+        // Session rules first: matched by tool name, NOT consumed on use.
+        for record in self.records_in(ApprovalStatus::SessionAllowed)? {
+            if record.tool_name != tool_name {
+                continue;
+            }
+            if record.expires_at_ms <= now_ms {
+                let _ = self.transition(
+                    &record.id,
+                    ApprovalStatus::SessionAllowed,
+                    ApprovalStatus::Expired,
+                );
+                continue;
+            }
+            return Ok(Some(record));
+        }
 
         for record in self.records_in(ApprovalStatus::Approved)? {
             if record.expires_at_ms <= now_ms {
@@ -323,13 +378,14 @@ fn validate_id(id: &str) -> io::Result<()> {
     }
 }
 
-fn all_statuses() -> [ApprovalStatus; 5] {
+fn all_statuses() -> [ApprovalStatus; 6] {
     [
         ApprovalStatus::Pending,
         ApprovalStatus::Approved,
         ApprovalStatus::Denied,
         ApprovalStatus::Consumed,
         ApprovalStatus::Expired,
+        ApprovalStatus::SessionAllowed,
     ]
 }
 
@@ -422,6 +478,51 @@ mod tests {
             store.get("../approved").unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
+    }
+
+    #[test]
+    fn session_rule_allows_repeated_calls_of_same_tool_without_consumption() {
+        let (_directory, store) = store();
+        let first = json!({ "path": "a.txt" });
+        let pending = store
+            .request("write_to_file", &first, ToolRisk::WorkspaceMutation)
+            .unwrap();
+        store.approve_session(&pending.id).unwrap();
+
+        // 不同参数也放行：会话规则按工具名匹配
+        for args in [
+            json!({ "path": "a.txt" }),
+            json!({ "path": "b.txt", "content": "x" }),
+        ] {
+            let matched = store
+                .consume_matching("write_to_file", &args)
+                .unwrap()
+                .expect("session rule should match");
+            assert_eq!(matched.status, ApprovalStatus::SessionAllowed);
+        }
+        // 规则未被消费，仍然在列
+        assert_eq!(store.list_session_rules().unwrap().len(), 1);
+        // 其他工具不受影响
+        assert!(store
+            .consume_matching("run_command", &json!({}))
+            .unwrap()
+            .is_none());
+        // 可主动吊销
+        store.revoke_session_rule(&pending.id).unwrap();
+        assert!(store
+            .consume_matching("write_to_file", &first)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn session_rule_outlives_single_use_ticket_ttl() {
+        let (_directory, store) = store();
+        let pending = store
+            .request("run_command", &json!({ "CommandLine": "cargo test" }), ToolRisk::ProcessControl)
+            .unwrap();
+        let rule = store.approve_session(&pending.id).unwrap();
+        assert!(rule.expires_at_ms > pending.expires_at_ms);
     }
 
     #[test]

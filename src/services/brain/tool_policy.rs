@@ -14,9 +14,63 @@ pub enum ToolRisk {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolPolicyMode {
+    /// Fully autonomous: every tool call is allowed (ZCode "yolo").
     Audit,
+    /// Plan/research only: read-only tools pass, everything else is denied.
     ReadOnly,
+    /// Confirm before changes: read-only passes, all mutations/approvals gate.
     Approval,
+    /// Auto-apply edits: file mutations pass; network/process/destructive gate.
+    AutoEdit,
+    /// Guarded autonomy: everything passes except destructive operations gate.
+    Guarded,
+}
+
+/// Web-facing collaboration modes (mirrors ZCode's permission modes).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkMode {
+    Plan,
+    Build,
+    Edit,
+    Yolo,
+    Guarded,
+}
+
+impl WorkMode {
+    /// All modes accepted from the HTTP surface, in cycle order.
+    pub const ALL: [&'static str; 5] = ["plan", "build", "edit", "yolo", "guarded"];
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "plan" | "read-only" | "readonly" => Some(WorkMode::Plan),
+            "build" | "approval" | "require-approval" => Some(WorkMode::Build),
+            "edit" | "auto-edit" | "accept-edits" => Some(WorkMode::Edit),
+            "yolo" | "audit" | "full-auto" | "bypass" => Some(WorkMode::Yolo),
+            "guarded" => Some(WorkMode::Guarded),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            WorkMode::Plan => "plan",
+            WorkMode::Build => "build",
+            WorkMode::Edit => "edit",
+            WorkMode::Yolo => "yolo",
+            WorkMode::Guarded => "guarded",
+        }
+    }
+
+    pub fn policy_mode(&self) -> ToolPolicyMode {
+        match self {
+            WorkMode::Plan => ToolPolicyMode::ReadOnly,
+            WorkMode::Build => ToolPolicyMode::Approval,
+            WorkMode::Edit => ToolPolicyMode::AutoEdit,
+            WorkMode::Yolo => ToolPolicyMode::Audit,
+            WorkMode::Guarded => ToolPolicyMode::Guarded,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,8 +92,10 @@ impl ToolPolicy {
             .to_lowercase()
             .as_str()
         {
-            "read-only" | "readonly" | "deny-mutations" => ToolPolicyMode::ReadOnly,
-            "approval" | "require-approval" => ToolPolicyMode::Approval,
+            "read-only" | "readonly" | "deny-mutations" | "plan" => ToolPolicyMode::ReadOnly,
+            "approval" | "require-approval" | "build" => ToolPolicyMode::Approval,
+            "auto-edit" | "accept-edits" | "edit" => ToolPolicyMode::AutoEdit,
+            "guarded" => ToolPolicyMode::Guarded,
             _ => ToolPolicyMode::Audit,
         };
         Self { mode }
@@ -47,6 +103,15 @@ impl ToolPolicy {
 
     pub fn new(mode: ToolPolicyMode) -> Self {
         Self { mode }
+    }
+
+    /// Override the active mode at runtime (e.g. per-run work mode from HTTP).
+    pub fn set_mode(&mut self, mode: ToolPolicyMode) {
+        self.mode = mode;
+    }
+
+    pub fn mode(&self) -> ToolPolicyMode {
+        self.mode
     }
 
     pub fn evaluate(&self, name: &str, arguments: &Value) -> (ToolRisk, ToolPolicyDecision) {
@@ -57,6 +122,15 @@ impl ToolPolicy {
             ToolPolicyMode::ReadOnly => ToolPolicyDecision::Deny,
             ToolPolicyMode::Approval if risk == ToolRisk::ReadOnly => ToolPolicyDecision::Allow,
             ToolPolicyMode::Approval => ToolPolicyDecision::RequireApproval,
+            ToolPolicyMode::AutoEdit if risk == ToolRisk::ReadOnly => ToolPolicyDecision::Allow,
+            ToolPolicyMode::AutoEdit if risk == ToolRisk::WorkspaceMutation => {
+                ToolPolicyDecision::Allow
+            }
+            ToolPolicyMode::AutoEdit => ToolPolicyDecision::RequireApproval,
+            ToolPolicyMode::Guarded if risk == ToolRisk::Destructive => {
+                ToolPolicyDecision::RequireApproval
+            }
+            ToolPolicyMode::Guarded => ToolPolicyDecision::Allow,
         };
         (risk, decision)
     }
@@ -185,5 +259,91 @@ mod tests {
                 ToolPolicyDecision::RequireApproval
             );
         }
+    }
+
+    #[test]
+    fn auto_edit_mode_allows_workspace_mutations_but_gates_processes() {
+        let policy = ToolPolicy::new(ToolPolicyMode::AutoEdit);
+        assert_eq!(
+            policy.evaluate("replace_in_file", &json!({})).1,
+            ToolPolicyDecision::Allow
+        );
+        assert_eq!(
+            policy.evaluate("write_to_file", &json!({})).1,
+            ToolPolicyDecision::Allow
+        );
+        for name in ["run_command", "web_fetch", "unknown_plugin"] {
+            assert_eq!(
+                policy.evaluate(name, &json!({})).1,
+                ToolPolicyDecision::RequireApproval
+            );
+        }
+    }
+
+    #[test]
+    fn guarded_mode_only_gates_destructive_actions() {
+        let policy = ToolPolicy::new(ToolPolicyMode::Guarded);
+        for name in [
+            "replace_in_file",
+            "run_command",
+            "web_fetch",
+            "unknown_plugin",
+        ] {
+            assert_eq!(
+                policy.evaluate(name, &json!({})).1,
+                ToolPolicyDecision::Allow
+            );
+        }
+        assert_eq!(
+            policy
+                .evaluate("shadow_git", &json!({ "action": "restore" }))
+                .1,
+            ToolPolicyDecision::RequireApproval
+        );
+        assert_eq!(
+            policy
+                .evaluate("knowledge_corpus_tool", &json!({ "operation": "remove" }))
+                .1,
+            ToolPolicyDecision::RequireApproval
+        );
+    }
+
+    #[test]
+    fn work_modes_map_to_expected_policy_semantics() {
+        use super::WorkMode;
+
+        assert_eq!(
+            WorkMode::parse("plan").unwrap().policy_mode(),
+            ToolPolicyMode::ReadOnly
+        );
+        assert_eq!(
+            WorkMode::parse("Build").unwrap().policy_mode(),
+            ToolPolicyMode::Approval
+        );
+        assert_eq!(
+            WorkMode::parse("accept-edits").unwrap().policy_mode(),
+            ToolPolicyMode::AutoEdit
+        );
+        assert_eq!(
+            WorkMode::parse("yolo").unwrap().policy_mode(),
+            ToolPolicyMode::Audit
+        );
+        assert_eq!(
+            WorkMode::parse("guarded").unwrap().policy_mode(),
+            ToolPolicyMode::Guarded
+        );
+        assert!(WorkMode::parse("chaos").is_none());
+
+        // plan 模式下写文件必须被拒绝，edit 模式下放行。
+        let plan = ToolPolicy::new(WorkMode::Plan.policy_mode());
+        assert_eq!(
+            plan.evaluate("write_to_file", &json!({})).1,
+            ToolPolicyDecision::Deny
+        );
+        let edit = ToolPolicy::new(WorkMode::Edit.policy_mode());
+        assert_eq!(
+            edit.evaluate("write_to_file", &json!({})).1,
+            ToolPolicyDecision::Allow
+        );
     }
 }

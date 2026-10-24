@@ -22,6 +22,8 @@ pub enum IpcMessage {
         request_id: String,
         question: String,
         choices: Vec<String>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        choice_details: Vec<crate::services::brain::interaction_runtime::InteractionChoice>,
     },
     UserResponse {
         request_id: String,

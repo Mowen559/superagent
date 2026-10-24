@@ -28,6 +28,12 @@ pub enum Commands {
         /// Target model name override
         #[arg(long)]
         model: Option<String>,
+        /// Work mode: plan | build | edit | yolo | guarded
+        #[arg(long)]
+        tool_policy: Option<String>,
+        /// Image attachment paths (repeatable; hub-side upload staging files)
+        #[arg(long = "image")]
+        images: Vec<String>,
     },
     /// Start the backend service
     Service {
@@ -252,10 +258,18 @@ pub fn dispatch() {
     };
 
     match cli.command {
-        Some(Commands::SuperagentWorker { prompt, project, model, resume_session_id }) => {
+        Some(Commands::SuperagentWorker { prompt, project, model, resume_session_id, tool_policy, images }) => {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
-                crate::services::brain::worker::run_worker(&prompt, project, model, resume_session_id).await;
+                crate::services::brain::worker::run_worker(
+                    &prompt,
+                    project,
+                    model,
+                    resume_session_id,
+                    tool_policy,
+                    images,
+                )
+                .await;
             });
             std::process::exit(0);
         }

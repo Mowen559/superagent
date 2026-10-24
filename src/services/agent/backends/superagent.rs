@@ -36,6 +36,14 @@ impl AgentBackend for SuperAgentBackend {
             args.push("--project".to_string());
             args.push(cwd.clone());
         }
+        if let Some(mode) = opts.tool_policy.as_ref().filter(|m| !m.trim().is_empty()) {
+            args.push("--tool-policy".to_string());
+            args.push(mode.clone());
+        }
+        for image in opts.image_paths.iter().filter(|p| !p.trim().is_empty()) {
+            args.push("--image".to_string());
+            args.push(image.trim().to_string());
+        }
 
         json_lines::run(
             JsonSpec {
@@ -48,6 +56,12 @@ impl AgentBackend for SuperAgentBackend {
                             if let Some(c) = evt.get("content").and_then(|v| v.as_str()) {
                                 st.output.push_str(c);
                                 out.push(AgentMessage::Text {
+                                    content: c.to_string(),
+                                });
+                            }
+                        } else if t == "thinking" {
+                            if let Some(c) = evt.get("content").and_then(|v| v.as_str()) {
+                                out.push(AgentMessage::Thinking {
                                     content: c.to_string(),
                                 });
                             }
@@ -149,10 +163,17 @@ impl AgentBackend for SuperAgentBackend {
                                                 .collect()
                                         })
                                         .unwrap_or_default();
+                                    let choice_details = payload
+                                        .get("choice_details")
+                                        .or_else(|| payload.get("choiceDetails"))
+                                        .cloned()
+                                        .and_then(|v| serde_json::from_value(v).ok())
+                                        .unwrap_or_default();
                                     out.push(AgentMessage::InteractionRequest {
                                         request_id: req_id.to_string(),
                                         question: q.to_string(),
                                         choices,
+                                        choice_details,
                                     });
                                 }
                             }

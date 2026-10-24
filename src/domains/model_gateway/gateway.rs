@@ -1,6 +1,6 @@
 use reqwest::StatusCode;
 use serde_json::Value;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::config::llm_settings::{self, LLMSettings};
 use crate::domains::model_gateway::routing::{
@@ -8,19 +8,161 @@ use crate::domains::model_gateway::routing::{
     ProviderCandidate,
 };
 use crate::domains::model_gateway::health::{ProviderAdmission, ProviderHealthRuntime};
+use crate::domains::model_gateway::protocols::sse::SseEventScanner;
 use crate::domains::model_gateway::protocols::upstream::{adapter_for_provider, UpstreamAdapter};
 use crate::services::usage_tracker::ApiUsageRecord;
 use crate::domains::model_gateway::providers::usage_from_standard;
 use crate::services::cli_auth::AuthRuntime;
 
+/// 等待首个 SSE 事件的预算：慢推理模型首字节可能很慢，上限取宽；
+/// 超出视为上游挂死，按 Transient 进入 failover。
+const FIRST_EVENT_TIMEOUT: Duration = Duration::from_secs(300);
+/// 首事件前的最大缓冲字节：正常首个事件块远小于该值；超限说明上游在
+/// 200 之后倾倒非 SSE 内容（如 HTML 错误页），按失败处理。
+const FIRST_EVENT_MAX_BYTES: usize = 256 * 1024;
+
 pub struct GatewayExecuteResult {
     pub status: StatusCode,
     pub standard_response: Option<Value>,
     pub response_body_text: Option<String>,
-    pub raw_response: Option<reqwest::Response>,
+    /// 已确认存活（首个事件已到达）的原始上游流。反代拿到它即可安全转发：
+    /// 若上游在首事件前就断流，execute_model_request 内部已按失败处理并
+    /// 走完 failover，不会把空流交给调用方。
+    pub raw_stream: Option<
+        std::pin::Pin<
+            Box<dyn futures::Stream<Item = Result<bytes::Bytes, reqwest::Error>> + Send>,
+        >,
+    >,
+    /// 等待首事件期间已读出的字节，转发时需前插回流的头部，保证字节序完整。
+    pub stream_head: Option<bytes::Bytes>,
+    /// 原始响应的 Content-Type（流被消费前捕获）。
+    pub content_type: Option<String>,
     pub usage: crate::domains::model_gateway::providers::TokenUsage,
     pub receipts: Vec<ProviderAttemptReceipt>,
     pub account: Option<crate::config::llm_settings::LLMAccount>,
+}
+
+/// 首事件缓冲的判定结果。
+enum FirstEventOutcome {
+    /// 首个完整 SSE 事件已确认：缓冲字节 + 剩余流。
+    Confirmed {
+        head: bytes::Bytes,
+        rest: std::pin::Pin<
+            Box<dyn futures::Stream<Item = Result<bytes::Bytes, reqwest::Error>> + Send>,
+        >,
+    },
+    /// 流在产出首个事件前死亡/超时/返回错误载荷（message 用于失败分类）。
+    Failed(String),
+}
+
+/// 检查首个完整 SSE 事件块是否为上游错误载荷（部分供应商用 200 + error 事件
+/// 表达失败，此时仍有机会 failover）。
+fn first_block_error(block: &str) -> Option<String> {
+    for line in block.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("event:") && trimmed["event:".len()..].trim() == "error" {
+            return Some("upstream stream error event before first token".to_string());
+        }
+        let Some(data) = trimmed
+            .strip_prefix("data: ")
+            .or_else(|| trimmed.strip_prefix("data:"))
+        else {
+            continue;
+        };
+        if let Ok(value) = serde_json::from_str::<Value>(data) {
+            if let Some(error) = value.get("error") {
+                let snippet = error
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown upstream stream error");
+                return Some(format!("upstream stream error payload: {snippet}"));
+            }
+            return None;
+        }
+    }
+    None
+}
+
+/// 从已收到 2xx 的流式响应中等待首个完整 SSE 事件。
+async fn await_first_stream_event(response: reqwest::Response) -> (Option<String>, FirstEventOutcome) {
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(ToString::to_string);
+    let mut stream = response.bytes_stream();
+    let mut scanner = SseEventScanner::new();
+    let mut head: Vec<u8> = Vec::new();
+
+    loop {
+        let next = tokio::time::timeout(FIRST_EVENT_TIMEOUT, futures::StreamExt::next(&mut stream)).await;
+        match next {
+            Err(_) => {
+                return (content_type, FirstEventOutcome::Failed("first stream event timeout".into()))
+            }
+            Ok(None) => {
+                // 流在分隔符前自然结束：把尾部缓冲当作最后一个事件块判定。
+                // 尾部必须含至少一行 data: 才算产出过有效事件（200 + HTML
+                // 错误页一类垃圾结尾仍应走失败路径）。
+                if let Some(tail) = scanner.flush() {
+                    if let Some(error) = first_block_error(&tail) {
+                        return (content_type, FirstEventOutcome::Failed(error));
+                    }
+                    if tail.lines().any(|line| line.trim().starts_with("data:")) {
+                        return (
+                            content_type,
+                            FirstEventOutcome::Confirmed {
+                                head: bytes::Bytes::from(head),
+                                rest: Box::pin(futures::stream::unfold(stream, |mut s| async move {
+                                    futures::StreamExt::next(&mut s).await.map(|item| (item, s))
+                                })),
+                            },
+                        );
+                    }
+                    return (
+                        content_type,
+                        FirstEventOutcome::Failed("stream ended without SSE data event".into()),
+                    );
+                }
+                return (
+                    content_type,
+                    FirstEventOutcome::Failed("stream ended before first event".into()),
+                );
+            }
+            Ok(Some(Err(error))) => {
+                return (
+                    content_type,
+                    FirstEventOutcome::Failed(format!("stream error before first event: {error}")),
+                )
+            }
+            Ok(Some(Ok(chunk))) => {
+                head.extend_from_slice(&chunk);
+                if head.len() > FIRST_EVENT_MAX_BYTES {
+                    return (
+                        content_type,
+                        FirstEventOutcome::Failed(
+                            "no complete SSE event within first 256KB of stream".into(),
+                        ),
+                    );
+                }
+                let blocks = scanner.push_chunk(&chunk);
+                if let Some(block) = blocks.first() {
+                    if let Some(error) = first_block_error(block) {
+                        return (content_type, FirstEventOutcome::Failed(error));
+                    }
+                    return (
+                        content_type,
+                        FirstEventOutcome::Confirmed {
+                            head: bytes::Bytes::from(head),
+                            rest: Box::pin(futures::stream::unfold(stream, |mut s| async move {
+                                futures::StreamExt::next(&mut s).await.map(|item| (item, s))
+                            })),
+                        },
+                    );
+                }
+            }
+        }
+    }
 }
 
 pub async fn execute_model_request(
@@ -341,7 +483,9 @@ pub async fn execute_model_request(
                     status,
                     standard_response: None,
                     response_body_text: Some(error_text),
-                    raw_response: None,
+                    raw_stream: None,
+                    stream_head: None,
+                    content_type: None,
                     usage: crate::domains::model_gateway::providers::TokenUsage::default(),
                     receipts,
                     account: Some(candidate.account.clone()),
@@ -355,25 +499,68 @@ pub async fn execute_model_request(
             .unwrap_or(false);
 
         if is_stream {
-            // Streaming attempt health lifecycle is managed by `track_provider_stream`,
-            // preventing duplicate success counts and EMA latency jitter.
-            receipts.push(ProviderAttemptReceipt::new(
-                &candidate,
-                attempt,
-                attempt_duration_ms,
-                ProviderAttemptOutcome::Succeeded,
-                Some(status.as_u16()),
-            ));
-            
-            return Ok(GatewayExecuteResult {
-                status,
-                standard_response: None,
-                response_body_text: None,
-                raw_response: Some(res),
-                usage: crate::domains::model_gateway::providers::TokenUsage::default(),
-                receipts,
-                account: Some(candidate.account.clone()),
-            });
+            // 流式首事件缓冲：上游 200 后立即断流（0 事件）或直接给出错误载荷时，
+            // 客户端尚未收到任何字节，此时仍可安全 failover 到下一候选；
+            // 一旦首个完整事件确认，剩余流透传给反代，不再引入额外转发延迟。
+            let (content_type, outcome) = await_first_stream_event(res).await;
+            match outcome {
+                FirstEventOutcome::Confirmed { head, rest } => {
+                    // 流式尝试的健康生命周期由 track_provider_stream 收尾，
+                    // 防止重复计数成功与 EMA 抖动。
+                    receipts.push(ProviderAttemptReceipt::new(
+                        &candidate,
+                        attempt,
+                        attempt_duration_ms,
+                        ProviderAttemptOutcome::Succeeded,
+                        Some(status.as_u16()),
+                    ));
+
+                    return Ok(GatewayExecuteResult {
+                        status,
+                        standard_response: None,
+                        response_body_text: None,
+                        raw_stream: Some(rest),
+                        stream_head: Some(head),
+                        content_type,
+                        usage: crate::domains::model_gateway::providers::TokenUsage::default(),
+                        receipts,
+                        account: Some(candidate.account.clone()),
+                    });
+                }
+                FirstEventOutcome::Failed(message) => {
+                    let class = route_runtime.classify_failure(&message);
+                    match class {
+                        crate::domains::model_gateway::model_attempt_router::ModelErrorClass::Authentication => {
+                            health.finish_attempt(&acc_key, ProviderAttemptOutcome::Authentication, attempt_duration_ms);
+                            health.finish_attempt(&mod_key, ProviderAttemptOutcome::Authentication, attempt_duration_ms);
+                        }
+                        crate::domains::model_gateway::model_attempt_router::ModelErrorClass::RateLimited => {
+                            health.finish_attempt(&mod_key, ProviderAttemptOutcome::RateLimited, attempt_duration_ms);
+                            health.finish_attempt(&acc_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
+                        }
+                        crate::domains::model_gateway::model_attempt_router::ModelErrorClass::Transient => {
+                            health.finish_attempt(&mod_key, ProviderAttemptOutcome::Transient, attempt_duration_ms);
+                            health.cancel_attempt(&acc_key);
+                        }
+                        _ => {
+                            health.finish_attempt(&mod_key, class.into(), attempt_duration_ms);
+                            health.finish_attempt(&acc_key, ProviderAttemptOutcome::Succeeded, attempt_duration_ms);
+                        }
+                    }
+                    receipts.push(ProviderAttemptReceipt::new(
+                        &candidate,
+                        attempt,
+                        attempt_duration_ms,
+                        class.into(),
+                        Some(502),
+                    ));
+                    last_error = (StatusCode::BAD_GATEWAY, message);
+                    if route_runtime.should_try_next(class, attempt < candidate_count) {
+                        continue;
+                    }
+                    return Err(last_error);
+                }
+            }
         }
 
         // Non-stream successful response
@@ -441,7 +628,9 @@ pub async fn execute_model_request(
             status,
             standard_response: Some(standard_res),
             response_body_text: Some(response_text),
-            raw_response: None,
+            raw_stream: None,
+            stream_head: None,
+            content_type: None,
             usage,
             receipts,
             account: Some(candidate.account.clone()),
@@ -509,4 +698,119 @@ pub async fn load_gemini_native_project(
     }
 
     None
+}
+
+#[cfg(test)]
+mod first_event_tests {
+    use super::{await_first_stream_event, first_block_error, FirstEventOutcome};
+    use futures::StreamExt;
+
+    fn response_from_chunks(chunks: Vec<Result<bytes::Bytes, std::io::Error>>) -> reqwest::Response {
+        let body = reqwest::Body::wrap_stream(futures::stream::iter(chunks));
+        let response = http::Response::builder()
+            .status(200)
+            .header("content-type", "text/event-stream")
+            .body(body)
+            .unwrap();
+        reqwest::Response::from(response)
+    }
+
+    #[tokio::test]
+    async fn immediate_dead_stream_is_failed() {
+        let (_, outcome) = await_first_stream_event(response_from_chunks(vec![])).await;
+        match outcome {
+            FirstEventOutcome::Failed(message) => {
+                assert!(message.contains("before first event"), "got: {message}")
+            }
+            FirstEventOutcome::Confirmed { .. } => panic!("dead stream must not be confirmed"),
+        }
+    }
+
+    #[tokio::test]
+    async fn confirmed_stream_preserves_head_and_rest_order() {
+        // 首事件在 chunk2 末尾完成确认：head=chunk1+2（含 A 不含 B），chunk3 未读留在 rest
+        let response = response_from_chunks(vec![
+            Ok(bytes::Bytes::from_static(
+                b"data: {\"choices\":[{\"delta\":{\"content\":\"A\"",
+            )),
+            Ok(bytes::Bytes::from_static(b"}}]}
+
+")),
+            Ok(bytes::Bytes::from_static(
+                b"data: {\"choices\":[{\"delta\":{\"content\":\"B\"}}]}
+
+data: [DONE]
+
+",
+            )),
+        ]);
+        let (content_type, outcome) = await_first_stream_event(response).await;
+        assert_eq!(content_type.as_deref(), Some("text/event-stream"));
+        match outcome {
+            FirstEventOutcome::Confirmed { head, rest } => {
+                let head_text = String::from_utf8_lossy(&head).to_string();
+                assert!(head_text.contains("\"A\""), "head must carry the first event");
+                assert!(!head_text.contains("\"B\""), "head must stop before unread chunks");
+                let collected: Vec<_> = rest.collect().await;
+                let joined = collected
+                    .iter()
+                    .map(|c| match c {
+                        Ok(b) => String::from_utf8_lossy(b).to_string(),
+                        Err(e) => format!("<err {e}>"),
+                    })
+                    .collect::<String>();
+                assert!(joined.contains("\"B\""));
+                assert!(joined.contains("[DONE]"));
+            }
+            FirstEventOutcome::Failed(m) => panic!("healthy stream failed: {m}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn error_payload_in_first_event_is_failed() {
+        let response = response_from_chunks(vec![Ok(bytes::Bytes::from_static(
+            b"data: {\"error\":{\"message\":\"quota exceeded\"}}\n\n",
+        ))]);
+        let (_, outcome) = await_first_stream_event(response).await;
+        match outcome {
+            FirstEventOutcome::Failed(message) => {
+                assert!(message.contains("quota exceeded"), "got: {message}")
+            }
+            FirstEventOutcome::Confirmed { .. } => panic!("error payload must not be confirmed"),
+        }
+    }
+
+    #[tokio::test]
+    async fn keepalive_first_block_confirms_liveness() {
+        // 注释行/心跳构成的首个事件块足以证明上游存活
+        let response = response_from_chunks(vec![
+            Ok(bytes::Bytes::from_static(b": keep-alive\n\n")),
+            Ok(bytes::Bytes::from_static(b"data: [DONE]\n\n")),
+        ]);
+        let (_, outcome) = await_first_stream_event(response).await;
+        assert!(matches!(outcome, FirstEventOutcome::Confirmed { .. }));
+    }
+
+    #[tokio::test]
+    async fn garbage_200_body_without_data_lines_is_failed() {
+        // 200 + HTML 错误页（无任何 data: 行，无分隔符直接结束）
+        let response = response_from_chunks(vec![Ok(bytes::Bytes::from_static(
+            b"<html><body>Bad Gateway</body></html>",
+        ))]);
+        let (_, outcome) = await_first_stream_event(response).await;
+        match outcome {
+            FirstEventOutcome::Failed(message) => {
+                assert!(message.contains("without SSE data"), "got: {message}")
+            }
+            FirstEventOutcome::Confirmed { .. } => panic!("garbage body must not be confirmed"),
+        }
+    }
+
+    #[test]
+    fn first_block_error_detects_event_and_payload_forms() {
+        assert!(first_block_error("event: error\ndata: {}").is_some());
+        assert!(first_block_error("data: {\"error\":{\"message\":\"x\"}}").is_some());
+        assert!(first_block_error("data: {\"choices\":[{\"delta\":{}}]}").is_none());
+        assert!(first_block_error(": keep-alive").is_none());
+    }
 }

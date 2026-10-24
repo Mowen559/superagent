@@ -42,6 +42,8 @@ pub enum SessionEvent {
         at: String,
     },
     UserInput(String),
+    /// 用户输入附带图片（多模态）：`images` 为本地可读路径或 data URL。
+    UserInputWithImages { text: String, images: Vec<String> },
     ModelThought(String),
     ContextCompacted {
         summary: String,
@@ -84,6 +86,18 @@ impl SessionEvent {
                 "content": format!("[Session lifecycle: {:?}{}]", to, reason.as_ref().map(|value| format!(" - {value}")).unwrap_or_default())
             }),
             Self::UserInput(text) => serde_json::json!({ "role": "user", "content": text }),
+            // 多模态投影：OpenAI 兼容 content 数组（text + image_url data URL）。
+            // 图片在入账时已由 worker 统一转为 data URL，投影阶段零 IO。
+            Self::UserInputWithImages { text, images } => {
+                let mut parts = vec![serde_json::json!({ "type": "text", "text": text })];
+                for image in images {
+                    parts.push(serde_json::json!({
+                        "type": "image_url",
+                        "image_url": { "url": image }
+                    }));
+                }
+                serde_json::json!({ "role": "user", "content": parts })
+            }
             Self::ModelThought(text) => serde_json::json!({ "role": "assistant", "content": text }),
             Self::ContextCompacted {
                 summary,

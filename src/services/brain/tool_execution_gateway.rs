@@ -193,8 +193,9 @@ impl ToolExecutionGateway {
                                 "diff_payload": approval.diff_payload,
                                 "control_plane": {
                                     "approve": format!("POST /api/tool-approvals/{}/approve", approval.id),
+                                    "approve_session": format!("POST /api/tool-approvals/{}/approve-session", approval.id),
                                     "deny": format!("POST /api/tool-approvals/{}/deny", approval.id),
-                                    "required_header": "X-Hub-Approval: approve|deny",
+                                    "required_header": "X-Hub-Approval: approve|approve-session|deny",
                                 }
                             }),
                         ),

@@ -34,6 +34,8 @@ git2 = "0.20"
 
 # HTTP client (LLM API calls)
 reqwest = { version = "0.12", features = ["json", "stream"] }
+# HTTP 类型（构造测试用 Response；与 reqwest 传递依赖同版本族）
+http = "1"
 
 # File traversal
 walkdir = "2"

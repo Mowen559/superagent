@@ -13,12 +13,26 @@ pub const MAX_CHOICES: usize = 8;
 pub const DEFAULT_TIMEOUT_SECONDS: u64 = 5 * 60;
 pub const MAX_TIMEOUT_SECONDS: u64 = 30 * 60;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct InteractionChoice {
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub recommended: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InteractionRequest {
     pub request_id: String,
     pub question: String,
     pub choices: Vec<String>,
+    /// Structured choice metadata (label/description/recommended), aligned with
+    /// ZCode AskUserQuestion & DeepSeek AskUserQuestionItem. Empty for plain choices.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub choice_details: Vec<InteractionChoice>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -79,7 +93,17 @@ impl InteractionRuntime {
         choices: Vec<String>,
         timeout: Duration,
     ) -> Result<InteractionReceipt, String> {
-        let request = validate_request(question, choices, timeout)?;
+        self.ask_with_details(question, choices, Vec::new(), timeout)
+    }
+
+    pub fn ask_with_details(
+        &self,
+        question: &str,
+        choices: Vec<String>,
+        choice_details: Vec<InteractionChoice>,
+        timeout: Duration,
+    ) -> Result<InteractionReceipt, String> {
+        let request = validate_request(question, choices, choice_details, timeout)?;
         self.begin(&request)?;
         let mode = *self
             .mode
@@ -101,6 +125,7 @@ impl InteractionRuntime {
                 request_id: request.request_id.clone(),
                 question: request.question.clone(),
                 choices: request.choices.clone(),
+                choice_details: request.choice_details.clone(),
             }),
         }
 
@@ -186,6 +211,7 @@ impl InteractionRuntime {
 fn validate_request(
     question: &str,
     choices: Vec<String>,
+    choice_details: Vec<InteractionChoice>,
     timeout: Duration,
 ) -> Result<InteractionRequest, String> {
     let question = question.trim();
@@ -207,10 +233,24 @@ fn validate_request(
             "timeout must be between 1 and {MAX_TIMEOUT_SECONDS} seconds"
         ));
     }
+    // 只保留与净化后 choices 对齐的结构化元数据，防止幽灵选项
+    let details: Vec<InteractionChoice> = choice_details
+        .into_iter()
+        .filter(|detail| choices.iter().any(|c| c == detail.label.as_str()))
+        .take(MAX_CHOICES)
+        .map(|mut detail| {
+            detail.label = bounded(detail.label.trim(), MAX_CHOICE_CHARS);
+            detail.description = detail
+                .description
+                .map(|d| bounded(d.trim(), MAX_CHOICE_CHARS * 2));
+            detail
+        })
+        .collect();
     Ok(InteractionRequest {
         request_id: Uuid::new_v4().to_string(),
         question: question.to_string(),
         choices,
+        choice_details: details,
     })
 }
 
@@ -238,18 +278,46 @@ mod tests {
 
     #[test]
     fn validates_question_choices_and_timeout() {
-        assert!(validate_request("Choose", vec!["A".to_string()], Duration::from_secs(1)).is_ok());
-        assert!(validate_request("", Vec::new(), Duration::from_secs(1)).is_err());
+        assert!(validate_request("Choose", vec!["A".to_string()], Vec::new(), Duration::from_secs(1)).is_ok());
+        assert!(validate_request("", Vec::new(), Vec::new(), Duration::from_secs(1)).is_err());
         assert!(
-            validate_request("Choose", vec!["x".to_string(); 9], Duration::from_secs(1)).is_err()
+            validate_request("Choose", vec!["x".to_string(); 9], Vec::new(), Duration::from_secs(1)).is_err()
         );
-        assert!(validate_request("Choose", Vec::new(), Duration::ZERO).is_err());
+        assert!(validate_request("Choose", Vec::new(), Vec::new(), Duration::ZERO).is_err());
+    }
+
+    #[test]
+    fn structured_details_are_aligned_with_plain_choices() {
+        let details = vec![
+            InteractionChoice {
+                label: "方案 A".to_string(),
+                description: Some("低风险".to_string()),
+                recommended: true,
+            },
+            InteractionChoice {
+                label: "幽灵选项".to_string(),
+                description: None,
+                recommended: false,
+            },
+        ];
+        let request = validate_request(
+            "选哪个方案？",
+            vec!["方案 A".to_string(), "方案 B".to_string()],
+            details,
+            Duration::from_secs(1),
+        )
+        .unwrap();
+        assert_eq!(request.choices.len(), 2);
+        // 只保留与 choices 对齐的元数据，幽灵选项被剔除
+        assert_eq!(request.choice_details.len(), 1);
+        assert!(request.choice_details[0].recommended);
+        assert_eq!(request.choice_details[0].description.as_deref(), Some("低风险"));
     }
 
     #[test]
     fn response_requires_matching_pending_request() {
         let runtime = InteractionRuntime::default();
-        let request = validate_request("Choose", Vec::new(), Duration::from_secs(1)).unwrap();
+        let request = validate_request("Choose", Vec::new(), Vec::new(), Duration::from_secs(1)).unwrap();
         runtime.begin(&request).unwrap();
         assert!(!runtime.deliver_response("wrong", "answer"));
         assert!(runtime.deliver_response(&request.request_id, "answer"));
