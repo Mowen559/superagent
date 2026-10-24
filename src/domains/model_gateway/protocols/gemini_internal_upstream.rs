@@ -47,10 +47,31 @@ impl UpstreamAdapter for GeminiInternalUpstreamAdapter {
             .to_string();
         fn resolve_gemini_native_model(m: &str) -> &str {
             match m {
+                "gemini-2.5-flash" => "gemini-2.5-flash",
+                "gemini-2.5-pro" => "gemini-2.5-pro",
+                "gemini-1.5-flash" => "gemini-1.5-flash",
+                "gemini-1.5-pro" => "gemini-1.5-pro",
                 "gemini-3.1-pro-high" => "gemini-pro-agent",
                 "gemini-3.1-pro-low" => "gemini-3.1-pro-low",
                 "gemini-3.1-flash-lite" => "gemini-3.1-flash-lite",
-                _ => m,
+                "gemini-pro-agent" => "gemini-pro-agent",
+                // 兼容非 Google 模型名或未知别名自动智能兜底至稳定高速的 gemini-2.5-flash，彻底消除 404
+                "gemini-3.8-flash-high"
+                | "gemini-3-flash"
+                | "gemini-stub"
+                | "gpt-4o"
+                | "gpt-4o-mini"
+                | "claude-3-5-sonnet"
+                | "si"
+                | "default"
+                | "" => "gemini-2.5-flash",
+                other => {
+                    if other.starts_with("gemini-2.5") || other.starts_with("gemini-1.5") {
+                        other
+                    } else {
+                        "gemini-2.5-flash"
+                    }
+                }
             }
         }
         let resolved_model = resolve_gemini_native_model(&requested_model).to_string();

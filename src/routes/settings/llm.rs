@@ -74,6 +74,8 @@ pub(crate) async fn test_llm(Json(body): Json<TestLlmBody>) -> axum::response::R
     if let (Some(provider), None) = (Some(&body.provider), &base_url) {
         if provider == "openai" {
             base_url = Some("https://api.openai.com/v1".to_string());
+        } else if provider == "gemini_native" {
+            base_url = Some("https://generativelanguage.googleapis.com".to_string());
         }
     }
 
@@ -297,7 +299,13 @@ pub(crate) async fn test_models(
     if let (Some(provider), None) = (Some(&body.provider), &base_url) {
         if provider == "openai" {
             base_url = Some("https://api.openai.com/v1".to_string());
+        } else if provider == "gemini_native" {
+            base_url = Some("https://generativelanguage.googleapis.com".to_string());
         }
+    }
+
+    if base_url.as_ref().map(|s| s.trim().is_empty()).unwrap_or(false) && body.provider == "gemini_native" {
+        base_url = Some("https://generativelanguage.googleapis.com".to_string());
     }
 
     let account_id = body

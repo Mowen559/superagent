@@ -20,10 +20,12 @@ use super::*;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct TestLlmBody {
-    #[serde(rename = "accountId")]
+    #[serde(default, rename = "accountId", alias = "account_id")]
     pub account_id: Option<String>,
     pub provider: String,
+    #[serde(default, rename = "baseUrl", alias = "base_url")]
     pub base_url: Option<String>,
+    #[serde(default, rename = "apiKey", alias = "api_key")]
     pub api_key: Option<String>,
     pub model: Option<String>,
     pub prompt: Option<String>,

@@ -34,6 +34,7 @@ pub(crate) enum CatalogAdapter {
     OpenAiCompatible,
     Anthropic,
     Gemini,
+    GeminiNative,
 }
 
 impl CatalogAdapter {
@@ -42,10 +43,7 @@ impl CatalogAdapter {
         if clean_provider == "anthropic" || clean_provider == "claude" {
             Ok(Self::Anthropic)
         } else if clean_provider == "gemini_native" || clean_provider == "google_gemini_native" {
-            Err(CapabilityDiscoveryError::new(
-                CapabilityDiscoveryErrorKind::UnsupportedProvider,
-                "gemini_native does not expose an account-scoped catalog endpoint",
-            ))
+            Ok(Self::GeminiNative)
         } else if clean_provider == "gemini" || clean_provider == "google" {
             Ok(Self::Gemini)
         } else {
@@ -104,6 +102,42 @@ impl CatalogAdapter {
                     format!("{native_base}/models")
                 } else {
                     format!("{native_base}/v1beta/models")
+                };
+                Ok((url, headers))
+            }
+            Self::GeminiNative => {
+                if account.api_key.starts_with("ya29.") {
+                    headers.insert(
+                        AUTHORIZATION,
+                        header_value(
+                            &format!("Bearer {}", account.api_key),
+                            "invalid provider access token",
+                        )?,
+                    );
+                } else if !account.api_key.is_empty() {
+                    let bearer = if account.api_key.starts_with("Bearer ") {
+                        account.api_key.clone()
+                    } else {
+                        format!("Bearer {}", account.api_key)
+                    };
+                    if let Ok(v) = HeaderValue::from_str(&bearer) {
+                        headers.insert(AUTHORIZATION, v);
+                    }
+                    if let Ok(v) = HeaderValue::from_str(&account.api_key) {
+                        headers.insert("x-goog-api-key", v);
+                    }
+                }
+
+                let url = if base.ends_with("/models") {
+                    base.to_string()
+                } else if base.contains("openapi") || base.ends_with("/v1") {
+                    format!("{base}/models")
+                } else if base.ends_with("/v1beta") || base.ends_with("/v1beta1") {
+                    format!("{base}/models")
+                } else if base.is_empty() {
+                    "https://generativelanguage.googleapis.com/v1beta/models".to_string()
+                } else {
+                    format!("{base}/v1beta/models")
                 };
                 Ok((url, headers))
             }
@@ -322,11 +356,16 @@ pub(crate) fn static_gemini_native_catalog(
         "gemini-2.5-flash".to_string(),
         "gemini-2.5-pro".to_string(),
         "gemini-2.5-flash-thinking".to_string(),
+        "gemini-2.0-flash".to_string(),
+        "gemini-2.0-flash-lite".to_string(),
+        "gemini-2.0-pro-exp".to_string(),
+        "gemini-1.5-pro".to_string(),
+        "gemini-1.5-flash".to_string(),
+        "gemini-1.5-flash-8b".to_string(),
+        "gemini-exp-1206".to_string(),
         "gemini-3-flash".to_string(),
         "gemini-3.8-flash-high".to_string(),
         "gemini-3.1-pro-high".to_string(),
-        "gemini-1.5-pro".to_string(),
-        "gemini-1.5-flash".to_string(),
     ];
     let mut metadata = HashMap::new();
     let mut observations = Vec::new();

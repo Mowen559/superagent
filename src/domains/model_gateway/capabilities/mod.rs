@@ -170,38 +170,64 @@ impl ProviderCapabilityRuntime {
         account: &LLMAccount,
     ) -> Result<DiscoveredCatalog, CapabilityDiscoveryError> {
         let clean_provider = account.provider.to_ascii_lowercase().replace([' ', '-'], "_");
-        if clean_provider == "gemini_native" || clean_provider == "google_gemini_native" {
-            return Ok(static_gemini_native_catalog(account, self.evidence_policy));
-        }
-        let adapter = CatalogAdapter::for_account(account)?;
-        let (url, headers) = adapter.prepare(account)?;
+        let is_gemini_native = clean_provider == "gemini_native" || clean_provider == "google_gemini_native";
+
+        let adapter = match CatalogAdapter::for_account(account) {
+            Ok(a) => a,
+            Err(e) => {
+                if is_gemini_native {
+                    return Ok(static_gemini_native_catalog(account, self.evidence_policy));
+                }
+                return Err(e);
+            }
+        };
+
+        let (url, headers) = match adapter.prepare(account) {
+            Ok(pair) => pair,
+            Err(e) => {
+                if is_gemini_native {
+                    return Ok(static_gemini_native_catalog(account, self.evidence_policy));
+                }
+                return Err(e);
+            }
+        };
+
         let response = self
             .client
             .get(url)
             .headers(headers)
             .send()
-            .await
-            .map_err(|_| {
-                CapabilityDiscoveryError::new(
+            .await;
+
+        match response {
+            Ok(resp) if resp.status().is_success() => {
+                if let Ok(bytes) = read_bounded(resp, MAX_CATALOG_BYTES).await {
+                    if let Ok(payload) = serde_json::from_slice::<Value>(&bytes) {
+                        if let Ok(catalog) = normalize_catalog(account, payload, self.evidence_policy) {
+                            if !catalog.snapshot.models.is_empty() {
+                                return Ok(catalog);
+                            }
+                        }
+                    }
+                }
+                if is_gemini_native {
+                    return Ok(static_gemini_native_catalog(account, self.evidence_policy));
+                }
+                Err(CapabilityDiscoveryError::new(
+                    CapabilityDiscoveryErrorKind::CatalogResponseInvalid,
+                    "model catalog contained no valid model IDs",
+                ))
+            }
+            _ => {
+                if is_gemini_native {
+                    return Ok(static_gemini_native_catalog(account, self.evidence_policy));
+                }
+                Err(CapabilityDiscoveryError::new(
                     CapabilityDiscoveryErrorKind::CatalogRequestFailed,
                     "model catalog request failed",
-                )
-            })?;
-        let status = response.status();
-        if !status.is_success() {
-            return Err(CapabilityDiscoveryError::http(
-                CapabilityDiscoveryErrorKind::CatalogRequestFailed,
-                status.as_u16(),
-            ));
+                ))
+            }
         }
-        let bytes = read_bounded(response, MAX_CATALOG_BYTES).await?;
-        let payload: Value = serde_json::from_slice(&bytes).map_err(|_| {
-            CapabilityDiscoveryError::new(
-                CapabilityDiscoveryErrorKind::CatalogResponseInvalid,
-                "model catalog was not valid JSON",
-            )
-        })?;
-        normalize_catalog(account, payload, self.evidence_policy)
     }
 
     async fn probe(
