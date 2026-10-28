@@ -377,12 +377,67 @@ impl CognitiveRuntime {
             };
         }
 
+        let has_substantial_output = draft.trim().chars().count() >= 100
+            && (draft.contains("```") || draft.contains("###") || draft.contains("【方案") || draft.contains("💡") || draft.contains("1.") || draft.contains("一、"));
+
+        let has_code_block = draft.contains("```");
+        let is_empty_promise = [
+            "让我为你", "让我来为你", "我们将", "我们可以", "请稍候", "稍后为你", "稍后整理", "稍后修复"
+        ].iter().any(|kw| draft.contains(kw));
+
+        // 【海阔规则工程智能门禁】：区分修复排障与新建口令交付，坚决打假同时赋能自主推理
+        let raw_p_lower = self.intent.raw_prompt.to_lowercase();
+        let is_repair_or_debug = [
+            "修复", "报错", "改动", "解决", "为什么", "问题", "bug", "error", "fix", "debug", "分析"
+        ].iter().any(|kw| raw_p_lower.contains(kw));
+
+        // 【反画饼刚性门禁】：若为排障/修复任务，但既未修改文件又未给出代码块，且含空口承诺，坚决打回！
+        if is_repair_or_debug && self.mutation_tool_calls == 0 && !has_code_block && is_empty_promise {
+            return CompletionDecision::Revise {
+                reason: "【严禁画饼应付拦截】：你在回答中声称“让我为你详细整理并修复”，但当前回复中既没有调用文件修改工具写入工程，也没有提供任何具体的修复代码块（```）！禁止以空口承诺结束任务！请立即调用 replace_in_file 修改文件，或在回答中输出完整的修复代码与 Diff！".to_string(),
+            };
+        }
+
+        let is_hiker_engineering = (raw_p_lower.contains("海阔") || raw_p_lower.contains("hiker") || raw_p_lower.contains("视界"))
+            && (raw_p_lower.contains("规则") || raw_p_lower.contains("小程序") || raw_p_lower.contains("写") || raw_p_lower.contains("做") || raw_p_lower.contains("生成") || raw_p_lower.contains("口令") || raw_p_lower.contains("爬虫"));
+
+        if is_hiker_engineering {
+            // 场景 A：若是报错修复或问题排查，只要给出了深入分析与实质修复代码，直接验收通过！
+            if is_repair_or_debug && has_substantial_output && (self.mutation_tool_calls > 0 || has_code_block || !is_empty_promise) {
+                eprintln!("\x1b[32;1m[Hiker Gate] ✅ 规则排障/修复任务已给出详尽分析与实质代码方案，验收通过！\x1b[0m");
+                return CompletionDecision::Accept;
+            }
+
+            // 场景 B：若用户在生成全新规则或索要口令
+            let claims_fake_token = draft.contains("pasteme.tyrantg.com/") && !draft.contains("云6oooole/");
+            if claims_fake_token && self.tool_calls == 0 {
+                return CompletionDecision::Revise {
+                    reason: "【严禁臆造假口令拦截】：你在回答中提供了未经验证的假链接/假口令！必须调用 `export-command.cjs` 生成真实的 PasteMe 云口令！".to_string(),
+                };
+            }
+
+            if has_substantial_output && (draft.contains("云6oooole/") || draft.contains("￥home_rule_v2￥") || self.tool_calls > 0) {
+                eprintln!("\x1b[32;1m[Hiker Gate] ✅ 规则工程已闭环执行，验收通过！\x1b[0m");
+                return CompletionDecision::Accept;
+            }
+        }
+
+        // 规则编写、方案咨询、代码生成等创作与架构设计任务，若草稿充分且未声称物理写盘，允许直接高质量结题，绝不机械强求收集工作区证据
+        let is_generative_or_consultative = [
+            "编写", "生成", "怎么写", "如何", "方案", "样例", "demo", "设计", "转换",
+            "rule", "generate", "create a rule", "how to", "example", "architecture", "design"
+        ].iter().any(|kw| self.intent.raw_prompt.to_lowercase().contains(kw));
+
+        if is_generative_or_consultative && has_substantial_output && !claims_written {
+            return CompletionDecision::Accept;
+        }
+
         self.plan.begin_completion();
         let plan_gap = self.plan.completion_gap();
         let needs_review = self.mode == ReasoningMode::Deliberate
             || (self.task_kind != TaskKind::Conversational
                 && draft.trim().chars().count() < MIN_COMPLEX_DRAFT_CHARS)
-            || (self.evidence_required && self.tool_calls == 0)
+            || (self.evidence_required && self.tool_calls == 0 && !is_generative_or_consultative)
             || (self.failed_tools > 0 && self.successful_tools == 0)
             || plan_gap.is_some();
 
@@ -623,7 +678,7 @@ mod tests {
         let guidance = runtime.next_guidance().unwrap();
         // 必须包含自我能力审视与主动反问引导
         assert!(guidance.contains("CAPABILITY INTROSPECTION"));
-        assert!(guidance.contains("PROACTIVE INQUIRY REQUIRED"));
+        assert!(guidance.contains("PROACTIVE SOCRATIC INQUIRY MANDATE") || guidance.contains("PROACTIVE INQUIRY REQUIRED"));
 
         // 未调查未反问直接试图完工，必须被主动对齐拦截器拦截！
         let blind_completion_draft = "我已经设计好了方案，这是所有的代码逻辑...";

@@ -33,29 +33,58 @@ use crate::AppState;
 
 use super::interact::to_sse_event;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RunBody {
-    pub agent: String,
+    #[serde(default)]
+    pub agent: Option<String>,
+    #[serde(default)]
+    pub backend: Option<String>,
     pub prompt: String,
     #[serde(default)]
     pub project: Option<String>,
+    #[serde(default, rename = "projectPath", alias = "project_path")]
+    pub project_path: Option<String>,
     #[serde(default)]
     pub model: Option<String>,
-    #[serde(default)]
+    #[serde(default, alias = "resumeSessionId", alias = "resume_session_id")]
     pub resume_session_id: Option<String>,
-    #[serde(default)]
+    #[serde(default, alias = "thinkingLevel", alias = "thinking_level")]
     pub thinking_level: Option<String>,
-    #[serde(default)]
+    #[serde(default, alias = "timeoutSeconds", alias = "timeout_seconds")]
     pub timeout_seconds: Option<u64>,
     /// ZCode-style collaboration mode for the superagent worker:
     /// plan | build | edit | yolo | guarded (defaults to build).
-    #[serde(default)]
+    #[serde(default, alias = "work_mode")]
     pub work_mode: Option<String>,
+    #[serde(default)]
+    pub mode: Option<String>,
     /// Image attachments as data URLs (`data:image/png;base64,...`) or absolute
     /// local paths; data URLs are staged to the hub data dir before dispatch.
     #[serde(default)]
     pub images: Vec<String>,
+    #[serde(default, alias = "contextPills", alias = "context_pills")]
+    pub context_pills: Option<serde_json::Value>,
+}
+
+impl RunBody {
+    pub fn effective_agent(&self) -> String {
+        self.agent
+            .as_deref()
+            .or(self.backend.as_deref())
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .unwrap_or("superagent")
+            .to_string()
+    }
+
+    pub fn effective_project(&self) -> String {
+        self.project
+            .as_deref()
+            .or(self.project_path.as_deref())
+            .unwrap_or_default()
+            .to_string()
+    }
 }
 
 pub(crate) const DEFAULT_AGENT_TIMEOUT_SECONDS: u64 = 30 * 60;
@@ -114,6 +143,41 @@ pub(crate) fn stage_images(task_id: &str, images: &[String]) -> Result<Vec<Strin
     Ok(staged)
 }
 
+/// 当客户端未显式传入 project 时，自适应探测当前宿主应用的真实代码工程根目录
+fn detect_fallback_workspace_root() -> Option<std::path::PathBuf> {
+    if let Ok(env_root) = std::env::var("DEEPCLOUD_WORKSPACE_ROOT") {
+        let p = std::path::PathBuf::from(env_root);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    let mut search_start = std::env::current_dir().ok();
+    if search_start.is_none() {
+        if let Ok(exe) = std::env::current_exe() {
+            search_start = exe.parent().map(|p| p.to_path_buf());
+        }
+    }
+
+    if let Some(mut curr) = search_start {
+        for _ in 0..6 {
+            if curr.join(".git").exists()
+                || (curr.join("pom.xml").exists() && curr.join("deepcloud-ui").exists())
+                || curr.join("super-agent").exists()
+            {
+                return Some(curr);
+            }
+            if let Some(parent) = curr.parent() {
+                curr = parent.to_path_buf();
+            } else {
+                break;
+            }
+        }
+    }
+
+    None
+}
+
 pub(crate) fn resolve_agent_timeout(requested: Option<u64>) -> Result<Duration, String> {
     let seconds = requested.unwrap_or(DEFAULT_AGENT_TIMEOUT_SECONDS);
     if seconds == 0 || seconds > MAX_AGENT_TIMEOUT_SECONDS {
@@ -143,8 +207,9 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
         )
             .into_response();
     }
-    if body.agent != "superagent" {
-        if let Err(e) = AgentKind::from_str(&body.agent) {
+    let agent_name = body.effective_agent();
+    if agent_name != "superagent" {
+        if let Err(e) = AgentKind::from_str(&agent_name) {
             return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))).into_response();
         }
     }
@@ -159,38 +224,57 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
         }
     };
 
-    let work_mode = match body.work_mode.as_deref() {
+    let raw_mode = body.work_mode.as_deref().or(body.mode.as_deref());
+    let work_mode = match raw_mode {
         None | Some("") => None,
         Some(raw) => match crate::services::brain::tool_policy::WorkMode::parse(raw) {
             Some(mode) => Some(mode.as_str().to_string()),
             None => {
-                return (
-                    StatusCode::BAD_REQUEST,
-                    Json(json!({
-                        "error": format!(
-                            "workMode must be one of {}",
-                            crate::services::brain::tool_policy::WorkMode::ALL.join(", ")
-                        ),
-                        "kind": "invalid_work_mode",
-                    })),
-                )
-                    .into_response()
+                let trimmed = raw.trim().to_ascii_lowercase();
+                if trimmed == "agent" || trimmed == "chat" || trimmed == "ask" || trimmed == "review" {
+                    Some("guarded".to_string())
+                } else {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({
+                            "error": format!(
+                                "workMode must be one of {}",
+                                crate::services::brain::tool_policy::WorkMode::ALL.join(", ")
+                            ),
+                            "kind": "invalid_work_mode",
+                        })),
+                    )
+                        .into_response();
+                }
             }
         },
     };
 
-    let project = body.project.clone().unwrap_or_default();
-    let project = if project.is_empty() {
-        "".to_string()
+    let raw_project = body.effective_project();
+    let project = if raw_project.is_empty() {
+        if let Some(fallback_root) = detect_fallback_workspace_root() {
+            let root_str = fallback_root.to_string_lossy().to_string();
+            let _ = state.workspace_capabilities.open(&fallback_root);
+            tracing::info!("[run_agent] 自动提升工作区根目录至真实项目根路径: {}", root_str);
+            root_str
+        } else {
+            "".to_string()
+        }
     } else {
-        match state.workspace_capabilities.resolve(&project) {
+        match state.workspace_capabilities.resolve(&raw_project) {
             Ok(p) => p.to_string_lossy().to_string(),
-            Err(e) => {
-                return (
-                    StatusCode::FORBIDDEN,
-                    Json(json!({ "error": e, "kind": "workspace_not_open" })),
-                )
-                    .into_response()
+            Err(_) => {
+                let p = std::path::Path::new(&raw_project);
+                if p.is_dir() {
+                    let _ = state.workspace_capabilities.open(p);
+                    p.to_string_lossy().to_string()
+                } else {
+                    return (
+                        StatusCode::FORBIDDEN,
+                        Json(json!({ "error": format!("Workspace directory not found: {}", raw_project), "kind": "workspace_not_open" })),
+                    )
+                        .into_response();
+                }
             }
         }
     };
@@ -199,7 +283,7 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
         "agent",
         &project,
         Some(json!({
-            "agent": body.agent,
+            "agent": agent_name,
             "timeoutSeconds": timeout.as_secs(),
             "workMode": work_mode,
         })),
@@ -212,7 +296,7 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
     let state_bg = state.clone();
     let task_bg = task_id.clone();
     let prompt = body.prompt.clone();
-    let agent_name = body.agent.clone();
+    let agent_name_bg = agent_name.clone();
     let project_bg = project.clone();
     let model_bg = body.model.clone().filter(|m| !m.is_empty());
     let resume_bg = body.resume_session_id.clone().filter(|s| !s.is_empty());
@@ -287,13 +371,13 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
             ..Default::default()
         };
 
-        if let Ok(kind) = AgentKind::from_str(&agent_name) {
+        if let Ok(kind) = AgentKind::from_str(&agent_name_bg) {
             drive_run(state_bg, task_bg, kind, prompt, opts, cancel_rx).await;
         } else {
             state_bg.task_manager.update_status(
                 &task_bg,
                 TaskStatus::Failed,
-                Some(format!("Unknown agent kind: {}", agent_name)),
+                Some(format!("Unknown agent kind: {}", agent_name_bg)),
             );
         }
     });
@@ -359,6 +443,46 @@ mod tests {
         for path in staged.iter().filter(|p| p.contains("img_")) {
             let _ = std::fs::remove_file(path);
         }
+    }
+
+    #[test]
+    pub(crate) fn run_body_deserializes_with_backend_alias_and_defaults() {
+        let json_data = r#"{
+            "prompt": "test prompt",
+            "backend": "superagent",
+            "projectPath": "/path/to/project",
+            "mode": "agent"
+        }"#;
+        let body: RunBody = serde_json::from_str(json_data).expect("should deserialize successfully");
+        assert_eq!(body.effective_agent(), "superagent");
+        assert_eq!(body.prompt, "test prompt");
+        assert_eq!(body.effective_project(), "/path/to/project");
+    }
+
+    #[test]
+    pub(crate) fn run_body_handles_both_agent_and_backend_without_duplicate_field_error() {
+        let json_data = r#"{
+            "prompt": "both fields test",
+            "agent": "superagent",
+            "backend": "superagent",
+            "project": "/path/a",
+            "projectPath": "/path/a",
+            "mode": "agent",
+            "contextPills": []
+        }"#;
+        let body: RunBody = serde_json::from_str(json_data).expect("should deserialize both keys without duplicate field error");
+        assert_eq!(body.effective_agent(), "superagent");
+        assert_eq!(body.effective_project(), "/path/a");
+    }
+
+    #[test]
+    pub(crate) fn run_body_fallback_default_agent_when_omitted() {
+        let json_data = r#"{
+            "prompt": "another prompt"
+        }"#;
+        let body: RunBody = serde_json::from_str(json_data).expect("should deserialize with default agent");
+        assert_eq!(body.effective_agent(), "superagent");
+        assert_eq!(body.prompt, "another prompt");
     }
 }
 

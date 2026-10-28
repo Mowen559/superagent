@@ -127,6 +127,18 @@ impl SocraticInquiryEngine {
             return None;
         }
 
+        // 规则生成、爬虫/视界小程序脚本编写、原型创作与零提示词全自治意图直接豁免（杜绝微服务架构反问误伤）
+        if contains_any(
+            &norm,
+            &[
+                "海阔", "规则", "视界", "hiker", "hikerview", "写规则", "转为", "做规则",
+                "生成规则", "做成规则", "做成小程序", "小程序规则", "腾讯视频", "爱奇艺", "优酷", "b站",
+                "短剧", "免嗅", "口令", "爬虫脚本", "spider rule", "scraper rule",
+            ],
+        ) {
+            return None;
+        }
+
         let mut missing_dimensions = Vec::new();
         let mut ambiguity_score: f32 = 0.0;
 
@@ -340,6 +352,14 @@ mod tests {
         let clear_prompt = "在 notification-service 中基于 MyBatis-Plus 实现站内信查询接口，使用 Result<PageVO> 返回";
         let payload = SocraticInquiryEngine::evaluate(clear_prompt, None);
         // 服务明确、存储明确、契约明确，不应触发强制拦截
+        assert!(payload.is_none());
+    }
+
+    #[test]
+    fn test_rule_generation_skips_inquiry() {
+        let rule_prompt = "把腾讯视频转为海阔视界的一个规则";
+        let payload = SocraticInquiryEngine::evaluate(rule_prompt, None);
+        // 规则生成与双端小程序自治需求应直接豁免微服务反问
         assert!(payload.is_none());
     }
 

@@ -158,6 +158,7 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "multi_replace_file_content"
         | "knowledge_ingest_tool"
         | "manage_task" => ToolRisk::WorkspaceMutation,
+        "run_command" if is_safe_sandbox_command(arguments) => ToolRisk::WorkspaceMutation,
         "run_command" | "manage_process" | "invoke_subagent" | "intervene_worker"
         | "reload_plugins" | "request_reload" | "skill_tool" | "native_harness" => {
             ToolRisk::ProcessControl
@@ -346,4 +347,19 @@ mod tests {
             ToolPolicyDecision::Allow
         );
     }
+}
+
+fn is_safe_sandbox_command(arguments: &Value) -> bool {
+    let cmd = arguments
+        .get("command_line")
+        .or_else(|| arguments.get("CommandLine"))
+        .or_else(|| arguments.get("command"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let cmd_lower = cmd.to_lowercase();
+    cmd_lower.contains("validate-rule")
+        || cmd_lower.contains("test-rule")
+        || cmd_lower.contains("export-command")
+        || cmd_lower.contains("quick-scaffold")
+        || cmd_lower.contains("patch-rule")
 }

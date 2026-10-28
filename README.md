@@ -32,8 +32,10 @@ hub-rs config auth
 hub-rs config quota
 ```
 
-## Architecture
+## Architecture & Testing Benchmark
 
-Architecture overview and current implementation boundaries: [系统架构设计](系统架构设计.md).
+- Architecture overview and current implementation boundaries: [系统架构设计](系统架构设计.md).
+- **Core Capability Benchmark & Multi-Requirement Challenge Ledger**: [SUPERAGENT_BENCHMARK_AND_EVALUATION.md](docs/SUPERAGENT_BENCHMARK_AND_EVALUATION.md)
+  - Records real-world testing demands, failure modes, anti-hallucination DoD gates, and cognitive evolution trajectories.
 
 This project is built using Rust and `axum` for HTTP serving, integrating seamlessly with `reqwest` for external LLM API calls and `tree-sitter` for codebase analysis.

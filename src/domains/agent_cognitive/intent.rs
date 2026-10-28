@@ -222,12 +222,16 @@ impl DynamicIntentEngine {
         let mut recommended_inquiries = Vec::new();
 
         if requires_user_inquiry {
-            if target_service.is_none() {
-                recommended_inquiries.push("目标微服务尚未明确：请问该功能应落地在哪个模块（例如 engine-service 采集引擎、iam-service 身份认证，还是 notification-service）？".to_string());
-            }
-            if matches!(goal, ActionGoal::SurgicalExecution) {
-                recommended_inquiries.push("技术分支选型确认：是否需要定义新的领域事件或数据库表迁移？或是仅在既有 API 层扩容？".to_string());
-                recommended_inquiries.push("契约遵循确认：统一返回 Result<T> 且 code 为 String，是否需要前置配套接口单元测试？".to_string());
+            // 顶尖高级工程师规范：严禁无脑背诵死板的 Java 微服务模块名，根据真实领域自适应建议
+            if let Some(svc) = target_service {
+                if svc.ends_with("-service") {
+                    recommended_inquiries.push(format!("模块确认为 {}，需确认：是否涉及跨领域事件发布或数据库表迁移？", svc));
+                } else if svc.contains("ui") || svc.contains("frontend") {
+                    recommended_inquiries.push("前端/桌面范围确认：改动涉及独立组件重构还是全局状态流 (Zustand/Store) 调整？".to_string());
+                }
+            } else {
+                // 未指定模块时，引导通过感知工具自主定位，绝不背诵无关微服务
+                recommended_inquiries.push("目标上下文较为模糊：建议直接附带报错日志、目标文件名，或由我自主调用 project_index/grep_search 进行全仓定位。".to_string());
             }
         }
 

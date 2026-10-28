@@ -343,9 +343,10 @@ impl AgentLoop {
                     );
                 }
                 SessionEvent::SystemWarning(w) => {
+                    // 内部系统质检/反思指令只作为 thinking 思考流或内部事件记录，绝对严禁作为正文 text 发射给用户
                     println!(
                         "{}",
-                        serde_json::json!({ "type": "text", "content": format!("[System Warning] {}", w) })
+                        serde_json::json!({ "type": "thinking", "content": format!("【系统自检反思】: {}", w) })
                     );
                 }
                 _ => {}

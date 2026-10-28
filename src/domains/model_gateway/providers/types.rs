@@ -80,8 +80,16 @@ pub(crate) fn max_context_chars_for(account: Option<&LLMAccount>, model: &str) -
         || normalized.contains("gpt-5")
     {
         500_000
+    } else if normalized.contains("deepseek")
+        || normalized.contains("qwen")
+        || normalized.contains("kimi")
+        || normalized.contains("moonshot")
+        || normalized.contains("glm")
+        || normalized.contains("yi-")
+    {
+        512_000
     } else {
-        100_000
+        256_000
     }
 }
 

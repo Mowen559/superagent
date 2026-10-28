@@ -337,7 +337,16 @@ pub fn scan_workspace_topography(root: &std::path::Path) -> Option<String> {
             topo.push_str(&format!("- {t}\n"));
         }
     }
-    topo.push_str("\nCore Architectural Rules:\n- Forbidden: JPA/Hibernate (MyBatis-Plus only)\n- Frontend: Use Tailwind semantic classes, never hardcode fixed colors\n- API: Controller must return standard Result<T>\n</workspace-topography>\n");
+    topo.push_str("\nCore Architectural Rules:\n");
+    let is_java_root = root.join("pom.xml").is_file() && !root.join("package.json").is_file();
+    let is_frontend_root = root.join("package.json").is_file() || root.join("deepcloud-ui").join("package.json").is_file();
+    if is_java_root {
+        topo.push_str("- Backend ORM: MyBatis-Plus 3.5 LambdaQueryWrapper (JPA/Hibernate strictly prohibited)\n- API Contract: Controllers must inherit BaseController and return standard Result<T>\n");
+    }
+    if is_frontend_root {
+        topo.push_str("- Styling: Use Tailwind semantic classes, never hardcode fixed colors\n- Offline Autonomy: Desktop and vision widgets must support local-first operation\n");
+    }
+    topo.push_str("</workspace-topography>\n");
 
     Some(topo)
 }

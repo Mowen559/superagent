@@ -212,9 +212,42 @@ if __name__ == "__main__":
                         continue;
                     }
                     if let Ok(content) = std::fs::read_to_string(&path) {
-                        let (name, desc, instructions) = Self::parse_skill_file(&content, &path);
+                        let (name, desc, mut instructions) = Self::parse_skill_file(&content, &path);
                         let score = Self::compute_skill_score(&p_lower, &name, &desc);
                         if score > 0.0 {
+                            // 针对规则工程技能，挂载工具链与参考知识，严格确立意图驱动
+                            if name.contains("rule-engineer") || name.contains("hiker") {
+                                let rel_script_dir = "super-agent/skills/deepcloud-rule-engineer/scripts";
+                                instructions.push_str(&format!(
+                                    r#"
+
+### 🛠️ 【海阔视界规则工程专家技能工具链与能力支持】
+本技能为你提供以下经过沙箱验证的自动化工程 CLI 工具（位于 `{rel_script_dir}`）：
+1. **静态语法与合规校验**：`node {rel_script_dir}/validate-rule.cjs <rule_json_path>`
+   - 检查 JSON 语法、必要字段、首卡剧名契约、find_rule 规范性；
+2. **沙箱运行仿真与质量评分**：`node {rel_script_dir}/test-rule.cjs <rule_json_path>`
+   - 在真实沙箱中模拟执行，测试一级列表与二级选集，输出 5 星质量评分；
+3. **真实口令与链接生成**：`node {rel_script_dir}/export-command.cjs <rule_json_path>`
+   - 真实调用 PasteMe API 生成带 16 位哈希的云短口令（`云6oooole/...`）与 Base64 离线口令。
+
+### 🧠 【智能体行动守则（意图驱动与深度反思）】
+1. **【严禁把示例当真实需求】**：技能文档与模板仅作为参考规范（Reference Examples），**绝对禁止直接照抄模板或把模板当作用户的任务**！你必须严格聚焦用户当前的真实输入与报错上下文！
+2. **【排查报错与修复场景】**：
+   - 当用户提供报错日志或请求修复规则时：
+     - ① 仔细阅读分析用户提供的报错栈（如语法错误、选择器失效、直链过期、防盗链拦截等）；
+     - ② 若用户附带了代码，或在工作区有规则文件，调用 `read_file` 审阅实际代码；
+     - ③ 若需要探针目标网站真实结构，调用 `web_fetch` 或 `run_command` 抓取验证；
+     - ④ 定位根因并提供修复后的代码，详细解释修改点；若有规则文件，可在测试验证后交付！
+3. **【新规则开发场景】**：
+   - 遵循双端同构与脱机自治原则，先调研目标站点结构，在 `scratch/` 编写规则；
+   - 调用 `validate-rule.cjs` 与 `test-rule.cjs` 进行沙箱验证，确保 5 星通过；
+   - 调用 `export-command.cjs` 获取真实的 PasteMe 在线云短口令；
+   - 最终将口令、评分收据与完整规则源码交付用户！
+4. **【反思自愈闭环】**：遇到工具报错或网络异常时，主动阅读报错信息进行自省纠偏（Critic），修正后重试，绝不盲目放弃或死循环！
+"#
+                                ));
+                            }
+
                             candidates.push(MatchedSkill {
                                 name,
                                 description: desc,
@@ -274,7 +307,32 @@ if __name__ == "__main__":
         }
 
         let body = lines.into_iter().skip(body_start).collect::<Vec<_>>().join("\n");
-        (name, desc, body)
+        let mut final_instructions = body;
+
+        // 探测技能目录下的模板资产 (Templates)，供中枢与智能体直观感知
+        if let Some(parent) = path.parent() {
+            let tmpl_dir = parent.join("templates");
+            if tmpl_dir.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(&tmpl_dir) {
+                    let mut tmpls = Vec::new();
+                    for e in entries.flatten() {
+                        let p = e.path();
+                        if p.is_file() {
+                            tmpls.push(p.file_name().unwrap_or_default().to_string_lossy().to_string());
+                        }
+                    }
+                    if !tmpls.is_empty() {
+                        final_instructions.push_str("\n\n### 📦 技能内置开箱即用模板资产 (Available Templates in skill directory)\n");
+                        final_instructions.push_str("【中枢提示】：当前技能目录下包含以下成熟模板，可直接优先参考或读取作为生成蓝本：\n");
+                        for t in tmpls {
+                            final_instructions.push_str(&format!("- `{}`\n", t));
+                        }
+                    }
+                }
+            }
+        }
+
+        (name, desc, final_instructions)
     }
 
     pub fn compute_skill_score(p_lower: &str, name: &str, desc: &str) -> f32 {
@@ -296,10 +354,19 @@ if __name__ == "__main__":
 
         // 2. 经典技能专有触发词
         let triggers: &[(&str, &[&str])] = &[
+            (
+                "deepcloud-rule-engineer",
+                &[
+                    "海阔", "规则", "视界", "hiker", "hikerview", "爬虫", "小程序", "转化",
+                    "转为", "写规则", "生成规则", "做成规则", "做规则", "视频网站", "腾讯视频",
+                    "爱奇艺", "优酷", "bilibili", "b站", "小红书", "短剧", "免嗅", "口令",
+                    "解析", "嗅探", "v.qq.com", "qq.com", "spider", "scraper", "rule", "deepcloud-engine",
+                ],
+            ),
+            ("deepcloud-conventions", &["deepcloud", "爬虫", "scraper", "hiker", "海阔", "规范"]),
             ("deepcloud-service-spec", &["微服务", "mybatis", "spring", "iam", "controller", "service-spec", "后端开发", "接口规范"]),
             ("deepcloud-openspec", &["openspec", "sdd", "契约", "规范先行", "台账", "闭环"]),
             ("deepcloud-skin-spec", &["皮肤", "主题", "skin", "theme", "buttonvariant", "立绘", "壁纸"]),
-            ("deepcloud-conventions", &["deepcloud", "爬虫", "scraper", "hiker", "海阔", "规范"]),
             ("aistack-frontend-conventions", &["前端", "react", "next", "datatable", "tableactions", "modalform", "drawerform", "页面开发"]),
             ("poison-tongue-pm", &["毒舌", "prd", "产品经理", "需求追问", "需求打磨"]),
         ];
@@ -314,7 +381,18 @@ if __name__ == "__main__":
             }
         }
 
-        // 3. 描述语义轻量命中
+        // 3. 中文短语与专有名词扫描
+        let domain_phrases = [
+            "海阔视界", "海阔规则", "视界小程序", "规则生成", "腾讯视频", "双端同构",
+            "免嗅", "短口令", "微服务", "mybatis", "前端开发", "主题皮肤", "契约台账"
+        ];
+        for phrase in domain_phrases {
+            if desc_lower.contains(phrase) && p_lower.contains(phrase) {
+                score += 6.0;
+            }
+        }
+
+        // 4. 描述语义轻量命中
         for token in desc_lower.split(&[' ', ',', '，', '。', '、', '(', ')'][..]) {
             if token.len() >= 4 && p_lower.contains(token) {
                 score += 1.5;

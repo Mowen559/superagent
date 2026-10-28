@@ -157,7 +157,10 @@ pub async fn run(
                     guard.push_str(&line);
 
                     if guard.len() > 4096 {
-                        let cut = guard.len() - 4096;
+                        let mut cut = guard.len() - 4096;
+                        while cut < guard.len() && !guard.is_char_boundary(cut) {
+                            cut += 1;
+                        }
                         *guard = guard[cut..].to_string();
                     }
                 }

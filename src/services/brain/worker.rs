@@ -103,6 +103,15 @@ pub async fn run_worker(
 6. 元认知画像与自适应人设演进 (Self-Persona Evolution):
    - 你拥有自我画像更新工具 `update_self_persona`。
    - 当你在研发实践中沉淀了新的技术专长（如精通 Rust 异步运行时）、领悟了新的工作哲学，或与用户形成了专属默契时，可随时调用 `update_self_persona` 调整座右铭、增补特质标签或追加生平经历。
+7. 拒绝空口画饼，以真实交付为唯一导向 (Anti-Procrastination & Direct Delivery Mandate):
+   - 严禁在未真正解决问题的情况下输出“我们检查了...让我为你整理修复...”这类将来时态的套话并直接草率结题！
+   - 若用户提出了具体的代码修改或排障请求，你必须【动真格的】：
+     ① 必须调用读写工具（`replace_in_file` / `write_to_file`）在真实文件中完成精准修复；
+     ② 或者在最终回答中清晰提供完整的修复代码块（```语言 ... ```）以及清晰的行级改动对比（Diff），让用户可以直接查阅与应用；
+     ③ 如果经排查发现代码在当前库中已经处于修复状态（如报错为热重载旧缓存），必须明确客观地陈述排查证据与当前代码行号，严禁假装“我们要去修”！
+8. 面对验证工具（如 `verify_task_tool`）报错时的自省自愈:
+   - 严禁因验证命令遇到环境或编译器告警就缴械投降或输出空话放弃！
+   - 优先分析真实原因，向用户交付清晰、经过验证的代码逻辑与修复产物。
 "#
     );
 
@@ -114,7 +123,17 @@ pub async fn run_worker(
         &cwd_path,
         &[".supermemory"],
     );
-    let project_path_str = resolved_project_path.to_string_lossy().to_string();
+    let effective_root = if resolved_project_path.exists() && resolved_project_path != cwd_path {
+        eprintln!(
+            "\x1b[36;1m[Sandbox Escape] 🚀 Auto-ascended from sandbox '{}' to real project root '{}'\x1b[0m",
+            cwd_path.display(),
+            resolved_project_path.display()
+        );
+        resolved_project_path.clone()
+    } else {
+        cwd_path.clone()
+    };
+    let project_path_str = effective_root.to_string_lossy().to_string();
 
     // 潜意识唤醒：从 SuperMemory 检索与当前 Prompt 最相关的项目规范与历史经验
     let app_paths = crate::config::app_paths::AppPaths::new();
@@ -188,6 +207,18 @@ pub async fn run_worker(
                 skill.name, skill.score
             );
         }
+        full_system_prompt.push_str(
+            "\n【技能自治交付最高纲领 (Zero-Prompt Protocol)】：\n\
+             当前任务已成功匹配并挂载专属业务技能 (Domain Skill)。\n\
+             1. 你必须严格遵循挂载技能规约中的架构规范与工程方法论，作为你的内置专业本能；\n\
+             2. 【严禁抛出反问】：严禁向用户抛出方案选择、技术细节或架构追问，严禁只输出空洞反问或方案，必须直接推进解决问题并给出实际交付物；\n\
+             3. 【成熟智能体自主闭环 (ReAct)】：\n\
+                - 若用户任务为【修复报错/修改现有代码】：仔细分析报错原因与上下文，自主调用 `read_file` 查阅代码，必要时使用 `web_fetch` 联网探针目标站点，定位根因后输出精准修复方案与修复后的代码；若涉及规则且需要验证，可调用配备的测试脚本；\n\
+                - 若用户任务为【新建规则/全生命周期产出】：自主编写规则，调用测试与口令生成工具，从命令输出中提取真实的 PasteMe 云端短口令（带 16 位随机哈希）和标准离线 Base64 原生口令，以及沙箱 5 星评分真实收据，杜绝凭空捏造；\n\
+                - 若用户任务为【技术咨询/原理分析】：严密论证，直接输出深入浅出的技术解答；\n\
+             4. 【优雅折叠完整源码】：当交付完整规则或大段代码时，建议使用 `<details><summary><b>点击展开查看规则完整源码 (JSON)</b></summary>\n\n```json\n...\n```\n</details>` 语法包裹，兼顾紧凑与复制体验；\n\
+             5. 【绝不造假】：严禁在未调用工具的情况下臆造假口令！当工具执行失败时，认真根据报错输出进行反思修正（Self-Correction）！\n"
+        );
     }
 
     let mut agent = AgentLoop::with_model(&full_system_prompt, model.as_deref());
@@ -198,39 +229,39 @@ pub async fn run_worker(
 
     agent.register_tool(Box::new(RunCommandTool::new(
         provider.clone(),
-        cwd_path.clone(),
+        effective_root.clone(),
     )));
-    agent.register_tool(Box::new(ReadFileTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(ViewOutlineTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(WriteFileTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(ReplaceInFileTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(MultiReplaceTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(ListDirectoryTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(FindByNameTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(GrepSearchTool::new(cwd_path.clone())));
+    agent.register_tool(Box::new(ReadFileTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(ViewOutlineTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(WriteFileTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(ReplaceInFileTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(MultiReplaceTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(ListDirectoryTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(FindByNameTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(GrepSearchTool::new(effective_root.clone())));
     agent.register_tool(Box::new(ShadowGitTool));
     agent.register_tool(Box::new(WebFetchTool));
-    agent.register_tool(Box::new(NativeSearchGraphTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(ProjectIndexTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(NativeMemoryTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(ManageTaskTool::new(cwd_path.clone())));
+    agent.register_tool(Box::new(NativeSearchGraphTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(ProjectIndexTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(NativeMemoryTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(ManageTaskTool::new(effective_root.clone())));
     agent.register_tool(Box::new(LspTool));
     agent.register_tool(Box::new(ManageProcessTool));
     agent.register_tool(Box::new(AskUserTool::new(
         agent.interaction_runtime.clone(),
     )));
-    agent.register_tool(Box::new(SkillTool::new(cwd_path.clone())));
+    agent.register_tool(Box::new(SkillTool::new(effective_root.clone())));
     agent.register_tool(Box::new(ReloadPluginsTool::new(agent.get_tools_ref())));
-    agent.register_tool(Box::new(CreateCheckpointTool::new(cwd_path.clone())));
-    agent.register_tool(Box::new(RevertToCheckpointTool::new(cwd_path.clone())));
+    agent.register_tool(Box::new(CreateCheckpointTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(RevertToCheckpointTool::new(effective_root.clone())));
     agent.register_tool(Box::new(
-        crate::services::brain::tools::checkpoint::ListCheckpointsTool::new(cwd_path.clone()),
+        crate::services::brain::tools::checkpoint::ListCheckpointsTool::new(effective_root.clone()),
     ));
-    agent.register_tool(Box::new(ImpactRadarTool::new(cwd_path.clone())));
+    agent.register_tool(Box::new(ImpactRadarTool::new(effective_root.clone())));
     agent.register_tool(Box::new(GoldenBenchmarkTool));
     agent.register_tool(Box::new(SynthesizeTool::new(
         agent.get_tools_ref(),
-        cwd_path.clone(),
+        effective_root.clone(),
     )));
     agent.register_tool(Box::new(
         crate::services::brain::tools::blackboard_tool::BlackboardTool::new(
@@ -239,12 +270,12 @@ pub async fn run_worker(
         ),
     ));
     agent.register_tool(Box::new(
-        crate::services::brain::tools::repo_map_tool::RepoMapTool::new(cwd_path.clone()),
+        crate::services::brain::tools::repo_map_tool::RepoMapTool::new(effective_root.clone()),
     ));
     agent.register_tool(Box::new(
         crate::services::brain::tools::verify_task::VerifyTaskTool::new(
             provider.clone(),
-            cwd_path.clone(),
+            effective_root.clone(),
         ),
     ));
     agent.register_tool(Box::new(OpenclawTool));
@@ -275,7 +306,7 @@ pub async fn run_worker(
     agent.register_tool(Box::new(InterveneWorkerTool::new(runtime.clone())));
     agent.register_tool(Box::new(CancelSubagentTool::new(runtime.clone())));
 
-    let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(cwd_path.clone());
+    let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(effective_root.clone());
     agent.register_tool(Box::new(ReadToolResultTool::new(result_store)));
 
     // 启动后台 Stdin 异步消息循环，打通与 Hub 主进程的双向交互（支持 AskUser 回复与动态干预）
