@@ -15,7 +15,6 @@ use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
 
-
 use super::*;
 use super::types::*;
 
@@ -24,16 +23,16 @@ pub(crate) async fn start_oauth(Json(body): Json<OAuthStartBody>) -> axum::respo
 
     let provider_clean = body.provider.to_ascii_lowercase().replace([' ', '-'], "_");
     let result = match provider_clean.as_str() {
-        "openai_native" | "openai" => {
+        "openai_native" | "openai" | "codex" => {
             crate::services::cli_auth::handle_openai_pkce_flow(body.account_name).await
         }
-        "gemini_native" | "gemini" => {
+        "gemini_native" | "gemini" | "google_official" | "google" => {
             crate::services::cli_auth::handle_gemini_oauth_flow(body.account_name).await
         }
-        "claude_desktop_official" | "claude" => {
+        "claude_desktop_official" | "claude_official" | "claude" | "anthropic" => {
             crate::services::cli_auth::handle_claude_oauth_flow(body.session_key).await
         }
-        "github_copilot" | "copilot" => {
+        "github_copilot" | "copilot" | "github" => {
             crate::services::cli_auth::handle_github_copilot_flow(body.account_name).await
         }
         _ => Err(format!(
@@ -49,7 +48,9 @@ pub(crate) async fn start_oauth(Json(body): Json<OAuthStartBody>) -> axum::respo
                 "baseUrl": account.base_url,
                 "projectId": account.project_id,
                 "apiKey": account.api_key,
+                "token": account.api_key,
                 "id": account.id,
+                "provider": account.provider,
                 "refreshToken": account.refresh_token,
                 "expiresAt": account.expires_at,
             }
@@ -62,5 +63,3 @@ pub(crate) async fn start_oauth(Json(body): Json<OAuthStartBody>) -> axum::respo
         .into_response(),
     }
 }
-
-

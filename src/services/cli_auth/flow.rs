@@ -314,19 +314,20 @@ pub async fn handle_gemini_oauth_flow(account_name: Option<String>) -> Result<LL
     let expires_at = expires_in.map(|secs| chrono::Utc::now().timestamp() + secs);
 
     println!("[Auth] Fetching Google Cloud AI Companion Project...");
-    let project_id = match fetch_cloudaicompanion_project(&access_token).await {
-        Ok(pid) => pid,
-        Err(e) => {
-            println!("[Auth] Warning: {}", e);
-            return Err(
-                "Failed to fetch companion project. Your account might not have access."
-                    .to_string(),
+    let (project_id, base_url) = match fetch_cloudaicompanion_project(&access_token).await {
+        Ok(pid) => {
+            println!("[Auth] Successfully bound to project: {}", pid);
+            let url = format!(
+                "https://us-central1-aiplatform.googleapis.com/v1beta1/projects/{}/locations/us-central1/endpoints/openapi",
+                pid
             );
+            (Some(pid), url)
+        }
+        Err(e) => {
+            println!("[Auth] Note: Companion project not available ({}), falling back to direct Generative AI endpoint.", e);
+            (None, "https://generativelanguage.googleapis.com/v1beta".to_string())
         }
     };
-
-    println!("[Auth] Successfully bound to project: {}", project_id);
-    let base_url = format!("https://us-central1-aiplatform.googleapis.com/v1beta1/projects/{}/locations/us-central1/endpoints/openapi", project_id);
 
     // Save to Windows Credential Manager for the local proxy
     #[cfg(target_os = "windows")]
@@ -385,7 +386,7 @@ pub async fn handle_gemini_oauth_flow(account_name: Option<String>) -> Result<LL
         api_key: access_token,
         refresh_token,
         expires_at,
-        project_id: Some(project_id),
+        project_id,
         quota_info: None,
         tags: vec![],
         priority: 0,
