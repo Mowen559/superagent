@@ -86,7 +86,7 @@ impl CognitiveRuntime {
             );
 
         let mut default_anchors = vec![
-            "Strict Architecture: Return Result<T>, extend BaseController, use LambdaQueryWrapper (no JPA), and verify @RequirePermission.".to_string(),
+            "High-Cohesion Architecture: Respect module boundaries and existing framework patterns; strictly prevent cross-domain contamination.".to_string(),
             "Surgical Edits: Use replace_in_file/multi_replace; preserve unedited comments, docstrings, and formatting.".to_string(),
             "Verification Closed-Loop: Run compile/test checks before claiming completion; never fabricate tool output.".to_string(),
         ];
@@ -377,10 +377,17 @@ impl CognitiveRuntime {
             };
         }
 
+        let has_code_block = draft.contains("```");
         let has_substantial_output = draft.trim().chars().count() >= 100
             && (draft.contains("```") || draft.contains("###") || draft.contains("【方案") || draft.contains("💡") || draft.contains("1.") || draft.contains("一、"));
 
-        let has_code_block = draft.contains("```");
+        // 【阶段锁硬门禁 3】：代码执行/排障任务严禁未查证代码事实就单轮直接结题 (Anti-Greedy Conclude)
+        let is_investigate_or_execute = matches!(self.task_kind, TaskKind::Execution | TaskKind::Investigative);
+        if is_investigate_or_execute && self.evidence_required && self.tool_calls == 0 && !has_code_block {
+            return CompletionDecision::Revise {
+                reason: "【认知阶段门禁拦截 (Phase Barrier)】：当前任务涉及工程代码落地或疑难排障，严禁在未调用任何感知工具（grep_search / view_file / read_file / project_index 等）查实代码事实的情况下单轮直接结题！请立即调用工具探查真实代码后再做结论！".to_string(),
+            };
+        }
         let is_empty_promise = [
             "让我为你", "让我来为你", "我们将", "我们可以", "请稍候", "稍后为你", "稍后整理", "稍后修复"
         ].iter().any(|kw| draft.contains(kw));
@@ -409,15 +416,15 @@ impl CognitiveRuntime {
             }
 
             // 场景 B：若用户在生成全新规则或索要口令
-            let claims_fake_token = draft.contains("pasteme.tyrantg.com/") && !draft.contains("云6oooole/");
-            if claims_fake_token && self.tool_calls == 0 {
+            let claims_any_token = draft.contains("pasteme.tyrantg.com/") || draft.contains("云6oooole/") || draft.contains("￥home_rule_v2￥");
+            if claims_any_token && self.tool_calls == 0 {
                 return CompletionDecision::Revise {
-                    reason: "【严禁臆造假口令拦截】：你在回答中提供了未经验证的假链接/假口令！必须调用 `export-command.cjs` 生成真实的 PasteMe 云口令！".to_string(),
+                    reason: "【物理收据硬门禁拦截 (Fabrication Guard)】：你在未执行任何工具命令（tool_calls == 0）的情况下凭空捏造了海阔口令或 PasteMe 分享链接！真实的口令必须通过运行规则导出工具 (如 export-command.cjs) 真实上传后获取！严禁凭空编造！请立即调用命令工具真实生成！".to_string(),
                 };
             }
 
-            if has_substantial_output && (draft.contains("云6oooole/") || draft.contains("￥home_rule_v2￥") || self.tool_calls > 0) {
-                eprintln!("\x1b[32;1m[Hiker Gate] ✅ 规则工程已闭环执行，验收通过！\x1b[0m");
+            if has_substantial_output && self.tool_calls > 0 && claims_any_token {
+                eprintln!("\x1b[32;1m[Hiker Gate] ✅ 规则工程已真实调用工具闭环执行，物理收据完备，验收通过！\x1b[0m");
                 return CompletionDecision::Accept;
             }
         }
@@ -620,7 +627,7 @@ mod tests {
         runtime.add_anchor_constraint("Custom Ironclad Rule: Do not modify schema.sql");
         let guidance = runtime.next_guidance().unwrap();
         assert!(guidance.contains("PINNED ANCHOR CONSTRAINTS"));
-        assert!(guidance.contains("Strict Architecture"));
+        assert!(guidance.contains("High-Cohesion Architecture"));
         assert!(guidance.contains("Custom Ironclad Rule: Do not modify schema.sql"));
     }
 

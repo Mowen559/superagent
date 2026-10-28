@@ -656,6 +656,16 @@ impl AgentLoop {
                 );
             }
 
+            // 注入蜂群全局黑板共识 (Hive Collective Blackboard Active Projection)
+            let bb_entries = crate::domains::agent_cognitive::agent_blackboard::AgentBlackboard::global().get_all_history();
+            if !bb_entries.is_empty() {
+                let recent_bb: Vec<_> = bb_entries.iter().rev().take(3).collect();
+                dynamic_guidance.push_str("\n\n[HIVE BLACKBOARD COLLECTIVE CONSENSUS]\n");
+                for entry in recent_bb {
+                    dynamic_guidance.push_str(&format!("- [{}] {}: {}\n", entry.publisher, entry.tag, entry.value.trim()));
+                }
+            }
+
             // 3. 向 LLM 发起请求 (快慢脑双模型协同编排)
             let (llm_message, usage) = match self
                 .call_llm_api(
@@ -737,6 +747,13 @@ impl AgentLoop {
                             vec!["reasoning".into(), "inner_thinking".into()]
                         );
                     }
+                    // 沉淀至全局黑板供蜂群与多角色智能体实时共享
+                    crate::domains::agent_cognitive::agent_blackboard::AgentBlackboard::global().post(
+                        format!("th_{}", &uuid::Uuid::new_v4().to_string()[..8]),
+                        trimmed.chars().take(200).collect::<String>(),
+                        &self.role,
+                        "deliberation",
+                    );
                 }
             }
 

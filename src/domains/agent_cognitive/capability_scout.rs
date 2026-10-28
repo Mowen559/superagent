@@ -307,9 +307,11 @@ if __name__ == "__main__":
         }
 
         let body = lines.into_iter().skip(body_start).collect::<Vec<_>>().join("\n");
-        let mut final_instructions = body;
+        // 示例剥离与净化 (Progressive Disclosure - Strip Large Embedded Example Traps)
+        let sanitized_body = Self::strip_embedded_example_traps(&body);
+        let mut final_instructions = sanitized_body;
 
-        // 探测技能目录下的模板资产 (Templates)，供中枢与智能体直观感知
+        // 探测技能目录下的模板资源 (Templates)，供中枢与智能体直观感知磁盘路径，严禁全量内联
         if let Some(parent) = path.parent() {
             let tmpl_dir = parent.join("templates");
             if tmpl_dir.is_dir() {
@@ -322,10 +324,10 @@ if __name__ == "__main__":
                         }
                     }
                     if !tmpls.is_empty() {
-                        final_instructions.push_str("\n\n### 📦 技能内置开箱即用模板资产 (Available Templates in skill directory)\n");
-                        final_instructions.push_str("【中枢提示】：当前技能目录下包含以下成熟模板，可直接优先参考或读取作为生成蓝本：\n");
+                        final_instructions.push_str("\n\n### 📦 技能内置开箱即用磁盘模板资源 (Available Templates on Disk)\n");
+                        final_instructions.push_str("【中枢提示】：当前技能目录下包含以下成熟模板。注意：**严禁将模板示例当成真实用户的任务产出！若需要参考写法，请通过 `read_file` 工具按需读取磁盘文件**，严禁凭空复制：\n");
                         for t in tmpls {
-                            final_instructions.push_str(&format!("- `{}`\n", t));
+                            final_instructions.push_str(&format!("- `{}` (路径: `{}`)\n", t, tmpl_dir.join(&t).display()));
                         }
                     }
                 }
@@ -333,6 +335,58 @@ if __name__ == "__main__":
         }
 
         (name, desc, final_instructions)
+    }
+
+    /// 剥离技能文档中过长、属于示范性的代码块，防止模型误当成任务捷径进行照抄
+    pub fn strip_embedded_example_traps(text: &str) -> String {
+        let mut result = String::with_capacity(text.len());
+        let mut in_code_block = false;
+        let mut code_block_lang = String::new();
+        let mut current_block = Vec::new();
+
+        for line in text.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("```") {
+                if !in_code_block {
+                    in_code_block = true;
+                    code_block_lang = trimmed[3..].trim().to_lowercase();
+                    current_block.clear();
+                    current_block.push(line);
+                } else {
+                    in_code_block = false;
+                    current_block.push(line);
+                    let is_large_example = current_block.len() > 10 && (
+                        code_block_lang.contains("json") ||
+                        code_block_lang.contains("js") ||
+                        code_block_lang.contains("javascript") ||
+                        code_block_lang.contains("text")
+                    );
+                    let contains_rule_markers = current_block.iter().any(|l| {
+                        l.contains("\"find_rule\"") ||
+                        l.contains("\"detail_find_rule\"") ||
+                        l.contains("云6oooole") ||
+                        l.contains("TencentVideo")
+                    });
+
+                    if is_large_example && contains_rule_markers {
+                        result.push_str("```markdown\n[⚠️ 示范性规则完整源码与交付模板已自动剥离。如需参考完整蓝本，请使用 read_file 工具查阅技能下的 templates/ 目录，严禁直接复制或充当任务输出！]\n```\n");
+                    } else {
+                        for blk_line in &current_block {
+                            result.push_str(blk_line);
+                            result.push('\n');
+                        }
+                    }
+                    current_block.clear();
+                }
+            } else if in_code_block {
+                current_block.push(line);
+            } else {
+                result.push_str(line);
+                result.push('\n');
+            }
+        }
+
+        result
     }
 
     pub fn compute_skill_score(p_lower: &str, name: &str, desc: &str) -> f32 {

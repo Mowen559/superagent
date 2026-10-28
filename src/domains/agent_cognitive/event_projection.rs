@@ -124,14 +124,56 @@ pub fn project_events_with_micro_compaction(
 
     let mut projected = Vec::with_capacity(events.len());
 
-    for (i, evt) in events.iter().enumerate() {
-        let is_active = event_turns[i] >= active_turn_threshold;
+    let mut i = 0;
+    while i < events.len() {
+        let evt = &events[i];
 
+        // 过滤内部元审计事件，严禁作为 role: "system" 插入到对话流中间，破坏 OpenAI 协议
+        if matches!(evt, SessionEvent::RunStarted { .. } | SessionEvent::RunFinished { .. } | SessionEvent::LifecycleChanged { .. }) {
+            i += 1;
+            continue;
+        }
+
+        // 连续多个 ToolCall 合并为一个标准的 assistant tool_calls 消息
+        if let SessionEvent::ToolCall { id, name, arguments } = evt {
+            let mut calls = vec![serde_json::json!({
+                "id": id,
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "arguments": arguments.to_string()
+                }
+            })];
+
+            let mut j = i + 1;
+            while j < events.len() {
+                if let SessionEvent::ToolCall { id: next_id, name: next_name, arguments: next_args } = &events[j] {
+                    calls.push(serde_json::json!({
+                        "id": next_id,
+                        "type": "function",
+                        "function": {
+                            "name": next_name,
+                            "arguments": next_args.to_string()
+                        }
+                    }));
+                    j += 1;
+                } else {
+                    break;
+                }
+            }
+
+            projected.push(serde_json::json!({
+                "role": "assistant",
+                "tool_calls": calls
+            }));
+            i = j;
+            continue;
+        }
+
+        let is_active = event_turns[i] >= active_turn_threshold;
         if is_active {
-            // 活跃窗口：100% 原始投射
             projected.push(evt.to_llm_message());
         } else {
-            // 历史窗口：微剪枝与指纹化折叠
             match evt {
                 SessionEvent::ToolResult { id, result } => {
                     let raw_str = if let Some(s) = result.as_str() {
@@ -141,10 +183,8 @@ pub fn project_events_with_micro_compaction(
                     };
 
                     if raw_str.len() <= 300 {
-                        // 小型返回值直接保留
                         projected.push(evt.to_llm_message());
                     } else {
-                        // 动态指纹化折叠
                         let tool_name = call_names.get(id).map(|s| s.as_str()).unwrap_or("tool");
                         let folded_content = format_folded_tool_result(tool_name, result);
                         projected.push(serde_json::json!({
@@ -166,6 +206,7 @@ pub fn project_events_with_micro_compaction(
                 }
             }
         }
+        i += 1;
     }
 
     projected
