@@ -158,6 +158,7 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "multi_replace_file_content"
         | "knowledge_ingest_tool"
         | "manage_task" => ToolRisk::WorkspaceMutation,
+        "run_command" if is_read_only_command(arguments) => ToolRisk::ReadOnly,
         "run_command" if is_safe_sandbox_command(arguments) => ToolRisk::WorkspaceMutation,
         "run_command" | "manage_process" | "invoke_subagent" | "intervene_worker"
         | "reload_plugins" | "request_reload" | "skill_tool" | "native_harness" => {
@@ -195,6 +196,23 @@ fn corpus_operation(arguments: &Value) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn allows_safe_dev_commands_without_approval_in_auto_edit_mode() {
+        let policy = ToolPolicy::new(ToolPolicyMode::AutoEdit);
+        assert_eq!(
+            policy.evaluate("run_command", &json!({ "command_line": "cargo test" })).1,
+            ToolPolicyDecision::Allow
+        );
+        assert_eq!(
+            policy.evaluate("run_command", &json!({ "CommandLine": "npm test" })).1,
+            ToolPolicyDecision::Allow
+        );
+        assert_eq!(
+            policy.evaluate("run_command", &json!({ "command": "git status" })).1,
+            ToolPolicyDecision::Allow
+        );
+    }
+
     use super::*;
     use serde_json::json;
 
@@ -349,15 +367,83 @@ mod tests {
     }
 }
 
-fn is_safe_sandbox_command(arguments: &Value) -> bool {
+pub fn is_read_only_command(arguments: &Value) -> bool {
     let cmd = arguments
         .get("command_line")
         .or_else(|| arguments.get("CommandLine"))
         .or_else(|| arguments.get("command"))
+        .or_else(|| arguments.get("cmd"))
         .and_then(Value::as_str)
         .unwrap_or("");
-    let cmd_lower = cmd.to_lowercase();
-    cmd_lower.contains("validate-rule")
+    let cmd_lower = cmd.trim().to_lowercase();
+    if cmd_lower.is_empty() {
+        return false;
+    }
+    // 纯状态查看与无副作用查询命令
+    cmd_lower.starts_with("git status")
+        || cmd_lower.starts_with("git diff")
+        || cmd_lower.starts_with("git log")
+        || cmd_lower.starts_with("git show")
+        || cmd_lower.starts_with("git branch")
+        || cmd_lower.starts_with("cargo check")
+        || cmd_lower.starts_with("cargo clippy")
+        || cmd_lower.starts_with("cargo metadata")
+        || cmd_lower.starts_with("npm list")
+        || cmd_lower.starts_with("pnpm list")
+        || cmd_lower.starts_with("dir")
+        || cmd_lower.starts_with("ls")
+        || cmd_lower.starts_with("pwd")
+        || cmd_lower.starts_with("echo ")
+        || cmd_lower.starts_with("cat ")
+        || cmd_lower.starts_with("type ")
+        || cmd_lower.starts_with("where ")
+        || cmd_lower.starts_with("which ")
+        || cmd_lower.starts_with("get-childitem")
+        || cmd_lower.starts_with("select-string")
+}
+
+pub fn is_safe_sandbox_command(arguments: &Value) -> bool {
+    let cmd = arguments
+        .get("command_line")
+        .or_else(|| arguments.get("CommandLine"))
+        .or_else(|| arguments.get("command"))
+        .or_else(|| arguments.get("cmd"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let cmd_lower = cmd.trim().to_lowercase();
+    if cmd_lower.is_empty() {
+        return false;
+    }
+
+    // 拒绝破坏性系统级操作
+    let destructive = [
+        "rm -rf /", "rmdir /s /q c:", "del /f /s /q c:", "format ",
+        "drop database", "mkfs", "dd if="
+    ];
+    if destructive.iter().any(|t| cmd_lower.contains(t)) {
+        return false;
+    }
+
+    // 常用安全构建、验证、测试与工程脚本
+    cmd_lower.starts_with("cargo test")
+        || cmd_lower.starts_with("cargo build")
+        || cmd_lower.starts_with("cargo run")
+        || cmd_lower.starts_with("cargo fmt")
+        || cmd_lower.starts_with("npm test")
+        || cmd_lower.starts_with("npm run")
+        || cmd_lower.starts_with("pnpm test")
+        || cmd_lower.starts_with("pnpm run")
+        || cmd_lower.starts_with("yarn test")
+        || cmd_lower.starts_with("yarn run")
+        || cmd_lower.starts_with("pytest")
+        || cmd_lower.starts_with("python -m")
+        || cmd_lower.starts_with("python test")
+        || cmd_lower.starts_with("node ")
+        || cmd_lower.starts_with("vitest")
+        || cmd_lower.starts_with("jest")
+        || cmd_lower.starts_with("tsc")
+        || cmd_lower.starts_with("git ")
+        || cmd_lower.contains("validate-rule")
         || cmd_lower.contains("test-rule")
         || cmd_lower.contains("export-command")
         || cmd_lower.contains("quick-scaffold")

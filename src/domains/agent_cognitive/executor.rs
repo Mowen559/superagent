@@ -143,13 +143,24 @@ impl AgentLoop {
         let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
 
         let system_prompt = format!(
-            "{}\n\n[Proactive High-Agency Protocol]\n\
-             - Autonomous Exploration: Actively use `list_dir`, `find_by_name`, `grep_search`, and `search_graph` to map code structure and trace symbols.\n\
-             - Surgical Edits: Always prefer `replace_in_file` and `multi_replace_file_content` for localized code modifications. Never rewrite whole files when changing a few lines.\n\
-             - Self-Healing & Resilience: When a tool returns errors or compiler diagnostics, analyze the cause, adapt the hypothesis, and repair in-stride without giving up.\n\n\
+            "{}\n\n[Elite Agent Tooling & Operating Protocol]\n\
+             - Primary Core Toolset: Focus your actions around the 8 standard core tools:\n\
+               1. `view_file` (alias: `read_file`): Read and inspect file contents with pagination and RTK filters.\n\
+               2. `replace_in_file` (alias: `edit_file`): Localized, surgical code edits using exact search and replace text.\n\
+               3. `write_to_file` (alias: `write_file`): Create new files or perform necessary full rewrites.\n\
+               4. `run_command` (alias: `bash`): Execute builds, tests, lint checks, and terminal commands.\n\
+               5. `grep_search`: Fast regex/text code search across the workspace.\n\
+               6. `find_by_name`: Rapidly locate files by filename or glob pattern.\n\
+               7. `list_dir`: Explore directory tree structures.\n\
+               8. `manage_task`: Inspect or maintain your .superagent_todo.md physical execution checklist.\n\
+             - Working Memory on Disk (Manus/Devin Pattern):\n\
+               For any task that requires multi-step planning or modifying code across multiple files:\n\
+               1. First create an execution checklist in `.superagent_todo.md` using `manage_task` (Action: \"write\").\n\
+               2. Execute step-by-step; mark items completed physically using `manage_task`.\n\
+               3. Do not mark completed or conclude before targeted tests run and pass via `run_command`.\n\n\
              [Deterministic Engineering & TDD Protocol]\n\
              - Test-Driven Verification: When resolving bugs or developing features, write or identify targeted test cases first (Red -> Green -> Refactor), then verify against these tests.\n\
-             - Compiler-in-the-Loop: When file editing tools return non-empty `diagnostics`, prioritize correcting these syntax/compiler issues immediately before proceeding to subsequent steps.\n\n\
+             - Compiler-in-the-Loop: When file editing tools return non-empty `diagnostics` or compiler errors, prioritize correcting these syntax/compiler issues immediately before proceeding.\n\n\
              [Environment Context]\n- OS: {} ({})\n- Current Directory: {}\n- Current Time: {}",
             base_prompt, os, arch, cwd, now
         );
@@ -648,6 +659,10 @@ impl AgentLoop {
                         trimmed, directive
                     ));
                 }
+            } else {
+                dynamic_guidance.push_str(
+                    "\n\n[Manus Protocol: Working Memory]\nIf this task involves multiple steps or code modifications, please start by calling `manage_task` (Action: 'write') to initialize your .superagent_todo.md execution checklist."
+                );
             }
 
             if consecutive_meta_only_turns >= 1 {
@@ -1182,8 +1197,31 @@ impl AgentLoop {
             let tools_guard = tools_arc.lock().unwrap();
             let mut projections = Vec::new();
 
-            let schema = tools_guard
-                .values()
+            // 核心优先排序表 (保证大模型注意力最高权重锚定在8大核心工程工具上)
+            const PRIMARY_PRIORITY: &[&str] = &[
+                "view_file",
+                "replace_in_file",
+                "write_to_file",
+                "run_command",
+                "grep_search",
+                "find_by_name",
+                "list_dir",
+                "manage_task",
+                "ask_user",
+                "invoke_subagent",
+                "view_outline",
+            ];
+
+            let mut sorted_tools: Vec<_> = tools_guard.values().cloned().collect();
+            sorted_tools.sort_by_key(|t| {
+                PRIMARY_PRIORITY
+                    .iter()
+                    .position(|&p| p == t.name())
+                    .unwrap_or(usize::MAX)
+            });
+
+            let schema = sorted_tools
+                .iter()
                 .map(|t| {
                     if let Some(proj) = t.prompt_projection() {
                         projections.push(proj);
