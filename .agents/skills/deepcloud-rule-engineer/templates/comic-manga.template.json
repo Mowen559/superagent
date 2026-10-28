@@ -1,0 +1,15 @@
+{
+  "title": "漫画图集站点模版 (双端同构漫画/绘本规则)",
+  "author": "DeepCloud Rule Engineer",
+  "version": 1,
+  "url": "https://manga.example.com/category/fyclass?page=fypage",
+  "col_type": "movie_3",
+  "class_name": "热血&恋爱&冒险&奇幻&搞笑",
+  "class_url": "action&romance&adventure&fantasy&comedy",
+  "find_rule": "js:\nvar d = [];\nvar html = request(input);\nvar items = pdfa(html, \".manga-list .manga-item\");\nfor (var i = 0; i < items.length; i++) {\n  var item = items[i];\n  var title = pdfh(item, \".manga-title&&Text\");\n  var cover = pd(item, \"img&&src||img&&data-src\", input);\n  var url = pd(item, \"a&&href\", input);\n  var update = pdfh(item, \".latest-chapter&&Text\");\n  if (title && url) {\n    d.push({\n      title: title.trim(),\n      desc: update.trim(),\n      pic_url: cover ? cover + '@Referer=' + input : '',\n      url: url,\n      col_type: 'movie_3'\n    });\n  }\n}\nsetResult(d);",
+  "search_url": "https://manga.example.com/search?q=**",
+  "search_rule": "js:\nvar d = [];\nvar html = request(input);\nvar items = pdfa(html, \".search-result .manga-item\");\nfor (var i = 0; i < items.length; i++) {\n  var it = items[i];\n  d.push({\n    title: pdfh(it, \".title&&Text\"),\n    desc: pdfh(it, \".author&&Text\"),\n    pic_url: pd(it, \"img&&src\", input) + '@Referer=' + input,\n    url: pd(it, \"a&&href\", input),\n    col_type: 'movie_3'\n  });\n}\nsetResult(d);",
+  "detail_col_type": "movie_1_vertical_pic",
+  "detail_find_rule": "js:\nvar d = [];\nvar html = request(input);\nvar comicTitle = pdfh(html, \".manga-detail h1&&Text\") || '漫画详情';\nvar cover = pd(html, \".manga-cover img&&src\", input);\nvar desc = pdfh(html, \".manga-summary&&Text\");\n\n// 1. 顶部大剧名卡片\nd.push({\n  title: '剧名：' + comicTitle,\n  desc: desc,\n  pic_url: cover ? cover + '@Referer=' + input : '',\n  url: input,\n  col_type: 'pic_1_card'\n});\n\n// 2. 章节目录列表 (以话数为选集)\nd.push({\n  title: '【章节目录】',\n  col_type: 'text_1'\n});\nvar chapters = pdfa(html, \".chapter-list li a\");\nfor (var i = 0; i < chapters.length; i++) {\n  var ch = chapters[i];\n  var chTitle = pdfh(ch, \"Text\") || ('第' + (i + 1) + '话');\n  var chUrl = pd(ch, \"a&&href\", input);\n  d.push({\n    title: chTitle.trim(),\n    url: chUrl,\n    col_type: 'text_3'\n  });\n}\nsetResult(d);",
+  "lazy": "js:\n// 漫画图片抓取逻辑：进入章节页获取所有漫画长图列表\nvar html = request(input);\nvar d = [];\nvar imgUrls = [];\n// 匹配内联动态章节图片数组，例如 var chapterImages = [...] 或 DOM 图片列表\nvar match = html.match(/chapterImages\\s*=\\s*(\\[[\\s\\S]*?\\]);/);\nif (match && match[1]) {\n  try {\n    imgUrls = JSON.parse(match[1]);\n  } catch (e) {}\n}\nif (imgUrls.length === 0) {\n  var imgNodes = pdfa(html, \".comic-page img, .reader-images img\");\n  for (var i = 0; i < imgNodes.length; i++) {\n    var src = pd(imgNodes[i], \"img&&data-src||img&&src\", input);\n    if (src) imgUrls.push(src);\n  }\n}\n// 双端图片阅读器渲染：按大图卡片推入\nfor (var k = 0; k < imgUrls.length; k++) {\n  var img = imgUrls[k];\n  if (img.indexOf('http') !== 0) img = 'https:' + img;\n  d.push({\n    pic_url: img + '@Referer=' + input,\n    col_type: 'pic_1_full'\n  });\n}\nsetResult(d);"
+}

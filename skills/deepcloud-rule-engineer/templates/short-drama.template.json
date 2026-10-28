@@ -1,0 +1,15 @@
+{
+  "title": "短剧竖屏影视模板 (双端同构微短剧/剧场规则)",
+  "author": "DeepCloud Rule Engineer",
+  "version": 1,
+  "url": "https://duanju.example.com/channel/fyclass-fypage.html",
+  "col_type": "movie_2",
+  "class_name": "战神赘婿&逆袭都市&穿越古代&甜宠虐恋&豪门总裁",
+  "class_url": "zhanshen&nixi&chuanyue&tianchong&haomen",
+  "find_rule": "js:\nvar d = [];\nvar html = request(input);\nvar items = pdfa(html, \".short-drama-list .item, .drama-card\");\nfor (var i = 0; i < items.length; i++) {\n  var item = items[i];\n  var title = pdfh(item, \".title&&Text\");\n  var cover = pd(item, \"img&&data-src||img&&src\", input);\n  var url = pd(item, \"a&&href\", input);\n  var epCount = pdfh(item, \".ep-count&&Text, .tag&&Text\");\n  if (title && url) {\n    d.push({\n      title: title.trim(),\n      desc: epCount.trim(),\n      pic_url: cover ? cover + '@Referer=' + input : '',\n      url: url,\n      col_type: 'movie_2'\n    });\n  }\n}\nsetResult(d);",
+  "search_url": "https://duanju.example.com/search?keyword=**",
+  "search_rule": "js:\nvar d = [];\nvar html = request(input);\nvar items = pdfa(html, \".search-list .item\");\nfor (var i = 0; i < items.length; i++) {\n  var it = items[i];\n  d.push({\n    title: pdfh(it, \".title&&Text\"),\n    desc: pdfh(it, \".desc&&Text\"),\n    pic_url: pd(it, \"img&&src\", input) + '@Referer=' + input,\n    url: pd(it, \"a&&href\", input),\n    col_type: 'movie_2'\n  });\n}\nsetResult(d);",
+  "detail_col_type": "movie_1_vertical_pic",
+  "detail_find_rule": "js:\nvar d = [];\nvar html = request(input);\nvar dramaTitle = pdfh(html, \".drama-header h1&&Text\") || '微短剧';\nvar cover = pd(html, \".drama-cover img&&src\", input);\nvar desc = pdfh(html, \".drama-desc&&Text\");\n\n// 1. 顶部大卡片 (注入剧名)\nd.push({\n  title: '剧名：' + dramaTitle,\n  desc: desc,\n  pic_url: cover ? cover + '@Referer=' + input : '',\n  url: input,\n  col_type: 'pic_1_card'\n});\n\n// 2. 短剧全集轻量列表 (通常为 80~120 集)\nd.push({\n  title: '【短剧全集·点击即播】',\n  col_type: 'text_1'\n});\nvar episodes = pdfa(html, \".episode-grid a, .drama-playlist a\");\nfor (var i = 0; i < episodes.length; i++) {\n  var ep = episodes[i];\n  var epTitle = pdfh(ep, \"Text\") || ('第' + (i + 1) + '集');\n  var epUrl = pd(ep, \"a&&href\", input);\n  d.push({\n    title: epTitle.trim(),\n    url: 'lazy:' + epUrl,\n    col_type: 'text_4'\n  });\n}\nsetResult(d);",
+  "lazy": "js:\nvar html = request(input);\nvar playUrl = '';\n// 短剧直链常内嵌在 video 标签或者 JSON-LD 中\nvar match = html.match(/<video[^>]*src=[\"']([^\"']+)[\"']/);\nif (match && match[1]) {\n  playUrl = match[1];\n} else {\n  var jsonMatch = html.match(/var\\s+videoInfo\\s*=\\s*({[\\s\\S]*?});/);\n  if (jsonMatch && jsonMatch[1]) {\n    try {\n      var info = JSON.parse(jsonMatch[1]);\n      playUrl = info.video_url || info.url || '';\n    } catch (e) {}\n  }\n}\nif (!playUrl) playUrl = input;\nif (playUrl.indexOf('http') !== 0) playUrl = 'https:' + playUrl;\nplayUrl = playUrl + ';{Referer@' + input + '&&User-Agent@Mobile};mp4';\nsetResult({ url: playUrl });"
+}

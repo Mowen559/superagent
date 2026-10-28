@@ -1,0 +1,21 @@
+{
+  "title": "站点名称 - 双端同构规则模板",
+  "author": "DeepCloud Rule Engineer",
+  "version": 1,
+  "url": "https://example.com/show/fyclass/page/fypage.html[https://example.com/show/fyclass.html]",
+  "col_type": "movie_3",
+  "class_name": "电影&电视剧&动漫&综艺",
+  "class_url": "1&2&3&4",
+  "area_name": "",
+  "area_url": "",
+  "year_name": "",
+  "year_url": "",
+  "sort_name": "",
+  "sort_url": "",
+  "find_rule": "js:\nvar d = [];\nvar html = request(input);\nvar items = pdfa(html, \".module-items&&.module-item\");\nfor (var i = 0; i < items.length; i++) {\n  var item = items[i];\n  var title = pdfh(item, \".module-item-title&&Text\");\n  var img = pd(item, \".module-item-pic img&&data-original||.module-item-pic img&&src\", input);\n  var url = pd(item, \".module-item-title&&href\", input);\n  var desc = pdfh(item, \".module-item-note&&Text\");\n  d.push({\n    title: title,\n    desc: desc,\n    pic_url: img + '@Referer=' + input,\n    url: url,\n    col_type: 'movie_3'\n  });\n}\nsetResult(d);",
+  "search_url": "https://example.com/search?k=**",
+  "search_rule": "js:\nvar d = [];\nvar html = request(input);\nvar items = pdfa(html, \".module-search-item\");\nfor (var i = 0; i < items.length; i++) {\n  var it = items[i];\n  var title = pdfh(it, \".video-info-header h3&&Text\");\n  var img = pd(it, \".video-cover img&&data-original||.video-cover img&&src\", input);\n  var url = pd(it, \".video-info-header h3 a&&href\", input);\n  var desc = pdfh(it, \".video-info-main&&Text\");\n  d.push({\n    title: title,\n    desc: desc,\n    pic_url: img + '@Referer=' + input,\n    url: url,\n    col_type: 'movie_3'\n  });\n}\nsetResult(d);",
+  "detail_col_type": "movie_1_vertical_pic",
+  "detail_find_rule": "js:\nvar d = [];\nvar html = request(input);\nvar title = pdfh(html, \".video-info-header h1&&Text\");\nvar cover = pd(html, \".video-cover img&&src\", input);\nvar intro = pdfh(html, \".video-info-main&&Text\");\n\n// 1. 顶部基础卡片\nd.push({\n  title: title,\n  desc: intro,\n  pic_url: cover + '@Referer=' + input,\n  url: input,\n  col_type: 'pic_1_card'\n});\n\n// 2. 线路 Tab 提取\nvar tabs = pdfa(html, \".module-tab-items-box&&.module-tab-item\");\nvar playlists = pdfa(html, \".module-list&&.module-blocklist\");\n\nfor (var tabIndex = 0; tabIndex < tabs.length; tabIndex++) {\n  var tabName = pdfh(tabs[tabIndex], \"Text\") || ('线路 ' + (tabIndex + 1));\n  d.push({\n    title: '【' + tabName + '】',\n    col_type: 'text_1'\n  });\n  var currentList = playlists[tabIndex] ? pdfa(playlists[tabIndex], \"a\") : [];\n  for (var epIndex = 0; epIndex < currentList.length; epIndex++) {\n    var ep = currentList[epIndex];\n    var epTitle = pdfh(ep, \"Text\");\n    var epUrl = pd(ep, \"a&&href\", input);\n    d.push({\n      title: epTitle,\n      url: 'lazy:' + epUrl,\n      col_type: 'text_3'\n    });\n  }\n}\nsetResult(d);",
+  "lazy": "js:\nvar html = request(input);\nvar realPlayUrl = '';\n// 示例：从网页播放器配置或内联 iframe 提取真实媒体地址\nvar match = html.match(/player_aaaa\\s*=\\s*({[\\s\\S]*?})<\\/script>/);\nif (match && match[1]) {\n  var config = JSON.parse(match[1]);\n  if (config.url) {\n    realPlayUrl = config.url;\n    if (realPlayUrl.indexOf('http') !== 0) {\n      realPlayUrl = 'https:' + realPlayUrl;\n    }\n  }\n}\nif (!realPlayUrl) {\n  realPlayUrl = input;\n}\n// 注入标准防盗链头\nrealPlayUrl = realPlayUrl + ';{Referer@' + input + '&&User-Agent@PC}';\nsetResult({ url: realPlayUrl });"
+}
