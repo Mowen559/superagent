@@ -200,6 +200,27 @@ impl CognitiveRuntime {
             ""
         };
 
+        let pivot_mandate = if self.consecutive_failures >= 2 {
+            "\n[COGNITIVE PIVOT MANDATE - 连续受阻强制变轨]\n⚠️ You have encountered 2 or more consecutive tool failures! Continuing down this identical line of thought is STRICTLY FORBIDDEN.\nExecute one of these 3 pivot actions immediately:\n1. Pivot strategy: If static scraping fails, pivot to mobile APIs or the local Python scraper engine (127.0.0.1:18000). If code edits fail, inspect the exact file with `view_file` to verify whitespace.\n2. Verify ground facts: Call a read-only tool (`view_file`, `grep_search`) to inspect the real underlying code.\n3. Re-evaluate assumptions: Discard invalid premises and try an alternative approach.\n"
+        } else {
+            ""
+        };
+
+        let current_phase_desc = if self.tool_calls == 0 {
+            "Phase 1: Grounding & Investigation [IN PROGRESS]\n- Mandatory: Inspect current codebase, reverse-engineer mobile APIs or inspect specs first.\n- Action: Invoke sensory tools (`view_file`, `grep_search`, `read_file`, `web_fetch`). Do NOT mutate files or claim completion yet!"
+        } else if self.mutation_tool_calls == 0 {
+            "Phase 2: Surgical Implementation & Rule Architecture [READY]\n- Evidence gathered. Formulate precision edits or isomorphic rule logic.\n- Action: Use `replace_in_file` / `write_to_file`. Keep mutations minimal and surgical."
+        } else if self.successful_tools > 0 {
+            "Phase 3: Verification Closed-Loop [MANDATORY]\n- Mutations landed. Run compiler/linter/test suites to verify claims.\n- Action: Run commands (`cargo test`, `npm test`, `validate-rule`) to ensure 0 errors."
+        } else {
+            "Phase 4: Synthesis & Delivery [ACTIVE]\n- Validations complete. Deliver final summary, Diff, or import tokens clearly."
+        };
+
+        let phase_progression_block = format!(
+            "\n[FOUR-PHASE COGNITIVE PROGRESSION ROADMAP]\n{}\n",
+            current_phase_desc
+        );
+
         let replan_note = self
             .plan
             .take_replan_notice()
@@ -270,7 +291,7 @@ impl CognitiveRuntime {
             String::new()
         };
 
-        Ok(format!(
+        let mut res = format!(
             "# Adaptive Meta-Cognitive State (DeepSeek-R1 Fluid Reasoning)\nObjective: {}\nMode: {:?}; Task Kind: {:?}; Model Turn: {}; Tool Stats: {} succeeded / {} failed (Mutations: {}).\nDynamic Plan:\n{}\nReasoning Guide: {}{}{}{}{}{}{}{}{}\nAdvance the in-progress step using live evidence. Do not claim completion without verification. Synthesize tools (`synthesize_tool`) if missing capabilities arise.",
             self.objective,
             self.mode,
@@ -289,7 +310,9 @@ impl CognitiveRuntime {
             anchor_block,
             self_awareness_block,
             inquiry_block,
-        ))
+        );
+        res.push_str(&format!("{}{}", phase_progression_block, pivot_mandate));
+        Ok(res)
     }
 
     pub fn observe_tool(&mut self, status: ToolExecutionStatus, risk: ToolRisk) {

@@ -232,12 +232,50 @@ fn find_fuzzy_tool_match(input: &str, registered_tools: &[String]) -> Option<Str
     None
 }
 
-fn extract_actionable_diagnostic(stderr: &str) -> Option<String> {
-    let lines: Vec<&str> = stderr.lines().collect();
+fn extract_actionable_diagnostic(text: &str) -> Option<String> {
+    let lower = text.to_lowercase();
+
+    // 1. 目标文本替换失配（replace_in_file / surgical edit failure）
+    if lower.contains("target content not found")
+        || lower.contains("target string not found")
+        || lower.contains("target not found")
+    {
+        return Some("Diagnostic insight: The target text to replace was not found in the file. File content or line endings (CRLF/LF) may differ. Use `view_file` to read the exact lines and whitespace before calling `replace_in_file`.".to_string());
+    }
+
+    // 2. 爬虫反爬风控、403 或验证码拦截
+    if lower.contains("cloudflare")
+        || lower.contains("just a moment")
+        || lower.contains("sec_server")
+        || lower.contains("403 forbidden")
+        || lower.contains("access denied")
+        || text.contains("风控")
+        || text.contains("验证码")
+    {
+        return Some("Diagnostic insight: Target endpoint triggered anti-bot protection (403/Cloudflare/sec_server). Do NOT blindly repeat static HTTP requests! Pivot to: 1) Probe local Python engine (http://127.0.0.1:18000) for headless browser rendering; 2) Switch to mobile app/mini-program REST API; 3) Use webview sniffer protocol.".to_string());
+    }
+
+    // 3. 海阔沙箱 DOM 禁忌
+    if lower.contains("window is not defined")
+        || lower.contains("document is not defined")
+        || lower.contains("fetch is not defined")
+    {
+        return Some("Diagnostic insight: Hiker sandbox violation! Naked DOM APIs (window/document/fetch) do not exist in the Hiker engine. Use isomorphic functions: `request(url, options)`, `pdfa`, `pdfh`, `pd` instead.".to_string());
+    }
+
+    // 4. 编译器/语法解析错误定位（Rust, TypeScript, Python, Node）
+    let lines: Vec<&str> = text.lines().collect();
     for line in lines.iter().rev() {
         let trimmed = line.trim();
-        if trimmed.starts_with("error[") || trimmed.starts_with("error:") || trimmed.contains("TS") || trimmed.starts_with("SyntaxError") {
-            return Some(format!("Diagnostic hint: Found error '{}'. Use view_file and replace_in_file to surgically correct the referenced location.", trimmed));
+        if trimmed.starts_with("error[")
+            || trimmed.starts_with("error:")
+            || trimmed.contains("TS2")
+            || trimmed.contains("TS1")
+            || trimmed.starts_with("SyntaxError")
+            || trimmed.starts_with("ReferenceError")
+            || trimmed.starts_with("TypeError")
+        {
+            return Some(format!("Diagnostic insight: Located compiler/runtime issue: '{}'. Use `view_file` to inspect the referenced line and make surgical corrections.", trimmed));
         }
     }
     None
@@ -521,11 +559,32 @@ impl ToolExecutionGateway {
 
         let mut enriched_result = final_result;
         if let Some(obj) = enriched_result.as_object_mut() {
-            if status == ToolExecutionStatus::Failed || obj.get("exit_code").and_then(Value::as_i64).unwrap_or(0) != 0 {
-                if let Some(stderr) = obj.get("stderr").and_then(Value::as_str) {
-                    if let Some(diag) = extract_actionable_diagnostic(stderr) {
-                        obj.insert("diagnostic_insight".to_string(), json!(diag));
-                    }
+            let has_issue = status == ToolExecutionStatus::Failed
+                || obj.get("exit_code").and_then(Value::as_i64).unwrap_or(0) != 0
+                || obj.contains_key("error");
+
+            if has_issue {
+                let diagnostic = obj.get("stderr")
+                    .and_then(Value::as_str)
+                    .and_then(extract_actionable_diagnostic)
+                    .or_else(|| {
+                        obj.get("error")
+                            .and_then(Value::as_str)
+                            .and_then(extract_actionable_diagnostic)
+                    })
+                    .or_else(|| {
+                        obj.get("stdout")
+                            .and_then(Value::as_str)
+                            .and_then(extract_actionable_diagnostic)
+                    })
+                    .or_else(|| {
+                        obj.get("output")
+                            .and_then(Value::as_str)
+                            .and_then(extract_actionable_diagnostic)
+                    });
+
+                if let Some(diag) = diagnostic {
+                    obj.insert("diagnostic_insight".to_string(), json!(diag));
                 }
             }
         }
@@ -788,5 +847,14 @@ mod tests {
         assert_eq!(blocked.status, ToolExecutionStatus::RepetitionBlocked);
         assert_eq!(blocked.result["kind"], "repetition_blocked");
         assert!(tools.lock().unwrap().contains_key("fixture"));
+    }
+
+    #[test]
+    fn diagnostic_insight_covers_multiple_failure_patterns() {
+        assert!(extract_actionable_diagnostic("error[E0432]: unresolved import `foo`").is_some());
+        assert!(extract_actionable_diagnostic("Error: target content not found in file").is_some());
+        assert!(extract_actionable_diagnostic("403 Forbidden: Cloudflare anti-bot verification required").is_some());
+        assert!(extract_actionable_diagnostic("ReferenceError: window is not defined in sandbox").is_some());
+        assert!(extract_actionable_diagnostic("All tests passed successfully").is_none());
     }
 }
