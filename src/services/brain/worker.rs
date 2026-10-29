@@ -5,7 +5,17 @@ pub async fn run_worker(
     resume_session_id: Option<String>,
     tool_policy: Option<String>,
     image_paths: Vec<String>,
+    thinking_level: Option<String>,
 ) {
+    if let Some(ref level) = thinking_level {
+        unsafe {
+            std::env::set_var("HUB_THINKING_LEVEL", level);
+        }
+        eprintln!(
+            "\x1b[35m[ThinkingIntensity] 🧠 Reasoning effort set to '{}'\x1b[0m",
+            level
+        );
+    }
     // 解析工作模式：写入 HUB_TOOL_POLICY_MODE 供 ToolExecutionGateway 在
     // AgentLoop 构造期消费（plan→只读、build→审批、edit→自动改、yolo→放行、guarded→危险审批）。
     let work_mode = tool_policy

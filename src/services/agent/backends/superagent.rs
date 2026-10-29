@@ -40,6 +40,10 @@ impl AgentBackend for SuperAgentBackend {
             args.push("--tool-policy".to_string());
             args.push(mode.clone());
         }
+        if let Some(thinking) = opts.thinking_level.as_ref().filter(|t| !t.trim().is_empty()) {
+            args.push("--thinking-level".to_string());
+            args.push(thinking.clone());
+        }
         for image in opts.image_paths.iter().filter(|p| !p.trim().is_empty()) {
             args.push("--image".to_string());
             args.push(image.trim().to_string());

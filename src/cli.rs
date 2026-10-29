@@ -34,6 +34,9 @@ pub enum Commands {
         /// Image attachment paths (repeatable; hub-side upload staging files)
         #[arg(long = "image")]
         images: Vec<String>,
+        /// Reasoning / thinking intensity level: low | medium | high
+        #[arg(long)]
+        thinking_level: Option<String>,
     },
     /// Start the backend service
     Service {
@@ -258,7 +261,7 @@ pub fn dispatch() {
     };
 
     match cli.command {
-        Some(Commands::SuperagentWorker { prompt, project, model, resume_session_id, tool_policy, images }) => {
+        Some(Commands::SuperagentWorker { prompt, project, model, resume_session_id, tool_policy, images, thinking_level }) => {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 crate::services::brain::worker::run_worker(
@@ -268,6 +271,7 @@ pub fn dispatch() {
                     resume_session_id,
                     tool_policy,
                     images,
+                    thinking_level,
                 )
                 .await;
             });

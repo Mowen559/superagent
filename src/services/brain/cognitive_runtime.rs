@@ -138,6 +138,14 @@ impl CognitiveRuntime {
     }
 
     pub fn select_brain_tier(&self) -> BrainTier {
+        if let Ok(level) = std::env::var("HUB_THINKING_LEVEL") {
+            let l = level.trim().to_ascii_lowercase();
+            if l == "low" || l == "off" || l == "fast" {
+                return BrainTier::Fast;
+            } else if l == "high" || l == "deep" || l == "max" {
+                return BrainTier::Slow;
+            }
+        }
         crate::domains::model_gateway::model_attempt_router::DualBrainRouter::select_tier(
             self.mode,
             self.task_kind,
