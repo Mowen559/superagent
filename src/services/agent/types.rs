@@ -19,6 +19,18 @@ use serde::{Deserialize, Serialize};
 pub enum AgentMessage {
     /// Real-time token context usage broadcast.
     ContextUsage { percentage: f32, prompt_tokens: u32, max_tokens: u32 },
+    /// Turn-by-turn whitebox cognitive trace snapshot
+    TraceSnapshot {
+        turn: usize,
+        #[serde(skip_serializing_if = "String::is_empty", default)]
+        session_id: String,
+        brain_tier: String,
+        prompt_tokens: usize,
+        completion_tokens: usize,
+        duration_ms: u64,
+        tools_count: usize,
+        snapshot_file: String,
+    },
     /// Assistant answer text (may arrive as many fragments).
     Text { content: String },
     /// Reasoning / thinking content, kept distinct from user-facing text.

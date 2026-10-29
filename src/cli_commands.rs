@@ -60,6 +60,7 @@ pub fn handle_agent(cmd: AgentCommand) {
                                 }
                                 AgentMessage::InteractionRequest { .. } => {}
                                 AgentMessage::ContextUsage { .. } => {}
+                                AgentMessage::TraceSnapshot { .. } => {}
                                 AgentMessage::Log { level, content } => {
                                     println!("\x1b[90m[Log {}: {}]\x1b[0m", level, content);
                                 }

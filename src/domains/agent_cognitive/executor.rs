@@ -682,9 +682,9 @@ impl AgentLoop {
             }
 
             // 3. 向 LLM 发起请求 (快慢脑双模型协同编排)
-            let (llm_message, usage) = match self
+            let (llm_message, usage, dynamic_prompt, tools_schema, tier_label) = match self
                 .call_llm_api(
-                    projected_messages,
+                    projected_messages.clone(),
                     &dynamic_guidance,
                     run_prelude.prompt_projection(),
                     brain_tier,
@@ -700,6 +700,67 @@ impl AgentLoop {
                     return Err(error);
                 }
             };
+
+            // 白盒化 Trace 快照持久化 (.superagent/traces/{session_id}/turn_{loop_count}.json)
+            let session_id_str = self.session_id().to_string();
+            let traces_dir = std::path::PathBuf::from(".superagent")
+                .join("traces")
+                .join(&session_id_str);
+            let _ = std::fs::create_dir_all(&traces_dir);
+            let snapshot_path = traces_dir.join(format!("turn_{}.json", loop_count));
+
+            let snapshot_data = serde_json::json!({
+                "turn": loop_count,
+                "session_id": session_id_str,
+                "timestamp": chrono::Utc::now().to_rfc3339(),
+                "brain_tier": tier_label,
+                "system_prompt": dynamic_prompt,
+                "messages": projected_messages,
+                "tools_schema": tools_schema,
+                "response": llm_message,
+                "usage": {
+                    "prompt_tokens": usage.prompt_tokens,
+                    "completion_tokens": usage.completion_tokens,
+                    "total_tokens": usage.prompt_tokens + usage.completion_tokens,
+                    "cost": usage.cost,
+                    "duration_ms": usage.duration_ms
+                }
+            });
+
+            if let Ok(json_str) = serde_json::to_string_pretty(&snapshot_data) {
+                let _ = std::fs::write(&snapshot_path, json_str);
+            }
+
+            let trace_checkpoint = SessionEvent::TraceCheckpoint {
+                turn: loop_count,
+                brain_tier: tier_label.clone(),
+                prompt_tokens: usage.prompt_tokens as usize,
+                completion_tokens: usage.completion_tokens as usize,
+                duration_ms: usage.duration_ms,
+                tools_count: tools_schema.len(),
+                snapshot_file: snapshot_path.to_string_lossy().to_string(),
+            };
+            self.events.push(trace_checkpoint);
+            self.save_session();
+
+            if self.emit_jsonl {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "type": "trace_snapshot",
+                        "turn": loop_count,
+                        "session_id": self.session_id(),
+                        "brain_tier": tier_label,
+                        "prompt_tokens": usage.prompt_tokens,
+                        "completion_tokens": usage.completion_tokens,
+                        "duration_ms": usage.duration_ms,
+                        "tools_count": tools_schema.len(),
+                        "snapshot_file": snapshot_path.to_string_lossy().to_string(),
+                    })
+                );
+                use std::io::Write;
+                let _ = std::io::stdout().flush();
+            }
 
             self.last_token_usage = Some(usage.clone());
             self.total_prompt_tokens += usage.prompt_tokens as u64;
@@ -1175,7 +1236,16 @@ impl AgentLoop {
         cognitive_guidance: &str,
         run_prelude: &str,
         brain_tier: crate::domains::model_gateway::model_attempt_router::BrainTier,
-    ) -> Result<(Value, crate::domains::model_gateway::providers::types::TokenUsage), String> {
+    ) -> Result<
+        (
+            Value,
+            crate::domains::model_gateway::providers::types::TokenUsage,
+            String,
+            Vec<Value>,
+            String,
+        ),
+        String,
+    > {
         let (provider, tier_label) = match brain_tier {
             crate::domains::model_gateway::model_attempt_router::BrainTier::Fast => {
                 (&self.fast_llm_provider, "Fast Brain")
@@ -1269,7 +1339,7 @@ impl AgentLoop {
                 Ok((msg, usage)) => {
                     eprintln!("\n\x1b[45;37m[Token Usage - {}] Prompt: {}, Completion: {}, Cost: ${:.4}, Latency: {}ms\x1b[0m\n",
                         tier_label, usage.prompt_tokens, usage.completion_tokens, usage.cost, usage.duration_ms);
-                    return Ok((msg, usage));
+                    return Ok((msg, usage, dynamic_prompt, tools_schema, tier_label.to_string()));
                 }
                 Err(error) => {
                     if brain_tier == crate::domains::model_gateway::model_attempt_router::BrainTier::Fast && attempt == 1 {

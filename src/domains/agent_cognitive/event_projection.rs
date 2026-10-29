@@ -129,7 +129,7 @@ pub fn project_events_with_micro_compaction(
         let evt = &events[i];
 
         // 过滤内部元审计事件，严禁作为 role: "system" 插入到对话流中间，破坏 OpenAI 协议
-        if matches!(evt, SessionEvent::RunStarted { .. } | SessionEvent::RunFinished { .. } | SessionEvent::LifecycleChanged { .. }) {
+        if matches!(evt, SessionEvent::RunStarted { .. } | SessionEvent::RunFinished { .. } | SessionEvent::LifecycleChanged { .. } | SessionEvent::TraceCheckpoint { .. }) {
             i += 1;
             continue;
         }

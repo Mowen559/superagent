@@ -65,6 +65,15 @@ pub enum SessionEvent {
         item_ids: Vec<String>,
         content: String,
     },
+    TraceCheckpoint {
+        turn: usize,
+        brain_tier: String,
+        prompt_tokens: usize,
+        completion_tokens: usize,
+        duration_ms: u64,
+        tools_count: usize,
+        snapshot_file: String,
+    },
 }
 
 impl SessionEvent {
@@ -116,6 +125,9 @@ impl SessionEvent {
             }
             Self::SteeringInjected { content, .. } => {
                 serde_json::json!({ "role": "user", "content": content })
+            }
+            Self::TraceCheckpoint { .. } => {
+                serde_json::json!({ "role": "system", "content": "[trace_checkpoint_internal]" })
             }
             Self::ToolCall {
                 id,

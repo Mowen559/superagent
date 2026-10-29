@@ -381,6 +381,9 @@ fn checkpoint_line(event: &SessionEvent) -> String {
             item_ids.join(","),
             bounded(content, MAX_EVENT_CHARS)
         ),
+        SessionEvent::TraceCheckpoint { turn, snapshot_file, .. } => format!(
+            "trace_checkpoint: turn={turn} file={snapshot_file}"
+        ),
     }
 }
 

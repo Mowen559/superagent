@@ -116,6 +116,22 @@ impl AgentBackend for SuperAgentBackend {
                                     cost: evt.get("cost").and_then(|v| v.as_f64()).unwrap_or(0.0),
                                 },
                             );
+                        } else if t == "trace_snapshot" {
+                            if let (Some(turn), Some(tier)) = (
+                                evt.get("turn").and_then(|v| v.as_u64()),
+                                evt.get("brain_tier").and_then(|v| v.as_str()),
+                            ) {
+                                out.push(AgentMessage::TraceSnapshot {
+                                    turn: turn as usize,
+                                    session_id: evt.get("session_id").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                                    brain_tier: tier.to_string(),
+                                    prompt_tokens: evt.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
+                                    completion_tokens: evt.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
+                                    duration_ms: evt.get("duration_ms").and_then(|v| v.as_u64()).unwrap_or(0),
+                                    tools_count: evt.get("tools_count").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
+                                    snapshot_file: evt.get("snapshot_file").and_then(|v| v.as_str()).unwrap_or_default().to_string(),
+                                });
+                            }
                         } else if t == "status" {
                             if let Some(s) = evt.get("status").and_then(|v| v.as_str()) {
                                 st.forced_status = Some(s.to_string());

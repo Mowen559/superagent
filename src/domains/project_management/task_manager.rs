@@ -714,5 +714,6 @@ fn human_readable(event: &AgentMessage) -> String {
             ..
         } => format!("[NeedsInput:{request_id}] {question}"),
         AgentMessage::ContextUsage { percentage, .. } => format!("[ContextUsage] {:.1}%", percentage * 100.0),
+        AgentMessage::TraceSnapshot { turn, brain_tier, duration_ms, .. } => format!("[Trace] turn {turn} ({brain_tier}) in {duration_ms}ms"),
     }
 }
