@@ -272,23 +272,10 @@ impl CognitiveRuntime {
             self.intent.ambiguity_score
         );
 
-        let inquiry_block = if let Some(ref payload) = self.socratic_payload {
-            if self.inquiry_tool_calls == 0 && self.tool_calls == 0 {
-                format!(
-                    "\n[PROACTIVE SOCRATIC INQUIRY MANDATE - 结构化技术推敲要求]\n{}\n\n【行动指引】: 面对高歧义需求，禁止直接动手盲目修改代码！你必须优先调用轻量感知工具（`project_index`/`search_graph`）摸清现状，然后通过 `ask_user` 或在本次回复中清晰输出上述三段式推敲（事实+权衡+推荐），引导用户对齐后再执行！",
-                    payload.render_socratic_prompt()
-                )
-            } else {
-                String::new()
-            }
-        } else if self.intent.capability.requires_user_inquiry && self.inquiry_tool_calls == 0 && self.tool_calls == 0 {
-            format!(
-                "\n[PROACTIVE INQUIRY REQUIRED - Socratic Principal Mindset]\nWait! This requirement has key technical branches or underspecified details (Score: {:.2}).\nDO NOT rush into blind implementation! Adopt the dual-track approach:\n1. Use read-only tools (`project_index`, `search_graph`) to inspect the current codebase.\n2. In parallel, formulate proactive, structured questions to the user (via `ask_user` or text) with:\n   - Verified codebase facts\n   - Trade-offs (Option A vs Option B)\n   - Concrete recommendations\nSuggested inquiry angles:\n- {}",
-                self.intent.ambiguity_score,
-                self.intent.capability.recommended_inquiries.join("\n- ")
-            )
-        } else {
+        let inquiry_block = if self.task_kind == TaskKind::Conversational {
             String::new()
+        } else {
+            "\n[ACTION-FIRST DIRECTIVE]\nAdopt Sensible Defaults. Deliver working code, verified rules, or direct technical solutions. Do NOT interrogate the user with unnecessary questionnaires unless a destructive action requires explicit authorization.".to_string()
         };
 
         let mut res = format!(
@@ -393,12 +380,8 @@ impl CognitiveRuntime {
             };
         }
 
-        // 【主动对齐核心防线 2】：高模糊度需求在未调查未对齐前严禁直接结题
-        if self.intent.capability.requires_user_inquiry && self.tool_calls == 0 && self.task_kind == TaskKind::Execution {
-            return CompletionDecision::Revise {
-                reason: "【主动对齐拦截】：该需求包含关键架构分支或细节未定。你在未翻查代码现状且未与用户对齐确认的情况下试图直接结题。请先调用工具调查或使用 ask_user 反问用户澄清关键细节！".to_string(),
-            };
-        }
+        // 行动优先：已废除客服式反问打回，直接放行实质成果
+        // Action-first: Sensible defaults allow direct conclusion when substantial output is provided.
 
         let has_code_block = draft.contains("```");
         let has_substantial_output = draft.trim().chars().count() >= 100

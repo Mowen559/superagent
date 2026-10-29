@@ -1197,8 +1197,8 @@ impl AgentLoop {
             let tools_guard = tools_arc.lock().unwrap();
             let mut projections = Vec::new();
 
-            // 核心优先排序表 (保证大模型注意力最高权重锚定在8大核心工程工具上)
-            const PRIMARY_PRIORITY: &[&str] = &[
+            // 核心精锐工程工具白名单（对齐 Claude Code / Manus 黄金工程工具集）
+            const ALLOWED_CORE_TOOLS: &[&str] = &[
                 "view_file",
                 "replace_in_file",
                 "write_to_file",
@@ -1207,14 +1207,23 @@ impl AgentLoop {
                 "find_by_name",
                 "list_dir",
                 "manage_task",
+                "web_fetch",
+                "read_tool_result",
                 "ask_user",
                 "invoke_subagent",
                 "view_outline",
             ];
 
-            let mut sorted_tools: Vec<_> = tools_guard.values().cloned().collect();
+            // 过滤：仅暴露核心工程工具及带 prompt_projection 的动态 Skill 工具，杜绝 38 个工具造成的选择瘫痪
+            let filtered_tools: Vec<_> = tools_guard
+                .values()
+                .filter(|t| ALLOWED_CORE_TOOLS.contains(&t.name()) || t.prompt_projection().is_some())
+                .cloned()
+                .collect();
+
+            let mut sorted_tools = filtered_tools;
             sorted_tools.sort_by_key(|t| {
-                PRIMARY_PRIORITY
+                ALLOWED_CORE_TOOLS
                     .iter()
                     .position(|&p| p == t.name())
                     .unwrap_or(usize::MAX)
