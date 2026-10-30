@@ -19,6 +19,9 @@ pub mod shell;
 pub mod skill_tool;
 pub mod subagent;
 pub mod todo;
+pub mod plan_task;
+pub mod task_progress;
+pub mod revise_task_plan;
 pub mod tool_result;
 pub mod web;
 

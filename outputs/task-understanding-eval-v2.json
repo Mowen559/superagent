@@ -1,0 +1,736 @@
+{
+  "schema_version": 2,
+  "suite_fingerprint": "xxh3:d8a7d10c42b16c71",
+  "settings": {
+    "requested_model": "claude-sonnet-4-6",
+    "temperature": 0.0,
+    "max_output_tokens": 1536
+  },
+  "scope": "synthetic_planning_only; term checks are lexical proxies; no implementation success measured",
+  "baseline": "minimal planning instructions; same tools and synthetic documents; not a historical release",
+  "enhanced": "current CognitiveRuntime guidance and proactive workspace excerpts",
+  "same_actual_model": true,
+  "max_model_turns": 24,
+  "results": [
+    {
+      "case_id": "csv-import",
+      "variant": "baseline",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "preview",
+        "row-location",
+        "no-database-write"
+      ],
+      "missing_term_checks": [
+        "encoding-from-context"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 4,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 2,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 4,
+      "prompt_tokens": 16095,
+      "completion_tokens": 3835,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 69304,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在现有 src/import.rs 中为 CSV 用户导入增加 dry-run 预览：新增 import_dry_run 函数，复用校验逻辑，不写 DB，返回与 import 相同的 ImportError 格式（含 row_number），不引入新依赖，不破坏现有 API。",
+        "success_criteria": [
+          "import_dry_run(&str)->Result<usize,Vec<ImportError>> 存在且可编译，不接受 Connection，不执行任何 DB 写操作",
+          "返回的每个 ImportError 含正确 row_number(1-based)、field、message，格式与现有 import 约定完全相同",
+          "新增测试 dry_run_no_write/dry_run_bad_email/dry_run_row_number 全部通过，原有测试不受影响",
+          "cargo test import 全绿，Cargo.toml 依赖列表零变更"
+        ],
+        "constraints": [
+          "禁止新增任何 crate 依赖（AGENTS.md）",
+          "保持公共 API 兼容：import 函数签名与 ImportError 字段不可修改",
+          "dry-run 绝对不写数据库（README.md）",
+          "仅修改 src/import.rs，不修改 Cargo.toml 及其他文件"
+        ],
+        "steps": [
+          {
+            "id": "s1",
+            "goal": "观察 import 内部的校验阶段与写入阶段边界，记录 row_number 计数约定（1-based）",
+            "acceptance": "明确校验逻辑入参/出参及 row_number 计数起点",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "s2",
+            "goal": "将 CSV 行校验逻辑提取为私有 validate_rows(input)，import 委托调用后写 DB",
+            "acceptance": "validate_rows 存在；import 行为等价；cargo build 无错",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s3",
+            "goal": "实现 pub fn import_dry_run(input: &str)->Result<usize,Vec<ImportError>>，调 validate_rows，不触碰 DB",
+            "acceptance": "函数导出；无 rusqlite 写调用；cargo build 无警告",
+            "depends_on": [
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s4",
+            "goal": "在 tests 模块新增 dry_run_no_write、dry_run_bad_email、dry_run_row_number 三个测试",
+            "acceptance": "三个测试函数存在且覆盖上述场景；cargo test import 编译通过",
+            "depends_on": [
+              "s3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s5",
+            "goal": "运行 cargo test import，验证全量测试（含原有三个）均绿，Cargo.toml 无变更",
+            "acceptance": "终端输出 test result: ok, 0 failed；git diff Cargo.toml 为空",
+            "depends_on": [
+              "s4"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": []
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": "success_criteria must contain 1..6 items"
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": "step goal must contain 1..160 characters"
+        },
+        {
+          "turn": 4,
+          "tool": "plan_task",
+          "error": null
+        }
+      ]
+    },
+    {
+      "case_id": "csv-import",
+      "variant": "enhanced",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "preview",
+        "row-location",
+        "no-database-write"
+      ],
+      "missing_term_checks": [
+        "encoding-from-context"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 4,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 3,
+      "prompt_tokens": 11025,
+      "completion_tokens": 3224,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 60893,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在 src/import.rs 中为现有 CSV 用户导入功能增加 dry-run（预览）模式。dry-run 只做行级验证，不写数据库，返回的报告必须沿用现有 ImportError { row_number, field, message } 结构，同时返回通过验证的行数预览。公共 API 必须向后兼容，禁止新增 Cargo 依赖（仅使用已有 csv + rusqlite）。",
+        "success_criteria": [
+          "pub fn dry_run(input: &str) -> DryRunReport 不接受 db 参数，不调用任何 DB 写操作",
+          "DryRunReport 包含 valid_row_count: usize 与 errors: Vec<ImportError>；ImportError 字段名/类型冻结",
+          "原有 import(db, input) -> Result<usize, Vec<ImportError>> 签名不变，原有测试全部保持绿色",
+          "验证逻辑抽取为私有函数，import 与 dry_run 共享，消除重复",
+          "新增测试：全合法行、含错误行（断言 row_number 精确值）、dry_run 后 DB 表仍为空",
+          "cargo test import 全部通过，Cargo.toml 无改动"
+        ],
+        "constraints": [
+          "禁止新增 Cargo.toml 依赖",
+          "保持公共 API 兼容：import() 签名不得改变",
+          "ImportError 字段名与类型冻结",
+          "dry_run 不得接受 &rusqlite::Connection 参数，也不得在内部构造 Connection",
+          "row_number 与现有 import() 约定对齐（数据行从 1 起，跳过表头）",
+          "只修改 src/import.rs，不新建文件"
+        ],
+        "steps": [
+          {
+            "id": "s1",
+            "goal": "观察 src/import.rs 全文，确认 row_number 起始约定、字段校验边界、现有测试结构",
+            "acceptance": "记录 row_number 起始值（0 或 1）、字段校验逻辑位置、现有三个测试名称",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "s2",
+            "goal": "抽取私有函数 fn validate_rows(input: &str) -> Vec<Result<ValidRow, ImportError>>，解析 CSV、逐行校验字段、填充 row_number，不含任何 rusqlite 调用",
+            "acceptance": "函数体内无 rusqlite:: 标识符；原 import() 内联逻辑移入此函数后行为不变",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s3",
+            "goal": "新增 pub struct DryRunReport { pub valid_row_count: usize, pub errors: Vec<ImportError> }，置于 ImportError 定义之后",
+            "acceptance": "DryRunReport 位于 pub 命名空间；ImportError 定义行无任何改动",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s4",
+            "goal": "实现 pub fn dry_run(input: &str) -> DryRunReport，调用 validate_rows，统计通过行数与错误列表，不调用任何 db 接口",
+            "acceptance": "函数体中无 rusqlite:: 标识符；valid_row_count + errors.len() == 总数据行数",
+            "depends_on": [
+              "s2",
+              "s3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s5",
+            "goal": "重构 import() 内部：复用 validate_rows，有错误返回 Err(errors)，否则遍历合法行写 DB 返回 Ok(count)",
+            "acceptance": "import() 签名不变；原有测试 import_valid/import_bad_email/import_row_number 全部编译通过且逻辑不变",
+            "depends_on": [
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s6",
+            "goal": "在 #[cfg(test)] mod tests 中新增三个测试：dry_run_all_valid、dry_run_with_errors（断言 errors[i].row_number 精确值）、dry_run_no_db_write",
+            "acceptance": "三个测试方法编译通过，断言覆盖所有成功标准",
+            "depends_on": [
+              "s4",
+              "s5"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s7",
+            "goal": "运行 cargo test import 验证全部测试绿色，确认 Cargo.toml 未改动",
+            "acceptance": "命令退出码为 0；test result 显示 0 failed；Cargo.toml diff 为空",
+            "depends_on": [
+              "s6"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": [
+          {
+            "question": "现有 import() 中 row_number 是从 0 还是从 1 开始（源文件为 todo!()，需运行时约定确认）",
+            "source": "workspace"
+          }
+        ]
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": "success_criteria must contain 1..6 items"
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        }
+      ]
+    },
+    {
+      "case_id": "offline-notes",
+      "variant": "baseline",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "existing-index",
+        "export-name",
+        "preserve-order",
+        "offline",
+        "identity"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 4,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 3,
+      "prompt_tokens": 6823,
+      "completion_tokens": 3109,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 54501,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在现有 Rust 桌面笔记项目上新增两项能力：1) 全文检索（FTS5）：通过 src/search.rs 中已存在的 notes_fts 虚表，实现关键词查询并返回命中笔记，保持 updated_at DESC 排序；2) JSON 导出：将所有笔记（含 id）序列化为 notes.json，利用已有的 serde/serde_json 依赖，不引入任何新依赖。CLI 入口 src/cli.rs 需新增两个 Command 变体以分发这两项功能。全程离线，不修改现有排序逻辑。",
+        "success_criteria": [
+          "cargo test notes 全部通过，含排序回归、FTS 检索、JSON 导出三类单测",
+          "search_notes 查询 notes_fts 虚表，结果按 updated_at DESC 排序",
+          "export_notes_json 写出 notes.json，每条记录含 id/title/body/updated_at",
+          "cli.rs Command 新增 Search { query } 和 Export，不破坏 List/Show",
+          "Cargo.toml 无新增依赖项"
+        ],
+        "constraints": [
+          "不允许新增任何 crate 依赖（rusqlite/serde/serde_json 均已存在）",
+          "不允许任何网络请求，全程离线",
+          "排序必须严格保持 updated_at DESC，不得改变",
+          "导出文件名固定为 notes.json",
+          "Note 结构体必须保留 id 字段并出现在 JSON 输出中",
+          "现有 Command::List 和 Command::Show 变体及其分发逻辑不得破坏"
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "goal": "为 Note 结构体派生 serde::Serialize，确认 id/title/body/updated_at 四字段均为 pub",
+            "acceptance": "Note 声明含 #[derive(Serialize)]，编译通过，无新依赖",
+            "depends_on": [],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "S2",
+            "goal": "实现 search_notes(db, query) -> Result<Vec<Note>>：JOIN notes_fts MATCH，ORDER BY notes.updated_at DESC",
+            "acceptance": "函数存在且 SQL 含 MATCH ?1 及 ORDER BY updated_at DESC；单测插入两条笔记后检索命中且顺序正确",
+            "depends_on": [
+              "S1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "S3",
+            "goal": "实现 export_notes_json(db, path)：调 list_notes，serde_json::to_writer_pretty 写文件，调用方固定传 notes.json",
+            "acceptance": "函数存在；单测写临时路径后反序列化，id 字段一致",
+            "depends_on": [
+              "S1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "S4",
+            "goal": "在 cli.rs Command 枚举新增 Search { query: String } 和 Export 变体，dispatch 分别调对应函数",
+            "acceptance": "Command 含四变体；match 全覆盖；List/Show 分支不变；cargo build 无 warning/error",
+            "depends_on": [
+              "S2",
+              "S3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "S5",
+            "goal": "在 notes_tests 模块补全/新增三类测试：排序回归、search_notes 命中与排序、export 含 id 字段",
+            "acceptance": "cargo test notes 全部绿色，使用内存 DB 和 tempfile/tmp 路径",
+            "depends_on": [
+              "S4"
+            ],
+            "evidence_kind": "verification"
+          },
+          {
+            "id": "S6",
+            "goal": "验证 Cargo.toml 无新增依赖行，cargo build --offline 成功",
+            "acceptance": "Cargo.toml diff 为空；离线构建成功",
+            "depends_on": [
+              "S5"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": []
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": "step goal must contain 1..160 characters"
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        }
+      ]
+    },
+    {
+      "case_id": "offline-notes",
+      "variant": "enhanced",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "existing-index",
+        "export-name",
+        "preserve-order"
+      ],
+      "missing_term_checks": [
+        "offline",
+        "identity"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 4,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 3,
+      "prompt_tokens": 11308,
+      "completion_tokens": 3251,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 54605,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "目标：在现有 Rust 笔记项目中新增全文检索和 JSON 导出，不新增依赖（rusqlite/serde/serde_json 已就位），不改变 updated_at DESC 排序，导出文件名约定 notes.json，测试入口 cargo test notes。改动集中于 src/search.rs 和 src/cli.rs。",
+        "success_criteria": [
+          "search_notes(db,query)->Vec<Note> 使用 notes_fts FTS5，结果按 updated_at DESC 排序",
+          "export_notes(db,path) 将全部笔记序列化为 JSON（含 id），写入指定 path（默认 notes.json）",
+          "Note 派生 serde::Serialize，id 字段保留在序列化输出中",
+          "cli.rs 新增 Command::Search{query} 和 Command::Export{path} 并分别 dispatch",
+          "list_notes 原有 ORDER BY updated_at DESC 行为不变",
+          "cargo test notes 全部通过，无编译错误"
+        ],
+        "constraints": [
+          "不新增任何 Cargo.toml 依赖",
+          "不发出网络请求",
+          "导出文件名约定为 notes.json（path 参数默认值在 CLI 层设置）",
+          "原有 Command::List 和 Command::Show 变体及 dispatch 保持兼容",
+          "search_notes 必须查询 notes_fts 虚拟表（FTS5），不得用 LIKE 替代",
+          "排序始终为 updated_at DESC"
+        ],
+        "steps": [
+          {
+            "id": "s1",
+            "goal": "为 Note 结构体添加 serde::Serialize 派生，确保 id 字段包含在序列化输出中",
+            "acceptance": "Note 定义上方有 #[derive(Serialize)] 且 id 字段无 #[serde(skip)]",
+            "depends_on": [],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s2",
+            "goal": "补全 list_notes 实现体：SELECT id,title,body,updated_at FROM notes ORDER BY updated_at DESC，消除 todo!()",
+            "acceptance": "函数体含完整 SQL 和行映射，无 todo!()，ORDER BY updated_at DESC 明确可见",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s3",
+            "goal": "新增 search_notes(db,query)->Result<Vec<Note>>，使用 notes_fts MATCH，结果按 n.updated_at DESC 排序",
+            "acceptance": "函数存在，SQL 含 notes_fts、MATCH 和 ORDER BY n.updated_at DESC",
+            "depends_on": [
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s4",
+            "goal": "新增 export_notes(db,path)->Result<(),Box<dyn Error>>，调用 list_notes 后用 serde_json::to_writer_pretty 写入 File::create(path)",
+            "acceptance": "函数存在，使用 serde_json::to_writer_pretty，id 字段出现在输出 JSON 中",
+            "depends_on": [
+              "s1",
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s5",
+            "goal": "在 cli.rs Command 枚举新增 Search{query:String} 和 Export{path:String}，dispatch 分别调用 search_notes/export_notes",
+            "acceptance": "两个新变体存在；match 分支分别路由到 search::search_notes 和 search::export_notes；Export 默认 path 为 notes.json",
+            "depends_on": [
+              "s3",
+              "s4"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s6",
+            "goal": "在 notes_tests 模块中新增 test_search_notes 和 test_export_notes，保留原有排序回归测试",
+            "acceptance": "两个新 #[test] 函数存在，使用内存 DB；test_search_notes 断言返回数量和 id；test_export_notes 断言写出的 JSON 含 id 字段",
+            "depends_on": [
+              "s3",
+              "s4"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s7",
+            "goal": "运行 cargo test notes 验证全部测试通过，无编译错误",
+            "acceptance": "输出 test result: ok，0 failed",
+            "depends_on": [
+              "s5",
+              "s6"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": []
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": "step goal must contain 1..160 characters"
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        }
+      ]
+    },
+    {
+      "case_id": "steered-log-plan",
+      "variant": "baseline",
+      "status": "turn_budget_exhausted",
+      "valid_plan": false,
+      "covered_term_checks": [],
+      "missing_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 5,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 2,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 4,
+      "prompt_tokens": 9817,
+      "completion_tokens": 4252,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 73717,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": null,
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": "step goal must contain 1..160 characters"
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        },
+        {
+          "turn": 4,
+          "tool": "plan_task",
+          "error": "constraints must contain 0..6 items"
+        }
+      ]
+    },
+    {
+      "case_id": "steered-log-plan",
+      "variant": "enhanced",
+      "status": "turn_budget_exhausted",
+      "valid_plan": false,
+      "covered_term_checks": [],
+      "missing_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 8,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 4,
+      "prompt_tokens": 19123,
+      "completion_tokens": 2865,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 53058,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": null,
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": "step goal must contain 1..160 characters"
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        },
+        {
+          "turn": 4,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 4,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 4,
+          "tool": "view_file",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

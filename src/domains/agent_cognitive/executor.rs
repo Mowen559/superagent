@@ -186,6 +186,7 @@ impl AgentLoop {
         let event_bus = EventBus::new();
 
         let plugin_registry = crate::services::brain::tools::registry::PluginRegistry::new();
+        plugin_registry.register(Box::new(crate::services::brain::tools::plan_task::PlanTaskTool));
         let tool_gateway = Arc::new(ToolExecutionGateway::new(plugin_registry.get_tools_ref()));
         let evolution_memory = EvolutionMemory::default_location();
         let steering_queue = Arc::new(SteeringQueue::default_location());
@@ -476,6 +477,12 @@ impl AgentLoop {
         let run_prelude = self.run_prelude_runtime.prepare(prompt);
         eprintln!("[Run Prelude] capability route: {:?}", run_prelude.routes);
         let mut cognition = CognitiveRuntime::begin(prompt);
+        self.plugin_registry.register(Box::new(
+            crate::services::brain::tools::revise_task_plan::ReviseTaskPlanTool(cognition.task_progress())
+        ));
+        self.plugin_registry.register(Box::new(
+            crate::services::brain::tools::task_progress::TaskProgressTool(cognition.task_progress())
+        ));
         match self
             .evolution_memory
             .promoted_guidance(cognition.task_kind())
@@ -673,7 +680,7 @@ impl AgentLoop {
                                     "[Brain B] Tool {} (parallel) finished with {:?} in {}ms",
                                     receipt.name, receipt.status, receipt.duration_ms
                                 );
-                                cognition.observe_tool(receipt.status, receipt.risk);
+                                cognition.observe_receipt(&receipt);
                                 self.push_event(SessionEvent::ToolResult {
                                     id: receipt.call_id,
                                     result: receipt.result,
@@ -717,7 +724,7 @@ impl AgentLoop {
                                 "[Brain B] Tool {} finished with {:?} in {}ms",
                                 receipt.name, receipt.status, receipt.duration_ms
                             );
-                            cognition.observe_tool(receipt.status, receipt.risk);
+                            cognition.observe_receipt(&receipt);
                             let tool_result = receipt.result;
 
                             self.push_event(SessionEvent::ToolResult {
@@ -756,13 +763,20 @@ impl AgentLoop {
             if let Some(content) = llm_message.get("content").and_then(|v| v.as_str()) {
                 self.events
                     .push(SessionEvent::ModelThought(content.to_string()));
-                if let CompletionDecision::Revise { reason } = cognition.review_completion(content)
-                {
-                    self.push_event(SessionEvent::SystemWarning(format!(
-                        "Completion review required: {reason} Treat the preceding assistant message as a draft. Gather missing evidence if needed, then produce the corrected final answer."
-                    )));
-                    self.save_session();
-                    continue;
+                match cognition.review_completion(content) {
+                    CompletionDecision::Revise { reason } => {
+                        self.push_event(SessionEvent::SystemWarning(format!(
+                            "Completion review required: {reason} Treat the preceding assistant message as a draft. Gather missing evidence if needed, then produce the corrected final answer."
+                        )));
+                        self.save_session();
+                        continue;
+                    }
+                    CompletionDecision::Blocked { reason } => {
+                        self.save_session();
+                        self.record_evolution(&mut cognition, prompt, false);
+                        return Err(format!("Completion blocked by missing evidence: {reason}"));
+                    }
+                    CompletionDecision::Accept => {}
                 }
                 if self.emit_jsonl {
                     println!("{}", serde_json::json!({ "type": "text", "content": content }));

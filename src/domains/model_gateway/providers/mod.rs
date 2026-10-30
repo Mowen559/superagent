@@ -32,6 +32,7 @@ pub struct LlmProvider {
     client: reqwest::Client,
     model_override: Option<String>,
     purpose: Option<String>,
+    fixed_settings: bool,
 }
 
 
@@ -42,6 +43,7 @@ impl LlmProvider {
             client,
             model_override: None,
             purpose: None,
+            fixed_settings: false,
         }
     }
 
@@ -56,6 +58,7 @@ impl LlmProvider {
             client,
             model_override,
             purpose: None,
+            fixed_settings: false,
         }
     }
 
@@ -64,8 +67,14 @@ impl LlmProvider {
         self
     }
 
+    /// Snapshot configuration for reproducible, explicitly invoked evaluations.
+    /// Normal Agent traffic continues to reload live settings each turn.
+    pub fn with_fixed_settings(client: reqwest::Client, settings: LLMSettings) -> Self {
+        Self { settings, client, model_override: None, purpose: None, fixed_settings: true }
+    }
+
     fn effective_settings(&self) -> LLMSettings {
-        let mut settings = llm_settings::read_llm_settings();
+        let mut settings = if self.fixed_settings { self.settings.clone() } else { llm_settings::read_llm_settings() };
         if let Some(model) = &self.model_override {
             settings.model = model.clone();
         }

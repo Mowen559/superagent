@@ -1,0 +1,468 @@
+{
+  "scope": "synthetic_planning_only; term checks are lexical proxies; no implementation success measured",
+  "baseline": "minimal planning instructions; same tools and synthetic documents; not a historical release",
+  "enhanced": "current CognitiveRuntime guidance and proactive workspace excerpts",
+  "same_actual_model": false,
+  "max_model_turns": 24,
+  "results": [
+    {
+      "case_id": "csv-import",
+      "variant": "baseline",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "preview",
+        "row-location",
+        "encoding-from-context",
+        "no-database-write"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 2,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 3,
+      "prompt_tokens": 9237,
+      "completion_tokens": 3545,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 68853,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在已有的 Rust CSV 用户导入模块（src/import.rs）中，新增 dry-run 预览模式：接受与正式导入相同的 CSV 输入，执行完整校验但不写数据库，以现有 ImportError { row_number, field, message } 结构返回每行字段错误，同时输出结构化预览报告（DryRunReport：总行数 / 有效行数 / 错误行数 / 错误列表）。严格遵守：①不增加外部依赖；②保持已有公共 API 兼容；③dry-run 路径绝对不触碰数据库写操作。",
+        "success_criteria": [
+          "DryRunReport 结构体包含 total_rows / valid_rows / error_rows / errors: Vec<ImportError>，ImportError 三字段不变",
+          "dry_run() 为公共 API，不破坏已有 import() 签名，校验逻辑以私有 validate_row() 共用",
+          "每条 ImportError 的 row_number 与 CSV 物理行号（表头为第1行，数据从第2行起）严格对应",
+          "dry-run 路径无任何数据库写调用，cargo test import 五种场景全部 PASS",
+          "Cargo.toml 无变动，无新 crate 引入"
+        ],
+        "constraints": [
+          "禁止新增依赖（Cargo.toml 不得修改）",
+          "错误结构 ImportError 字段不得增删改（row_number / field / message）",
+          "公共 API 向后兼容，已有 import() 函数签名不变",
+          "dry-run 不得执行任何数据库写操作",
+          "代码语言：Rust，文件入口：src/import.rs",
+          "CSV 编码：UTF-8"
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "goal": "观察 src/import.rs 现有实现：梳理 import() 函数签名、ImportError 定义、数据库写调用点、已有测试结构",
+            "acceptance": "记录到：import() 签名、ImportError 字段、DB 写 API 名称、测试模块位置",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "S2",
+            "goal": "确认现有测试文件路径与 cargo test import 覆盖范围，保证后续新增测试被同一命令覆盖",
+            "acceptance": "明确测试模块位置（inline mod tests 或 tests/ 目录）及已有用例数量",
+            "depends_on": [
+              "S1"
+            ],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "S3",
+            "goal": "设计接口文档：DryRunReport 结构体字段类型、dry_run() 公共函数签名、validate_row() 私有函数签名，以及 import() 重构方案（调用 validate_row()）",
+            "acceptance": "接口设计满足：①DryRunReport 含 total/valid/error_rows + errors；②dry_run 与 import 共享 validate_row；③无新依赖",
+            "depends_on": [
+              "S1",
+              "S2"
+            ],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "S4",
+            "goal": "在 src/import.rs 中实现：①私有 validate_row() 从现有 import() 剥离校验逻辑；②DryRunReport 结构体；③pub fn dry_run()；重构后 import() 行为与现有完全一致",
+            "acceptance": "src/import.rs 含三个新增单元；dry_run() 调用链中无 insert/update/execute/transaction 等 DB 写 API；import() 行为不变",
+            "depends_on": [
+              "S3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "S5",
+            "goal": "为 dry_run() 新增单元测试，覆盖五种场景：①全有效行；②单字段错误行；③同行多字段错误；④空 CSV（仅表头或完全为空）；⑤全行均有错误",
+            "acceptance": "每个用例断言 DryRunReport 的 total/valid/error_rows 及每条 ImportError.row_number 与物理行号严格一致",
+            "depends_on": [
+              "S4"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "S6",
+            "goal": "执行 cargo test import 验证全量通过；静态审查 dry_run() 调用链确认无 DB 写操作；更新 README.md 补充 dry-run 用法示例与 DryRunReport 输出格式说明",
+            "acceptance": "cargo test import 输出 0 failures；README.md 新增 dry-run 章节含示例 CSV 片段与 DryRunReport 示例输出；Cargo.toml 无变动",
+            "depends_on": [
+              "S5"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": [
+          {
+            "question": "src/import.rs 中数据库写操作使用的具体 trait/函数（如 diesel execute、sqlx query! 宏等），以便 S4 精确确认 dry_run() 路径隔离",
+            "source": "workspace"
+          },
+          {
+            "question": "现有 import() 函数的完整签名（参数类型、返回类型），以确认 dry_run() 接口对齐",
+            "source": "workspace"
+          },
+          {
+            "question": "是否存在独立集成测试目录 tests/，影响 S5 测试放置位置",
+            "source": "workspace"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "csv-import",
+      "variant": "enhanced",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "preview",
+        "row-location",
+        "encoding-from-context",
+        "no-database-write"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 2,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 2,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 4,
+      "prompt_tokens": 21998,
+      "completion_tokens": 5120,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 93685,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在现有 Rust 仓库 src/import.rs 中增加 dry-run 预览：只做解析与校验，不写数据库；用现有 ImportError{row_number,field,message} 收集错误；新增 DryRunReport{errors,valid_row_count}；不引入新依赖；原有公共 API 签名不变。",
+        "success_criteria": [
+          "新增 pub fn import_dry_run，返回 DryRunReport{errors:Vec<ImportError>,valid_row_count:usize}",
+          "DryRunReport.errors 每项保持 ImportError{row_number,field,message}，字段名/类型零修改",
+          "dry-run 路径内无任何 DB 写操作（无 INSERT/UPDATE/DELETE 调用）",
+          "原有公共函数签名不变，cargo test import 中原有测试全部继续通过",
+          "新增覆盖全合法行、全非法行、混合行三场景的单元测试，cargo test import 输出 0 failed",
+          "Cargo.toml 的 [dependencies]/[dev-dependencies] 与改动前完全一致，无新增条目"
+        ],
+        "constraints": [
+          "禁止新增 Cargo 依赖（AGENTS.md）",
+          "dry-run 不得写数据库（README.md）",
+          "错误结构复用现有 ImportError，不改字段名/类型",
+          "保持原有公共 API 兼容（AGENTS.md）",
+          "语言为 Rust，测试命令 cargo test import",
+          "CSV 编码为 UTF-8"
+        ],
+        "steps": [
+          {
+            "id": "s1",
+            "goal": "审计 src/import.rs：记录 ImportError 字段类型、现有公共导入函数签名、DB 写调用点、已有测试结构",
+            "acceptance": "获得 ImportError 精确字段类型、公共函数完整签名、DB 写调用行号，作为后续步骤基准",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "s2",
+            "goal": "设计 DryRunReport 草案：pub struct DryRunReport{pub errors:Vec<ImportError>,pub valid_row_count:usize}，验证与现有类型零冲突、无需新依赖",
+            "acceptance": "草案在 Rust 类型系统内自洽，errors 字段类型与 ImportError 一致，无外部 crate",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "verification"
+          },
+          {
+            "id": "s3",
+            "goal": "提取内部函数 fn validate_row(row_number:usize,record:&StringRecord)->Result<ParsedRow,ImportError>，解耦校验与 DB 写，保持原有测试通过",
+            "acceptance": "原有公共函数行为不变，validate_row 为 private/pub(crate)，不暴露为公共 API",
+            "depends_on": [
+              "s1",
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s4",
+            "goal": "实现 pub fn import_dry_run(...)-> DryRunReport：遍历 CSV 行，调 validate_row，收集错误与合法行数，全程不调 DB 写函数",
+            "acceptance": "cargo check 无错误；代码中无 INSERT/UPDATE/DELETE 或等效 DB 写调用",
+            "depends_on": [
+              "s3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s5",
+            "goal": "在 #[cfg(test)] 块新增三组测试：①全合法行 ②全非法行（验证 row_number） ③混合行（验证计数与 row_number）",
+            "acceptance": "三组测试函数存在于代码中，断言覆盖 row_number 精确值、errors 长度、valid_row_count",
+            "depends_on": [
+              "s4"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s6",
+            "goal": "运行 cargo test import 验证全部测试（原有+新增）0 failed，无编译警告升级为错误",
+            "acceptance": "cargo test import 输出含 0 failed；原有测试名均出现在 ok 列表中",
+            "depends_on": [
+              "s5"
+            ],
+            "evidence_kind": "verification"
+          },
+          {
+            "id": "s7",
+            "goal": "核查 Cargo.toml，确认 [dependencies]/[dev-dependencies] 与改动前完全一致",
+            "acceptance": "Cargo.toml 无新增条目",
+            "depends_on": [
+              "s6"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": [
+          {
+            "question": "src/import.rs 现有公共导入函数的确切参数类型与返回类型？需读取文件才能确认",
+            "source": "workspace"
+          },
+          {
+            "question": "DB 写操作使用哪个 crate（diesel/sqlx/rusqlite）？影响 s3 解耦方式",
+            "source": "workspace"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "offline-notes",
+      "variant": "baseline",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "existing-index",
+        "export-name",
+        "preserve-order",
+        "offline",
+        "identity"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 1,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 3,
+      "prompt_tokens": 7678,
+      "completion_tokens": 3612,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 65104,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在「桌面笔记」Rust 项目中新增两项功能：①复用已有 SQLite FTS5 索引实现全文检索；②将全部笔记导出为 notes.json（保留 id 字段）。全程离线、不新增 Cargo 依赖，排序维持 updated_at 倒序不变。",
+        "success_criteria": [
+          "全文检索经 src/search.rs 的公开函数调用 FTS5，结果按 updated_at 倒序",
+          "导出文件固定命名 notes.json，每条记录保留 id 字段",
+          "cargo test notes 全部通过，无新失败用例",
+          "Cargo.toml [dependencies] 与改动前完全一致，无新增依赖",
+          "功能离线可用，不发起任何网络请求"
+        ],
+        "constraints": [
+          "不允许向 Cargo.toml [dependencies] 添加任何新条目",
+          "导出文件名必须是 notes.json",
+          "导出 JSON 必须保留笔记 id 字段",
+          "排序必须维持 updated_at 倒序，不得改变现有排序行为",
+          "全文检索必须复用已有 SQLite FTS5 索引（src/search.rs 为入口）",
+          "离线执行，不引入任何网络调用"
+        ],
+        "steps": [
+          {
+            "id": "s1",
+            "goal": "观察 src/search.rs、相关 model/db 文件：确认 FTS5 虚表名、Note 字段、DB 连接类型、现有排序 SQL",
+            "acceptance": "已知 FTS5 表名、Note struct 字段（含 id/updated_at）、DB 连接类型、ORDER BY 语句位置",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "s2",
+            "goal": "观察 Cargo.toml：确认现有依赖（serde_json 是否已引入，SQLite 驱动版本）",
+            "acceptance": "明确 serde_json 可用与否；若不可用则后续用标准库手工拼 JSON",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "s3",
+            "goal": "观察现有测试文件，了解测试命名规范和 in-memory DB 初始化方式",
+            "acceptance": "列出与 notes 关键词匹配的现有测试函数名及 DB 初始化模板",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "s4",
+            "goal": "在 src/search.rs 实现 pub fn search_notes：FTS5 MATCH + JOIN 主表 + ORDER BY updated_at DESC",
+            "acceptance": "函数签名与现有 Connection/Note 类型一致；无新 crate 引用；SQL 含 MATCH 和 ORDER BY",
+            "depends_on": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s5",
+            "goal": "新建 src/export.rs：实现 pub fn export_notes_json，查全量笔记并写 notes.json",
+            "acceptance": "输出合法 JSON 数组，每元素含 id；排序为 updated_at DESC；不新增 crate",
+            "depends_on": [
+              "s1",
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s6",
+            "goal": "在 main.rs/lib.rs 声明 mod export，并在 CLI 分发层新增 search <QUERY> 和 export 子命令入口",
+            "acceptance": "mod 声明已加；两个子命令编译通过；帮助文本可见",
+            "depends_on": [
+              "s4",
+              "s5"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s7",
+            "goal": "为 search_notes 和 export_notes_json 各写 ≥2 个含 notes 关键词的单元测试",
+            "acceptance": "测试用 in-memory SQLite；覆盖命中/无结果/id 保留/排序正确；函数名含 notes",
+            "depends_on": [
+              "s4",
+              "s5"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s8",
+            "goal": "验证：cargo test notes 全通过；cargo check 无 error；Cargo.toml diff 无 [dependencies] 变化",
+            "acceptance": "test result: ok, 0 failed；Cargo.toml [dependencies] 节与改动前 byte-for-byte 一致",
+            "depends_on": [
+              "s6",
+              "s7"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": [
+          {
+            "question": "src/search.rs 现有函数签名与 FTS5 虚表名称是什么？",
+            "source": "workspace"
+          },
+          {
+            "question": "Cargo.toml 是否已声明 serde_json？",
+            "source": "workspace"
+          },
+          {
+            "question": "Note struct 定义在哪个文件，包含哪些字段？",
+            "source": "workspace"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "offline-notes",
+      "variant": "enhanced",
+      "status": "turn_budget_exhausted",
+      "valid_plan": false,
+      "covered_term_checks": [],
+      "missing_term_checks": [
+        "existing-index",
+        "export-name",
+        "preserve-order",
+        "offline",
+        "identity"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 6,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 4,
+      "prompt_tokens": 8900,
+      "completion_tokens": 2207,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 41355,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": null
+    },
+    {
+      "case_id": "steered-log-plan",
+      "variant": "baseline",
+      "status": "turn_budget_exhausted",
+      "valid_plan": false,
+      "covered_term_checks": [],
+      "missing_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 2,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 4,
+      "prompt_tokens": 8506,
+      "completion_tokens": 4604,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 79504,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": null
+    },
+    {
+      "case_id": "steered-log-plan",
+      "variant": "enhanced",
+      "status": "turn_budget_exhausted",
+      "valid_plan": false,
+      "covered_term_checks": [],
+      "missing_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 2,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 1,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 4,
+      "prompt_tokens": 19948,
+      "completion_tokens": 3141,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 59012,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": null
+    }
+  ]
+}

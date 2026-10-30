@@ -31,6 +31,7 @@ pub struct PlanStep {
 #[derive(Debug)]
 pub struct RunPlan {
     kind: TaskKind,
+    requires_action: bool,
     steps: Vec<PlanStep>,
     consecutive_failures: usize,
     replans: usize,
@@ -55,6 +56,7 @@ impl RunPlan {
         };
         Self {
             kind,
+            requires_action: kind == TaskKind::Execution,
             steps,
             consecutive_failures: 0,
             replans: 0,
@@ -62,10 +64,39 @@ impl RunPlan {
         }
     }
 
-    pub fn observe_tool(&mut self, status: ToolExecutionStatus, risk: ToolRisk) {
+    pub fn for_verification() -> Self {
+        let mut plan = Self::for_task(TaskKind::Execution);
+        plan.requires_action = false;
+        plan.steps.retain(|step| step.id != "act");
+        plan
+    }
+
+    pub fn observe_tool(
+        &mut self,
+        status: ToolExecutionStatus,
+        risk: ToolRisk,
+        verification: bool,
+    ) {
+        // A check belongs to the workspace state it verified. Further writes,
+        // including potentially partial failed writes, invalidate that evidence.
+        if (matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive)
+            && matches!(
+                status,
+                ToolExecutionStatus::Succeeded
+                    | ToolExecutionStatus::Failed
+                    | ToolExecutionStatus::Panicked
+            ))
+            || (risk == ToolRisk::ProcessControl
+                && matches!(
+                    status,
+                    ToolExecutionStatus::Failed | ToolExecutionStatus::Panicked
+                ))
+        {
+            self.invalidate_verification();
+        }
         if status == ToolExecutionStatus::Succeeded {
             self.consecutive_failures = 0;
-            self.advance_success(risk);
+            self.advance_success(risk, verification);
             return;
         }
         if !is_execution_failure(status) {
@@ -90,6 +121,14 @@ impl RunPlan {
         }
     }
 
+    pub(crate) fn invalidate_verification(&mut self) {
+        for step in &mut self.steps {
+            if step.id == "verify" || step.id == "respond" {
+                step.status = PlanStepStatus::Pending;
+            }
+        }
+    }
+
     pub fn begin_completion(&mut self) {
         match self.kind {
             TaskKind::Conversational => self.complete_and_advance("respond", None),
@@ -101,7 +140,7 @@ impl RunPlan {
             }
             TaskKind::Execution => {
                 if self.is_completed("inspect")
-                    && self.is_completed("act")
+                    && (!self.requires_action || self.is_completed("act"))
                     && self.is_completed("verify")
                 {
                     self.complete_and_advance("respond", None);
@@ -148,7 +187,7 @@ impl RunPlan {
             .join("\n")
     }
 
-    fn advance_success(&mut self, risk: ToolRisk) {
+    fn advance_success(&mut self, risk: ToolRisk, verification: bool) {
         match self.kind {
             TaskKind::Conversational => {}
             TaskKind::Investigative => {
@@ -159,21 +198,21 @@ impl RunPlan {
             TaskKind::Execution => {
                 let inspect_complete = self.is_completed("inspect");
                 let action_already_complete = self.is_completed("act");
+                if verification && (!self.requires_action || action_already_complete) {
+                    self.complete_and_advance("inspect", Some("verify"));
+                    self.complete_and_advance("verify", Some("respond"));
+                    return;
+                }
                 if matches!(risk, ToolRisk::ReadOnly | ToolRisk::Network) {
                     if !inspect_complete {
                         self.complete_and_advance(
                             "inspect",
-                            Some(if action_already_complete {
+                            Some(if action_already_complete || !self.requires_action {
                                 "verify"
                             } else {
                                 "act"
                             }),
                         );
-                        if action_already_complete {
-                            self.complete_and_advance("verify", Some("respond"));
-                        }
-                    } else if action_already_complete {
-                        self.complete_and_advance("verify", Some("respond"));
                     }
                 } else if matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive) {
                     // 【物理落盘铁律】：仅当真实发生工作区写盘(WorkspaceMutation)时，才能推进 act！
@@ -185,11 +224,15 @@ impl RunPlan {
                     }
                     self.complete_and_advance("act", Some("verify"));
                 } else if risk == ToolRisk::ProcessControl {
-                    // 【防伪重构】：终端命令不能用于推进 act！若代码已写，推进 verify；若代码未写，仅作为基线环境探索推进 inspect
-                    if action_already_complete {
-                        self.complete_and_advance("verify", Some("respond"));
-                    } else if !inspect_complete {
-                        self.complete_and_advance("inspect", Some("act"));
+                    if !inspect_complete {
+                        self.complete_and_advance(
+                            "inspect",
+                            Some(if self.requires_action {
+                                "act"
+                            } else {
+                                "verify"
+                            }),
+                        );
                     }
                 }
             }
@@ -247,12 +290,79 @@ mod tests {
     use super::*;
 
     #[test]
+    fn reading_or_starting_a_process_does_not_verify_a_change() {
+        let mut plan = RunPlan::for_task(TaskKind::Execution);
+        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
+        for risk in [
+            ToolRisk::ReadOnly,
+            ToolRisk::Network,
+            ToolRisk::ProcessControl,
+        ] {
+            plan.observe_tool(ToolExecutionStatus::Succeeded, risk, false);
+            plan.begin_completion();
+            assert_eq!(plan.completion_gap(), Some("Verify the changed behavior"));
+        }
+    }
+
+    #[test]
+    fn writes_and_failed_checks_invalidate_prior_verification() {
+        for (status, risk) in [
+            (ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation),
+            (ToolExecutionStatus::Failed, ToolRisk::WorkspaceMutation),
+            (ToolExecutionStatus::Failed, ToolRisk::ProcessControl),
+        ] {
+            let mut plan = RunPlan::for_task(TaskKind::Execution);
+            plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+            plan.observe_tool(
+                ToolExecutionStatus::Succeeded,
+                ToolRisk::WorkspaceMutation,
+                false,
+            );
+            plan.observe_tool(
+                ToolExecutionStatus::Succeeded,
+                ToolRisk::ProcessControl,
+                true,
+            );
+            plan.begin_completion();
+            assert!(plan.completion_gap().is_none());
+            plan.observe_tool(status, risk, false);
+            plan.begin_completion();
+            assert_eq!(plan.completion_gap(), Some("Verify the changed behavior"));
+        }
+    }
+
+    #[test]
+    fn verification_objective_needs_no_unrequested_mutation() {
+        let mut plan = RunPlan::for_verification();
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::ProcessControl,
+            true,
+        );
+        plan.begin_completion();
+        assert!(plan.completion_gap().is_none());
+    }
+
+    #[test]
     fn execution_plan_requires_inspect_act_verify_and_response() {
         let mut plan = RunPlan::for_task(TaskKind::Execution);
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
+        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
         assert_eq!(plan.completion_gap(), Some("Verify the changed behavior"));
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl);
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::ProcessControl,
+            true,
+        );
         plan.begin_completion();
         assert_eq!(plan.completion_gap(), None);
     }
@@ -267,9 +377,9 @@ mod tests {
     #[test]
     fn two_failures_emit_one_replan_notice() {
         let mut plan = RunPlan::for_task(TaskKind::Execution);
-        plan.observe_tool(ToolExecutionStatus::Failed, ToolRisk::ReadOnly);
+        plan.observe_tool(ToolExecutionStatus::Failed, ToolRisk::ReadOnly, false);
         assert!(plan.take_replan_notice().is_none());
-        plan.observe_tool(ToolExecutionStatus::NotFound, ToolRisk::Unclassified);
+        plan.observe_tool(ToolExecutionStatus::NotFound, ToolRisk::Unclassified, false);
         assert!(plan.take_replan_notice().unwrap().contains("Replan #1"));
         assert!(plan.take_replan_notice().is_none());
     }
@@ -277,12 +387,24 @@ mod tests {
     #[test]
     fn action_before_inspection_recovers_with_explicit_warning() {
         let mut plan = RunPlan::for_task(TaskKind::Execution);
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
-        assert!(plan
-            .take_replan_notice()
-            .unwrap()
-            .contains("before inspection"));
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
+        assert!(
+            plan.take_replan_notice()
+                .unwrap()
+                .contains("before inspection")
+        );
+        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        plan.begin_completion();
+        assert_eq!(plan.completion_gap(), Some("Verify the changed behavior"));
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::ProcessControl,
+            true,
+        );
         plan.begin_completion();
         assert_eq!(plan.completion_gap(), None);
     }
@@ -291,13 +413,21 @@ mod tests {
     fn process_control_cannot_advance_act_without_mutation() {
         let mut plan = RunPlan::for_task(TaskKind::Execution);
         // 先跑只读探索
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
+        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
         // 跑了一个命令（例如 mvn test 或 echo），由于未发生任何文件写盘，act 绝不能被推进为 completed！
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl);
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::ProcessControl,
+            true,
+        );
         assert_eq!(plan.completion_gap(), Some("Apply the coherent change"));
-        
+
         // 只有真实发生 WorkspaceMutation 时，act 才被推进！
-        plan.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
+        plan.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
         assert_eq!(plan.completion_gap(), Some("Verify the changed behavior"));
     }
 }

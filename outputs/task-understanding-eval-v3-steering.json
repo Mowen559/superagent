@@ -1,0 +1,381 @@
+{
+  "schema_version": 3,
+  "suite_fingerprint": "xxh3:d8a7d10c42b16c71",
+  "settings": {
+    "requested_model": "claude-sonnet-4-6",
+    "temperature": 0.0,
+    "max_output_tokens": 1536
+  },
+  "scope": "synthetic_planning_only; term checks are lexical proxies; no implementation success measured",
+  "baseline": "full-plan replacement; shared validation and fixed synthetic documents; not a historical release",
+  "enhanced": "CognitiveRuntime/proactive context plus stateful additive revisions",
+  "same_actual_model": true,
+  "max_model_turns": 8,
+  "results": [
+    {
+      "case_id": "steered-log-plan",
+      "variant": "baseline",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 5,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 0,
+      "revision_calls": 0,
+      "successful_revisions": 0,
+      "original_requirement_text_retained": false,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 3,
+      "prompt_tokens": 11049,
+      "completion_tokens": 4942,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 104516,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在现有 Rust 日志分析器（crate 名 `logs`）基础上，新增三项能力：① `--severity` CLI 过滤参数（可多值，大小写不敏感）；② `--export <PATH>` CLI 参数，将过滤后的条目序列化为 report.json；③ `--dry-run` CLI 参数，与 `--export` 联用时只打印将要写入的 JSON 内容而不落盘，单独使用时无副作用。约束：严禁修改 src/parser.rs 任何内容；保持 --input/--verbose 原有行为；不引入新 crate；JSON 序列化手动构造 serde_json::Value，不为 Entry 派生 serde trait。",
+        "success_criteria": [
+          "--input 和 --verbose 原有行为零变化，已有调用者无需任何改动",
+          "--severity ERROR（单值）和多次传入 --severity ERROR --severity WARN 均可正确过滤 Entry 列表",
+          "--export <PATH> 未携带 --dry-run 时生成合法 JSON 文件，字段含 severity 和 message",
+          "--dry-run 与 --export 联用时将 JSON 内容打印到 stdout，不创建任何文件",
+          "--dry-run 单独使用（不带 --export）时程序正常退出，不报错、不写文件",
+          "severity 过滤大小写不敏感；未指定 --severity 时返回全部条目",
+          "src/parser.rs 文件内容与改动前比特相同（禁止任何修改）",
+          "不向 Cargo.toml 的 [dependencies] 新增任何条目",
+          "cargo test 全部通过，无新增 unsafe 或无保护的 unwrap panic 路径"
+        ],
+        "constraints": [
+          "严禁修改 src/parser.rs（包括格式、注释、签名、derive 列表）",
+          "不向 Cargo.toml 添加任何新依赖",
+          "src/cli.rs 中 Options 原字段 input: String、verbose: bool 类型与语义不变（向后兼容）",
+          "export.rs 仅使用 std::fs / std::io 及已有 serde_json，不引入 trait 派生",
+          "JSON 序列化手动构造 serde_json::Value，不为 Entry 添加任何 serde 属性或 derive",
+          "--dry-run 不创建、不截断、不写入任何文件（包括临时文件）",
+          "dry-run 输出目标为 stdout（与 verbose 错误流分离，便于重定向）"
+        ],
+        "steps": [
+          {
+            "id": "s1",
+            "goal": "复核 src/cli.rs 现有 Options 字段与参数解析机制，确认是手写 env::args 循环还是 clap，并标记新字段的插入位置与默认值写法",
+            "acceptance": "输出明确结论：解析方式、循环结构、已有分支处理模式；确认 Options::default 或构造方式，无歧义",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "s2",
+            "goal": "扩展 src/cli.rs 中的 Options 结构体，新增三个字段：severity: Vec<String>（默认空 Vec）、export: Option<String>（默认 None）、dry_run: bool（默认 false）",
+            "acceptance": "原有字段 input、verbose 类型与位置不变；新字段均有明确默认值；结构体注释说明 dry_run 仅在 export 有值时生效",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s3",
+            "goal": "在 src/cli.rs 的参数解析循环中，为 --severity、--export、--dry-run 追加匹配分支，其中 --severity 支持多次传入（每次追加到 Vec）",
+            "acceptance": "—severity 每次匹配消费下一个 arg 并 push；--export 消费下一个 arg 存为 Some(path)；--dry-run 置 dry_run = true；未知参数走原有 unknown-arg 处理路径；已有 --input/--verbose 分支不改动",
+            "depends_on": [
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s4",
+            "goal": "在 src/cli.rs 中实现纯函数 filter_by_severity(entries: &[Entry], severities: &[String]) -> Vec<Entry>",
+            "acceptance": "severities 为空时返回全部条目的 clone；非空时对 entry.severity.to_uppercase() 与 severities 各元素 to_uppercase() 做集合交；Entry 已有 #[derive(Clone)]（parser.rs 原文），无需修改 parser.rs；函数无副作用",
+            "depends_on": [
+              "s2"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s5",
+            "goal": "在 src/export.rs 中实现两个公开函数：serialize_entries(entries: &[Entry]) -> String 和 export_json(entries: &[Entry], path: &str) -> Result<(), Box<dyn std::error::Error>>",
+            "acceptance": "serialize_entries 手动将每个 Entry 映射为 serde_json::json!({\"severity\":...,\"message\":...}) 再组成 Value::Array，最终 to_string_pretty；export_json 调用 serialize_entries 后用 std::fs::write 落盘，父目录不存在时返回 Err；两个函数均不为 Entry 添加任何 serde trait",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s6",
+            "goal": "在 src/cli.rs（或 main.rs）主流程中，按顺序串联：parse_line → filter_by_severity → dry_run/export 分支判断 → 原有 verbose 输出",
+            "acceptance": "分支逻辑：(export=Some(p), dry_run=false) → export_json(p)，失败则 eprintln!+exit(1)；(export=Some(_), dry_run=true) → println!(serialize_entries 结果)，不调用 fs::write；(export=None, dry_run=_) → 跳过；verbose 打印始终在导出分支之后执行，不受 dry_run 影响",
+            "depends_on": [
+              "s3",
+              "s4",
+              "s5"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s7",
+            "goal": "为 filter_by_severity 编写单元测试，覆盖四条路径",
+            "acceptance": "测试用例：① severities 为空返回全量；② 精确大写匹配；③ 大小写不敏感（传入 \"error\" 匹配 severity=\"ERROR\"）；④ 无匹配返回空 Vec；全部在 #[cfg(test)] 模块内，不依赖文件系统",
+            "depends_on": [
+              "s4"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s8",
+            "goal": "为 serialize_entries 和 export_json 编写单元测试，覆盖 dry-run 等价路径和真实写盘路径",
+            "acceptance": "serialize_entries 测试：给定已知 Entry 列表，断言输出 JSON 字符串包含正确 severity 和 message 字段；export_json 测试：写入 std::env::temp_dir() 下随机命名临时文件，读回后 serde_json::from_str 验证；dry-run 等价测试：直接调用 serialize_entries 验证无文件创建；测试结束后删除临时文件（用 defer 模式或显式 remove_file）",
+            "depends_on": [
+              "s5"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s9",
+            "goal": "静态审计：确认 src/parser.rs 内容与原始快照比特完全相同，且 Cargo.toml [dependencies] 无新增条目",
+            "acceptance": "逐行对比 parser.rs 原文（#[derive(Clone)] pub struct Entry… pub fn parse_line…）无差异；Cargo.toml 仅含 serde_json=\"1\"，无其他新增行",
+            "depends_on": [
+              "s6",
+              "s7",
+              "s8"
+            ],
+            "evidence_kind": "verification"
+          },
+          {
+            "id": "s10",
+            "goal": "运行 cargo check，确认全量编译零 error，warning 不超过改动前基线",
+            "acceptance": "终端输出 `error[…]` 行数为 0；若有 warning 均为已有历史遗留而非新引入",
+            "depends_on": [
+              "s9"
+            ],
+            "evidence_kind": "verification"
+          },
+          {
+            "id": "s11",
+            "goal": "运行 cargo test，确认全部测试绿色通过",
+            "acceptance": "输出 `test result: ok. N passed; 0 failed`，N ≥ 原有测试数 + 新增测试数（filter 4 条 + export 3 条）",
+            "depends_on": [
+              "s10"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": [
+          {
+            "question": "src/cli.rs 的参数解析是手写 env::args 循环还是 clap？影响 --severity 多值分支的具体写法（loop+next() vs clap multiple）",
+            "source": "workspace"
+          },
+          {
+            "question": "--dry-run 单独使用（无 --export）时是否需要向 stderr 打印提示信息（如 \"dry-run: no export path specified, nothing to preview\"），还是静默跳过？",
+            "source": "user"
+          }
+        ]
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": null
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        }
+      ]
+    },
+    {
+      "case_id": "steered-log-plan",
+      "variant": "enhanced",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 5,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 0,
+      "revision_calls": 1,
+      "successful_revisions": 1,
+      "original_requirement_text_retained": true,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 3,
+      "prompt_tokens": 16464,
+      "completion_tokens": 3069,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 61149,
+      "actual_models": [
+        "anthropic:claude-sonnet-4-6"
+      ],
+      "plan": {
+        "interpretation": "在现有 Rust 日志分析器（logs crate）基础上，新增两个能力：①按 severity 过滤日志条目；②将过滤后结果导出为 report.json。要求：所有现有 CLI 参数（--input、--verbose）保持不变，仅以可加性方式扩展；不引入任何新依赖（serde_json 已存在）；新导出逻辑放在 src/export.rs；解析行为不可改动。",
+        "success_criteria": [
+          "src/cli.rs 新增 --severity（可选，支持多值或单值）和 --output 两个参数，原有 --input / --verbose 签名及行为完全不变",
+          "src/parser.rs 的 parse_line 和 Entry 定义保持不变，Entry::severity 字段被复用于过滤",
+          "src/export.rs 实现 write_report(entries: &[Entry], path: &str) -> Result<(), ...>，输出合法 JSON 数组到指定路径",
+          "过滤逻辑位于 src/cli.rs 或专用的 src/filter.rs，不修改 parser.rs",
+          "Cargo.toml 无新依赖行被添加",
+          "cargo test logs 通过（现有测试不回归）",
+          "report.json 内容为标准 JSON 数组，每个对象包含 severity 与 message 字段",
+          "传入 --dry-run 时，write_report 的文件写入路径被跳过，JSON 结果改为打印至 stdout，不产生任何磁盘文件",
+          "同时传入 --output 和 --dry-run 时，--dry-run 优先，且有友好的提示说明实际未写文件"
+        ],
+        "constraints": [
+          "不修改 src/parser.rs 的现有 API 和行为",
+          "不在 Cargo.toml 添加任何新依赖",
+          "不改变现有 CLI 参数 --input / --verbose 的名称、类型和语义",
+          "新 CLI 参数必须为可选（不传时行为与现有版本完全一致）",
+          "导出逻辑必须放在 src/export.rs",
+          "使用已有 serde_json crate 序列化 JSON，不手写 JSON 字符串拼接",
+          "导出必须支持 dry-run 模式：传入 --dry-run 时只将 JSON 内容打印到 stdout，不写入任何文件",
+          "严禁对 src/parser.rs 做任何修改（包括注释、格式化等非功能性改动）"
+        ],
+        "steps": [
+          {
+            "id": "s1",
+            "goal": "扩展 src/cli.rs 中的 Options 结构体，新增三个可选字段：severity_filter: Option<Vec<String>>（对应 --severity，可多次传入）、output: Option<String>（对应 --output，指定导出路径）、dry_run: bool（对应 --dry-run，无参数开关）；解析逻辑需向后兼容",
+            "acceptance": "Options 含 severity_filter、output、dry_run 字段；原有 input: String 和 verbose: bool 字段及其解析逻辑逐字节不变；不传新参数时 severity_filter/output 为 None、dry_run 为 false",
+            "depends_on": [],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s2",
+            "goal": "在 src/cli.rs 或新增的 src/filter.rs 中实现 filter_entries(entries: &[Entry], severity: &[String]) -> Vec<Entry> 纯函数，按 severity 字段大小写不敏感匹配过滤",
+            "acceptance": "函数签名符合描述；传入空 severity 列表时返回全部条目（即不过滤）；parser.rs 不受任何修改",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s3",
+            "goal": "在 src/export.rs 中实现 write_report(entries: &[Entry], path: &str, dry_run: bool) -> Result<(), Box<dyn std::error::Error>>：dry_run=true 时将 JSON 打印至 stdout 并跳过文件写入；dry_run=false 时调用 std::fs::write 写入指定路径；两种路径均使用 serde_json 序列化，不手写 JSON",
+            "acceptance": "dry_run=true 时无任何文件被创建，JSON 输出至 stdout；dry_run=false 时文件正常写出；两种路径均使用 serde_json；Cargo.toml 无新增依赖行；parser.rs 零改动",
+            "depends_on": [
+              "s1"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s4",
+            "goal": "在 src/cli.rs 的主流程（或 main.rs）中串联三步：parse_line 读入 → filter_entries 过滤 → 若 output 有值则调用 write_report(entries, path, dry_run) 导出；--dry-run 与 --output 同时传入时 dry_run 优先并打印提示；--verbose 模式下额外打印过滤后条目数",
+            "acceptance": "完整调用链在代码中可见；不传 --severity 时等同原行为；不传 --output 时不创建任何文件；--dry-run 存在时 stdout 有 JSON 输出且磁盘无文件；同时传入二者时有明确提示",
+            "depends_on": [
+              "s2",
+              "s3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s5",
+            "goal": "为 filter_entries 和 write_report 各新增至少一个单元测试，覆盖：空过滤器返回全量、severity 匹配、不匹配时返回空、JSON 输出格式正确、dry_run=true 时不写文件、dry_run=false 时文件内容合法",
+            "acceptance": "测试函数以 #[test] 标注，位于对应模块的 #[cfg(test)] 块；dry-run 测试断言目标路径文件不存在；cargo test logs 全部通过",
+            "depends_on": [
+              "s2",
+              "s3"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "s6",
+            "goal": "执行 cargo test logs 验证全量测试通过，确认无编译错误和回归",
+            "acceptance": "命令输出 test result: ok，无 FAILED 行，无 warning 关于 unused import/field 等破坏性提示",
+            "depends_on": [
+              "s4",
+              "s5"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": [
+          {
+            "question": "filter_entries 的 severity 匹配是否需要支持通配符或前缀匹配（如 ERR* 匹配 ERROR），还是严格等值（大小写不敏感）即可？",
+            "source": "user"
+          },
+          {
+            "question": "report.json 中是否需要包含除 severity / message 之外的其他字段（如时间戳、行号）？",
+            "source": "user"
+          }
+        ]
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": null
+        },
+        {
+          "turn": 3,
+          "tool": "revise_task_plan",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

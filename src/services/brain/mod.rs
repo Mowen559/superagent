@@ -20,6 +20,12 @@ pub mod steering_queue;
 pub mod subagent_runtime;
 pub mod supervisor;
 pub mod terminal_receipt;
+pub mod task_understanding;
+pub mod task_progress;
+pub mod task_plan_revision;
+pub mod task_evaluation;
+#[cfg(test)]
+mod task_progress_tests;
 pub mod tool_approval_store;
 pub mod tool_call_identity;
 pub mod tool_execution_gateway;

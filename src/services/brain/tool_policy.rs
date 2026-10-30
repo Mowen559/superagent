@@ -65,6 +65,9 @@ impl ToolPolicy {
 pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
     match name {
         "view_file"
+        | "plan_task"
+        | "update_task_progress"
+        | "revise_task_plan"
         | "list_dir"
         | "grep_search"
         | "find_by_name"
@@ -84,7 +87,7 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "multi_replace_file_content"
         | "knowledge_ingest_tool"
         | "manage_task" => ToolRisk::WorkspaceMutation,
-        "run_command" | "manage_process" | "invoke_subagent" | "intervene_worker"
+        "run_command" | "verify_task_tool" | "manage_process" | "invoke_subagent" | "intervene_worker"
         | "reload_plugins" | "request_reload" | "skill_tool" | "native_harness" => {
             ToolRisk::ProcessControl
         }

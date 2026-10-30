@@ -1,10 +1,12 @@
-use crate::services::brain::evolution_memory::{DistilledLesson, EvolutionReport};
 use crate::domains::agent_cognitive::intent::{ActionGoal, DynamicIntent, DynamicIntentEngine};
+pub use crate::domains::model_gateway::model_attempt_router::BrainTier;
+use crate::services::brain::evolution_memory::{DistilledLesson, EvolutionReport};
 use crate::services::brain::run_plan::RunPlan;
 pub use crate::services::brain::run_plan::TaskKind;
-use crate::services::brain::tool_execution_gateway::ToolExecutionStatus;
+use crate::services::brain::task_progress::{SharedTaskProgress, TaskProgress};
+use crate::services::brain::task_understanding::TaskContract;
+use crate::services::brain::tool_execution_gateway::{ToolExecutionReceipt, ToolExecutionStatus};
 use crate::services::brain::tool_policy::ToolRisk;
-pub use crate::domains::model_gateway::model_attempt_router::BrainTier;
 
 const DEFAULT_MAX_MODEL_TURNS: usize = 40;
 const MIN_COMPLEX_DRAFT_CHARS: usize = 24;
@@ -34,6 +36,7 @@ impl ReasoningMode {
 pub enum CompletionDecision {
     Accept,
     Revise { reason: String },
+    Blocked { reason: String },
 }
 
 /// Run-scoped reasoning control plane. It turns raw tool receipts into compact
@@ -58,6 +61,8 @@ pub struct CognitiveRuntime {
     learned_guidance: Vec<String>,
     anchor_constraints: Vec<String>,
     distilled_lessons: Vec<DistilledLesson>,
+    task_progress: SharedTaskProgress,
+    proposal_only: bool,
 }
 
 impl CognitiveRuntime {
@@ -66,35 +71,104 @@ impl CognitiveRuntime {
     }
 
     pub fn with_mode(objective: &str, mode: ReasoningMode) -> Self {
-        let intent = DynamicIntentEngine::analyze(objective);
-        let task_kind = match intent.goal {
-            ActionGoal::ArchitectureExploration | ActionGoal::TargetedInvestigation => TaskKind::Investigative,
-            ActionGoal::SurgicalExecution | ActionGoal::VerificationBenchmark | ActionGoal::RefactoringModernization => TaskKind::Execution,
+        let mut intent = DynamicIntentEngine::analyze(objective);
+        let normalized = objective.to_lowercase();
+        let mut scope_prefix = normalized.trim_start();
+        for _ in 0..3 {
+            if let Some(rest) = ["这次", "本轮", "please ", "请你", "请", "帮我"]
+                .iter()
+                .find_map(|prefix| scope_prefix.strip_prefix(prefix))
+            {
+                scope_prefix = rest.trim_start_matches([' ', ':', '：']);
+            } else {
+                break;
+            }
+        }
+        let proposal_only = [
+            "只做规划",
+            "只给方案",
+            "只要方案",
+            "只制定计划",
+            "仅做规划",
+            "planning only",
+            "plan only",
+            "proposal only",
+        ]
+        .iter()
+        .any(|marker| scope_prefix.starts_with(marker));
+        let proposal_needs_workspace = contains_any(
+            &normalized,
+            &[
+                "当前",
+                "现有",
+                "仓库",
+                "readme",
+                "context.md",
+                "agents.md",
+                "src/",
+                "src\\",
+                "workspace",
+                "existing",
+                "repository",
+                "current project",
+            ],
+        );
+        let mut task_kind = match intent.goal {
+            ActionGoal::ArchitectureExploration | ActionGoal::TargetedInvestigation => {
+                TaskKind::Investigative
+            }
+            ActionGoal::SurgicalExecution
+            | ActionGoal::VerificationBenchmark
+            | ActionGoal::RefactoringModernization => TaskKind::Execution,
             ActionGoal::ClarificationDialogue => TaskKind::Conversational,
         };
+        if proposal_only {
+            task_kind = if proposal_needs_workspace {
+                TaskKind::Investigative
+            } else {
+                TaskKind::Conversational
+            };
+            intent.capability.suggested_mutation_tools.clear();
+            intent.capability.suggested_verification_tools.clear();
+        }
 
-        let evidence_required = matches!(task_kind, TaskKind::Execution | TaskKind::Investigative)
-            || contains_any(
-                &objective.to_lowercase(),
-                &[
-                    "当前", "项目", "源码", "代码", "文件", "仓库", "日志", "错误", "current",
-                    "project", "source", "code", "file", "repo", "log", "error",
-                ],
-            );
+        let evidence_required = if proposal_only {
+            proposal_needs_workspace
+        } else {
+            matches!(task_kind, TaskKind::Execution | TaskKind::Investigative)
+                || contains_any(
+                    &objective.to_lowercase(),
+                    &[
+                        "当前", "项目", "源码", "代码", "文件", "仓库", "日志", "错误", "current",
+                        "project", "source", "code", "file", "repo", "log", "error",
+                    ],
+                )
+        };
 
         let mut default_anchors = vec![
-            "Strict Architecture: Return Result<T>, extend BaseController, use LambdaQueryWrapper (no JPA), and verify @RequirePermission.".to_string(),
+            "Project Conventions: Inspect workspace instructions and existing code before choosing frameworks, interfaces, or architecture. Do not assume a language or service layout.".to_string(),
             "Surgical Edits: Use replace_in_file/multi_replace; preserve unedited comments, docstrings, and formatting.".to_string(),
             "Verification Closed-Loop: Run compile/test checks before claiming completion; never fabricate tool output.".to_string(),
         ];
+        if proposal_only {
+            default_anchors.push("Proposal-only scope: inspect only as needed and deliver the requested plan. Proposed future implementation steps are not authorized actions in this Run; do not execute or claim them completed.".to_string());
+        }
 
         for path in &intent.constraints.protected_paths {
             default_anchors.push(format!("【IRONCLAD INVARIANT】Path '{}' is strictly protected from mutation under user mandate!", path));
         }
         for pattern in &intent.constraints.forbidden_patterns {
-            default_anchors.push(format!("【IRONCLAD INVARIANT】Forbidden pattern: {}", pattern));
+            default_anchors.push(format!(
+                "【IRONCLAD INVARIANT】Forbidden pattern: {}",
+                pattern
+            ));
         }
 
+        let plan = if !proposal_only && intent.goal == ActionGoal::VerificationBenchmark {
+            RunPlan::for_verification()
+        } else {
+            RunPlan::for_task(task_kind)
+        };
         Self {
             objective: objective.chars().take(500).collect(),
             mode,
@@ -110,15 +184,21 @@ impl CognitiveRuntime {
             consecutive_failures: 0,
             completion_review_used: false,
             max_model_turns: DEFAULT_MAX_MODEL_TURNS,
-            plan: RunPlan::for_task(task_kind),
+            plan,
             learned_guidance: Vec::new(),
             anchor_constraints: default_anchors,
             distilled_lessons: Vec::new(),
+            task_progress: std::sync::Arc::new(std::sync::Mutex::new(TaskProgress::default())),
+            proposal_only,
         }
     }
 
     pub fn task_kind(&self) -> TaskKind {
         self.task_kind
+    }
+
+    pub fn task_progress(&self) -> SharedTaskProgress {
+        self.task_progress.clone()
     }
 
     pub fn consecutive_failures(&self) -> usize {
@@ -168,7 +248,7 @@ impl CognitiveRuntime {
                 "Form dynamic hypotheses, inspect authoritative evidence first, distinguish facts from inference, and pivot rapidly if assumptions fail."
             }
             TaskKind::Execution => {
-                "Plan fluently: inspect before changing, formulate precise edits, verify immediately, and self-correct with 'Aha' reflections whenever a barrier appears."
+                "Inspect the relevant state, make the smallest coherent change, run a quality check, and use actual failures to revise the next action."
             }
         };
 
@@ -183,7 +263,7 @@ impl CognitiveRuntime {
         };
 
         let deadlock_warning = if self.consecutive_failures >= 3 {
-            "\n[HYPOTHESIS DEADLOCK WARNING] 3 or more consecutive tool actions failed! Your current mental model is stuck in a dead-end. Consider discarding this branch: use `revert_to_checkpoint` to restore workspace to a clean state, formulate an entirely alternative strategy, or use `synthesize_tool` to synthesize a dedicated tool/script to diagnose the problem."
+            "\n[HYPOTHESIS DEADLOCK WARNING] Three or more consecutive tool actions failed. Inspect the actual error and current state with read-only tools, then change the hypothesis, arguments, or tool. Preserve existing user changes; do not roll back unrelated work."
         } else {
             ""
         };
@@ -234,23 +314,41 @@ impl CognitiveRuntime {
         let self_awareness_block = format!(
             "\n[CAPABILITY INTROSPECTION & ARMED TOOLKIT]\n- Suggested Sensory Tools: {}\n- Suggested Mutation Tools: {}\n- Suggested Verification Tools: {}\n- Ambiguity Level: {:.2}",
             self.intent.capability.suggested_inspection_tools.join(", "),
-            if self.intent.capability.suggested_mutation_tools.is_empty() { "None (Read-Only)".to_string() } else { self.intent.capability.suggested_mutation_tools.join(", ") },
-            self.intent.capability.suggested_verification_tools.join(", "),
+            if self.intent.capability.suggested_mutation_tools.is_empty() {
+                "None (Read-Only)".to_string()
+            } else {
+                self.intent.capability.suggested_mutation_tools.join(", ")
+            },
+            self.intent
+                .capability
+                .suggested_verification_tools
+                .join(", "),
             self.intent.ambiguity_score
         );
 
-        let inquiry_block = if self.intent.capability.requires_user_inquiry && self.inquiry_tool_calls == 0 && self.tool_calls == 0 {
+        let inquiry_block = if self.intent.capability.requires_user_inquiry
+            && self.inquiry_tool_calls == 0
+            && !self
+                .task_progress
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .has_plan()
+        {
             format!(
-                "\n[PROACTIVE INQUIRY REQUIRED - Socratic Principal Mindset]\nWait! This requirement has key technical branches or underspecified details (Score: {:.2}).\nDO NOT rush into blind implementation! Adopt the dual-track approach:\n1. Use read-only tools (`project_index`, `search_graph`) to inspect the current codebase.\n2. In parallel, formulate proactive, structured questions to the user (via `ask_user` or text) with:\n   - Verified codebase facts\n   - Trade-offs (Option A vs Option B)\n   - Concrete recommendations\nSuggested inquiry angles:\n- {}",
-                self.intent.ambiguity_score,
+                "\n[CONTEXT-FIRST REQUIREMENT CLARIFICATION]\nThe request may have unresolved choices. First inspect supplied workspace context and relevant code, then use plan_task to distinguish known constraints from context gaps. Use tools to resolve factual gaps. Choose reasonable defaults for reversible details; ask the user only when a remaining choice materially changes scope or behavior.\nInvestigation angles:\n- {}",
                 self.intent.capability.recommended_inquiries.join("\n- ")
             )
         } else {
             String::new()
         };
 
+        let understanding = self.task_progress.lock().unwrap_or_else(|e| e.into_inner()).render()
+            .unwrap_or_else(|| {
+                "\n[Task Understanding]\nFor multiple deliverables, dependencies, or material ambiguity: use supplied context and targeted inspection, then call `plan_task` with the intended outcome, success criteria, concise dependency-ordered subgoals, constraints and remaining gaps. Group work by independently verifiable outcome; do not expand speculative API signatures or duplicate checks. If inspection cannot obtain a fact, record a context gap instead of repeatedly reading unavailable sources. Distinguish known requirements from proposed design. Ask only about material unresolved choices. For a simple request, proceed directly. A plan is a hypothesis, never execution evidence.\n".to_string()
+            });
+
         Ok(format!(
-            "# Adaptive Meta-Cognitive State (DeepSeek-R1 Fluid Reasoning)\nObjective: {}\nMode: {:?}; Task Kind: {:?}; Model Turn: {}; Tool Stats: {} succeeded / {} failed (Mutations: {}).\nDynamic Plan:\n{}\nReasoning Guide: {}{}{}{}{}{}{}{}{}\nAdvance the in-progress step using live evidence. Do not claim completion without verification. Synthesize tools (`synthesize_tool`) if missing capabilities arise.",
+            "# Run Decision State\nObjective: {}\nMode: {:?}; Task Kind: {:?}; Model Turn: {}; Tool Stats: {} succeeded / {} failed (Mutations: {}).\nDynamic Plan:\n{}\nReasoning Guide: {}{}{}{}{}{}{}{}{}{}\nAdvance the in-progress step using live evidence. Do not claim completion without verification.",
             self.objective,
             self.mode,
             self.task_kind,
@@ -268,15 +366,61 @@ impl CognitiveRuntime {
             anchor_block,
             self_awareness_block,
             inquiry_block,
+            understanding,
         ))
     }
 
-    pub fn observe_tool(&mut self, status: ToolExecutionStatus, risk: ToolRisk) {
+    pub fn observe_receipt(&mut self, receipt: &ToolExecutionReceipt) {
+        self.task_progress
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .observe(receipt);
+        if receipt.name == "plan_task" && receipt.status == ToolExecutionStatus::Succeeded {
+            if let Some(value) = receipt.result.get("task_contract") {
+                if let Ok(contract) = TaskContract::from_value(value.clone()) {
+                    if self.task_progress.lock().unwrap_or_else(|e| e.into_inner()).has_plan() {
+                        self.plan.invalidate_verification();
+                    }
+                    self.task_progress
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .apply_plan(contract);
+                }
+            }
+            // Planning is useful context, but not an observation of the world.
+            return;
+        }
+        if receipt.name == "manage_task" && receipt.status == ToolExecutionStatus::Succeeded {
+            return;
+        }
+        if receipt.name == "revise_task_plan" && receipt.status == ToolExecutionStatus::Succeeded {
+            if receipt
+                .result
+                .get("requires_verification")
+                .and_then(serde_json::Value::as_bool)
+                == Some(true)
+            {
+                self.plan.invalidate_verification();
+            }
+            return;
+        }
+        if receipt.name == "update_task_progress"
+            && receipt.status == ToolExecutionStatus::Succeeded
+        {
+            return;
+        }
+        if receipt.name == "ask_user" && receipt.status == ToolExecutionStatus::Succeeded {
+            self.inquiry_tool_calls += 1;
+        }
+        self.observe_tool(receipt.status, receipt.risk, receipt.verification);
+    }
+
+    fn observe_tool(&mut self, status: ToolExecutionStatus, risk: ToolRisk, verification: bool) {
         self.tool_calls += 1;
         if risk == ToolRisk::WorkspaceMutation && status == ToolExecutionStatus::Succeeded {
             self.mutation_tool_calls += 1;
         }
-        self.plan.observe_tool(status, risk);
+        self.plan.observe_tool(status, risk, verification);
         if status == ToolExecutionStatus::Succeeded {
             self.successful_tools += 1;
             self.consecutive_failures = 0;
@@ -294,63 +438,66 @@ impl CognitiveRuntime {
     }
 
     pub fn review_completion(&mut self, draft: &str) -> CompletionDecision {
+        self.plan.begin_completion();
+        let normalized = draft.to_lowercase();
+        let claims_written = [
+            "写入",
+            "落盘",
+            "创建了",
+            "已创建",
+            "修改了",
+            "已修改",
+            "修改完毕",
+            "已经更新",
+            "代码已更新",
+            "created",
+            "written",
+            "modified",
+            "added the test",
+        ]
+        .iter()
+        .any(|kw| normalized.contains(kw));
+
+        let integrity_gap = if self.task_kind == TaskKind::Execution
+            && claims_written
+            && self.mutation_tool_calls == 0
+        {
+            Some("Claim-Action 违背拦截: No successful WorkspaceMutation supports the claimed changes. Inspect the workspace, perform the authorized change, and verify it.".to_string())
+        } else if self.intent.capability.requires_user_inquiry
+            && self.tool_calls == 0
+            && self.task_kind == TaskKind::Execution
+        {
+            Some("主动对齐拦截: Inspect the workspace first. Ask the user only about material choices that remain unresolved after inspection.".to_string())
+        } else if self.evidence_required && self.successful_tools == 0 {
+            Some("No successful tool evidence supports this objective. Inspect authoritative sources and address tool failures before concluding.".to_string())
+        } else {
+            self.plan.completion_gap().map(|gap| format!(
+                "The Run plan is incomplete at: {gap}. Complete it with tool evidence; verification requires a successful quality check after the latest change."
+            )).or_else(|| self.task_contract_gap())
+        };
+
+        if let Some(reason) = integrity_gap {
+            // Review is bounded, but its use must never become a bypass for
+            // missing evidence. Failed Runs must not train success strategies.
+            if self.completion_review_used || self.mode == ReasoningMode::Fast {
+                return CompletionDecision::Blocked { reason };
+            }
+            self.completion_review_used = true;
+            return CompletionDecision::Revise { reason };
+        }
+
         if self.completion_review_used || self.mode == ReasoningMode::Fast {
             return CompletionDecision::Accept;
         }
-
-        // 【OpenClaw 核心防线 1】：声称写盘但物理落盘为 0，坚决通过 Revise 打回！
-        let claims_written = [
-            "写入", "落盘", "创建了", "已创建", "修改了", "已修改", "修改完毕", "已经更新", "代码已更新",
-            "created", "written", "modified", "added the test"
-        ].iter().any(|kw| draft.contains(kw));
-
-        if claims_written && self.mutation_tool_calls == 0 {
+        let short_draft = self.task_kind != TaskKind::Conversational
+            && draft.trim().chars().count() < MIN_COMPLEX_DRAFT_CHARS;
+        if self.mode == ReasoningMode::Deliberate || short_draft {
+            self.completion_review_used = true;
             return CompletionDecision::Revise {
-                reason: "【OpenClaw Claim-Action 违背拦截】：你在回答中声称已经将代码或测试写入了项目，但在实际执行中没有发生任何 WorkspaceMutation（写盘）工具调用！禁止空口宣称完成！你必须立即调用 write_to_file 或 replace_in_file 工具将改动物理落盘，再进行验证！".to_string(),
+                reason: "Check that the draft resolves the objective, explains the evidence, and covers remaining limitations.".to_string(),
             };
         }
-
-        // 【主动对齐核心防线 2】：高模糊度需求在未调查未对齐前严禁直接结题
-        if self.intent.capability.requires_user_inquiry && self.tool_calls == 0 && self.task_kind == TaskKind::Execution {
-            return CompletionDecision::Revise {
-                reason: "【主动对齐拦截】：该需求包含关键架构分支或细节未定。你在未翻查代码现状且未与用户对齐确认的情况下试图直接结题。请先调用工具调查或使用 ask_user 反问用户澄清关键细节！".to_string(),
-            };
-        }
-
-        self.plan.begin_completion();
-        let plan_gap = self.plan.completion_gap();
-        let needs_review = self.mode == ReasoningMode::Deliberate
-            || (self.task_kind != TaskKind::Conversational
-                && draft.trim().chars().count() < MIN_COMPLEX_DRAFT_CHARS)
-            || (self.evidence_required && self.tool_calls == 0)
-            || (self.failed_tools > 0 && self.successful_tools == 0)
-            || plan_gap.is_some();
-
-        if !needs_review {
-            return CompletionDecision::Accept;
-        }
-
-        self.completion_review_used = true;
-        let reason = if self.task_kind != TaskKind::Conversational
-            && draft.trim().chars().count() < MIN_COMPLEX_DRAFT_CHARS
-        {
-            "The draft is too short for this task. Check whether it actually resolves the objective."
-            .to_string()
-        } else if self.evidence_required && self.tool_calls == 0 {
-            "The objective depends on workspace evidence, but no tool evidence was collected. Proactively call agile inspection tools (`project_index` to map architecture/AST topology in milliseconds, or `view_outline`/`search_graph`) before concluding. Do not run heavy full-repo builds like `mvn test` during discovery."
-            .to_string()
-        } else if self.failed_tools > 0 && self.successful_tools == 0 {
-            "All attempted tools failed. Diagnose or clearly explain the blocker before concluding."
-                .to_string()
-        } else if let Some(gap) = plan_gap {
-            format!(
-                "The Run plan is incomplete at: {gap}. Complete it with evidence, or clearly explain the blocker."
-            )
-        } else {
-            "Perform one deliberate completion review: check correctness, missing constraints, evidence, and residual risk."
-            .to_string()
-        };
-        CompletionDecision::Revise { reason }
+        CompletionDecision::Accept
     }
 
     pub fn evolution_report(&mut self, completed: bool) -> EvolutionReport {
@@ -358,61 +505,19 @@ impl CognitiveRuntime {
         EvolutionReport {
             task_kind: self.task_kind,
             completed,
-            plan_closed: self.plan.completion_gap().is_none(),
+            plan_closed: self.plan.completion_gap().is_none() && self.task_contract_gap().is_none(),
             replans: self.plan.replan_count(),
         }
     }
-}
 
-fn classify_task(normalized: &str) -> TaskKind {
-    if contains_any(
-        normalized,
-        &[
-            "实现",
-            "修改",
-            "修复",
-            "添加",
-            "新增",
-            "移植",
-            "提升",
-            "提高",
-            "完善",
-            "继续",
-            "重构",
-            "删除",
-            "implement",
-            "build",
-            "fix",
-            "change",
-            "edit",
-            "add",
-            "migrate",
-            "improve",
-            "refactor",
-            "remove",
-        ],
-    ) {
-        TaskKind::Execution
-    } else if contains_any(
-        normalized,
-        &[
-            "查看",
-            "看下",
-            "分析",
-            "检查",
-            "诊断",
-            "调查",
-            "review",
-            "inspect",
-            "analyze",
-            "diagnose",
-            "debug",
-            "investigate",
-        ],
-    ) {
-        TaskKind::Investigative
-    } else {
-        TaskKind::Conversational
+    fn task_contract_gap(&self) -> Option<String> {
+        if self.proposal_only {
+            return None;
+        }
+        self.task_progress
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .completion_gap()
     }
 }
 
@@ -426,9 +531,18 @@ mod tests {
 
     #[test]
     fn classifies_execution_investigation_and_conversation() {
-        assert_eq!(classify_task("继续提升这个项目"), TaskKind::Execution);
-        assert_eq!(classify_task("分析当前源码"), TaskKind::Investigative);
-        assert_eq!(classify_task("你好"), TaskKind::Conversational);
+        assert_eq!(
+            CognitiveRuntime::begin("继续提升这个项目").task_kind(),
+            TaskKind::Execution
+        );
+        assert_eq!(
+            CognitiveRuntime::begin("分析当前源码").task_kind(),
+            TaskKind::Investigative
+        );
+        assert_eq!(
+            CognitiveRuntime::begin("你好").task_kind(),
+            TaskKind::Conversational
+        );
     }
 
     #[test]
@@ -438,25 +552,33 @@ mod tests {
             runtime.review_completion("这是一个未经检查但看似很完整的长回答，它没有任何来自当前工作区的真实证据，因此仍然不能可靠地回答用户提出的问题。"),
             CompletionDecision::Revise { .. }
         ));
-        assert_eq!(
+        assert!(matches!(
             runtime.review_completion("second draft"),
-            CompletionDecision::Accept
-        );
+            CompletionDecision::Blocked { .. }
+        ));
     }
 
     #[test]
     fn verified_execution_can_complete_without_forced_review() {
         let mut runtime = CognitiveRuntime::with_mode("修复代码", ReasoningMode::Adaptive);
-        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
-        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
-        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        runtime.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
+        runtime.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::ProcessControl,
+            true,
+        );
         let draft = "修改已经完成，并通过读取和验证确认新行为符合目标；同时保留了既有接口，未发现额外风险或尚未处理的失败路径。";
         assert_eq!(runtime.review_completion(draft), CompletionDecision::Accept);
     }
 
     #[test]
     fn fast_mode_never_adds_a_review_turn() {
-        let mut runtime = CognitiveRuntime::with_mode("修复代码", ReasoningMode::Fast);
+        let mut runtime = CognitiveRuntime::with_mode("你好", ReasoningMode::Fast);
         assert_eq!(
             runtime.review_completion("短回答"),
             CompletionDecision::Accept
@@ -477,24 +599,51 @@ mod tests {
         let mut runtime = CognitiveRuntime::with_mode("修复Bug", ReasoningMode::Adaptive);
         assert_eq!(runtime.consecutive_failures(), 0);
 
-        runtime.observe_tool(ToolExecutionStatus::Failed, ToolRisk::WorkspaceMutation);
+        runtime.observe_tool(
+            ToolExecutionStatus::Failed,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
         assert_eq!(runtime.consecutive_failures(), 1);
-        assert!(!runtime.next_guidance().unwrap().contains("HYPOTHESIS DEADLOCK WARNING"));
+        assert!(
+            !runtime
+                .next_guidance()
+                .unwrap()
+                .contains("HYPOTHESIS DEADLOCK WARNING")
+        );
 
-        runtime.observe_tool(ToolExecutionStatus::Failed, ToolRisk::WorkspaceMutation);
+        runtime.observe_tool(
+            ToolExecutionStatus::Failed,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
         assert_eq!(runtime.consecutive_failures(), 2);
-        assert!(!runtime.next_guidance().unwrap().contains("HYPOTHESIS DEADLOCK WARNING"));
+        assert!(
+            !runtime
+                .next_guidance()
+                .unwrap()
+                .contains("HYPOTHESIS DEADLOCK WARNING")
+        );
 
-        runtime.observe_tool(ToolExecutionStatus::Failed, ToolRisk::WorkspaceMutation);
+        runtime.observe_tool(
+            ToolExecutionStatus::Failed,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
         assert_eq!(runtime.consecutive_failures(), 3);
         let guidance = runtime.next_guidance().unwrap();
         assert!(guidance.contains("HYPOTHESIS DEADLOCK WARNING"));
-        assert!(guidance.contains("revert_to_checkpoint"));
+        assert!(guidance.contains("read-only tools"));
 
         // Success resets the consecutive failures counter
-        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
         assert_eq!(runtime.consecutive_failures(), 0);
-        assert!(!runtime.next_guidance().unwrap().contains("HYPOTHESIS DEADLOCK WARNING"));
+        assert!(
+            !runtime
+                .next_guidance()
+                .unwrap()
+                .contains("HYPOTHESIS DEADLOCK WARNING")
+        );
     }
 
     #[test]
@@ -505,7 +654,9 @@ mod tests {
         runtime.add_anchor_constraint("Custom Ironclad Rule: Do not modify schema.sql");
         let guidance = runtime.next_guidance().unwrap();
         assert!(guidance.contains("PINNED ANCHOR CONSTRAINTS"));
-        assert!(guidance.contains("Strict Architecture"));
+        assert!(guidance.contains("Project Conventions"));
+        assert!(!guidance.contains("LambdaQueryWrapper"));
+        assert!(!guidance.contains("BaseController"));
         assert!(guidance.contains("Custom Ironclad Rule: Do not modify schema.sql"));
     }
 
@@ -532,7 +683,9 @@ mod tests {
 
     #[test]
     fn test_openclaw_claim_action_verifier_blocks_unmutated_claims() {
-        let mut runtime = CognitiveRuntime::begin("在 iam-service 中为用户注册逻辑实现一个单元测试用例 AuthTest.java");
+        let mut runtime = CognitiveRuntime::begin(
+            "在 iam-service 中为用户注册逻辑实现一个单元测试用例 AuthTest.java",
+        );
         // 模型口头宣称“已写入代码”，但没有调用任何 WorkspaceMutation 工具！
         let false_claim_draft = "我已经成功将代码写入了 AuthController.java，接口已经修改完毕！";
         let decision = runtime.review_completion(false_claim_draft);
@@ -541,7 +694,7 @@ mod tests {
         match decision {
             CompletionDecision::Revise { reason } => {
                 assert!(
-                    reason.contains("OpenClaw Claim-Action 违背拦截"),
+                    reason.contains("Claim-Action 违背拦截"),
                     "Actual reason was: {}",
                     reason
                 );
@@ -551,10 +704,21 @@ mod tests {
         }
 
         // 当真实发生只读探索、写盘与验证后，形成闭环允许放行
-        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly);
-        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation);
-        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl);
-        assert_eq!(runtime.review_completion(false_claim_draft), CompletionDecision::Accept);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        runtime.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::WorkspaceMutation,
+            false,
+        );
+        runtime.observe_tool(
+            ToolExecutionStatus::Succeeded,
+            ToolRisk::ProcessControl,
+            true,
+        );
+        assert_eq!(
+            runtime.review_completion(false_claim_draft),
+            CompletionDecision::Accept
+        );
     }
 
     #[test]
@@ -563,7 +727,7 @@ mod tests {
         let guidance = runtime.next_guidance().unwrap();
         // 必须包含自我能力审视与主动反问引导
         assert!(guidance.contains("CAPABILITY INTROSPECTION"));
-        assert!(guidance.contains("PROACTIVE INQUIRY REQUIRED"));
+        assert!(guidance.contains("CONTEXT-FIRST REQUIREMENT CLARIFICATION"));
 
         // 未调查未反问直接试图完工，必须被主动对齐拦截器拦截！
         let blind_completion_draft = "我已经设计好了方案，这是所有的代码逻辑...";
@@ -576,4 +740,3 @@ mod tests {
         }
     }
 }
-

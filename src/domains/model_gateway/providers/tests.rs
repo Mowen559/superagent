@@ -163,3 +163,16 @@ use super::types::*;
         assert_eq!(usage.attempts, 2);
         health.reset(&blocked_key);
     }
+
+#[test]
+fn fixed_evaluation_settings_preserve_model_and_output_budget() {
+    let settings = LLMSettings {
+        model: "evaluation-only-model".into(), max_tokens: 1536, temperature: 0.0,
+        ..LLMSettings::default()
+    };
+    let provider = LlmProvider::with_fixed_settings(reqwest::Client::new(), settings);
+    let snapshot = provider.effective_settings();
+    assert_eq!(snapshot.model, "evaluation-only-model");
+    assert_eq!(snapshot.max_tokens, 1536);
+    assert_eq!(snapshot.temperature, 0.0);
+}

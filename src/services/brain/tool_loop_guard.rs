@@ -50,7 +50,27 @@ impl ToolLoopGuard {
     }
 
     pub fn record(&mut self, tool_name: &str, arguments: &Value) -> Result<(), RepetitionBlock> {
-        let key = fingerprint(tool_name, arguments);
+        self.record_key(fingerprint(tool_name, arguments))
+    }
+
+    /// A quality check after an actual mutation is a new verification attempt.
+    /// Ordinary calls retain their identity so repeated writes remain bounded.
+    pub fn record_verification(
+        &mut self,
+        tool_name: &str,
+        arguments: &Value,
+        revision: u64,
+    ) -> Result<(), RepetitionBlock> {
+        self.record_key(fingerprint(
+            "verification",
+            &serde_json::json!({
+                "call": fingerprint(tool_name, arguments),
+                "revision": revision,
+            }),
+        ))
+    }
+
+    fn record_key(&mut self, key: String) -> Result<(), RepetitionBlock> {
         let consecutive_count = self
             .recent
             .iter()
