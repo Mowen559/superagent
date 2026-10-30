@@ -46,6 +46,30 @@ use crate::services::brain::session_ledger::SessionLedger;
 use crate::services::brain::session_lifecycle::SessionLifecycle;
 use crate::services::brain::steering_queue::{SteeringQueue, SteeringSource};
 use crate::services::brain::terminal_receipt::{finish_run, repair_incomplete_runs, start_run};
+
+fn current_run_draft(events: &[SessionEvent]) -> Option<String> {
+    events.iter().rev()
+        .take_while(|event| !matches!(event, SessionEvent::UserInput(_)))
+        .find_map(|event| match event {
+            SessionEvent::ModelThought(text) if text.trim().chars().count() > 50 => Some(text.clone()),
+            _ => None,
+        })
+}
+
+#[cfg(test)]
+mod completion_candidate_tests {
+    use super::*;
+
+    #[test]
+    fn checklist_fallback_never_returns_a_previous_run_answer() {
+        let old = "old task answer ".repeat(8);
+        let current = "current task draft ".repeat(8);
+        let mut events = vec![SessionEvent::UserInput("old task".into()), SessionEvent::ModelThought(old), SessionEvent::UserInput("new task".into())];
+        assert_eq!(current_run_draft(&events), None);
+        events.push(SessionEvent::ModelThought(current.clone()));
+        assert_eq!(current_run_draft(&events), Some(current));
+    }
+}
 use crate::services::brain::tool_execution_gateway::{ToolExecutionGateway, ToolExecutionRequest};
 use crate::services::brain::tool_pairing::repair_tool_pairs;
 use crate::services::brain::tools::dynamic_tool::scan_dynamic_tools;
@@ -200,6 +224,7 @@ impl AgentLoop {
         let event_bus = EventBus::new();
 
         let plugin_registry = crate::services::brain::tools::registry::PluginRegistry::new();
+        plugin_registry.register(Box::new(crate::services::brain::tools::plan_task::PlanTaskTool));
         let tool_gateway = Arc::new(ToolExecutionGateway::new(plugin_registry.get_tools_ref()));
         let evolution_memory = EvolutionMemory::default_location();
         let steering_queue = Arc::new(SteeringQueue::default_location());
@@ -542,6 +567,12 @@ impl AgentLoop {
         }
         let mut circuit_breaker = CircuitBreakerGuard::default();
         let mut cognition = CognitiveRuntime::begin(prompt);
+        self.plugin_registry.register(Box::new(
+            crate::services::brain::tools::revise_task_plan::ReviseTaskPlanTool(cognition.task_progress())
+        ));
+        self.plugin_registry.register(Box::new(
+            crate::services::brain::tools::task_progress::TaskProgressTool(cognition.task_progress())
+        ));
         match self
             .evolution_memory
             .promoted_guidance(cognition.task_kind())
@@ -567,18 +598,10 @@ impl AgentLoop {
         loop {
             loop_count += 1;
             if loop_count > 60 {
-                eprintln!("\x1b[33m[AgentLoop Guard] Turn limit reached (60 turns). Forcing final synthesis.\x1b[0m");
-                if let Some(last_thought) = self.events.iter().rev().find_map(|e| match e {
-                    SessionEvent::ModelThought(t) => Some(t.clone()),
-                    _ => None,
-                }) {
-                    self.save_session();
-                    return Ok(last_thought);
-                }
-                return Ok("Task execution completed (turn limit reached).".to_string());
+                self.record_evolution(&mut cognition, prompt, false);
+                self.save_session();
+                return Err("Model turn budget exhausted without verified completion".to_string());
             }
-
-
             // 1.5 Lease runtime steering, persist its delivery fact, then ack.
             self.inject_pending_steering()?;
 
@@ -948,11 +971,10 @@ impl AgentLoop {
                                     "[Brain B] Tool {} (parallel) finished with {:?} in {}ms",
                                     receipt.name, receipt.status, receipt.duration_ms
                                 );
-                                cognition.observe_tool(receipt.status, receipt.risk);
+                                cognition.observe_receipt(&receipt);
                                 let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
                                 let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
                                 cognition.observe_tool_execution_details(&receipt.name, None, is_succeeded, &output_str);
-                                let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
                                 let stuck_state = self.stuck_detector.record_call(&receipt.name, "{}", is_succeeded);
                                 if let crate::domains::agent_cognitive::stuck_detector::StuckState::StuckDetected { reason, suggested_action } = stuck_state {
                                     let reflection_prompt = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::build_stuck_reflection_prompt(
@@ -1038,7 +1060,7 @@ impl AgentLoop {
                                 "[Brain B] Tool {} finished with {:?} in {}ms",
                                 receipt.name, receipt.status, receipt.duration_ms
                             );
-                            cognition.observe_tool(receipt.status, receipt.risk);
+                            cognition.observe_receipt(&receipt);
                             let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
                             let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
                             cognition.observe_tool_execution_details(&receipt.name, cmd_arg, is_succeeded, &output_str);
@@ -1075,6 +1097,7 @@ impl AgentLoop {
                                 // 熔断器红牌强制自动回滚脏代码，跳出死胡同！
                                 if directive.should_rollback_workspace && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
                                     if let Ok(rc) = rollback_guard.rollback_workspace("认知熔断器红牌触发：相同错误连续死循环，强制自动秒级还原工作区") {
+                                        cognition.invalidate_after_rollback();
                                         let rb_msg = format!(
                                             "【熔断沙箱自动回滚】: 检测到同一错误模式连续失败 {} 次，为防止产生沉没成本已自动秒级还原 {} 个脏文件，清理 {} 个临时新增文件。请彻底更换解题思路！",
                                             directive.consecutive_failures, rc.reverted_files.len(), rc.cleaned_untracked_files.len()
@@ -1088,6 +1111,7 @@ impl AgentLoop {
                             if item.func_name == "revert_to_checkpoint"
                                 && receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded
                             {
+                                cognition.invalidate_after_rollback();
                                 let user_input_idx = self
                                     .events
                                     .iter()
@@ -1112,63 +1136,22 @@ impl AgentLoop {
 
                 if all_manage_task {
                     let todo_all_done = std::fs::read_to_string(&todo_path)
-                        .map(|c| {
-                            let has_unfinished = c.lines().any(|l| {
-                                let t = l.trim();
-                                t.starts_with("- [ ]")
-                                    || t.starts_with("* [ ]")
-                                    || t.contains("[in_progress]")
-                                    || t.contains("[pending]")
-                            });
-                            !has_unfinished
-                        })
-                        .unwrap_or(true);
-
+                        .map(|text| !text.lines().any(|line| {
+                            let line = line.trim();
+                            line.starts_with("- [ ]") || line.starts_with("* [ ]")
+                                || line.contains("[in_progress]") || line.contains("[pending]")
+                        })).unwrap_or(false);
                     if todo_all_done {
-                        if let Some(content) = llm_message.get("content").and_then(|v| v.as_str()) {
-                            let trimmed = content.trim();
-                            if !trimmed.is_empty() {
-                                eprintln!("\x1b[32;1m[Terminal Guard] All tasks verified & checklist settled. Returning final delivery report.\x1b[0m");
-                                self.events.push(SessionEvent::ModelThought(trimmed.to_string()));
-                                self.save_session();
-                                if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
-                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
-                        let alert = format!(
-                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
-                            receipt.reverted_files, receipt.cleaned_untracked_files
-                        );
-                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
-                        self.push_event(SessionEvent::SystemWarning(alert));
-                    }
-                }
-                self.record_evolution(&mut cognition, prompt, true);
-                                return Ok(trimmed.to_string());
+                        let candidate = llm_message.get("content").and_then(|v| v.as_str())
+                            .filter(|text| !text.trim().is_empty()).map(|text| text.trim().to_string())
+                            .or_else(|| current_run_draft(&self.events));
+                        if let Some(candidate) = candidate {
+                            if let Some(answer) = self.complete_candidate(&mut cognition, &mut rollback_guard, prompt, &candidate)? {
+                                return Ok(answer);
                             }
                         }
-
-                        // Content was empty in this tool call, but checklist is fully settled! Pull previous substantial delivery report.
-                        if let Some(recent_thought) = self.events.iter().rev().find_map(|e| match e {
-                            SessionEvent::ModelThought(t) if t.trim().chars().count() > 50 => Some(t.clone()),
-                            _ => None,
-                        }) {
-                            eprintln!("\x1b[32;1m[Terminal Guard] Checklist fully settled. Returning previous comprehensive report.\x1b[0m");
-                            self.save_session();
-                            if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
-                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
-                        let alert = format!(
-                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
-                            receipt.reverted_files, receipt.cleaned_untracked_files
-                        );
-                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
-                        self.push_event(SessionEvent::SystemWarning(alert));
                     }
                 }
-                self.record_evolution(&mut cognition, prompt, true);
-                            return Ok(recent_thought);
-                        }
-                    }
-                }
-
                 continue;
             }
 
@@ -1176,35 +1159,19 @@ impl AgentLoop {
             if let Some(content) = llm_message.get("content").and_then(|v| v.as_str()) {
                 self.events
                     .push(SessionEvent::ModelThought(content.to_string()));
-                if let CompletionDecision::Revise { reason } = cognition.review_completion(content)
-                {
-                    self.push_event(SessionEvent::SystemWarning(format!(
-                        "Completion review required: {reason} Treat the preceding assistant message as a draft. Gather missing evidence if needed, then produce the corrected final answer."
-                    )));
-                    self.save_session();
+                let Some(answer) = self.complete_candidate(&mut cognition, &mut rollback_guard, prompt, content)? else {
                     continue;
-                }
+                };
                 if self.emit_jsonl {
                     println!("{}", serde_json::json!({ "type": "text", "content": content }));
                 }
                 self.save_session();
-                if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
-                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
-                        let alert = format!(
-                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
-                            receipt.reverted_files, receipt.cleaned_untracked_files
-                        );
-                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
-                        self.push_event(SessionEvent::SystemWarning(alert));
-                    }
-                }
-                self.record_evolution(&mut cognition, prompt, true);
                 let _ = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
                     &self.events,
                     &self.runtime_config,
                     Some(self.run_prelude_runtime.project_path()),
                 );
-                return Ok(content.to_string());
+                return Ok(answer);
             }
 
             if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
@@ -1212,6 +1179,32 @@ impl AgentLoop {
             }
             self.record_evolution(&mut cognition, prompt, false);
             return Err("Unexpected empty response from LLM".to_string());
+        }
+    }
+
+    fn complete_candidate(&mut self, cognition: &mut CognitiveRuntime, rollback_guard: &mut RegressionRollbackGuard, prompt: &str, content: &str) -> Result<Option<String>, String> {
+        match cognition.review_completion(content) {
+            CompletionDecision::Accept => {
+                self.record_evolution(cognition, prompt, true);
+                self.save_session();
+                Ok(Some(content.to_string()))
+            }
+            CompletionDecision::Revise { reason } => {
+                self.push_event(SessionEvent::SystemWarning(format!("Completion review required: {reason}. The preceding answer is a draft, not verified completion.")));
+                self.save_session();
+                Ok(None)
+            }
+            CompletionDecision::Blocked { reason } => {
+                if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                    match rollback_guard.rollback_workspace(&reason) {
+                        Ok(_) => cognition.invalidate_after_rollback(),
+                        Err(error) => self.push_event(SessionEvent::SystemWarning(format!("Completion failed; workspace rollback also failed: {error}"))),
+                    }
+                }
+                self.record_evolution(cognition, prompt, false);
+                self.save_session();
+                Err(format!("Completion blocked: {reason}"))
+            }
         }
     }
 
@@ -1269,6 +1262,9 @@ impl AgentLoop {
 
             // 核心精锐工程工具白名单（对齐 Claude Code / Manus 黄金工程工具集）
             const ALLOWED_CORE_TOOLS: &[&str] = &[
+                "plan_task",
+                "revise_task_plan",
+                "update_task_progress",
                 "view_file",
                 "replace_in_file",
                 "write_to_file",

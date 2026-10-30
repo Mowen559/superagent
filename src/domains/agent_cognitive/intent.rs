@@ -64,7 +64,7 @@ impl DynamicIntentEngine {
         let normalized = prompt.to_lowercase();
 
         // 1. 判定核心目标
-        let goal = Self::resolve_goal(&normalized);
+        let mut goal = Self::resolve_goal(&normalized);
 
         // 2. 提取目标微服务与实体
         let target_service = Self::extract_target_service(&normalized);
@@ -72,12 +72,21 @@ impl DynamicIntentEngine {
 
         // 3. 提取否定约束与保护路径 (特别遵循不改动 common 铁律)
         let constraints = Self::extract_constraints(&normalized);
+        if constraints.read_only_mode {
+            goal = if goal == ActionGoal::ArchitectureExploration {
+                goal
+            } else {
+                ActionGoal::TargetedInvestigation
+            };
+        }
 
         // 4. 评估模糊度与信息鸿沟
-        let ambiguity_score = Self::calculate_ambiguity(&normalized, goal, &target_service);
+        let ambiguity_score =
+            Self::calculate_ambiguity(&normalized, goal, &target_service, &target_symbols);
 
         // 5. 进行自我能力盘点与主动反问点生成
-        let capability = Self::assess_capabilities(&normalized, goal, ambiguity_score, &target_service);
+        let capability =
+            Self::assess_capabilities(&normalized, goal, ambiguity_score, &target_service);
 
         DynamicIntent {
             raw_prompt: prompt.to_string(),
@@ -91,18 +100,108 @@ impl DynamicIntentEngine {
     }
 
     fn resolve_goal(norm: &str) -> ActionGoal {
-        if contains_any(norm, &["重构", "优化架构", "解耦", "refactor", "modernize", "restructure"]) {
+        if contains_any(
+            norm,
+            &[
+                "重构",
+                "优化架构",
+                "解耦",
+                "refactor",
+                "modernize",
+                "restructure",
+            ],
+        ) {
             ActionGoal::RefactoringModernization
-        } else if contains_any(norm, &["架构", "画像", "拓扑", "依赖关系", "architecture", "overview", "topology", "modules"]) {
-            ActionGoal::ArchitectureExploration
-        } else if contains_any(norm, &["排查", "调查", "诊断", "报错", "堆栈", "investigate", "diagnose", "debug", "trace"]) {
-            ActionGoal::TargetedInvestigation
-        } else if contains_any(norm, &[
-            "实现", "编写", "修改", "修复", "添加", "新增", "开发", "弄", "做", "搞", "建", "写",
-            "接口", "功能", "代码", "implement", "fix", "add", "create", "write", "build"
-        ]) {
+        } else if contains_any(
+            norm,
+            &[
+                "实现",
+                "编写",
+                "修改",
+                "修复",
+                "添加",
+                "新增",
+                "开发",
+                "弄",
+                "做",
+                "搞",
+                "建",
+                "写",
+                "进化",
+                "提升",
+                "提高",
+                "完善",
+                "优化",
+                "删除",
+                "移植",
+                "更新",
+                "implement",
+                "fix",
+                "add",
+                "create",
+                "write",
+                "build",
+                "improve",
+                "evolve",
+                "edit",
+                "change",
+                "update",
+                "remove",
+                "migrate",
+            ],
+        ) {
             ActionGoal::SurgicalExecution
-        } else if contains_any(norm, &["测试", "单测", "回归", "benchmark", "test", "verify", "f2p", "p2p"]) {
+        } else if contains_any(
+            norm,
+            &[
+                "架构",
+                "画像",
+                "拓扑",
+                "依赖关系",
+                "architecture",
+                "overview",
+                "topology",
+                "modules",
+            ],
+        ) {
+            ActionGoal::ArchitectureExploration
+        } else if contains_any(
+            norm,
+            &[
+                "排查",
+                "调查",
+                "诊断",
+                "报错",
+                "堆栈",
+                "分析",
+                "检查",
+                "查看",
+                "解释",
+                "investigate",
+                "diagnose",
+                "debug",
+                "trace",
+                "analyze",
+                "inspect",
+                "explain",
+                "review",
+            ],
+        ) {
+            ActionGoal::TargetedInvestigation
+        } else if contains_any(
+            norm,
+            &[
+                "测试",
+                "单测",
+                "回归",
+                "benchmark",
+                "test",
+                "tests",
+                "verify",
+                "f2p",
+                "p2p",
+            ],
+        ) {
             ActionGoal::VerificationBenchmark
         } else {
             ActionGoal::ClarificationDialogue
@@ -110,24 +209,10 @@ impl DynamicIntentEngine {
     }
 
     fn extract_target_service(norm: &str) -> Option<String> {
-        let services = [
-            ("engine", "engine-service"),
-            ("iam", "iam-service"),
-            ("system", "system-service"),
-            ("social", "social-service"),
-            ("media", "media-service"),
-            ("model", "model-service"),
-            ("scraper", "scraper-service"),
-            ("notification", "notification-service"),
-            ("gateway", "gateway"),
-            ("super-agent", "super-agent"),
-        ];
-        for (keyword, full_name) in &services {
-            if norm.contains(keyword) {
-                return Some(full_name.to_string());
-            }
-        }
-        None
+        // A generic word such as "model" is not evidence of a model-service.
+        norm.split(|c: char| !c.is_ascii_alphanumeric() && c != '-' && c != '_')
+            .find(|word| word.len() > "-service".len() && word.ends_with("-service"))
+            .map(str::to_string)
     }
 
     fn extract_symbols(prompt: &str) -> Vec<String> {
@@ -155,17 +240,43 @@ impl DynamicIntentEngine {
         let mut forbidden_patterns = Vec::new();
 
         // 识别否定约束：如“不要改动 common 内容”、“别动 common”、“禁止修改 common”
-        let mentions_no_common = contains_any(norm, &["不要动common", "不要改动common", "先不要改动common", "别动common", "禁止改动common", "免动common", "no common", "dont touch common"]);
-        if mentions_no_common || norm.contains("common") && contains_any(norm, &["不要", "别", "禁止", "不改", "不能"]) {
+        let mentions_no_common = contains_any(
+            norm,
+            &[
+                "不要动common",
+                "不要改动common",
+                "先不要改动common",
+                "别动common",
+                "禁止改动common",
+                "免动common",
+                "no common",
+                "dont touch common",
+            ],
+        );
+        if mentions_no_common
+            || norm.contains("common")
+                && contains_any(norm, &["不要", "别", "禁止", "不改", "不能"])
+        {
             protected_paths.push("common/".to_string());
             protected_paths.push("common".to_string());
         }
 
         if contains_any(norm, &["不要jpa", "禁止jpa", "不用jpa", "no jpa"]) {
-            forbidden_patterns.push("JPA/Hibernate (必须使用 MyBatis-Plus LambdaQueryWrapper)".to_string());
+            forbidden_patterns.push("JPA/Hibernate".to_string());
         }
 
-        let read_only_mode = contains_any(norm, &["只读", "只查不改", "只看不动", "read only", "inspect only"]);
+        let read_only_mode = contains_any(
+            norm,
+            &[
+                "只读",
+                "只查不改",
+                "只看不动",
+                "只分析",
+                "read only",
+                "read-only",
+                "inspect only",
+            ],
+        );
 
         NegativeConstraint {
             protected_paths,
@@ -174,23 +285,44 @@ impl DynamicIntentEngine {
         }
     }
 
-    fn calculate_ambiguity(norm: &str, goal: ActionGoal, target_service: &Option<String>) -> f32 {
+    fn calculate_ambiguity(
+        norm: &str,
+        goal: ActionGoal,
+        target_service: &Option<String>,
+        symbols: &[String],
+    ) -> f32 {
         let mut score: f32 = 0.0;
 
         // 若为执行类任务但字数较少，且未指明微服务或具体文件
-        if matches!(goal, ActionGoal::SurgicalExecution | ActionGoal::RefactoringModernization) {
-            if target_service.is_none() {
+        if matches!(
+            goal,
+            ActionGoal::SurgicalExecution | ActionGoal::RefactoringModernization
+        ) {
+            if target_service.is_none()
+                && symbols.is_empty()
+                && !norm.contains('/')
+                && !norm.contains('\\')
+            {
                 score += 0.4;
             }
             if norm.chars().count() < 25 {
                 score += 0.3;
             }
             // 包含明显的模糊词
-            if contains_any(norm, &["看看", "随便", "做个", "弄个", "处理一下", "优化一下", "随便写写"]) {
+            if contains_any(
+                norm,
+                &[
+                    "看看",
+                    "随便",
+                    "做个",
+                    "弄个",
+                    "处理一下",
+                    "优化一下",
+                    "随便写写",
+                ],
+            ) {
                 score += 0.3;
             }
-        } else if goal == ActionGoal::ClarificationDialogue {
-            score += 0.5;
         }
 
         score.min(1.0)
@@ -210,28 +342,29 @@ impl DynamicIntentEngine {
         ];
 
         let mut mutation = Vec::new();
-        if !contains_any(norm, &["只读", "查看", "分析", "inspect", "view"]) {
+        let is_execution = matches!(
+            goal,
+            ActionGoal::SurgicalExecution | ActionGoal::RefactoringModernization
+        );
+        if is_execution {
             mutation.push("replace_in_file".to_string());
             mutation.push("multi_replace_file_content".to_string());
             mutation.push("write_to_file".to_string());
         }
 
-        let verification = vec!["run_command".to_string(), "native_harness".to_string()];
+        let verification = vec!["verify_task_tool".to_string(), "run_command".to_string()];
 
-        let requires_user_inquiry = ambiguity_score >= 0.5;
+        let requires_user_inquiry = is_execution && ambiguity_score >= 0.5;
         let mut recommended_inquiries = Vec::new();
 
         if requires_user_inquiry {
-            // 顶尖高级工程师规范：严禁无脑背诵死板的 Java 微服务模块名，根据真实领域自适应建议
-            if let Some(svc) = target_service {
-                if svc.ends_with("-service") {
-                    recommended_inquiries.push(format!("模块确认为 {}，需确认：是否涉及跨领域事件发布或数据库表迁移？", svc));
-                } else if svc.contains("ui") || svc.contains("frontend") {
-                    recommended_inquiries.push("前端/桌面范围确认：改动涉及独立组件重构还是全局状态流 (Zustand/Store) 调整？".to_string());
-                }
-            } else {
-                // 未指定模块时，引导通过感知工具自主定位，绝不背诵无关微服务
-                recommended_inquiries.push("目标上下文较为模糊：建议直接附带报错日志、目标文件名，或由我自主调用 project_index/grep_search 进行全仓定位。".to_string());
+            if target_service.is_none() {
+                recommended_inquiries.push("先检查当前工作区，识别相关模块与现有约定；仅在仍有影响结果的分支时，询问用户期望的行为和范围。".to_string());
+            }
+            if matches!(goal, ActionGoal::SurgicalExecution) {
+                recommended_inquiries.push(
+                    "确认可观察的验收条件、兼容要求，以及现有测试能否覆盖目标行为。".to_string(),
+                );
             }
         }
 
@@ -246,7 +379,17 @@ impl DynamicIntentEngine {
 }
 
 fn contains_any(value: &str, needles: &[&str]) -> bool {
-    needles.iter().any(|needle| value.contains(needle))
+    needles.iter().any(|needle| {
+        value.match_indices(needle).any(|(start, _)| {
+            if !needle.is_ascii() {
+                return true;
+            }
+            let end = start + needle.len();
+            let is_word = |c: char| c.is_ascii_alphanumeric() || c == '_';
+            !value[..start].chars().next_back().is_some_and(is_word)
+                && !value[end..].chars().next().is_some_and(is_word)
+        })
+    })
 }
 
 #[cfg(test)]
@@ -254,12 +397,76 @@ mod tests {
     use super::*;
 
     #[test]
+    fn routes_real_objectives_without_assuming_a_framework() {
+        for (prompt, expected) in [
+            (
+                "进化superagent，对比开源的智能体，现在superagent不够智能",
+                ActionGoal::SurgicalExecution,
+            ),
+            ("继续提升这个项目", ActionGoal::SurgicalExecution),
+            ("分析当前源码", ActionGoal::TargetedInvestigation),
+            ("解释这段代码", ActionGoal::TargetedInvestigation),
+            (
+                "implement the architecture described in docs/design.md",
+                ActionGoal::SurgicalExecution,
+            ),
+            (
+                "只读分析代码，给出修复建议",
+                ActionGoal::TargetedInvestigation,
+            ),
+            ("run the tests", ActionGoal::VerificationBenchmark),
+            ("add tests for AuthHandler", ActionGoal::SurgicalExecution),
+            ("tell me the latest news", ActionGoal::ClarificationDialogue),
+            ("你好", ActionGoal::ClarificationDialogue),
+        ] {
+            let intent = DynamicIntentEngine::analyze(prompt);
+            assert_eq!(intent.goal, expected, "{prompt}");
+            let guidance = intent.capability.recommended_inquiries.join(" ");
+            assert!(!guidance.contains("BaseController"));
+            assert!(!guidance.contains("Result<T>"));
+            if matches!(
+                expected,
+                ActionGoal::TargetedInvestigation | ActionGoal::ClarificationDialogue
+            ) {
+                assert!(
+                    intent.capability.suggested_mutation_tools.is_empty(),
+                    "{prompt}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn concrete_targets_do_not_need_an_invented_microservice() {
+        let intent = DynamicIntentEngine::analyze("修复 src/model.rs 中的空指针错误");
+        assert!(intent.target_service.is_none());
+        assert!(!intent.capability.requires_user_inquiry);
+        assert_eq!(
+            DynamicIntentEngine::analyze("修改 billing-service 的接口")
+                .target_service
+                .as_deref(),
+            Some("billing-service")
+        );
+        assert!(
+            !DynamicIntentEngine::analyze("你好")
+                .capability
+                .requires_user_inquiry
+        );
+    }
+
+    #[test]
     fn test_extracts_negative_constraints_for_common() {
         let prompt = "请帮我重构一下用户鉴权逻辑，但先不要改动 common 内容，严格测试";
         let intent = DynamicIntentEngine::analyze(prompt);
 
         assert_eq!(intent.goal, ActionGoal::RefactoringModernization);
-        assert!(intent.constraints.protected_paths.iter().any(|p| p.contains("common")));
+        assert!(
+            intent
+                .constraints
+                .protected_paths
+                .iter()
+                .any(|p| p.contains("common"))
+        );
     }
 
     #[test]
@@ -279,6 +486,11 @@ mod tests {
         let intent = DynamicIntentEngine::analyze(prompt);
 
         assert_eq!(intent.goal, ActionGoal::ArchitectureExploration);
-        assert!(intent.capability.suggested_inspection_tools.contains(&"project_index".to_string()));
+        assert!(
+            intent
+                .capability
+                .suggested_inspection_tools
+                .contains(&"project_index".to_string())
+        );
     }
 }

@@ -139,17 +139,19 @@ mod tests {
     #[test]
     fn test_discover_plugins_ecosystem() {
         let mut client = McpDiscoveryClient::new();
-        let candidate_dirs = ["../packages", "packages", "../../packages"];
-        let mut found = false;
-        for dir in candidate_dirs {
-            if std::path::Path::new(dir).exists() {
-                let count = client.discover_from_plugins_dir(dir).expect("扫描插件目录应该成功");
-                assert!(count >= 4, "应该扫描到至少 4 个微内核插件，实际扫描到: {}", count);
-                found = true;
-                break;
-            }
+        let plugins = tempfile::tempdir().unwrap();
+        for (index, name) in ["hikerview-search", "ffmpeg-media-tools", "hiker-rules-manager", "crawler-engine-spider", "disabled"].iter().enumerate() {
+            let directory = plugins.path().join(name);
+            std::fs::create_dir(&directory).unwrap();
+            let manifest_name = if index % 2 == 0 { "manifest.json" } else { "deepcloud-plugin.json" };
+            let manifest = serde_json::json!({
+                "id": name,
+                "mcp": {"server": {"name": name, "command": "node", "args": ["server.cjs"], "enabled": *name != "disabled"}}
+            });
+            std::fs::write(directory.join(manifest_name), manifest.to_string()).unwrap();
         }
-        assert!(found, "至少应该找到 packages 目录");
+        std::fs::write(plugins.path().join("manifest.json"), "invalid JSON").unwrap();
+        assert_eq!(client.discover_from_plugins_dir(plugins.path()).unwrap(), 4);
         let servers = client.get_registered_servers();
         let names: Vec<&str> = servers.iter().map(|s| s.name.as_str()).collect();
         assert!(names.contains(&"hikerview-search"), "应包含 hikerview-search");

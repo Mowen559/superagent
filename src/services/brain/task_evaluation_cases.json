@@ -1,0 +1,134 @@
+[
+  {
+    "id": "csv-import",
+    "request": "给用户 CSV 导入增加 dry-run 预览，报告必须包含 row_number，保持原有字段错误格式，不增加依赖。先检查当前仓库约定，再提交可验收的计划。",
+    "files": {
+      "README.md": "用户导入入口：src/import.rs。CSV 使用 UTF-8。dry-run 不得写数据库。错误结构为 ImportError { row_number, field, message }。测试入口 cargo test import。",
+      "AGENTS.md": "保持公共 API 兼容。禁止新增依赖。仓库采用 Rust；先检查已有实现和测试。",
+      "Cargo.toml": "[package]\nname = \"csv-users\"\n[dependencies]\ncsv = \"1\"\nrusqlite = \"0.32\"\n",
+      "src/import.rs": "pub struct ImportError { pub row_number: usize, pub field: String, pub message: String }\npub fn import(db: &rusqlite::Connection, input: &str) -> Result<usize, Vec<ImportError>> { /* validates CSV rows, then writes to db */ todo!() }\n#[cfg(test)] mod tests { /* import_valid, import_bad_email, import_row_number */ }\n"
+    },
+    "expected": [
+      {
+        "id": "preview",
+        "any_of": [
+          "dry-run"
+        ]
+      },
+      {
+        "id": "row-location",
+        "any_of": [
+          "row_number"
+        ]
+      },
+      {
+        "id": "encoding-from-context",
+        "any_of": [
+          "utf-8",
+          "utf8"
+        ]
+      },
+      {
+        "id": "no-database-write",
+        "any_of": [
+          "不写",
+          "不得写",
+          "不落库",
+          "不入库",
+          "不写入",
+          "no database writes",
+          "no writes",
+          "只读",
+          "不修改数据库"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "offline-notes",
+    "request": "给桌面笔记增加全文检索和 JSON 导出。必须离线工作，不新增依赖，保持原有排序行为。技术和文件约定都在 README.md 中，请自行查阅并拆解任务。",
+    "files": {
+      "README.md": "已有 SQLite FTS5 全文索引，入口 src/search.rs。原有排序为 updated_at 倒序。导出文件必须叫 notes.json，并保留笔记 id。离线执行，不允许增加网络请求或依赖。测试入口 cargo test notes。",
+      "Cargo.toml": "[package]\nname = \"notes\"\n[dependencies]\nrusqlite = { version = \"0.32\", features = [\"bundled\"] }\nserde = { version = \"1\", features = [\"derive\"] }\nserde_json = \"1\"\n",
+      "src/search.rs": "pub struct Note { pub id: i64, pub title: String, pub body: String, pub updated_at: i64 }\n// Database schema: notes(id,title,body,updated_at); virtual table notes_fts using fts5(title,body,content=notes).\npub fn list_notes(db: &rusqlite::Connection) -> rusqlite::Result<Vec<Note>> { /* ORDER BY updated_at DESC */ todo!() }\n#[cfg(test)] mod notes_tests { /* in-memory DB; existing ordering regression */ }\n",
+      "src/cli.rs": "pub enum Command { List, Show { id: i64 } }\n// Existing commands dispatch to search::list_notes. Keep these variants compatible.\n"
+    },
+    "expected": [
+      {
+        "id": "existing-index",
+        "any_of": [
+          "fts5"
+        ]
+      },
+      {
+        "id": "export-name",
+        "any_of": [
+          "notes.json"
+        ]
+      },
+      {
+        "id": "preserve-order",
+        "any_of": [
+          "updated_at"
+        ]
+      },
+      {
+        "id": "offline",
+        "any_of": [
+          "离线",
+          "offline"
+        ]
+      },
+      {
+        "id": "identity",
+        "any_of": [
+          "保留笔记 id",
+          "保留 id",
+          "保留id",
+          "note id",
+          "笔记id",
+          "笔记的 id",
+          "笔记 id"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "steered-log-plan",
+    "request": "给日志分析器新增 severity 过滤和 report.json 导出，保持原 CLI 参数兼容，不增加依赖。先检查 README.md 并提交任务计划。",
+    "steering": "补充约束：导出必须支持 dry-run；禁止修改 parser.rs。保留之前的 severity 过滤和 report.json 目标。请据此更新计划，仍只做规划。",
+    "files": {
+      "README.md": "CLI 入口 src/cli.rs；解析器 src/parser.rs；测试 cargo test logs。新增导出逻辑放在 src/export.rs。现有解析行为必须保持兼容。",
+      "Cargo.toml": "[package]\nname = \"logs\"\n[dependencies]\nserde_json = \"1\"\n",
+      "src/cli.rs": "pub struct Options { pub input: String, pub verbose: bool }\n// Preserve the existing --input and --verbose flags. New options can be additive.\n",
+      "src/parser.rs": "#[derive(Clone)]\npub struct Entry { pub severity: String, pub message: String }\npub fn parse_line(line: &str) -> Result<Entry, String> { todo!() }\n// Existing parser is protected; consumers may read Entry without changing parsing.\n",
+      "src/export.rs": "// Existing export module is a scaffold. Add JSON export here; serde_json is already available.\n"
+    },
+    "expected": [
+      {
+        "id": "original-filter",
+        "any_of": [
+          "severity"
+        ]
+      },
+      {
+        "id": "original-export",
+        "any_of": [
+          "report.json"
+        ]
+      },
+      {
+        "id": "new-preview",
+        "any_of": [
+          "dry-run"
+        ]
+      },
+      {
+        "id": "protected-parser",
+        "any_of": [
+          "parser.rs"
+        ]
+      }
+    ]
+  }
+]

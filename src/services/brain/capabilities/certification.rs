@@ -92,6 +92,12 @@ impl CertificationGatekeeper {
                 CapabilityState::Experimental,
                 "Candidate strategies require repeated successful Runs before promotion",
             ),
+            (
+                "agent.task-understanding",
+                "Context-first requirement understanding and dependency-aware task contracts",
+                CapabilityState::Experimental,
+                "Run-local receipt gates, atomic versioned additive revisions with retained evidence, and bounded synthetic planning evaluations; real implementation success remains unmeasured",
+            ),
         ];
         for (name, description, state, evidence) in builtins {
             gatekeeper.register(CapabilityMetadata {
@@ -157,5 +163,9 @@ mod tests {
             Some(CapabilityState::Certified)
         );
         assert!(!catalog.is_allowed("unknown.capability"));
+        assert_eq!(
+            catalog.get_state("agent.task-understanding"),
+            Some(CapabilityState::Experimental)
+        );
     }
 }
