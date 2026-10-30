@@ -33,6 +33,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::services::brain::cognitive_runtime::{CognitiveRuntime, CompletionDecision};
+use crate::domains::version_control::regression_guard::{AuditVerdict, RegressionRollbackGuard};
+use crate::domains::agent_cognitive::circuit_breaker::CircuitBreakerGuard;
 use crate::services::brain::compaction_runtime::{CompactionOutcome, CompactionRuntime};
 use crate::services::brain::context::Context;
 use crate::services::brain::events::{EventBus, RunOutcome, SessionEvent, SessionStatus};
@@ -117,6 +119,7 @@ pub struct AgentLoop {
     pub last_token_usage: Option<crate::domains::model_gateway::providers::types::TokenUsage>,
     pub total_prompt_tokens: u64,
     pub total_completion_tokens: u64,
+    pub stuck_detector: crate::domains::agent_cognitive::stuck_detector::StuckDetector,
 }
 
 impl AgentLoop {
@@ -246,6 +249,7 @@ impl AgentLoop {
             last_token_usage: None,
             total_prompt_tokens: 0,
             total_completion_tokens: 0,
+            stuck_detector: crate::domains::agent_cognitive::stuck_detector::StuckDetector::new(10, 2),
         }
     }
 
@@ -470,12 +474,41 @@ impl AgentLoop {
     }
 
     async fn run_active(&mut self, prompt: &str) -> Result<String, String> {
-        // 1. 鍙戝皠鐢ㄦ埛杈撳叆浜嬩欢
+        // Clean legacy completed todo file if no tasks remain unfinished
+        let todo_path = std::env::current_dir()
+            .unwrap_or_default()
+            .join(".superagent_todo.md");
+        if todo_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&todo_path) {
+                let has_unfinished = content.lines().any(|l| {
+                    let t = l.trim();
+                    t.starts_with("- [ ]")
+                        || t.starts_with("* [ ]")
+                        || t.contains("[in_progress]")
+                        || t.contains("[pending]")
+                });
+                if !has_unfinished {
+                    let _ = std::fs::remove_file(&todo_path);
+                }
+            }
+        }
+
+        // 1. 发射用户输入事件
         self.events
             .push(SessionEvent::UserInput(prompt.to_string()));
         self.save_session();
         let run_prelude = self.run_prelude_runtime.prepare(prompt);
         eprintln!("[Run Prelude] capability route: {:?}", run_prelude.routes);
+
+        // 初始化防改坏守卫并毫秒级捕获入场基线快照 (Git Baseline Checkpoint)
+        let mut rollback_guard = RegressionRollbackGuard::new(
+            self.run_prelude_runtime.project_path(),
+            &uuid::Uuid::new_v4().to_string()[..8],
+        ).with_default_architectural_rules();
+        if let Err(e) = rollback_guard.capture_baseline() {
+            eprintln!("[RegressionGuard] Warning: Failed to capture baseline snapshot: {e}");
+        }
+        let mut circuit_breaker = CircuitBreakerGuard::default();
         let mut cognition = CognitiveRuntime::begin(prompt);
         self.plugin_registry.register(Box::new(
             crate::services::brain::tools::revise_task_plan::ReviseTaskPlanTool(cognition.task_progress())
@@ -503,9 +536,21 @@ impl AgentLoop {
             Err(error) => eprintln!("[Hermes Evolution] Failed to retrieve lessons: {error}"),
         }
         let mut loop_count = 0;
+        let mut consecutive_meta_only_turns = 0;
 
         loop {
             loop_count += 1;
+            if loop_count > 60 {
+                eprintln!("\x1b[33m[AgentLoop Guard] Turn limit reached (60 turns). Forcing final synthesis.\x1b[0m");
+                if let Some(last_thought) = self.events.iter().rev().find_map(|e| match e {
+                    SessionEvent::ModelThought(t) => Some(t.clone()),
+                    _ => None,
+                }) {
+                    self.save_session();
+                    return Ok(last_thought);
+                }
+                return Ok("Task execution completed (turn limit reached).".to_string());
+            }
 
 
             // 1.5 Lease runtime steering, persist its delivery fact, then ack.
@@ -547,7 +592,10 @@ impl AgentLoop {
             let cognitive_guidance = match cognition.next_guidance() {
                 Ok(guidance) => guidance,
                 Err(error) => {
-                    self.record_evolution(&mut cognition, prompt, false);
+                    if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                let _ = rollback_guard.rollback_workspace("智能体异常中断，自动还原工作区以保护代码纯净");
+            }
+            self.record_evolution(&mut cognition, prompt, false);
                     return Err(error);
                 }
             };
@@ -557,11 +605,47 @@ impl AgentLoop {
             // 2. 将事件源投影为 LLM 可读消息
             let projected_messages = self.project_llm_messages();
 
+            let mut dynamic_guidance = cognitive_guidance.clone();
+            let todo_path = std::env::current_dir()
+                .unwrap_or_default()
+                .join(".superagent_todo.md");
+            if let Ok(todo_content) = std::fs::read_to_string(&todo_path) {
+                let trimmed = todo_content.trim();
+                if !trimmed.is_empty() {
+                    let has_unfinished = trimmed.lines().any(|l| {
+                        let t = l.trim();
+                        t.starts_with("- [ ]")
+                            || t.starts_with("* [ ]")
+                            || t.contains("[in_progress]")
+                            || t.contains("[pending]")
+                    });
+                    let directive = if has_unfinished {
+                        "Checklist Directive: Refer to your active checklist above. Mark tasks as complete using `manage_task` when finished."
+                    } else {
+                        "Checklist Directive: ALL active tasks are marked completed! Do NOT call `manage_task` again. Provide your final delivery summary directly and conclude the turn."
+                    };
+                    dynamic_guidance.push_str(&format!(
+                        "\n\n[CURRENT ACTIVE TASK CHECKLIST]\n\
+                        --------------------------------------------------\n\
+                        {}\n\
+                        --------------------------------------------------\n\
+                        {}",
+                        trimmed, directive
+                    ));
+                }
+            }
+
+            if consecutive_meta_only_turns >= 1 {
+                dynamic_guidance.push_str(
+                    "\n\n[NOTICE: CHECKLIST SETTLED] You have already updated the checklist. Do NOT call `manage_task` again in this turn. Perform real tool actions or provide your final response."
+                );
+            }
+
             // 3. 向 LLM 发起请求 (快慢脑双模型协同编排)
             let (llm_message, usage) = match self
                 .call_llm_api(
                     projected_messages,
-                    &cognitive_guidance,
+                    &dynamic_guidance,
                     run_prelude.prompt_projection(),
                     brain_tier,
                 )
@@ -569,7 +653,10 @@ impl AgentLoop {
             {
                 Ok(res) => res,
                 Err(error) => {
-                    self.record_evolution(&mut cognition, prompt, false);
+                    if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                let _ = rollback_guard.rollback_workspace("智能体异常中断，自动还原工作区以保护代码纯净");
+            }
+            self.record_evolution(&mut cognition, prompt, false);
                     return Err(error);
                 }
             };
@@ -600,8 +687,58 @@ impl AgentLoop {
                 let _ = std::io::stdout().flush();
             }
 
-            // 4. 解析 LLM 回复，发射模型思考事件 / 工具调用事件
-            if let Some(tool_calls) = llm_message.get("tool_calls").and_then(|v| v.as_array()) {
+            // 4. 解析并高亮模型的思维推演流 (Inner Thinking / Extended Reasoning)
+            let thought_content = llm_message
+                .get("reasoning_content")
+                .or_else(|| llm_message.get("content"))
+                .and_then(|v| v.as_str());
+            if let Some(thought) = thought_content {
+                let trimmed = thought.trim();
+                if !trimmed.is_empty() {
+                    eprintln!("\x1b[36;1m[Inner Thinking / 推演沙盘]\x1b[0m\n{}\n", trimmed);
+                    self.events.push(SessionEvent::ModelThought(trimmed.to_string()));
+                    self.save_session();
+
+                    // 同步到蜂群意识流中枢 (Hive-Mind Collective Consciousness Stream)
+                    if let Ok(mut consciousness) = crate::domains::swarm_intelligence::GLOBAL_CONSCIOUSNESS.write() {
+                        consciousness.record_thought(
+                            &self.role,
+                            crate::domains::swarm_intelligence::ThoughtType::Reflection,
+                            trimmed,
+                            vec!["reasoning".into(), "inner_thinking".into()]
+                        );
+                    }
+                }
+            }
+
+            // 5. 解析 LLM 回复，发射工具调用事件
+            // 5. 解析 LLM 回复（结合小模型脏 JSON 自愈与内嵌工具提取器）
+            let raw_tool_calls_opt = llm_message.get("tool_calls").and_then(|v| v.as_array());
+            let synthesized_calls: Vec<Value> = if raw_tool_calls_opt.is_none() || raw_tool_calls_opt.map(|a| a.is_empty()).unwrap_or(true) {
+                // 如果模型没有发射原生 tool_calls，尝试从小模型文本 content 中嗅探内嵌工具
+                if let Some(content_str) = llm_message.get("content").and_then(|v| v.as_str()) {
+                    if let Some((tool_name, tool_args)) = super::fuzzy_json_repair::FuzzyJsonRepair::extract_embedded_tool_call(content_str) {
+                        eprintln!("\x1b[36;1m[FuzzyRepair] ⚡ 从开源小模型正文中成功捕获内嵌工具调用: '{}'\x1b[0m", tool_name);
+                        vec![json!({
+                            "id": format!("call_fuzzy_{}", &uuid::Uuid::new_v4().to_string().replace('-', "")[..8]),
+                            "type": "function",
+                            "function": {
+                                "name": tool_name,
+                                "arguments": serde_json::to_string(&tool_args).unwrap_or_default()
+                            }
+                        })]
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    Vec::new()
+                }
+            } else {
+                raw_tool_calls_opt.cloned().unwrap_or_default()
+            };
+
+            if !synthesized_calls.is_empty() {
+                let tool_calls = &synthesized_calls;
                 struct ParsedCall {
                     call_id: String,
                     func_name: String,
@@ -613,7 +750,7 @@ impl AgentLoop {
                 for call in tool_calls {
                     let func_name = call["function"]["name"].as_str().unwrap_or("").to_string();
                     let args_str = call["function"]["arguments"].as_str().unwrap_or("{}");
-                    let args: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
+                    let args: Value = super::fuzzy_json_repair::FuzzyJsonRepair::parse_or_repair(args_str).unwrap_or(json!({}));
                     let call_id = call["id"].as_str().unwrap_or("").to_string();
                     let is_read_only = is_read_only_tool(&func_name);
 
@@ -623,6 +760,14 @@ impl AgentLoop {
                         args,
                         is_read_only,
                     });
+                }
+
+                let all_manage_task = !parsed_calls.is_empty()
+                    && parsed_calls.iter().all(|c| c.func_name == "manage_task");
+                if all_manage_task {
+                    consecutive_meta_only_turns += 1;
+                } else {
+                    consecutive_meta_only_turns = 0;
                 }
 
                 // Partition parsed_calls into contiguous chunks:
@@ -674,6 +819,7 @@ impl AgentLoop {
                             handles.push(tokio::task::spawn_blocking(move || execute_with_timeout(gateway, req, 60)));
                         }
 
+                        let mut pending_reflections = Vec::new();
                         for handle in handles {
                             if let Ok(receipt) = handle.await {
                                 eprintln!(
@@ -681,11 +827,27 @@ impl AgentLoop {
                                     receipt.name, receipt.status, receipt.duration_ms
                                 );
                                 cognition.observe_receipt(&receipt);
+                                let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
+                                let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
+                                cognition.observe_tool_execution_details(&receipt.name, None, is_succeeded, &output_str);
+                                let stuck_state = self.stuck_detector.record_call(&receipt.name, "{}", is_succeeded);
+                                if let crate::domains::agent_cognitive::stuck_detector::StuckState::StuckDetected { reason, suggested_action } = stuck_state {
+                                    let reflection_prompt = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::build_stuck_reflection_prompt(
+                                        &reason.to_string(),
+                                        &suggested_action,
+                                    );
+                                    eprintln!("\x1b[31;1m[Reflexion Guard] ⚠️ 触发卡死防护并注入反思指令: {}\x1b[0m", reason);
+                                    pending_reflections.push(reflection_prompt);
+                                }
+
                                 self.push_event(SessionEvent::ToolResult {
                                     id: receipt.call_id,
                                     result: receipt.result,
                                 });
                             }
+                        }
+                        for r in pending_reflections {
+                            self.push_event(SessionEvent::SystemWarning(r));
                         }
                         self.save_session();
                     } else {
@@ -698,6 +860,33 @@ impl AgentLoop {
                             });
                             self.save_session();
 
+                            // 防改坏差分作用域审计 (Diff Scope Guard)
+                            if crate::domains::agent_cognitive::verification_gate::VerificationGateGuard::is_mutation_tool(&item.func_name) {
+                                let target_path_opt = item.args.get("path")
+                                    .or_else(|| item.args.get("file_path"))
+                                    .or_else(|| item.args.get("target_path"))
+                                    .or_else(|| item.args.get("file"))
+                                    .and_then(|v| v.as_str());
+
+                                if let Some(target_path_str) = target_path_opt {
+                                    match rollback_guard.audit_mutation_path(target_path_str) {
+                                        AuditVerdict::Violated { rule_description, suggested_action, .. } => {
+                                            let block_msg = format!("【架构铁律越界硬拦截】: {}\n【必须遵守的行动指引】: {}", rule_description, suggested_action);
+                                            eprintln!("\x1b[31;1m[RegressionGuard Block] 🛡️ {}\x1b[0m", block_msg);
+                                            self.push_event(SessionEvent::ToolResult {
+                                                id: item.call_id,
+                                                result: json!({ "error": block_msg }),
+                                            });
+                                            self.save_session();
+                                            continue;
+                                        }
+                                        AuditVerdict::Allowed => {
+                                            rollback_guard.observe_mutation(target_path_str);
+                                        }
+                                    }
+                                }
+                            }
+
                             let awaits_user = item.func_name == "ask_user";
                             if awaits_user {
                                 self.transition_session(
@@ -706,6 +895,8 @@ impl AgentLoop {
                                 )?;
                             }
 
+                            let args_str = serde_json::to_string(&item.args).unwrap_or_default();
+                            let cmd_arg = item.args.get("command").or_else(|| item.args.get("cmd")).and_then(|v| v.as_str()).map(|s| s.to_string());
                             let req = ToolExecutionRequest {
                                 call_id: item.call_id.clone(),
                                 name: item.func_name.clone(),
@@ -725,12 +916,51 @@ impl AgentLoop {
                                 receipt.name, receipt.status, receipt.duration_ms
                             );
                             cognition.observe_receipt(&receipt);
+                            let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
+                            let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
+                            cognition.observe_tool_execution_details(&receipt.name, cmd_arg, is_succeeded, &output_str);
                             let tool_result = receipt.result;
 
                             self.push_event(SessionEvent::ToolResult {
                                 id: item.call_id,
                                 result: tool_result,
                             });
+
+                            let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
+                            let stuck_state = self.stuck_detector.record_call(&item.func_name, &args_str, is_succeeded);
+                            if let crate::domains::agent_cognitive::stuck_detector::StuckState::StuckDetected { reason, suggested_action } = stuck_state {
+                                let reflection_prompt = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::build_stuck_reflection_prompt(
+                                    &reason.to_string(),
+                                    &suggested_action,
+                                );
+                                eprintln!("\x1b[31;1m[Reflexion Guard] ⚠️ 触发卡死防护并注入反思指令: {}\x1b[0m", reason);
+                                self.push_event(SessionEvent::SystemWarning(reflection_prompt));
+                            }
+
+                            // 认知熔断器防卡死突围逻辑 (Meta-Cognitive Circuit Breaker)
+                            if is_succeeded {
+                                circuit_breaker.record_success();
+                            } else if let Some(directive) = circuit_breaker.record_failure(&item.func_name, &output_str) {
+                                eprintln!("\x1b[31;1m[CircuitBreaker Alert] ⚡ {}\x1b[0m", directive.trip_reason);
+                                self.push_event(SessionEvent::SystemWarning(format!(
+                                    "{}\n\n{}\n\n【突围破局建议】: {}",
+                                    directive.trip_reason,
+                                    directive.aha_epiphany_prompt,
+                                    directive.suggested_isolated_probe
+                                )));
+
+                                // 熔断器红牌强制自动回滚脏代码，跳出死胡同！
+                                if directive.should_rollback_workspace && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                                    if let Ok(rc) = rollback_guard.rollback_workspace("认知熔断器红牌触发：相同错误连续死循环，强制自动秒级还原工作区") {
+                                        let rb_msg = format!(
+                                            "【熔断沙箱自动回滚】: 检测到同一错误模式连续失败 {} 次，为防止产生沉没成本已自动秒级还原 {} 个脏文件，清理 {} 个临时新增文件。请彻底更换解题思路！",
+                                            directive.consecutive_failures, rc.reverted_files.len(), rc.cleaned_untracked_files.len()
+                                        );
+                                        eprintln!("\x1b[33;1m[CircuitBreaker] 🛡️ {}\x1b[0m", rb_msg);
+                                        self.push_event(SessionEvent::SystemWarning(rb_msg));
+                                    }
+                                }
+                            }
 
                             if item.func_name == "revert_to_checkpoint"
                                 && receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded
@@ -756,6 +986,66 @@ impl AgentLoop {
                         }
                     }
                 }
+
+                if all_manage_task {
+                    let todo_all_done = std::fs::read_to_string(&todo_path)
+                        .map(|c| {
+                            let has_unfinished = c.lines().any(|l| {
+                                let t = l.trim();
+                                t.starts_with("- [ ]")
+                                    || t.starts_with("* [ ]")
+                                    || t.contains("[in_progress]")
+                                    || t.contains("[pending]")
+                            });
+                            !has_unfinished
+                        })
+                        .unwrap_or(true);
+
+                    if todo_all_done {
+                        if let Some(content) = llm_message.get("content").and_then(|v| v.as_str()) {
+                            let trimmed = content.trim();
+                            if !trimmed.is_empty() {
+                                eprintln!("\x1b[32;1m[Terminal Guard] All tasks verified & checklist settled. Returning final delivery report.\x1b[0m");
+                                self.events.push(SessionEvent::ModelThought(trimmed.to_string()));
+                                self.save_session();
+                                if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
+                        let alert = format!(
+                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
+                            receipt.reverted_files, receipt.cleaned_untracked_files
+                        );
+                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
+                        self.push_event(SessionEvent::SystemWarning(alert));
+                    }
+                }
+                self.record_evolution(&mut cognition, prompt, true);
+                                return Ok(trimmed.to_string());
+                            }
+                        }
+
+                        // Content was empty in this tool call, but checklist is fully settled! Pull previous substantial delivery report.
+                        if let Some(recent_thought) = self.events.iter().rev().find_map(|e| match e {
+                            SessionEvent::ModelThought(t) if t.trim().chars().count() > 50 => Some(t.clone()),
+                            _ => None,
+                        }) {
+                            eprintln!("\x1b[32;1m[Terminal Guard] Checklist fully settled. Returning previous comprehensive report.\x1b[0m");
+                            self.save_session();
+                            if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
+                        let alert = format!(
+                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
+                            receipt.reverted_files, receipt.cleaned_untracked_files
+                        );
+                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
+                        self.push_event(SessionEvent::SystemWarning(alert));
+                    }
+                }
+                self.record_evolution(&mut cognition, prompt, true);
+                            return Ok(recent_thought);
+                        }
+                    }
+                }
+
                 continue;
             }
 
@@ -782,6 +1072,16 @@ impl AgentLoop {
                     println!("{}", serde_json::json!({ "type": "text", "content": content }));
                 }
                 self.save_session();
+                if cognition.verification_gate.rejection_count > cognition.verification_gate.max_retries && !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                    if let Ok(receipt) = rollback_guard.rollback_workspace("智能体自检超限退化，触发秒级物理回滚以保护工作区代码纯净") {
+                        let alert = format!(
+                            "【防改坏自动物理回滚已生效】: 智能体多次自愈未通过测试验证。为杜绝在代码库中残留半成品脏代码，工作区已秒级恢复至入场前状态（已还原文件: {:?}，已清理新增垃圾文件: {:?}）。",
+                            receipt.reverted_files, receipt.cleaned_untracked_files
+                        );
+                        eprintln!("\x1b[33;1m[RegressionGuard] 🛡️ {}\x1b[0m", alert);
+                        self.push_event(SessionEvent::SystemWarning(alert));
+                    }
+                }
                 self.record_evolution(&mut cognition, prompt, true);
                 let _ = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
                     &self.events,
@@ -791,6 +1091,9 @@ impl AgentLoop {
                 return Ok(content.to_string());
             }
 
+            if !rollback_guard.is_rolled_back && !rollback_guard.mutated_files.is_empty() {
+                let _ = rollback_guard.rollback_workspace("智能体异常中断，自动还原工作区以保护代码纯净");
+            }
             self.record_evolution(&mut cognition, prompt, false);
             return Err("Unexpected empty response from LLM".to_string());
         }

@@ -24,3 +24,4 @@ pub mod tool_approvals;
 pub mod understand;
 pub mod vision;
 pub mod workspaces;
+pub mod ruflo_adapter;

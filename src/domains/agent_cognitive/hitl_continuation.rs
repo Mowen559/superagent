@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use std::path::Path;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::domains::version_control::diff_transaction::{is_path_in_sandbox, ApprovalPayload};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ApprovalStatus {
@@ -18,6 +20,8 @@ pub struct PendingApprovalRequest {
     pub risk_reason: String,
     pub created_at: i64,
     pub status: ApprovalStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diff_payload: Option<ApprovalPayload>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,8 +68,34 @@ impl HitlContinuationEngine {
         None
     }
 
-    /// 挂起 Tool 执行并创建 Pause and Wait 状态与 Approval Token
+    /// 检查对目标工作区文件的修改是否需要触发人类审批（沙箱外生产规则/源码修改）
+    pub fn is_sensitive_workspace_mutation(&self, tool_name: &str, target_path: &Path) -> bool {
+        let name_lower = tool_name.to_lowercase();
+        let is_mutation = matches!(
+            name_lower.as_str(),
+            "write_to_file" | "write_file" | "replace_in_file" | "multi_replace_file_content"
+        );
+        if !is_mutation {
+            return false;
+        }
+
+        // 沙箱白名单目录允许全自动执行，生产/全局路径强制触发审批阻断
+        !is_path_in_sandbox(target_path)
+    }
+
+    /// 挂起 Tool 执行并创建 Pause and Wait 状态与 Approval Token（基础版）
     pub fn pause_for_approval(&self, tool_name: &str, tool_args: &str, risk_reason: &str) -> PendingApprovalRequest {
+        self.pause_for_approval_with_diff(tool_name, tool_args, risk_reason, None)
+    }
+
+    /// 挂起 Tool 执行并附带行级 Git 红绿 Diff 审批载荷（专为前端 Diff 抽屉打造）
+    pub fn pause_for_approval_with_diff(
+        &self,
+        tool_name: &str,
+        tool_args: &str,
+        risk_reason: &str,
+        diff_payload: Option<ApprovalPayload>,
+    ) -> PendingApprovalRequest {
         let token = format!("approval-{}", Uuid::new_v4());
         let request = PendingApprovalRequest {
             token: token.clone(),
@@ -74,6 +104,7 @@ impl HitlContinuationEngine {
             risk_reason: risk_reason.to_string(),
             created_at: chrono::Utc::now().timestamp(),
             status: ApprovalStatus::Pending,
+            diff_payload,
         };
 
         let mut lock = self.pending_approvals.write().unwrap();
@@ -121,6 +152,7 @@ impl HitlContinuationEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn test_destructive_op_detection() {
@@ -144,5 +176,18 @@ mod tests {
             }
             _ => panic!("Expected ResumeExecution"),
         }
+    }
+
+    #[test]
+    fn test_sandbox_path_mutation_policy() {
+        let engine = HitlContinuationEngine::new();
+
+        // 位于沙箱路径内的写操作不需要强制审批
+        let sandbox_file = PathBuf::from("C:/Users/test/.deepcloud/workspace/reverse/task_1/spider.js");
+        assert!(!engine.is_sensitive_workspace_mutation("write_to_file", &sandbox_file));
+
+        // 生产规则或系统源码必须强制审批阻断
+        let prod_file = PathBuf::from("D:/deepcloud/system-service/spider_rules/hiker.js");
+        assert!(engine.is_sensitive_workspace_mutation("write_to_file", &prod_file));
     }
 }

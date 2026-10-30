@@ -37,3 +37,4 @@ pub mod tools;
 pub mod topology_graph;
 pub mod worker;
 pub mod architectural_linter;
+pub mod session_checkpoint_store;

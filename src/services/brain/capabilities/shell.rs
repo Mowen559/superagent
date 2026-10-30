@@ -99,6 +99,21 @@ impl ShellService for LocalShellProvider {
 
         eprintln!("[LocalShellProvider] Executing command: {}", cmd);
 
+        // Windows 环境下消除 PowerShell 常见别名坑 (curl -> Invoke-WebRequest 挂起问题)
+        let normalized_cmd = if cfg!(target_os = "windows") {
+            let trimmed = cmd.trim_start();
+            let safe_cmd = if trimmed.starts_with("curl ") {
+                format!("curl.exe {}", &trimmed[5..])
+            } else if trimmed == "curl" {
+                "curl.exe".to_string()
+            } else {
+                cmd.to_string()
+            };
+            format!("$ProgressPreference = 'SilentlyContinue'; {}", safe_cmd)
+        } else {
+            cmd.to_string()
+        };
+
         let mut command = std::process::Command::new(if cfg!(target_os = "windows") {
             "powershell"
         } else {
@@ -110,7 +125,7 @@ impl ShellService for LocalShellProvider {
             } else {
                 "-c"
             })
-            .arg(cmd);
+            .arg(&normalized_cmd);
         command.current_dir(cwd);
         command.stdin(std::process::Stdio::piped());
         command.stdout(std::process::Stdio::piped());

@@ -73,6 +73,14 @@ impl LlmProvider {
         Self { settings, client, model_override: None, purpose: None, fixed_settings: true }
     }
 
+    /// 根据蜂群角色（如 coordinator, coder, reviewer, tester, spider_copilot）自动构建专属模型网关实例
+    pub fn for_swarm_role(client: reqwest::Client, role_name: &str) -> Self {
+        let settings = llm_settings::read_llm_settings();
+        let model = settings.resolved_role_model(role_name);
+        Self::with_model_override(client, Some(model))
+            .with_purpose(format!("swarm:{}", role_name))
+    }
+
     fn effective_settings(&self) -> LLMSettings {
         let mut settings = if self.fixed_settings { self.settings.clone() } else { llm_settings::read_llm_settings() };
         if let Some(model) = &self.model_override {
@@ -99,6 +107,54 @@ impl LlmProvider {
         !ModelRouteRuntime::default()
             .plan(&self.settings, &self.settings.model, &[])
             .is_empty()
+    }
+
+    pub fn set_model(&mut self, model: &str) {
+        let trimmed = model.trim();
+        if !trimmed.is_empty() {
+            self.model_override = Some(trimmed.to_string());
+            self.settings.model = trimmed.to_string();
+        }
+    }
+
+    pub fn current_model(&self) -> &str {
+        self.model_override.as_deref().unwrap_or(&self.settings.model)
+    }
+
+    pub fn set_temperature(&mut self, temp: f64) {
+        self.settings.temperature = temp.clamp(0.0, 2.0);
+    }
+
+    pub fn current_temperature(&self) -> f64 {
+        self.settings.temperature
+    }
+
+    pub fn provider_name(&self) -> &str {
+        if !self.settings.provider.is_empty() {
+            &self.settings.provider
+        } else {
+            "default"
+        }
+    }
+
+    pub fn list_configured_models(&self) -> Vec<String> {
+        let mut list = Vec::new();
+        for acc in &self.settings.accounts {
+            for m in &acc.models {
+                if !list.contains(m) {
+                    list.push(m.clone());
+                }
+            }
+        }
+        if !list.contains(&self.settings.model) && !self.settings.model.is_empty() {
+            list.push(self.settings.model.clone());
+        }
+        if let Some(ref fast) = self.settings.fast_model {
+            if !list.contains(fast) && !fast.is_empty() {
+                list.push(fast.clone());
+            }
+        }
+        list
     }
 
     /// Send a chat completion request with Tool schemas

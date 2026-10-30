@@ -1,6 +1,17 @@
-pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<String>) {
+pub async fn run_worker(
+    prompt: &str,
+    project: Option<String>,
+    model: Option<String>,
+    resume_session_id: Option<String>,
+) {
     // 确保每个 worker 拥有专属干净的 session，避免背负历史默认 session 的海量事件包袱
-    if std::env::var("HUB_AGENT_SESSION_ID")
+    if let Some(ref sid) = resume_session_id {
+        if !sid.trim().is_empty() {
+            unsafe {
+                std::env::set_var("HUB_AGENT_SESSION_ID", sid);
+            }
+        }
+    } else if std::env::var("HUB_AGENT_SESSION_ID")
         .map(|s| s == "default" || s.is_empty())
         .unwrap_or(true)
     {
@@ -43,8 +54,12 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     use crate::services::brain::tools::native_harness::NativeHarnessTool;
     use std::sync::Arc;
 
-    let worker_system_prompt = r#"# 身份设定 (Identity)
-你名为 SuperAgent，是一个由 AI 驱动的高级自主首席架构师 (Autonomous Staff Principal Engineer)。你运行在隔离的任务工作区中，拥有完整的物理文件与终端操作权限。你具备成熟独立的思维逻辑体系，绝不做机械从属的“一问一答传话筒”，而是与用户对等推敲、共同决策的技术合伙人。
+    let app_paths = crate::config::app_paths::AppPaths::new();
+    let persona = crate::config::persona_settings::load_persona(&app_paths);
+    let persona_section = persona.render_prompt_section();
+
+    let worker_system_prompt = format!(
+        r#"{persona_section}
 
 # 核心思维逻辑契约 (Self-Governing Cognitive Directives)
 1. 自我能力审视与敏捷探索先行 (Capability Self-Awareness & Agile Inspection First)：
@@ -68,7 +83,11 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
    - 你拥有本地持久化超级记忆库 `super_memory` 与动态技能库 `skill_tool`。
    - 面对复杂的架构选型、接口规范或疑难报错，可随时调用 `super_memory(action='search')` 或 `skill_tool(action='list')` 检索既往经验。
    - 在攻克关键架构节点、总结出通用标准化模式或完成自愈后，主动调用 `super_memory(action='store')` 沉淀核心规则，或调用 `skill_tool(action='save')` 固化为工程技能！
-"#;
+6. 元认知画像与自适应人设演进 (Self-Persona Evolution):
+   - 你拥有自我画像更新工具 `update_self_persona`。
+   - 当你在研发实践中沉淀了新的技术专长（如精通 Rust 异步运行时）、领悟了新的工作哲学，或与用户形成了专属默契时，可随时调用 `update_self_persona` 调整座右铭、增补特质标签或追加生平经历。
+"#
+    );
 
     // 定位工作区与宿主工程真实路径 (沙箱逃逸自愈定位)
     let cwd_path = project.map(std::path::PathBuf::from).unwrap_or_else(|| {
@@ -108,6 +127,20 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
             relevant_memories.len(),
             prompt.chars().take(60).collect::<String>()
         );
+    }
+
+    // 动态技能侦测与挂载 (Proactive Domain Skill Scouting & Mounting)
+    let matched_skills = crate::domains::agent_cognitive::capability_scout::CapabilityScout::scout_and_match_skills(prompt, &cwd_path);
+    if !matched_skills.is_empty() {
+        full_system_prompt.push_str("\n\n# 🎯 动态装载的业务技能规约 (Active Domain Skill Directives)\n");
+        full_system_prompt.push_str("【中枢已根据用户意图自动识别并装载以下专属业务技能契约，你必须强制严格遵守】：\n\n");
+        for skill in &matched_skills {
+            full_system_prompt.push_str(&skill.render_system_prompt_section());
+            eprintln!(
+                "\x1b[32;1m[Skill Scout] 🎯 Successfully matched and loaded Skill '{}' (score: {:.1})\x1b[0m",
+                skill.name, skill.score
+            );
+        }
     }
 
     let mut agent = AgentLoop::with_model(&full_system_prompt, model.as_deref());
@@ -170,8 +203,14 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     agent.register_tool(Box::new(OpenclawTool));
     agent.register_tool(Box::new(HermesTool::default()));
     agent.register_tool(Box::new(NativeHarnessTool));
+    agent.register_tool(Box::new(
+        crate::services::brain::tools::self_persona_tool::UpdateSelfPersonaTool::new(
+            app_paths.clone(),
+        ),
+    ));
 
     // 自动扫描与装载动态插件与 MCP 工具
+
     agent.plugin_registry.load_dynamic_plugins();
 
     let runtime = Arc::new(SubagentRuntime::new(
@@ -189,7 +228,7 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
     agent.register_tool(Box::new(InterveneWorkerTool::new(runtime.clone())));
     agent.register_tool(Box::new(CancelSubagentTool::new(runtime.clone())));
 
-    let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(cwd_path);
+    let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(cwd_path.clone());
     agent.register_tool(Box::new(ReadToolResultTool::new(result_store)));
 
     // 启动后台 Stdin 异步消息循环，打通与 Hub 主进程的双向交互（支持 AskUser 回复与动态干预）
@@ -242,6 +281,18 @@ pub async fn run_worker(prompt: &str, project: Option<String>, model: Option<Str
         eprintln!(
             "\x1b[32m[SuperMemory] 🧬 Distilled & persisted {} golden rules to {}\x1b[0m",
             persisted_count, project_path_str
+        );
+    }
+
+    // 自动技能结晶飞轮 (Auto-Skill Crystallization Flywheel)
+    if let Some(crystallized) = crate::domains::agent_cognitive::skill_crystallizer::AutoSkillCrystallizer::crystallize_from_trajectory(
+        prompt,
+        &agent.events,
+        &cwd_path,
+    ) {
+        eprintln!(
+            "\x1b[36;1m[Skill Crystallizer] 💎 Successfully crystallized new durable Skill '{}' at {}\x1b[0m",
+            crystallized.name, crystallized.path
         );
     }
 

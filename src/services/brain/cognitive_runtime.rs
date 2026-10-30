@@ -1,6 +1,7 @@
 use crate::domains::agent_cognitive::intent::{ActionGoal, DynamicIntent, DynamicIntentEngine};
 pub use crate::domains::model_gateway::model_attempt_router::BrainTier;
 use crate::services::brain::evolution_memory::{DistilledLesson, EvolutionReport};
+use crate::domains::agent_cognitive::verification_gate::{GateDecision, VerificationGateGuard, VerificationPolicy};
 use crate::services::brain::run_plan::RunPlan;
 pub use crate::services::brain::run_plan::TaskKind;
 use crate::services::brain::task_progress::{SharedTaskProgress, TaskProgress};
@@ -63,6 +64,8 @@ pub struct CognitiveRuntime {
     distilled_lessons: Vec<DistilledLesson>,
     task_progress: SharedTaskProgress,
     proposal_only: bool,
+    pub socratic_payload: Option<crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryPayload>,
+    pub verification_gate: VerificationGateGuard,
 }
 
 impl CognitiveRuntime {
@@ -190,6 +193,15 @@ impl CognitiveRuntime {
             distilled_lessons: Vec::new(),
             task_progress: std::sync::Arc::new(std::sync::Mutex::new(TaskProgress::default())),
             proposal_only,
+            socratic_payload: crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryEngine::evaluate(objective, None),
+            verification_gate: VerificationGateGuard::new(
+                if task_kind == TaskKind::Conversational {
+                    VerificationPolicy::Permissive
+                } else {
+                    VerificationPolicy::Strict
+                },
+                3,
+            ),
         }
     }
 
@@ -335,8 +347,9 @@ impl CognitiveRuntime {
                 .has_plan()
         {
             format!(
-                "\n[CONTEXT-FIRST REQUIREMENT CLARIFICATION]\nThe request may have unresolved choices. First inspect supplied workspace context and relevant code, then use plan_task to distinguish known constraints from context gaps. Use tools to resolve factual gaps. Choose reasonable defaults for reversible details; ask the user only when a remaining choice materially changes scope or behavior.\nInvestigation angles:\n- {}",
-                self.intent.capability.recommended_inquiries.join("\n- ")
+                "\n[CONTEXT-FIRST REQUIREMENT CLARIFICATION]\nThe request may have unresolved choices. First inspect supplied workspace context and relevant code, then use plan_task to distinguish known constraints from context gaps. Use tools to resolve factual gaps. Choose reasonable defaults for reversible details; ask the user only when a remaining choice materially changes scope or behavior.\nInvestigation angles:\n- {}\n{}",
+                self.intent.capability.recommended_inquiries.join("\n- "),
+                self.socratic_payload.as_ref().map(|payload| payload.render_socratic_prompt()).unwrap_or_default()
             )
         } else {
             String::new()
@@ -419,6 +432,12 @@ impl CognitiveRuntime {
         self.tool_calls += 1;
         if risk == ToolRisk::WorkspaceMutation && status == ToolExecutionStatus::Succeeded {
             self.mutation_tool_calls += 1;
+            self.verification_gate.observe_tool_execution("write_to_file", None, true, "");
+        }
+        // Synchronize the supplemental DoD gate only from canonical verification
+        // facts. An arbitrary successful process is not verification evidence.
+        if verification && status == ToolExecutionStatus::Succeeded {
+            self.verification_gate.observe_tool_execution("run_command", None, true, "");
         }
         self.plan.observe_tool(status, risk, verification);
         if status == ToolExecutionStatus::Succeeded {
@@ -435,6 +454,17 @@ impl CognitiveRuntime {
             self.failed_tools += 1;
             self.consecutive_failures += 1;
         }
+    }
+
+    pub fn observe_tool_execution_details(
+        &mut self,
+        tool_name: &str,
+        command_arg: Option<String>,
+        success: bool,
+        output_snippet: &str,
+    ) {
+        self.verification_gate
+            .observe_tool_execution(tool_name, command_arg, success, output_snippet);
     }
 
     pub fn review_completion(&mut self, draft: &str) -> CompletionDecision {
@@ -486,6 +516,31 @@ impl CognitiveRuntime {
             return CompletionDecision::Revise { reason };
         }
 
+        let is_conversational = self.task_kind == TaskKind::Conversational;
+        match self.verification_gate.evaluate_conclusion_attempt(is_conversational) {
+            GateDecision::RejectAndSteer {
+                reason,
+                suggested_action,
+                current_attempt,
+                max_attempts,
+            } => {
+                let reason = format!(
+                        "【DoD 自动化验证门禁拦截 (第 {}/{} 次)】: {}\n【必须行动】: {}",
+                        current_attempt, max_attempts, reason, suggested_action
+                    );
+                if self.completion_review_used || self.mode == ReasoningMode::Fast {
+                    return CompletionDecision::Blocked { reason };
+                }
+                self.completion_review_used = true;
+                return CompletionDecision::Revise { reason };
+            }
+            GateDecision::MaxRetriesDegraded { attempts, diagnostic } => {
+                return CompletionDecision::Blocked {
+                    reason: format!("DoD verification exhausted after {attempts} attempts: {diagnostic}"),
+                };
+            }
+            GateDecision::Passed => {}
+        }
         if self.completion_review_used || self.mode == ReasoningMode::Fast {
             return CompletionDecision::Accept;
         }
@@ -738,5 +793,71 @@ mod tests {
             }
             _ => panic!("Expected Revise decision from Proactive Alignment Gate!"),
         }
+    }
+
+    #[test]
+    fn test_dod_verification_gate_end_to_end() {
+        let mut runtime = CognitiveRuntime::begin("编写并验证爬虫脚本 spider.py");
+
+        // 0. 先期探索 (满足 RunPlan 的 Inspect 阶段)
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+
+        // 1. 模拟写盘修改
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation, false);
+
+        // 2. Canonical receipt evidence is the first completion gate.
+        let decision1 = runtime.review_completion("我已经写好了 spider.py 脚本。");
+        match decision1 {
+            CompletionDecision::Revise { reason } => {
+                assert!(reason.contains("Run plan is incomplete"));
+            }
+            _ => panic!("Expected DoD rejection due to unverified mutation!"),
+        }
+
+        // 3. 运行了验证，但是验证报错了
+        runtime.observe_tool_execution_details("run_command", Some("python spider.py".into()), false, "ConnectionRefusedError: port 8080");
+
+        // 4. A failed check cannot buy another review or a successful ending.
+        let decision2 = runtime.review_completion("我运行了，现在为您提供结果。");
+        match decision2 {
+            CompletionDecision::Blocked { reason } => {
+                assert!(reason.contains("Run plan is incomplete"));
+            }
+            _ => panic!("Expected DoD rejection due to failed test!"),
+        }
+
+        // 5. A later run with actual successful verification can complete.
+        let mut runtime = CognitiveRuntime::with_mode("编写并验证爬虫脚本 spider.py", ReasoningMode::Adaptive);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation, false);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl, true);
+        runtime.observe_tool_execution_details("run_command", Some("python -m pytest".into()), true, "1 passed");
+
+        // 6. 再次交卷，顺利通过门禁放行
+        let decision3 = runtime.review_completion("修改已经完成，并通过读取和验证确认新行为符合目标；同时保留了既有接口，未发现额外风险或尚未处理的失败路径。");
+        assert_eq!(decision3, CompletionDecision::Accept);
+    }
+
+    #[test]
+    fn verification_details_preserve_single_call_accounting() {
+        let mut runtime = CognitiveRuntime::with_mode("实现并验证功能", ReasoningMode::Adaptive);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation, false);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl, true);
+        runtime.observe_tool_execution_details("run_command", Some("cargo test".into()), true, "1 passed");
+        assert_eq!(runtime.tool_calls, 3);
+        assert_eq!(runtime.review_completion("修改已经完成，检查通过且保留既有接口行为，执行结果由成功的验证收据支持。"), CompletionDecision::Accept);
+    }
+
+    #[test]
+    fn supplemental_gate_cannot_extend_review_or_degrade_to_success() {
+        let mut runtime = CognitiveRuntime::with_mode("解释这段代码", ReasoningMode::Adaptive);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        runtime.observe_tool_execution_details("run_command", None, false, "verification failed");
+        let draft = "已完成代码调查，以下结论根据实际读取的实现说明，并列出相关限制与证据。";
+        assert!(matches!(runtime.review_completion(draft), CompletionDecision::Revise { .. }));
+        assert!(matches!(runtime.review_completion(draft), CompletionDecision::Blocked { .. }));
+        runtime.verification_gate.max_retries = 0;
+        assert!(matches!(runtime.review_completion(draft), CompletionDecision::Blocked { .. }));
     }
 }

@@ -13,7 +13,7 @@ impl AgentBackend for SuperAgentBackend {
         prompt: String,
         opts: ExecOptions,
         cancel_rx: tokio::sync::watch::Receiver<bool>,
-        _control_rx: Option<
+        control_rx: Option<
             tokio::sync::mpsc::UnboundedReceiver<crate::domains::project_management::task_manager::TaskControl>,
         >,
     ) -> BackendResult<AgentSession> {
@@ -27,6 +27,10 @@ impl AgentBackend for SuperAgentBackend {
         if let Some(model) = opts.model.as_ref().filter(|m| !m.trim().is_empty()) {
             args.push("--model".to_string());
             args.push(model.clone());
+        }
+        if let Some(sid) = opts.resume_session_id.as_ref().filter(|s| !s.trim().is_empty()) {
+            args.push("--resume-session-id".to_string());
+            args.push(sid.clone());
         }
         if let Some(cwd) = opts.cwd.as_ref().filter(|p| !p.trim().is_empty()) {
             args.push("--project".to_string());
@@ -160,7 +164,7 @@ impl AgentBackend for SuperAgentBackend {
             },
             opts,
             cancel_rx,
-            _control_rx,
+            control_rx,
         )
         .await
     }

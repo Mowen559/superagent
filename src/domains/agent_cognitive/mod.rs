@@ -10,3 +10,15 @@ pub mod executor;
 pub mod event_projection;
 
 pub mod tdd_evaluator;
+pub mod prompt_composer;
+pub mod fuzzy_json_repair;
+pub mod verification_gate;
+pub mod hypothesis_engine;
+pub mod capability_scout;
+pub mod skill_crystallizer;
+pub mod socratic_inquiry;
+pub mod circuit_breaker;
+
+pub use skill_crystallizer::*;
+pub use socratic_inquiry::*;
+pub use circuit_breaker::*;

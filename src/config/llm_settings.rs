@@ -125,6 +125,8 @@ pub struct LLMSettings {
     pub updated_at: String,
     #[serde(default = "default_routing_strategy")]
     pub routing_strategy: String,
+    #[serde(default)]
+    pub role_models: std::collections::HashMap<String, String>,
 }
 
 impl LLMSettings {
@@ -153,6 +155,28 @@ impl LLMSettings {
             self.model.clone()
         }
     }
+
+    /// 根据蜂群角色解析对应的专属模型，若未特别指定则回退到主脑模型 (self.model)
+    pub fn resolved_role_model(&self, role_name: &str) -> String {
+        let key = role_name.to_ascii_lowercase();
+        let env_key = format!("SUPERAGENT_{}_MODEL", key.to_ascii_uppercase().replace('-', "_"));
+        if let Ok(env_val) = std::env::var(&env_key) {
+            if !env_val.trim().is_empty() {
+                return env_val;
+            }
+        }
+
+        if let Some(m) = self.role_models.get(&key) {
+            if !m.trim().is_empty() {
+                return m.clone();
+            }
+        }
+
+        match key.as_str() {
+            "tester" | "fast" => self.resolved_fast_model(),
+            _ => self.model.clone(),
+        }
+    }
 }
 
 fn default_routing_strategy() -> String {
@@ -169,7 +193,7 @@ impl Default for LLMSettings {
             base_url: "http://127.0.0.1:8045".into(),
             api_key: std::env::var("DEEPCLOUD_API_KEY").unwrap_or_default(),
             project_id: None,
-            model: "gemini-3-flash".into(),
+            model: "claude-sonnet-4-6".into(),
             fast_model: None,
             temperature: 0.2,
             max_tokens: 16000,
@@ -178,6 +202,7 @@ impl Default for LLMSettings {
             ua_max_file_chars: 60000,
             updated_at: "1970-01-01T00:00:00.000Z".into(),
             routing_strategy: "failover".to_string(),
+            role_models: std::collections::HashMap::new(),
         }
     }
 }
@@ -389,5 +414,43 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
         assert_eq!(actual.model, "new-model");
         assert_eq!(actual.api_key, "secret");
+    }
+
+    #[test]
+    fn test_resolved_role_model_routing() {
+        let mut settings = LLMSettings {
+            enabled: true,
+            active_account_id: None,
+            accounts: vec![],
+            provider: "openai".to_string(),
+            base_url: "https://api.openai.com".to_string(),
+            api_key: "sk-test".to_string(),
+            project_id: None,
+            model: "gpt-4o".to_string(),
+            fast_model: Some("gpt-4o-mini".to_string()),
+            temperature: 0.7,
+            max_tokens: 4096,
+            ua_file_limit: 10,
+            ua_sample_file_limit: 5,
+            ua_max_file_chars: 10000,
+            updated_at: String::new(),
+            routing_strategy: "failover".to_string(),
+            role_models: std::collections::HashMap::new(),
+        };
+
+        // 1. 未绑定时，默认角色回退到主脑模型
+        assert_eq!(settings.resolved_role_model("leader"), "gpt-4o");
+        assert_eq!(settings.resolved_role_model("architect"), "gpt-4o");
+
+        // 2. tester 默认回退到快脑模型
+        assert_eq!(settings.resolved_role_model("tester"), "gpt-4o-mini");
+
+        // 3. 显式绑定 coder 专属模型
+        settings.role_models.insert("coder".to_string(), "deepseek-coder".to_string());
+        assert_eq!(settings.resolved_role_model("coder"), "deepseek-coder");
+
+        // 4. 显式绑定 spider_copilot 专属模型
+        settings.role_models.insert("spider_copilot".to_string(), "claude-3-5-sonnet".to_string());
+        assert_eq!(settings.resolved_role_model("spider_copilot"), "claude-3-5-sonnet");
     }
 }
