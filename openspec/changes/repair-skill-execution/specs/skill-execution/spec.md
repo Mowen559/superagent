@@ -43,3 +43,11 @@
 #### Scenario: Custom alias without accounts
 - **WHEN** enabled、baseUrl、apiKey 和自定义 model 完整且 accounts 为空
 - **THEN** /v1/models 返回该模型，SDK 可选，配置与响应均不新增明文密钥副本
+
+### Requirement: Citable foreground process observations
+
+真实成功退出的前台 run_command/verify_task_tool 输出 SHALL 可作为 Observation 被任务计划引用。SHALL NOT 仅因 ProcessControl 风险分类而丢弃事实；SHALL NOT 把普通命令输出提升为 Mutation 或 Verification，也不改变工具授权策略。
+
+#### Scenario: Shell based local application investigation
+- **WHEN** 模型通过已授权的前台命令读取目录和接口，实际 exit_code=0
+- **THEN** 进度列表提供真实 receipt ID，可按验收条件引用；后台启动和失败命令不能满足此要求

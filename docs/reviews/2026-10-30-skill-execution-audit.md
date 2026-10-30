@@ -58,8 +58,13 @@ python skills/local-app-inspector/scripts/dmghg_probe.py --app-dir 'D:\太极\�
 
 ## 工程检查
 
-- Rust 库回归：513 passed，0 failed，2 ignored；排除会审查整个工作区的既有 code_review 测试 1 项。
+- Rust 库回归：514 passed，0 failed，2 ignored；排除会审查整个工作区的既有 code_review 测试 1 项。
 - 前端相关 Node 回归：10 passed，0 failed。既有录制测试补齐缺失的 image-compressor mock 后通过。
 - TypeScript：npx tsc --noEmit --incremental false 通过。
 - OpenSpec：10 passed，0 failed；变更未归档。
 - 原始技能回归曾因路径分隔符断言失败；断言按真实 canonical 路径统一后通过，不把此测试缺陷作为产品修复证据。
+
+
+## 临时文件说明
+
+曾尝试清理本轮生成的 scripts/__pycache__/dmghg_headless_probe.cpython-314.pyc，自动审批以策略限制拒绝该删除。未重试或绕过；缓存保留且发行资源过滤器明确排除 __pycache__/*.pyc，不影响运行与验收。
