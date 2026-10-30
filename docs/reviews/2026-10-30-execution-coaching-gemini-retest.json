@@ -1,0 +1,158 @@
+{
+  "requested_model": "gemini-3.8-flash-high",
+  "temperature": 0.0,
+  "max_output_tokens": 1536,
+  "report": {
+    "schema_version": 1,
+    "scope": "component_execution_coaching; synthetic JSON repair with production cognitive/tool gateways; not full AgentLoop or Golden Evals certification",
+    "max_model_turns": 10,
+    "results": [
+      {
+        "case_id": "private-routing",
+        "status": "passed",
+        "verified_stages": 2,
+        "independent_final_pass": true,
+        "baseline_rejected": true,
+        "model_turns": 7,
+        "tool_calls": 6,
+        "failed_tools": 0,
+        "completion_corrections": 0,
+        "actual_models": [
+          "anthropic:gemini-3.8-flash-high"
+        ],
+        "prompt_tokens": 18592,
+        "completion_tokens": 958,
+        "fixture_fingerprint": "xxh3:1c28db4cfb95feb0",
+        "duration_ms": 42971,
+        "transcript": [
+          {
+            "role": "user",
+            "content": "修复当前 settings.json 配置：executionTarget 设为 LOCAL，maxConcurrency 设为 4，retries 设为 2。其余字段和值原样保留。先读取工作区说明和文件，再实际修改并运行验收测试，完成后报告实际结果。"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_543401",
+                "type": "function",
+                "function": {
+                  "name": "view_file",
+                  "arguments": "{\"AbsolutePath\":\"README.md\"}"
+                }
+              },
+              {
+                "id": "call_543404",
+                "type": "function",
+                "function": {
+                  "name": "view_file",
+                  "arguments": "{\"AbsolutePath\":\"settings.json\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_543401",
+            "content": "{\"receipt_id\":\"call_543401\",\"status\":\"Succeeded\",\"verification\":false,\"result\":{\"path\":\"README.md\",\"content\":\"Temporary configuration project. Edit only settings.json. Preserve unrelated fields. Run `node --test acceptance.test.cjs` after every change. Acceptance tests are immutable.\\n\"}}"
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_543404",
+            "content": "{\"receipt_id\":\"call_543404\",\"status\":\"Succeeded\",\"verification\":false,\"result\":{\"path\":\"settings.json\",\"content\":\"{\\\"executionTarget\\\":\\\"INVALID\\\",\\\"privateCredentials\\\":true,\\\"maxConcurrency\\\":64,\\\"retries\\\":0,\\\"userNote\\\":\\\"用户备注：原样保留\\\",\\\"extension\\\":{\\\"enabled\\\":true}}\"}}"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_545738",
+                "type": "function",
+                "function": {
+                  "name": "write_to_file",
+                  "arguments": "{\"CodeContent\":\"{\\n  \\\"executionTarget\\\": \\\"LOCAL\\\",\\n  \\\"privateCredentials\\\": true,\\n  \\\"maxConcurrency\\\": 4,\\n  \\\"retries\\\": 2,\\n  \\\"userNote\\\": \\\"用户备注：原样保留\\\",\\n  \\\"extension\\\": {\\n    \\\"enabled\\\": true\\n  }\\n}\",\"TargetFile\":\"settings.json\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_545738",
+            "content": "{\"receipt_id\":\"call_545738\",\"status\":\"Succeeded\",\"verification\":false,\"result\":{\"path\":\"settings.json\",\"written\":true}}"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_440103",
+                "type": "function",
+                "function": {
+                  "name": "run_command",
+                  "arguments": "{\"CommandLine\":\"node --test acceptance.test.cjs\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_440103",
+            "content": "{\"receipt_id\":\"call_440103\",\"status\":\"Succeeded\",\"verification\":true,\"result\":{\"exit_code\":0,\"success\":true,\"stdout\":\"TAP version 13\\n# Subtest: configuration matches all requirements and preserves unrelated data\\nok 1 - configuration matches all requirements and preserves unrelated data\\n  ---\\n  duration_ms: 3.5933\\n  type: 'test'\\n  ...\\n1..1\\n# tests 1\\n# suites 0\\n# pass 1\\n# fail 0\\n# cancelled 0\\n# skipped 0\\n# todo 0\\n# duration_ms 189.1827\\n\",\"stderr\":\"\"}}"
+          },
+          {
+            "role": "assistant",
+            "content": "已完成 `settings.json` 配置修复并顺利通过验收测试。具体执行情况如下：\n\n### 1. 修改详情\n对照原有配置并保留无关字段，对 `settings.json` 进行了针对性更新：\n- `executionTarget`: `\"INVALID\"` $\\rightarrow$ `\"LOCAL\"`\n- `maxConcurrency`: `64` $\\rightarrow$ `4`\n- `retries`: `0` $\\rightarrow$ `2`\n- 原有字段 `privateCredentials`、`userNote`、`extension` 等均严格保持原样不变。\n\n修改后的 `settings.json` 内容：\n```json\n{\n  \"executionTarget\": \"LOCAL\",\n  \"privateCredentials\": true,\n  \"maxConcurrency\": 4,\n  \"retries\": 2,\n  \"userNote\": \"用户备注：原样保留\",\n  \"extension\": {\n    \"enabled\": true\n  }\n}\n```\n\n### 2. 验收测试结果\n运行验收测试命令：\n```bash\nnode --test acceptance.test.cjs\n```\n\n**测试输出：**\n```text\nTAP version 13\n# Subtest: configuration matches all requirements and preserves unrelated data\nok 1 - configuration matches all requirements and preserves unrelated data\n  ---\n  duration_ms: 3.5933\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n```\n- **退出状态码**：`0`（全部通过）\n- **测试状态**：1 passed, 0 failed",
+            "tool_calls": []
+          },
+          {
+            "role": "user",
+            "content": "追加要求：将 retries 调整为 3，保留先前的执行目标、并发上限和所有其他原始字段。请实际修改，并对更新后的文件重新运行验收测试。"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_457674",
+                "type": "function",
+                "function": {
+                  "name": "write_to_file",
+                  "arguments": "{\"CodeContent\":\"{\\n  \\\"executionTarget\\\": \\\"LOCAL\\\",\\n  \\\"privateCredentials\\\": true,\\n  \\\"maxConcurrency\\\": 4,\\n  \\\"retries\\\": 3,\\n  \\\"userNote\\\": \\\"用户备注：原样保留\\\",\\n  \\\"extension\\\": {\\n    \\\"enabled\\\": true\\n  }\\n}\",\"TargetFile\":\"settings.json\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_457674",
+            "content": "{\"receipt_id\":\"call_457674\",\"status\":\"Succeeded\",\"verification\":false,\"result\":{\"path\":\"settings.json\",\"written\":true}}"
+          },
+          {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              {
+                "id": "call_688407",
+                "type": "function",
+                "function": {
+                  "name": "run_command",
+                  "arguments": "{\"CommandLine\":\"node --test acceptance.test.cjs\"}"
+                }
+              }
+            ]
+          },
+          {
+            "role": "tool",
+            "tool_call_id": "call_688407",
+            "content": "{\"receipt_id\":\"call_688407\",\"status\":\"Succeeded\",\"verification\":true,\"result\":{\"exit_code\":0,\"success\":true,\"stdout\":\"TAP version 13\\n# Subtest: configuration matches all requirements and preserves unrelated data\\nok 1 - configuration matches all requirements and preserves unrelated data\\n  ---\\n  duration_ms: 2.4745\\n  type: 'test'\\n  ...\\n1..1\\n# tests 1\\n# suites 0\\n# pass 1\\n# fail 0\\n# cancelled 0\\n# skipped 0\\n# todo 0\\n# duration_ms 185.0423\\n\",\"stderr\":\"\"}}"
+          },
+          {
+            "role": "assistant",
+            "content": "已完成追加要求的配置修改，并重新运行了验收测试。具体报告如下：\n\n### 1. 配置更新详情\n在保留先前设置的执行目标（`LOCAL`）、并发上限（`4`）以及所有原始其他字段的前提下，已将重试次数调整为 `3`。\n\n更新后的 `settings.json` 完整内容：\n```json\n{\n  \"executionTarget\": \"LOCAL\",\n  \"privateCredentials\": true,\n  \"maxConcurrency\": 4,\n  \"retries\": 3,\n  \"userNote\": \"用户备注：原样保留\",\n  \"extension\": {\n    \"enabled\": true\n  }\n}\n```\n\n### 2. 验收测试结果\n执行验收测试命令：\n```bash\nnode --test acceptance.test.cjs\n```\n\n**测试输出：**\n```text\nTAP version 13\n# Subtest: configuration matches all requirements and preserves unrelated data\nok 1 - configuration matches all requirements and preserves unrelated data\n  ---\n  duration_ms: 2.4745\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n```\n- **退出码**：`0`（执行成功）\n- **测试结果**：1 passed, 0 failed，全部校验项通过。",
+            "tool_calls": []
+          }
+        ]
+      }
+    ]
+  }
+}

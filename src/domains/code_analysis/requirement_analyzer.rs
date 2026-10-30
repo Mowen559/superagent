@@ -3,7 +3,74 @@ use anyhow::{Context, Result};
 use rusqlite::{Connection, OpenFlags};
 use std::fs;
 use std::path::Path;
-use tracing::{info, warn};
+use tracing::info;
+
+fn require_project_index(db_path:&str)->Result<()> {
+    let conn=Connection::open_with_flags(db_path,OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .context("Project graph is missing or unreadable; run project analysis first")?;
+    let count:i64=conn.query_row("SELECT count(*) FROM nodes",[],|row|row.get(0))
+        .context("Project graph schema is invalid")?;
+    anyhow::ensure!(count>0,"Project graph has no nodes; run project analysis first");
+    Ok(())
+}
+
+pub fn validate_execution_plan(text:&str)->std::result::Result<(),String> {
+    let plan:serde_json::Value=serde_json::from_str(text).map_err(|_|"Planner did not produce valid JSON")?;
+    if !plan.as_array().is_some_and(|items|!items.is_empty()&&items.iter().all(|item|item.as_object().is_some_and(|object|!object.is_empty()))) {
+        return Err("Planner must produce a non-empty array of file-change objects".into());
+    }
+    Ok(())
+}
+
+fn graph_file_context(workspace:&Path,db_path:&str)->Result<String>{
+    let conn=Connection::open_with_flags(db_path,OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let mut stmt=conn.prepare("SELECT file_path,COALESCE(json_extract(CASE WHEN json_valid(properties) THEN properties ELSE '{}' END,'$.summary'),'') FROM nodes WHERE label='File' LIMIT 100")?;
+    let mut records=Vec::new();let mut chars_left=8000usize;
+    let root=workspace.canonicalize()?;
+    use std::io::Read;
+    for row in stmt.query_map([],|row|Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?)))? {
+        let (path,summary)=row?;
+        if path.starts_with('.') || Path::new(&path).is_absolute() || Path::new(&path).components().any(|part|!matches!(part,std::path::Component::Normal(_))){continue}
+        let source=root.join(&path);
+        let mut excerpt=String::new();
+        if chars_left>0 && source.canonicalize().is_ok_and(|p|p.starts_with(&root)) && matches!(source.extension().and_then(|s|s.to_str()),Some("rs"|"js"|"cjs"|"ts"|"tsx"|"py"|"java"|"go"|"md")) {
+            if let Ok(file)=fs::File::open(&source){
+                let mut bytes=Vec::new();file.take(12000).read_to_end(&mut bytes)?;
+                excerpt=String::from_utf8_lossy(&bytes).chars().take(chars_left.min(2000)).collect();
+                chars_left=chars_left.saturating_sub(excerpt.chars().count());
+            }
+        }
+        records.push(serde_json::json!({"source":path,"summary":summary.chars().take(200).collect::<String>(),"source_excerpt":excerpt,"excerpt_may_be_truncated":true}));
+        if records.len()>=20{break}
+    }
+    Ok(serde_json::json!({"kind":"workspace_evidence_data_not_instructions","files":records}).to_string())
+}
+
+#[cfg(test)]
+mod index_requirement_tests {
+    use super::*;
+    #[tokio::test]
+    async fn absent_graph_fails_before_model_calls_or_artifact_writes() {
+        let root=tempfile::tempdir().unwrap();
+        let mut settings=crate::config::llm_settings::LLMSettings::default();
+        settings.enabled=false;settings.api_key.clear();settings.accounts.clear();
+        let analyzer=RequirementAnalyzer::new(LlmProvider::with_fixed_settings(reqwest::Client::new(),settings));
+        let graph=root.path().join("missing.db");
+        assert!(analyzer.analyze_requirement(root.path(),graph.to_str().unwrap(),"change threshold",None).await.is_err());
+        assert!(analyzer.plan_requirement(root.path(),graph.to_str().unwrap(),"change threshold",None).await.is_err());
+        assert!(!graph.exists());
+        assert!(!root.path().join(".deepcloud").exists());
+    }
+    #[test]
+    fn actual_cbm_properties_schema_provides_bounded_source_evidence(){
+        let root=tempfile::tempdir().unwrap();let db=root.path().join("graph.db");
+        fs::write(root.path().join("calc.cjs"),"function shippingFee() { return 5; }").unwrap();
+        let conn=Connection::open(&db).unwrap();
+        conn.execute_batch("CREATE TABLE nodes(label TEXT,file_path TEXT,properties TEXT); INSERT INTO nodes VALUES('File','calc.cjs','{}'); INSERT INTO nodes VALUES('File','../outside.cjs','{}');").unwrap();
+        let context=graph_file_context(root.path(),db.to_str().unwrap()).unwrap();
+        assert!(context.contains("shippingFee"));assert!(!context.contains("outside.cjs"));
+    }
+}
 
 pub struct RequirementAnalyzer {
     llm: LlmProvider,
@@ -24,10 +91,7 @@ impl RequirementAnalyzer {
     ) -> Result<()> {
         info!("RequirementAnalyzer: Starting requirement impact prediction");
 
-        if !Path::new(db_path).exists() {
-            warn!("Graph DB not found at {:?}", db_path);
-            return Ok(());
-        }
+        require_project_index(db_path)?;
 
         if let Some(r) = &reporter {
             r.report(
@@ -36,25 +100,8 @@ impl RequirementAnalyzer {
             );
         }
 
-        let mut file_context = String::new();
-        let mut project_language = "unknown".to_string();
-        {
-            project_language =
-                crate::domains::knowledge_graph::understand_service::detect_primary_language(db_path)
-                    .unwrap_or_else(|_| "unknown".to_string());
-            let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-                .context("Failed to open graph DB for requirement analysis")?;
-
-            let mut stmt = conn.prepare(
-                "SELECT name, COALESCE(summary, '') FROM nodes WHERE label = 'File' LIMIT 100",
-            )?;
-            let mut rows = stmt.query([])?;
-            while let Some(row) = rows.next()? {
-                let name: String = row.get(0)?;
-                let summary: String = row.get(1)?;
-                file_context.push_str(&format!("{}: {}\n", name, summary));
-            }
-        } // conn and stmt are dropped here
+        let project_language=crate::domains::knowledge_graph::understand_service::detect_primary_language(db_path).unwrap_or_else(|_|"unknown".into());
+        let file_context=graph_file_context(workspace_root,db_path)?;
 
         if let Some(r) = &reporter {
             r.report(
@@ -75,8 +122,7 @@ impl RequirementAnalyzer {
         let entry_points_resp = self
             .llm
             .predict_requirement_entry(requirement, &file_context, "zh-CN", &project_language)
-            .await
-            .unwrap_or_else(|e| format!("LLM Error: {}", e));
+            .await.map_err(|error|anyhow::anyhow!("Requirement impact model request failed: {error}"))?;
 
         info!("Predicted Entry Points:\n{}", entry_points_resp);
 
@@ -262,10 +308,7 @@ impl RequirementAnalyzer {
     ) -> Result<()> {
         info!("RequirementAnalyzer: Starting requirement planning (Planner Mode)");
 
-        if !Path::new(db_path).exists() {
-            warn!("Graph DB not found at {:?}", db_path);
-            return Ok(());
-        }
+        require_project_index(db_path)?;
 
         if let Some(r) = &reporter {
             r.report(
@@ -274,21 +317,7 @@ impl RequirementAnalyzer {
             );
         }
 
-        let mut file_context = String::new();
-        {
-            let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-                .context("Failed to open graph DB for requirement planning")?;
-
-            let mut stmt = conn.prepare(
-                "SELECT name, COALESCE(summary, '') FROM nodes WHERE label = 'File' LIMIT 100",
-            )?;
-            let mut rows = stmt.query([])?;
-            while let Some(row) = rows.next()? {
-                let name: String = row.get(0)?;
-                let summary: String = row.get(1)?;
-                file_context.push_str(&format!("{}: {}\n", name, summary));
-            }
-        }
+        let file_context=graph_file_context(workspace_root,db_path)?;
 
         if let Some(r) = &reporter {
             r.report(
@@ -333,6 +362,7 @@ impl RequirementAnalyzer {
             .map_err(|e| anyhow::anyhow!("LLM Plan Engine Error: {}", e))?;
 
         let cleaned_json = crate::domains::model_gateway::providers::strip_code_fences(&plan_resp);
+        validate_execution_plan(&cleaned_json).map_err(anyhow::Error::msg)?;
 
         if let Some(r) = &reporter {
             r.report(

@@ -56,8 +56,10 @@ pub struct MatchedSkill {
 impl MatchedSkill {
     pub fn render_system_prompt_section(&self) -> String {
         format!(
-            "### 🎯 【已挂载业务技能: {}】\n> 简介: {}\n\n{}\n",
-            self.name, self.description, self.instructions
+            "### 已挂载业务技能: {}\n简介: {}\n技能原文: `{}`\n资源根目录: `{}`\n相对资源路径均相对此目录；使用 skill_tool read 读取原文。\n\n{}\n",
+            self.name, self.description, self.path,
+            Path::new(&self.path).parent().unwrap_or(Path::new(".")).display(),
+            self.instructions
         )
     }
 }
@@ -170,10 +172,18 @@ if __name__ == "__main__":
 
     /// 自动扫描并匹配与 Prompt 最相关的领域技能包 (Proactive Skill Scouting & Mounting)
     pub fn scout_and_match_skills(prompt: &str, workspace_root: &Path) -> Vec<MatchedSkill> {
-        let mut candidates = Vec::new();
         let p_lower = prompt.to_lowercase();
+        let mut candidates = Self::discover_skills(workspace_root);
+        for skill in &mut candidates {
+            skill.score = Self::compute_skill_score(&p_lower, &skill.name, &skill.description);
+        }
+        candidates.retain(|skill| skill.score > 0.0);
+        candidates.sort_by(|a, b| b.score.total_cmp(&a.score).then_with(|| a.name.cmp(&b.name)));
+        candidates.into_iter().take(2).collect()
+    }
 
-        // 收集所有候选技能目录
+    /// One discovery policy for automatic mounting and explicit skill_tool access.
+    pub fn skill_roots(workspace_root: &Path) -> Vec<PathBuf> {
         let mut skill_roots = vec![
             workspace_root.join(".agents").join("skills"),
             workspace_root.join("skills"),
@@ -189,13 +199,39 @@ if __name__ == "__main__":
             skill_roots.push(origin.join("skills"));
         }
 
+        if let Some(root) = std::env::var_os("HUB_SKILLS_ROOT").filter(|v| !v.is_empty()) {
+            skill_roots.push(PathBuf::from(root));
+        }
+
         // 全局用户配置目录
         if let Some(home) = dirs::home_dir() {
             skill_roots.push(home.join(".gemini").join("config").join("skills"));
             skill_roots.push(home.join(".agents").join("skills"));
+            skill_roots.push(home.join(".codex").join("skills"));
         }
 
+        if let Some(root) = std::env::var_os("HUB_BUNDLE_ROOT").filter(|v| !v.is_empty()) {
+            let root = PathBuf::from(root);
+            skill_roots.push(root.join("skills"));
+            skill_roots.push(root.join("super-agent").join("skills"));
+        }
+        if let Ok(exe) = std::env::current_exe() {
+            // Installed bin/skills, adjacent bundle/skills, and Cargo target/{debug,release}.
+            for dir in exe.parent().into_iter().flat_map(|p| p.ancestors().take(3)) {
+                skill_roots.push(dir.join("skills"));
+            }
+        }
+        skill_roots
+    }
+
+    pub fn discover_skills(workspace_root: &Path) -> Vec<MatchedSkill> {
+        Self::discover_skills_in(&Self::skill_roots(workspace_root))
+    }
+
+    fn discover_skills_in(skill_roots: &[PathBuf]) -> Vec<MatchedSkill> {
+        let mut candidates = Vec::new();
         let mut seen_paths = std::collections::HashSet::new();
+        let mut seen_names = std::collections::HashSet::new();
 
         for root in skill_roots {
             if !root.is_dir() {
@@ -203,57 +239,24 @@ if __name__ == "__main__":
             }
             for entry in walkdir::WalkDir::new(&root)
                 .max_depth(3)
+                .sort_by_file_name()
                 .into_iter()
                 .filter_map(|e| e.ok())
             {
                 if entry.file_name() == "SKILL.md" {
-                    let path = entry.path().to_path_buf();
+                    let path = crate::infrastructure::fs_path::canonicalize_clean(entry.path());
                     if !seen_paths.insert(path.clone()) {
                         continue;
                     }
                     if let Ok(content) = std::fs::read_to_string(&path) {
-                        let (name, desc, mut instructions) = Self::parse_skill_file(&content, &path);
-                        let score = Self::compute_skill_score(&p_lower, &name, &desc);
-                        if score > 0.0 {
-                            // 针对规则工程技能，挂载工具链与参考知识，严格确立意图驱动
-                            if name.contains("rule-engineer") || name.contains("hiker") {
-                                let rel_script_dir = "super-agent/skills/deepcloud-rule-engineer/scripts";
-                                instructions.push_str(&format!(
-                                    r#"
-
-### 🛠️ 【海阔视界规则工程专家技能工具链与能力支持】
-本技能为你提供以下经过沙箱验证的自动化工程 CLI 工具（位于 `{rel_script_dir}`）：
-1. **静态语法与合规校验**：`node {rel_script_dir}/validate-rule.cjs <rule_json_path>`
-   - 检查 JSON 语法、必要字段、首卡剧名契约、find_rule 规范性；
-2. **沙箱运行仿真与质量评分**：`node {rel_script_dir}/test-rule.cjs <rule_json_path>`
-   - 在真实沙箱中模拟执行，测试一级列表与二级选集，输出 5 星质量评分；
-3. **真实口令与链接生成**：`node {rel_script_dir}/export-command.cjs <rule_json_path>`
-   - 真实调用 PasteMe API 生成带 16 位哈希的云短口令（`云6oooole/...`）与 Base64 离线口令。
-
-### 🧠 【智能体行动守则（意图驱动与深度反思）】
-1. **【严禁把示例当真实需求】**：技能文档与模板仅作为参考规范（Reference Examples），**绝对禁止直接照抄模板或把模板当作用户的任务**！你必须严格聚焦用户当前的真实输入与报错上下文！
-2. **【排查报错与修复场景】**：
-   - 当用户提供报错日志或请求修复规则时：
-     - ① 仔细阅读分析用户提供的报错栈（如语法错误、选择器失效、直链过期、防盗链拦截等）；
-     - ② 若用户附带了代码，或在工作区有规则文件，调用 `read_file` 审阅实际代码；
-     - ③ 若需要探针目标网站真实结构，调用 `web_fetch` 或 `run_command` 抓取验证；
-     - ④ 定位根因并提供修复后的代码，详细解释修改点；若有规则文件，可在测试验证后交付！
-3. **【新规则开发场景】**：
-   - 遵循双端同构与脱机自治原则，先调研目标站点结构，在 `scratch/` 编写规则；
-   - 调用 `validate-rule.cjs` 与 `test-rule.cjs` 进行沙箱验证，确保 5 星通过；
-   - 调用 `export-command.cjs` 获取真实的 PasteMe 在线云短口令；
-   - 最终将口令、评分收据与完整规则源码交付用户！
-4. **【反思自愈闭环】**：遇到工具报错或网络异常时，主动阅读报错信息进行自省纠偏（Critic），修正后重试，绝不盲目放弃或死循环！
-"#
-                                ));
-                            }
-
+                        let (name, desc, instructions) = Self::parse_skill_file(&content, &path);
+                        if seen_names.insert(name.to_lowercase()) {
                             candidates.push(MatchedSkill {
                                 name,
                                 description: desc,
                                 path: path.to_string_lossy().to_string(),
                                 instructions,
-                                score,
+                                score: 0.0,
                             });
                         }
                     }
@@ -261,30 +264,33 @@ if __name__ == "__main__":
             }
         }
 
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
-        candidates.into_iter().take(2).collect()
+        candidates
     }
 
     pub fn parse_skill_file(content: &str, path: &Path) -> (String, String, String) {
         let lines: Vec<&str> = content.lines().collect();
-        if lines.is_empty() || lines[0].trim() != "---" {
-            let parent_name = path
-                .parent()
-                .and_then(|p| p.file_name())
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown")
-                .to_string();
-            return (parent_name, "Custom skill".to_string(), content.to_string());
-        }
-
+        let has_frontmatter = lines.first().is_some_and(|line|
+            line.trim_start_matches('\u{feff}').trim() == "---");
         let mut name = String::new();
-        let mut desc = String::new();
-        let mut body_start = 1;
+        let mut desc = if has_frontmatter { String::new() } else { "Custom skill".into() };
+        let mut body_start = 0;
+        let mut multiline_desc = false;
 
         for (idx, line) in lines.iter().enumerate().skip(1) {
+            if !has_frontmatter { break; }
             if line.trim() == "---" {
                 body_start = idx + 1;
                 break;
+            }
+            if multiline_desc && line.starts_with([' ', '\t']) {
+                if !desc.is_empty() {
+                    desc.push(' ');
+                }
+                desc.push_str(line.trim());
+                continue;
+            }
+            if !line.trim().is_empty() && !line.starts_with([' ', '\t']) {
+                multiline_desc = false;
             }
             if let Some(colon_pos) = line.find(':') {
                 let key = line[..colon_pos].trim();
@@ -292,11 +298,13 @@ if __name__ == "__main__":
                 if key == "name" {
                     name = val.to_string();
                 } else if key == "description" {
-                    desc = val.to_string();
+                    multiline_desc = matches!(val, ">" | ">-" | ">+" | "|" | "|-" | "|+");
+                    desc = if multiline_desc { String::new() } else { val.to_string() };
                 }
             }
         }
 
+        if body_start == 0 { name.clear(); }
         if name.is_empty() {
             name = path
                 .parent()
@@ -313,6 +321,28 @@ if __name__ == "__main__":
 
         // 探测技能目录下的模板资源 (Templates)，供中枢与智能体直观感知磁盘路径，严禁全量内联
         if let Some(parent) = path.parent() {
+            final_instructions.push_str(&format!(
+                "\n\n## 已定位的技能资源\n- SKILL.md: `{}`\n- 资源根目录: `{}`\n文中相对路径基于此目录，不基于任务工作区。以下命令路径以磁盘检查为准；列出脚本不代表脚本已通过业务验收。\n",
+                path.display(), parent.display()
+            ));
+            let script_dir = parent.join("scripts");
+            let mut scripts = std::fs::read_dir(&script_dir).into_iter().flatten()
+                .filter_map(Result::ok).map(|entry| entry.path())
+                .filter(|p| p.is_file()).collect::<Vec<_>>();
+            scripts.sort();
+            if scripts.is_empty() {
+                final_instructions.push_str("- scripts: 无可用脚本；不得编造脚本路径。\n");
+            }
+            for script in scripts {
+                if script.extension().is_some_and(|ext| ext == "cjs" || ext == "js") {
+                    final_instructions.push_str(&format!("- `node \"{}\" <参数>`\n", script.display()));
+                } else {
+                    final_instructions.push_str(&format!("- `{}`\n", script.display()));
+                }
+            }
+            if parent.join("references").is_dir() {
+                final_instructions.push_str(&format!("- references: `{}`\n", parent.join("references").display()));
+            }
             let tmpl_dir = parent.join("templates");
             if tmpl_dir.is_dir() {
                 if let Ok(entries) = std::fs::read_dir(&tmpl_dir) {
@@ -323,6 +353,7 @@ if __name__ == "__main__":
                             tmpls.push(p.file_name().unwrap_or_default().to_string_lossy().to_string());
                         }
                     }
+                    tmpls.sort();
                     if !tmpls.is_empty() {
                         final_instructions.push_str("\n\n### 📦 技能内置开箱即用磁盘模板资源 (Available Templates on Disk)\n");
                         final_instructions.push_str("【中枢提示】：当前技能目录下包含以下成熟模板。注意：**严禁将模板示例当成真实用户的任务产出！若需要参考写法，请通过 `read_file` 工具按需读取磁盘文件**，严禁凭空复制：\n");
@@ -332,6 +363,10 @@ if __name__ == "__main__":
                     }
                 }
             }
+        }
+
+        if name.contains("rule-engineer") || name.contains("hiker") {
+            final_instructions.push_str("\n## 本轮任务与证据边界\n用户只问本地应用是否可转换时，先调查指定目录、识别技术栈和数据协议，报告有依据的可行性及尚缺环节。不得改查同名网站或直接套模板。HTTP 200 中的鉴权/业务错误仍是失败。未获得数据时不得生成空壳规则或称可播放。静态校验、沙箱页面、搜索/详情、真实媒体请求和手机实测分别报告。需要本机 DLL/服务的方案不得称手机独立可用。用户要求生成时再落盘并实测；发布和设备推送须有用户授权。\n");
         }
 
         (name, desc, final_instructions)
@@ -423,6 +458,7 @@ if __name__ == "__main__":
             ("deepcloud-skin-spec", &["皮肤", "主题", "skin", "theme", "buttonvariant", "立绘", "壁纸"]),
             ("aistack-frontend-conventions", &["前端", "react", "next", "datatable", "tableactions", "modalform", "drawerform", "页面开发"]),
             ("poison-tongue-pm", &["毒舌", "prd", "产品经理", "需求追问", "需求打磨"]),
+            ("local-app-inspector", &["本地应用", "安装的", "安装应用", "安装目录", "flutter", "dll", "动漫共和国", "dmghg"]),
         ];
 
         for (target_name, keywords) in triggers {
@@ -460,6 +496,59 @@ if __name__ == "__main__":
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn skill_discovery_preserves_priority_and_unique_names() {
+        let tmp = tempfile::tempdir().unwrap();
+        let roots = [tmp.path().join("优先 目录"), tmp.path().join("fallback")];
+        for (root, marker) in roots.iter().zip(["preferred", "fallback"]) {
+            let dir = root.join("rule");
+            std::fs::create_dir_all(dir.join("scripts")).unwrap();
+            std::fs::write(dir.join("SKILL.md"), format!(
+                "---\nname: deepcloud-rule-engineer\ndescription: >\n  本地应用分析\n  海阔规则转换\n---\n{marker}\n"
+            )).unwrap();
+            std::fs::write(dir.join("scripts/validate-rule.cjs"), "console.log('real-script')").unwrap();
+        }
+        let skills = CapabilityScout::discover_skills_in(&roots);
+        assert_eq!(skills.len(), 1);
+        let skill = &skills[0];
+        assert_eq!(skill.description, "本地应用分析 海阔规则转换");
+        assert!(skill.instructions.contains("preferred"));
+        assert!(!skill.instructions.contains("fallback"));
+        let script = crate::infrastructure::fs_path::canonicalize_clean(
+            &Path::new(&skill.path).parent().unwrap().join("scripts/validate-rule.cjs"));
+        assert!(script.is_absolute() && script.is_file());
+        assert!(skill.instructions.contains(&format!("node \"{}\"", script.display())));
+        assert!(!skill.instructions.contains("super-agent/skills/deepcloud-rule-engineer/scripts"));
+        assert!(!skill.instructions.contains("export-command.cjs"));
+    }
+
+    #[test]
+    fn missing_scripts_are_reported_without_inventing_a_toolchain() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("SKILL.md");
+        let (_, desc, instructions) = CapabilityScout::parse_skill_file(
+            "---\nname: deepcloud-rule-engineer\ndescription: |-\n  安装应用\n  可行性调查\n---\n先核验真实对象。", &path
+        );
+        assert_eq!(desc, "安装应用 可行性调查");
+        assert!(instructions.contains("无可用脚本"));
+        assert!(instructions.contains("不得改查同名网站"));
+        assert!(!instructions.contains("export-command.cjs"));
+    }
+
+    #[test]
+    fn duplicate_skill_does_not_consume_two_mount_slots() {
+        let tmp = tempfile::tempdir().unwrap();
+        for root in [".agents/skills", "skills"] {
+            let dir = tmp.path().join(root).join("rule");
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("SKILL.md"),
+                "---\nname: deepcloud-rule-engineer\ndescription: 海阔规则\n---\nrule body").unwrap();
+        }
+        let skills = CapabilityScout::scout_and_match_skills("请转化为海阔世界的可用规则", tmp.path());
+        assert_eq!(skills.iter().filter(|s| s.name == "deepcloud-rule-engineer").count(), 1);
+        assert!(skills[0].path.contains(".agents"));
+    }
 
     #[test]
     fn test_inspect_gap_for_speech_synthesis() {

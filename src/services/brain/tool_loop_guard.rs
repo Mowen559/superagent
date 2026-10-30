@@ -70,6 +70,20 @@ impl ToolLoopGuard {
         ))
     }
 
+    /// A workspace read after a write observes a different state. Keep it
+    /// bounded within that state without blocking legitimate repair cycles.
+    pub fn record_observation(
+        &mut self,
+        tool_name: &str,
+        arguments: &Value,
+        revision: u64,
+    ) -> Result<(), RepetitionBlock> {
+        self.record_key(fingerprint(
+            "observation",
+            &serde_json::json!({"call": fingerprint(tool_name, arguments), "revision": revision}),
+        ))
+    }
+
     fn record_key(&mut self, key: String) -> Result<(), RepetitionBlock> {
         let consecutive_count = self
             .recent

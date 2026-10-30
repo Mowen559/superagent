@@ -1,0 +1,205 @@
+{
+  "schema_version": 3,
+  "suite_fingerprint": "xxh3:d8a7d10c42b16c71",
+  "settings": {
+    "requested_model": "gemini-3.8-flash-high",
+    "temperature": 0.0,
+    "max_output_tokens": 1536
+  },
+  "scope": "synthetic_planning_only; term checks are lexical proxies; no implementation success measured",
+  "baseline": "full-plan replacement; shared validation and fixed synthetic documents; not a historical release",
+  "enhanced": "CognitiveRuntime/proactive context plus stateful additive revisions",
+  "same_actual_model": true,
+  "max_model_turns": 8,
+  "results": [
+    {
+      "case_id": "steered-log-plan",
+      "variant": "baseline",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 5,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 0,
+      "revision_calls": 0,
+      "successful_revisions": 0,
+      "original_requirement_text_retained": false,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 4,
+      "prompt_tokens": 7676,
+      "completion_tokens": 1792,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 45454,
+      "actual_models": [
+        "anthropic:gemini-3.8-flash-high"
+      ],
+      "plan": {
+        "interpretation": "在不修改 src/parser.rs 且不引入新外部依赖的严格限制下，为日志分析器增加 severity 过滤与支持 dry-run 的 report.json 导出功能。在 src/cli.rs 中扩展 CLI 参数（包含 severity 过滤与 dry-run 选项）并保持对现有 --input 和 --verbose 的完全兼容；在 src/export.rs 中利用已有的 serde_json 实现结构化 JSON 导出及 dry-run 无副作用控制；保持现有 parser 行为不变并通过 cargo test logs 测试验证。",
+        "success_criteria": [
+          "src/parser.rs 零修改，现有 Entry 契约完全保留",
+          "CLI 扩展支持 severity 过滤与 dry-run 选项，原有 --input 和 --verbose 参数完全兼容",
+          "日志条目能够根据 severity 精确过滤",
+          "src/export.rs 成功借助 serde_json 实现 report.json 导出，且 dry-run 模式下不进行写盘操作",
+          "Cargo.toml 未引入任何新的外部依赖",
+          "执行 cargo test logs 全部测试通过"
+        ],
+        "constraints": [
+          "严格保持原有 CLI 参数兼容（保留现有 --input 和 --verbose 参数）",
+          "导出功能必须支持 dry-run（CLI 需提供 dry-run 选项且 dry-run 模式下不执行实际写盘操作）",
+          "严格禁止修改 src/parser.rs，仅以只读方式引入并消费其 Entry 类型",
+          "不引入任何新的 Cargo 依赖（Cargo.toml 仅保留已有 serde_json = \\\"1\\\"）",
+          "新增导出与 dry-run 控制逻辑限定在 src/export.rs 中实现",
+          "使用工作区确切的相对文件路径（Cargo.toml, README.md, src/cli.rs, src/export.rs, src/parser.rs）"
+        ],
+        "steps": [
+          {
+            "id": "step-1-cli-options",
+            "goal": "在 src/cli.rs 中扩展 Options 结构体及参数解析以支持 severity 过滤和 dry-run 标志",
+            "acceptance": "src/cli.rs 中 Options 结构体完整保留 pub input 与 pub verbose 字段，新增 pub severity: Option<String> 和 pub dry_run: bool 选项，命令行参数解析保持向后兼容",
+            "depends_on": [],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "step-2-filter-logic",
+            "goal": "在消费模块中实现基于 Entry::severity 的独立过滤逻辑，保持 src/parser.rs 不变",
+            "acceptance": "在不变更 src/parser.rs 的前提下，实现外部过滤逻辑，按 severity 条件准确筛选 Vec<Entry>，未指定 severity 时保留全量数据",
+            "depends_on": [
+              "step-1-cli-options"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "step-3-export-dry-run",
+            "goal": "在 src/export.rs 中基于 serde_json 实现支持 dry-run 的 report.json 导出功能",
+            "acceptance": "src/export.rs 利用 serde_json 提供导出逻辑；在 dry_run 为 false 时生成并写入 report.json，在 dry_run 为 true 时仅生成/校验 JSON 内容而不产生磁盘写操作",
+            "depends_on": [
+              "step-2-filter-logic"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "step-4-verify-invariants",
+            "goal": "校验 src/parser.rs 未被修改且 Cargo.toml 未新增依赖",
+            "acceptance": "确认 src/parser.rs 文件内容完好无修改，同时 Cargo.toml 依赖配置仅保留 serde_json = \\\"1\\\" 未引入额外依赖",
+            "depends_on": [
+              "step-3-export-dry-run"
+            ],
+            "evidence_kind": "verification"
+          },
+          {
+            "id": "step-5-run-tests",
+            "goal": "运行测试套件全面验证功能与兼容性",
+            "acceptance": "执行 cargo test logs 全部通过，覆盖原 CLI 参数兼容性、severity 过滤准确性、dry-run 行为（无写盘）以及正常导出 report.json 的完整流程",
+            "depends_on": [
+              "step-4-verify-invariants"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": []
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        },
+        {
+          "turn": 4,
+          "tool": "plan_task",
+          "error": null
+        }
+      ]
+    },
+    {
+      "case_id": "steered-log-plan",
+      "variant": "enhanced",
+      "status": "turn_budget_exhausted",
+      "valid_plan": false,
+      "covered_term_checks": [],
+      "missing_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "unnecessary_questions": 0,
+      "context_reads": 4,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 0,
+      "revision_calls": 0,
+      "successful_revisions": 0,
+      "original_requirement_text_retained": null,
+      "early_final_response": false,
+      "steering_applied": false,
+      "model_turns": 4,
+      "prompt_tokens": 7685,
+      "completion_tokens": 78,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 17189,
+      "actual_models": [
+        "anthropic:gemini-3.8-flash-high"
+      ],
+      "plan": null,
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 3,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 4,
+          "tool": "view_file",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

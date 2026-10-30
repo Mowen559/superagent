@@ -1,0 +1,42 @@
+{
+  "application": "D:\\太极\\动漫共和国概念版",
+  "dll_sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+  "no_desktop": true,
+  "installed_version": "1.4.4",
+  "isolated_state_root": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\dmghg-headless-0ow2yw0g",
+  "channels": 8,
+  "list_items": 10,
+  "search_keyword": "仙逆",
+  "search_items": 3,
+  "detail_id": 181655,
+  "detail_title": "仙逆",
+  "episode_count": 164,
+  "play_variants": 1,
+  "media": {
+    "host": "m3bkbfdm.hzhcbkj.cn",
+    "status": 206,
+    "content_type": "application/vnd.apple.mpegurl; charset=utf-8",
+    "bytes_read": 2048,
+    "hls_manifest": true,
+    "first_child": {
+      "host": "h23.static.yximgs.com",
+      "status": 206,
+      "content_type": "image/png",
+      "bytes_read": 2048,
+      "hls_manifest": false
+    }
+  },
+  "mobile_standalone_verified": false,
+  "dependency": "Windows installed electron_bridge.dll and resources/lua",
+  "decoder": {
+    "audio-codec-name": "aac",
+    "video-params/w": "1920",
+    "video-params/h": "816",
+    "time-pos": "0.202000",
+    "decoded_video": true,
+    "outputs": {
+      "audio": "null",
+      "video": "null"
+    }
+  }
+}

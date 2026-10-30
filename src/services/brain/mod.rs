@@ -9,6 +9,8 @@ pub mod embedding_service;
 pub mod eval_harness;
 pub mod events;
 pub mod evolution_memory;
+pub mod execution_coaching;
+pub mod native_capabilities;
 pub mod interaction_runtime;
 pub mod ipc;
 pub mod knowledge_corpus;

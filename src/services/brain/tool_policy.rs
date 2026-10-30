@@ -150,6 +150,9 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "super_memory"
         | "lsp"
         | "read_tool_result"
+        | "capability_status"
+        | "project_index"
+        | "repo_map_tool"
         | "check_worker_status" => ToolRisk::ReadOnly,
         "knowledge_corpus_tool" if corpus_operation(arguments) == "list" => ToolRisk::ReadOnly,
         "knowledge_corpus_tool" if corpus_operation(arguments) == "remove" => ToolRisk::Destructive,
@@ -163,7 +166,7 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "manage_task" => ToolRisk::WorkspaceMutation,
         "run_command" if is_read_only_command(arguments) => ToolRisk::ReadOnly,
         "run_command" if is_safe_sandbox_command(arguments) => ToolRisk::WorkspaceMutation,
-        "run_command" | "verify_task_tool" | "manage_process" | "invoke_subagent" | "intervene_worker"
+        "requirement_engine" | "run_command" | "verify_task_tool" | "manage_process" | "invoke_subagent" | "intervene_worker"
         | "reload_plugins" | "request_reload" | "skill_tool" | "native_harness" => {
             ToolRisk::ProcessControl
         }

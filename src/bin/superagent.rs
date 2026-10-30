@@ -40,6 +40,7 @@ async fn main() {
     );
 
     let mut engine = AgentLoop::new(&system_prompt);
+    hub_rs::services::brain::native_capabilities::register(&mut engine,&cwd_path,None);
 
     // 初始化 Capability Providers (IoC 容器挂载)
     let shell_provider = Arc::new(LocalShellProvider);

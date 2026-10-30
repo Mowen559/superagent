@@ -94,6 +94,19 @@ pub struct EvaluationReport {
     pub results: Vec<CaseReport>,
 }
 
+impl EvaluationReport {
+    /// This checks workflow completion, not semantic quality or lexical scores.
+    pub fn workflow_complete(&self, fixtures: &[EvalCase]) -> bool {
+        self.results.len() == fixtures.len().min(3) * 2
+            && !self.results.is_empty()
+            && fixtures.iter().take(3).all(|case| ["baseline", "enhanced"].iter().all(|variant| {
+                self.results.iter().any(|result| result.case_id == case.id
+                    && result.variant == *variant && result.status == "planned" && result.valid_plan
+                    && (case.steering.is_none() || result.steering_applied))
+            }))
+    }
+}
+
 #[async_trait]
 pub trait EvaluationModel: Send + Sync {
     async fn turn(
@@ -136,7 +149,7 @@ pub async fn evaluate(model: &impl EvaluationModel, cases: &[EvalCase]) -> Evalu
     }
     let same_actual_model = same_model(&results, cases.len().min(3) * 2);
     EvaluationReport {
-        schema_version: 3,
+        schema_version: 4,
         suite_fingerprint: format!("xxh3:{:016x}", xxhash_rust::xxh3::xxh3_64(include_bytes!("task_evaluation_cases.json"))),
         settings: None,
         scope: "synthetic_planning_only; term checks are lexical proxies; no implementation success measured".into(),
@@ -235,6 +248,7 @@ async fn evaluate_case(
         &format!("只做规划：{}", case.request),
         ReasoningMode::Adaptive,
     );
+    cognition.limit_model_turns(MAX_TURNS);
     let revision_tool = ReviseTaskPlanTool(cognition.task_progress());
     let mut initial_plan: Option<TaskContract> = None;
     let mut messages = vec![
@@ -252,8 +266,13 @@ async fn evaluate_case(
         } else {
             "After additional requirements, submit an updated complete plan with plan_task."
         };
+        let budget = format!(
+            "Shared evaluation deadline: {MAX_TURNS} model requests total, including the current request; {} requests remain including this one. Batch independent file reads and use supplied excerpts without rereading them. Submit the initial plan promptly. {} Never invent missing facts to meet the deadline.",
+            MAX_TURNS + 1 - report.model_turns,
+            if case.steering.is_some() { "Reserve at least one request after the initial plan for an additional user constraint." } else { "Use plan_task once the relevant facts support the plan." },
+        );
         let system = format!(
-            "This is a planning-only evaluation. Inspect relevant available workspace facts and submit a concise plan with plan_task. Use the exact relative file names in the available-file list. Do not implement code or claim an implementation is complete. Use existing conventions, observable success criteria and dependency-ordered subgoals.\n{revision_guidance}\n{guidance}\n{context}"
+            "This is a planning-only evaluation. Inspect relevant available workspace facts and submit a concise plan with plan_task. Use the exact relative file names in the available-file list. Do not implement code or claim an implementation is complete. Use existing conventions, observable success criteria and dependency-ordered subgoals.\n{budget}\n{revision_guidance}\n{guidance}\n{context}"
         );
         let response = tokio::time::timeout(
             Duration::from_secs(60),
@@ -492,12 +511,14 @@ mod tests {
         assert!(!report.results[0].missing_term_checks.is_empty());
         assert!(!report.same_actual_model);
         assert!(!report.results[0].usage_reported);
+        assert!(report.workflow_complete(&cases()[..1]), "lexical scores are not workflow success");
         // Poor planning is a measured outcome, not evidence of a model change.
         for result in &mut report.results {
             result.actual_models.insert("fixture:test-model".into());
             result.status = "final_without_plan".into();
         }
         assert!(same_model(&report.results, 2));
+        assert!(!report.workflow_complete(&cases()[..1]), "successful provider traffic cannot hide unfinished planning");
         report.results[1]
             .actual_models
             .insert("fixture:different-model".into());

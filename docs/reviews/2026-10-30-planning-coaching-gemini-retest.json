@@ -1,0 +1,257 @@
+{
+  "schema_version": 4,
+  "suite_fingerprint": "xxh3:d8a7d10c42b16c71",
+  "settings": {
+    "requested_model": "gemini-3.8-flash-high",
+    "temperature": 0.0,
+    "max_output_tokens": 1536
+  },
+  "scope": "synthetic_planning_only; term checks are lexical proxies; no implementation success measured",
+  "baseline": "full-plan replacement; shared validation and fixed synthetic documents; not a historical release",
+  "enhanced": "CognitiveRuntime/proactive context plus stateful additive revisions",
+  "same_actual_model": true,
+  "max_model_turns": 8,
+  "results": [
+    {
+      "case_id": "steered-log-plan",
+      "variant": "baseline",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 5,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 0,
+      "revision_calls": 0,
+      "successful_revisions": 0,
+      "original_requirement_text_retained": false,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 3,
+      "prompt_tokens": 4107,
+      "completion_tokens": 1453,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 43243,
+      "actual_models": [
+        "anthropic:gemini-3.8-flash-high"
+      ],
+      "plan": {
+        "interpretation": "在绝对不修改 src/parser.rs、不增加任何新依赖且保持现有 CLI 参数（--input, --verbose）完全兼容的前提下，在 src/cli.rs 中扩展 severity 过滤与 dry-run 选项，在 src/export.rs 中基于已有的 serde_json 实现 report.json 导出以及 dry-run 模拟逻辑，整合流水线并通过 cargo test logs 验证。",
+        "success_criteria": [
+          "原 CLI 选项（--input, --verbose）保持完全兼容，新增 severity 过滤和 dry-run 标志正常可用",
+          "src/parser.rs 保持原样未被任何修改",
+          "导出功能完整支持 dry-run：开启时不写入磁盘文件，关闭时以合法 JSON 格式写入 report.json",
+          "Cargo.toml 未添加任何新依赖，仅使用现有 serde_json",
+          "cargo test logs 测试全部通过"
+        ],
+        "constraints": [
+          "严格保持原 CLI 参数（--input, --verbose）完全兼容，新增参数（如 severity 过滤、dry-run 标志）采用增量方式扩展（src/cli.rs）",
+          "严禁修改 src/parser.rs，保持 Entry 结构及原有解析器不变",
+          "导出功能必须支持 dry-run 模式（dry-run 下执行模拟/校验，不向磁盘写入 report.json）",
+          "导出功能置于 src/export.rs，目标导出文件为 report.json",
+          "不修改 Cargo.toml 引入任何新依赖，仅使用已有的 serde_json 与标准库",
+          "必须通过 cargo test logs 验证测试"
+        ],
+        "steps": [
+          {
+            "id": "step_cli_options",
+            "goal": "在 src/cli.rs 中新增 severity 过滤选项与 dry-run 开关支持",
+            "acceptance": "src/cli.rs 扩展 Options 结构体及参数解析，新增可选 severity 过滤参数与 dry-run 标志，且原 --input、--verbose 参数完全兼容",
+            "depends_on": [],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "step_export_dry_run",
+            "goal": "在 src/export.rs 中实现 report.json 导出与 dry-run 模式逻辑",
+            "acceptance": "src/export.rs 基于 serde_json 实现序列化逻辑；非 dry-run 模式正常写入 report.json，dry-run 模式只执行模拟/校验而不落盘",
+            "depends_on": [],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "step_pipeline_integration",
+            "goal": "整合日志分析与导出工作流，将过滤后的 Entry 传递给 export 模块处理",
+            "acceptance": "在不修改 src/parser.rs 的前提下，串联 Entry 读取、severity 条件过滤以及 dry-run/正式导出流程",
+            "depends_on": [
+              "step_cli_options",
+              "step_export_dry_run"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "step_verification",
+            "goal": "运行 cargo test logs 进行全量功能与回归验证",
+            "acceptance": "cargo test logs 成功执行并通过，覆盖原参数兼容、无修改 parser.rs、severity 过滤、dry-run 及 report.json 输出验证",
+            "depends_on": [
+              "step_pipeline_integration"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": []
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": null
+        },
+        {
+          "turn": 3,
+          "tool": "plan_task",
+          "error": null
+        }
+      ]
+    },
+    {
+      "case_id": "steered-log-plan",
+      "variant": "enhanced",
+      "status": "planned",
+      "valid_plan": true,
+      "covered_term_checks": [
+        "original-filter",
+        "original-export",
+        "new-preview",
+        "protected-parser"
+      ],
+      "missing_term_checks": [],
+      "unnecessary_questions": 0,
+      "context_reads": 3,
+      "missing_context_reads": 0,
+      "unknown_tool_calls": 0,
+      "invalid_plan_calls": 0,
+      "revision_calls": 1,
+      "successful_revisions": 1,
+      "original_requirement_text_retained": true,
+      "early_final_response": false,
+      "steering_applied": true,
+      "model_turns": 3,
+      "prompt_tokens": 8316,
+      "completion_tokens": 1048,
+      "usage_reported": true,
+      "cost": 0.0,
+      "duration_ms": 58103,
+      "actual_models": [
+        "anthropic:gemini-3.8-flash-high"
+      ],
+      "plan": {
+        "interpretation": "给日志分析器新增 severity 过滤功能以及 report.json 文件导出能力，在保证既有 CLI 参数及 parser 解析行为向后兼容的前提下扩展 src/cli.rs 与 src/export.rs，严格不引入新依赖，并通过 cargo test logs 验证。",
+        "success_criteria": [
+          "原 CLI 参数（--input、--verbose）继续正常工作，新增 severity 过滤与 report.json 导出参数不影响原有使用方式",
+          "不引入任何第三方依赖，Cargo.toml 依赖项保持不变（仅使用 serde_json）",
+          "src/export.rs 实现 JSON 导出功能并能正确定向输出至 report.json",
+          "src/parser.rs 现有解析功能与 Entry 结构保持向下兼容",
+          "执行 cargo test logs 全部测试通过",
+          "支持 dry-run 选项，开启时执行处理逻辑但不实际写入磁盘",
+          "src/parser.rs 保持未修改状态"
+        ],
+        "constraints": [
+          "保持原有 CLI 参数（--input、--verbose）完全兼容",
+          "不添加任何新依赖（仅复用 Cargo.toml 中已有的 serde_json）",
+          "新增导出逻辑必须位于 src/export.rs",
+          "src/parser.rs 现有解析行为与 Entry 保持兼容",
+          "当前阶段仅完成规划，不执行代码变更或声称完成实现",
+          "导出功能必须支持 dry-run 模式（dry-run 时不向磁盘写入 report.json）",
+          "严格禁止修改 src/parser.rs"
+        ],
+        "steps": [
+          {
+            "id": "cli_options_ext",
+            "goal": "扩展 src/cli.rs 中的 Options 与参数解析逻辑，新增 severity 过滤、导出及 dry-run 选项",
+            "acceptance": "Options 结构体新增可选 severity 过滤、导出选项及 dry-run 标识，原有 input 与 verbose 选项保持完全兼容",
+            "depends_on": [],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "export_json_impl",
+            "goal": "在 src/export.rs 中实现日志条目的 JSON 序列化与导出逻辑，并支持 dry-run 控制",
+            "acceptance": "src/export.rs 导出函数根据 dry-run 标志控制是否写入 report.json，且仅复用 serde_json，不触碰 src/parser.rs",
+            "depends_on": [
+              "cli_options_ext"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "filter_and_export_pipeline",
+            "goal": "串联 severity 过滤逻辑与导出逻辑至分析器主流程",
+            "acceptance": "主流程能够根据 CLI 参数过滤 Entry 并调用导出函数生成 report.json，未指定过滤条件时保持原有处理行为",
+            "depends_on": [
+              "cli_options_ext",
+              "export_json_impl"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "verification_tests",
+            "goal": "编写并执行测试验证兼容性、severity 过滤、report.json 导出、dry-run 行为及 parser.rs 完整性",
+            "acceptance": "运行 cargo test logs 全部通过，验证 dry-run 不写文件、JSON 导出内容正确且 src/parser.rs 零修改",
+            "depends_on": [
+              "filter_and_export_pipeline"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": []
+      },
+      "trace": [
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 1,
+          "tool": "view_file",
+          "error": null
+        },
+        {
+          "turn": 2,
+          "tool": "plan_task",
+          "error": null
+        },
+        {
+          "turn": 3,
+          "tool": "revise_task_plan",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

@@ -480,6 +480,23 @@ fn build_source_info(account: &LLMAccount, model_name: &str) -> serde_json::Valu
     })
 }
 
+fn mark_configured_model(
+    models: &mut std::collections::HashMap<String, Value>,
+    settings: &llm_settings::LLMSettings,
+) {
+    if !llm_settings::has_usable_settings(settings)
+        || settings.model.trim().is_empty()
+        || settings.api_key.trim().is_empty()
+        || settings.base_url.trim().is_empty()
+    { return; }
+    let model = models.entry(settings.model.clone()).or_insert_with(|| serde_json::json!({
+        "id": settings.model, "object":"model", "owned_by":"configured", "sources":[]
+    }));
+    // Configuration is routing intent, not an invented account/health receipt.
+    model["configured"] = serde_json::json!(true);
+    model["configured_default"] = serde_json::json!(true);
+}
+
 pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, String)> {
     // /v1/models 被客户端高频轮询（CLI 启动/模型选择器刷新）；列表构建需
     // 磁盘读 settings 并为每个模型取健康快照。3 秒 TTL 进程内缓存将高频
@@ -614,6 +631,7 @@ pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, Str
         }
     }
 
+    mark_configured_model(&mut unique_models, &settings);
     let mut data: Vec<serde_json::Value> = unique_models.into_values().collect();
     data.sort_by(|left, right| {
         left.get("id")
@@ -631,4 +649,29 @@ pub(crate) async fn handle_unified_models() -> Result<Response, (StatusCode, Str
     }
 
     Ok(Json(res).into_response())
+}
+
+#[cfg(test)]
+mod configured_model_tests {
+    use super::*;
+
+    #[test]
+    fn legacy_custom_alias_is_visible_without_fabricating_accounts_or_exposing_credentials() {
+        let mut settings = llm_settings::LLMSettings::default();
+        settings.enabled = true;
+        settings.api_key = "not-a-real-key".into();
+        settings.model = "custom-alias-for-test".into();
+        let mut models = std::collections::HashMap::new();
+        mark_configured_model(&mut models, &settings);
+        assert_eq!(models[&settings.model]["configured_default"], true);
+        assert_eq!(models[&settings.model]["sources"], serde_json::json!([]));
+        assert!(!serde_json::to_string(&models).unwrap().contains("not-a-real-key"));
+        for disabled in [true, false] {
+            let mut empty = std::collections::HashMap::new();
+            settings.enabled = !disabled;
+            if !disabled { settings.api_key.clear(); }
+            mark_configured_model(&mut empty, &settings);
+            assert!(empty.is_empty());
+        }
+    }
 }

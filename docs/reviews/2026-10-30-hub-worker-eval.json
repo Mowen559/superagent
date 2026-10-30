@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "scope": "real_hub_superagent_worker; isolated Node fixture; no full product certification",
+  "model_requested": "gemini-3.8-flash-high",
+  "fixture": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-native-eval-r78w9exz",
+  "launch_cwd": "D:\\抖音\\deepcloud\\super-agent",
+  "cases": [],
+  "indexing": {
+    "exit_code": 0,
+    "stdout": "{\"status\":\"indexed\",\"project\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-native-eval-r78w9exz\\\\project\",\"database_path\":\"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-native-eval-r78w9exz\\\\graphs\\\\C-Users-刘本录-AppData-Local-Temp-hub-native-eval-r78w9exz-project.db\",\"nodes\":23,\"ascii_path_adapter\":true,\"duration_ms\":96}\n",
+    "stderr": "",
+    "duration_ms": 2199
+  },
+  "graph_database": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-native-eval-r78w9exz\\graphs\\C-Users-刘本录-AppData-Local-Temp-hub-native-eval-r78w9exz-project.db",
+  "doctor": {
+    "exit_code": 0,
+    "stdout": "{\n  \"schema_version\": 1,\n  \"workspace\": \"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-native-eval-r78w9exz\\\\project\",\n  \"registered_tools\": null,\n  \"graph\": {\n    \"state\": \"ready\",\n    \"ready\": true,\n    \"path\": \"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-native-eval-r78w9exz\\\\graphs\\\\C-Users-刘本录-AppData-Local-Temp-hub-native-eval-r78w9exz-project.db\",\n    \"nodes\": 23,\n    \"edges\": 23,\n    \"reason\": \"Readable graph schema with nodes; semantic accuracy not certified\"\n  },\n  \"understand\": {\n    \"ready\": true,\n    \"tool\": \"project_index\",\n    \"depends_on\": \"graph\",\n    \"metadata_path\": null\n  },\n  \"supermemory\": {\n    \"state\": \"ready\",\n    \"path\": \"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-native-eval-r78w9exz\\\\project\\\\.supermemory\\\\supermemory.json\",\n    \"records\": 1,\n    \"scope\": \"current_project\"\n  },\n  \"rtk\": {\n    \"state\": \"integrated\",\n    \"source_filter\": \"rtk::core::filter\",\n    \"terminal_filter\": \"LocalShellProvider -> compress_by_command\",\n    \"process_metrics\": {\n      \"totalOriginalBytes\": 0,\n      \"totalCompressedBytes\": 0,\n      \"totalOriginalTokens\": 0,\n      \"totalCompressedTokens\": 0,\n      \"totalTokensSaved\": 0,\n      \"overallReductionPercent\": 0.0,\n      \"totalInvocations\": 0\n    },\n    \"note\": \"Process metrics differ from rtk gain; zero usage is not a failed readiness check\"\n  },\n  \"requirement_engine\": {\n    \"ready\": true,\n    \"tool\": \"requirement_engine\",\n    \"actions\": [\n      \"analyze\",\n      \"plan\"\n    ],\n    \"scope\": \"analysis_and_future_plan_only\",\n    \"model_route\": \"not_probed\"\n  },\n  \"execution\": {\n    \"tools\": [\n      \"view_file\",\n      \"replace_in_file\",\n      \"run_command\"\n    ],\n    \"verified\": false,\n    \"reason\": \"Use actual worker receipts and an independent check; readiness does not certify task success\"\n  }\n}\n",
+    "stderr": "",
+    "duration_ms": 130
+  },
+  "initial_check": {
+    "exit_code": 1,
+    "stdout": "TAP version 13\n# Subtest: fee boundaries\nnot ok 1 - fee boundaries\n  ---\n  duration_ms: 2.3234\n  type: 'test'\n  location: 'C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-native-eval-r78w9exz\\\\project\\\\acceptance.test.cjs:1:135'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    \n    5 !== 0\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 0\n  actual: 5\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-native-eval-r78w9exz\\project\\acceptance.test.cjs:1:232)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 147.5749\n",
+    "stderr": "",
+    "duration_ms": 290
+  },
+  "offline_readiness_passed": true
+}

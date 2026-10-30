@@ -1,0 +1,34 @@
+{
+  "requested_model": "claude-sonnet-4-6",
+  "temperature": 0.0,
+  "max_output_tokens": 1536,
+  "report": {
+    "schema_version": 1,
+    "scope": "component_execution_coaching; synthetic JSON repair with production cognitive/tool gateways; not full AgentLoop or Golden Evals certification",
+    "max_model_turns": 10,
+    "results": [
+      {
+        "case_id": "private-routing",
+        "status": "provider_error",
+        "verified_stages": 0,
+        "independent_final_pass": false,
+        "baseline_rejected": true,
+        "model_turns": 1,
+        "tool_calls": 0,
+        "failed_tools": 0,
+        "completion_corrections": 0,
+        "actual_models": [],
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "fixture_fingerprint": "xxh3:1c28db4cfb95feb0",
+        "duration_ms": 2377,
+        "transcript": [
+          {
+            "role": "user",
+            "content": "修复当前 settings.json 配置：executionTarget 设为 LOCAL，maxConcurrency 设为 4，retries 设为 2。其余字段和值原样保留。先读取工作区说明和文件，再实际修改并运行验收测试，完成后报告实际结果。"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,8 +1,7 @@
 use serde_json::{json, Value};
-use std::collections::HashSet;
 use std::fs;
-use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
+use std::path::PathBuf;
+use crate::domains::agent_cognitive::capability_scout::CapabilityScout;
 
 use crate::config::app_paths::AppPaths;
 use crate::config::runtime::RuntimeConfig;
@@ -27,38 +26,7 @@ impl SkillTool {
         )
     }
 
-    fn extract_frontmatter(content: &str) -> Option<(String, String)> {
-        let lines: Vec<&str> = content.lines().collect();
-        if lines.is_empty() || lines[0].trim() != "---" {
-            return None;
-        }
 
-        let mut name = String::new();
-        let mut desc = String::new();
-
-        let mut in_frontmatter = true;
-        for line in lines.into_iter().skip(1) {
-            if line.trim() == "---" {
-                in_frontmatter = false;
-                break;
-            }
-            if let Some(idx) = line.find(':') {
-                let key = line[..idx].trim();
-                let val = line[idx + 1..].trim().trim_matches('"').trim_matches('\'');
-                if key == "name" {
-                    name = val.to_string();
-                } else if key == "description" {
-                    desc = val.to_string();
-                }
-            }
-        }
-
-        if !in_frontmatter && !name.is_empty() {
-            Some((name, desc))
-        } else {
-            None
-        }
-    }
 }
 
 impl ToolExecutor for SkillTool {
@@ -76,6 +44,7 @@ impl ToolExecutor for SkillTool {
 [Tool Projection: skill_tool]
 - Role: Workspace Dynamic Skills Manager & Solidifier
 - Usage: List available skills using action='list', inspect instructions with action='read', or solidify high-value patterns and verified workflows with action='save'.
+- Read references/scripts outside the task workspace with action='read', skill_name, resource_path='references/file.md' (relative to that skill). Keep generated artifacts in the task workspace.
 "#
             .trim()
             .to_string(),
@@ -107,6 +76,10 @@ impl ToolExecutor for SkillTool {
                     "type": "string",
                     "description": "Alias for 'instructions'. Full Markdown instructions and rules."
                 },
+                "resource_path": {
+                    "type": "string",
+                    "description": "For read only: optional resource path relative to the selected skill root, e.g. references/api.md or scripts/validate-rule.cjs. Cannot escape that skill directory."
+                },
                 "category": {
                     "type": "string",
                     "description": "Optional category tag: 'workflow', 'architecture', 'troubleshooting', 'testing', or 'conventions'."
@@ -121,107 +94,41 @@ impl ToolExecutor for SkillTool {
         let action = action_opt.unwrap_or("list");
 
         let project_root = self.resolve_project_path();
-        let mut candidate_dirs = vec![self.workspace_root.join(".agents").join("skills")];
-        if project_root != self.workspace_root {
-            candidate_dirs.push(project_root.join(".agents").join("skills"));
-        }
-
         match action {
             "list" => {
-                let mut skills = Vec::new();
-                let mut seen_names = HashSet::new();
-
-                for skills_dir in &candidate_dirs {
-                    if !skills_dir.exists() || !skills_dir.is_dir() {
-                        continue;
-                    }
-
-                    for entry in WalkDir::new(skills_dir)
-                        .max_depth(2)
-                        .into_iter()
-                        .filter_map(|e| e.ok())
-                    {
-                        if entry.file_name() == "SKILL.md" {
-                            if let Ok(content) = fs::read_to_string(entry.path()) {
-                                let (name, desc) = Self::extract_frontmatter(&content).unwrap_or_else(|| {
-                                    let parent_name = entry
-                                        .path()
-                                        .parent()
-                                        .and_then(|p| p.file_name())
-                                        .and_then(|n| n.to_str())
-                                        .unwrap_or("unknown")
-                                        .to_string();
-                                    (parent_name, "No description available".to_string())
-                                });
-
-                                if seen_names.insert(name.clone()) {
-                                    let rel_path = entry
-                                        .path()
-                                        .strip_prefix(&self.workspace_root)
-                                        .unwrap_or(entry.path())
-                                        .to_string_lossy()
-                                        .to_string();
-                                    skills.push(json!({
-                                        "name": name,
-                                        "description": desc,
-                                        "path": rel_path
-                                    }));
-                                }
-                            }
-                        }
-                    }
-                }
-                Ok(json!({ "skills": skills, "total": skills.len() }))
+                let skills = CapabilityScout::discover_skills(&self.workspace_root)
+                    .into_iter().map(|skill| json!({
+                        "name": skill.name,
+                        "description": skill.description,
+                        "path": skill.path,
+                        "resource_root": std::path::Path::new(&skill.path).parent(),
+                    })).collect::<Vec<_>>();
+                Ok(json!({ "total": skills.len(), "skills": skills }))
             }
             "read" => {
-                let skill_name = args
-                    .get("skill_name")
-                    .and_then(|v| v.as_str())
+                let skill_name = args.get("skill_name").and_then(|v| v.as_str())
                     .ok_or_else(|| "skill_name is required for action 'read'".to_string())?;
-
-                for skills_dir in &candidate_dirs {
-                    if !skills_dir.exists() {
-                        continue;
-                    }
-
-                    for entry in WalkDir::new(skills_dir)
-                        .max_depth(2)
-                        .into_iter()
-                        .filter_map(|e| e.ok())
-                    {
-                        if entry.file_name() == "SKILL.md" {
-                            if let Ok(content) = fs::read_to_string(entry.path()) {
-                                let is_match = if let Some((name, _)) = Self::extract_frontmatter(&content) {
-                                    name.eq_ignore_ascii_case(skill_name)
-                                } else {
-                                    entry
-                                        .path()
-                                        .parent()
-                                        .and_then(|p| p.file_name())
-                                        .and_then(|n| n.to_str())
-                                        .map(|n| n.eq_ignore_ascii_case(skill_name))
-                                        .unwrap_or(false)
-                                };
-
-                                if is_match {
-                                    let rel_path = entry
-                                        .path()
-                                        .strip_prefix(&self.workspace_root)
-                                        .unwrap_or(entry.path())
-                                        .to_string_lossy()
-                                        .to_string();
-                                    return Ok(json!({
-                                        "skill_name": skill_name,
-                                        "path": rel_path,
-                                        "content": content
-                                    }));
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Err(format!("Skill '{}' not found in .agents/skills", skill_name))
+                let skill = CapabilityScout::discover_skills(&self.workspace_root).into_iter()
+                    .find(|s| s.name.eq_ignore_ascii_case(skill_name))
+                    .ok_or_else(|| format!("Skill '{}' not found in configured skill roots", skill_name))?;
+                let root = std::path::Path::new(&skill.path).parent().ok_or("Skill has no resource root")?;
+                let path = match args.get("resource_path").and_then(|v| v.as_str()) {
+                    Some(resource) => crate::infrastructure::fs_path::resolve_safe_path(resource, root)?,
+                    None => PathBuf::from(&skill.path),
+                };
+                let size = fs::metadata(&path).map_err(|e| e.to_string())?.len();
+                if size > 1_048_576 { return Err("Skill resource exceeds 1 MiB; read a smaller resource".into()); }
+                let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+                let resource_guide = skill.instructions.find("## 已定位的技能资源")
+                    .map(|start| &skill.instructions[start..]).unwrap_or("");
+                Ok(json!({
+                    "skill_name": skill.name,
+                    "path": path,
+                    "skill_path": skill.path,
+                    "resource_root": root,
+                    "content": content,
+                    "resource_guidance": resource_guide,
+                }))
             }
             "save" | "update" => {
                 let skill_name = args
@@ -372,13 +279,51 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    fn list_read_and_mount_select_the_same_workspace_skill() {
+        let tmp = tempdir().unwrap();
+        for (root, body) in [(".agents/skills", "selected-body"), ("skills", "shadowed-body")] {
+            let dir = tmp.path().join(root).join("only-this-fixture");
+            fs::create_dir_all(&dir).unwrap();
+            fs::write(dir.join("SKILL.md"), format!(
+                "---\nname: skill-catalog-fixture\ndescription: >\n  first line\n  second line\n---\n{body}"
+            )).unwrap();
+        }
+        let tool = SkillTool::new(tmp.path().to_path_buf());
+        let listed = tool.execute(json!({"action":"list"})).unwrap();
+        let listed = listed["skills"].as_array().unwrap().iter()
+            .filter(|s| s["name"] == "skill-catalog-fixture").collect::<Vec<_>>();
+        assert_eq!(listed.len(), 1);
+        let read = tool.execute(json!({"action":"read","skill_name":"SKILL-CATALOG-FIXTURE"})).unwrap();
+        let mounted = CapabilityScout::scout_and_match_skills("skill-catalog-fixture", tmp.path());
+        assert_eq!(read["path"], mounted[0].path);
+        assert_eq!(read["path"], listed[0]["path"]);
+        assert_eq!(listed[0]["description"], "first line second line");
+        assert!(read["content"].as_str().unwrap().contains("selected-body"));
+        let selected = tmp.path().join(".agents/skills/only-this-fixture");
+        fs::create_dir_all(selected.join("references")).unwrap();
+        fs::write(selected.join("references/api.md"), "verified-resource").unwrap();
+        assert_eq!(tool.execute(json!({"action":"read","skill_name":"skill-catalog-fixture",
+            "resource_path":"references/api.md"})).unwrap()["content"], "verified-resource");
+        assert!(tool.execute(json!({"action":"read","skill_name":"skill-catalog-fixture",
+            "resource_path":"../../../../outside.md"})).is_err());
+
+        // A workspace with only skills/ must also be readable (the original regression).
+        let only = tmp.path().join("standalone");
+        let dir = only.join("skills/unique-local-fixture");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("SKILL.md"), "---\nname: unique-local-fixture\n---\nlocal-only").unwrap();
+        assert!(SkillTool::new(only).execute(json!({"action":"read","skill_name":"unique-local-fixture"})).unwrap()["content"]
+            .as_str().unwrap().contains("local-only"));
+    }
+
+    #[test]
     fn test_skill_lifecycle_save_list_read_update_delete() {
         let temp_dir = tempdir().unwrap();
         let tool = SkillTool::new(temp_dir.path().to_path_buf());
 
         // 1. Initially empty
         let list_res = tool.execute(json!({ "action": "list" })).unwrap();
-        assert_eq!(list_res["skills"].as_array().unwrap().len(), 0);
+        assert!(!list_res["skills"].as_array().unwrap().iter().any(|s| s["name"] == "mybatis-paging"));
 
         // 2. Save new skill
         let save_res = tool.execute(json!({
@@ -403,7 +348,7 @@ mod tests {
 
         // 4. List skills
         let list_res2 = tool.execute(json!({ "action": "list" })).unwrap();
-        assert_eq!(list_res2["skills"].as_array().unwrap().len(), 1);
+        assert_eq!(list_res2["skills"].as_array().unwrap().iter().filter(|s| s["name"] == "mybatis-paging").count(), 1);
 
         // 5. Update skill
         let update_res = tool.execute(json!({
@@ -422,6 +367,6 @@ mod tests {
 
         // 7. Verify deletion
         let list_res3 = tool.execute(json!({ "action": "list" })).unwrap();
-        assert_eq!(list_res3["skills"].as_array().unwrap().len(), 0);
+        assert!(!list_res3["skills"].as_array().unwrap().iter().any(|s| s["name"] == "mybatis-paging"));
     }
 }

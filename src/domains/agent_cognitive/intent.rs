@@ -100,7 +100,18 @@ impl DynamicIntentEngine {
     }
 
     fn resolve_goal(norm: &str) -> ActionGoal {
-        if contains_any(
+        let feasibility_question = contains_any(norm,
+            &["是否可以", "是否能", "能否", "可不可以", "可行性", "is it possible", "can this"])
+            && contains_any(norm, &["看看", "分析", "评估", "检查", "可行性", "is it possible", "can this"]);
+        let requests_delivery = contains_any(norm, &[
+            "帮我生成", "请生成", "直接生成", "并生成", "再生成", "然后生成",
+            "帮我写", "请编写", "直接写", "并实现", "再实现", "然后实现",
+            "并修复", "再修复", "然后修复", "请修复", "帮我修复", "直接转换",
+            "then implement", "then generate", "please generate", "please create", "please fix",
+        ]);
+        if feasibility_question && !requests_delivery {
+            ActionGoal::TargetedInvestigation
+        } else if contains_any(
             norm,
             &[
                 "重构",
@@ -117,6 +128,9 @@ impl DynamicIntentEngine {
             &[
                 "实现",
                 "编写",
+                "生成",
+                "转换",
+                "转化",
                 "修改",
                 "修复",
                 "添加",
@@ -139,6 +153,8 @@ impl DynamicIntentEngine {
                 "fix",
                 "add",
                 "create",
+                "generate",
+                "convert",
                 "write",
                 "build",
                 "improve",
@@ -405,6 +421,10 @@ mod tests {
             ),
             ("继续提升这个项目", ActionGoal::SurgicalExecution),
             ("分析当前源码", ActionGoal::TargetedInvestigation),
+            (r"D:\太极\动漫共和国概念版帮我看看，我安装的这个应用，是否可以转化为海阔世界的一个可用规则", ActionGoal::TargetedInvestigation),
+            ("评估能否转为海阔规则，然后生成规则并验证", ActionGoal::SurgicalExecution),
+            ("根据skill生成海阔规则", ActionGoal::SurgicalExecution),
+            ("能否帮我生成一个海阔规则", ActionGoal::SurgicalExecution),
             ("解释这段代码", ActionGoal::TargetedInvestigation),
             (
                 "implement the architecture described in docs/design.md",

@@ -48,6 +48,17 @@ pub struct ToolExecutionReceipt {
     pub verification: bool,
 }
 
+impl ToolExecutionReceipt {
+    /// A completed process provides observable output, without proving a change
+    /// or a quality check. Background launches and failed commands do not qualify.
+    pub fn is_process_observation(&self) -> bool {
+        self.status == ToolExecutionStatus::Succeeded
+            && self.risk == ToolRisk::ProcessControl
+            && matches!(self.name.as_str(), "run_command" | "verify_task_tool")
+            && self.result.get("exit_code").and_then(Value::as_i64) == Some(0)
+    }
+}
+
 pub struct ToolExecutionGateway {
     registry: ToolRegistry,
     max_result_chars: usize,
@@ -56,6 +67,7 @@ pub struct ToolExecutionGateway {
     approval_store: ToolApprovalStore,
     loop_guard: Mutex<ToolLoopGuard>,
     workspace_revision: AtomicU64,
+    observation_revision: AtomicU64,
 }
 
 
@@ -250,19 +262,22 @@ fn extract_actionable_diagnostic(text: &str) -> Option<String> {
         || lower.contains("just a moment")
         || lower.contains("sec_server")
         || lower.contains("403 forbidden")
-        || lower.contains("access denied")
         || text.contains("风控")
         || text.contains("验证码")
     {
-        return Some("Diagnostic insight: Target endpoint triggered anti-bot protection (403/Cloudflare/sec_server). Do NOT blindly repeat static HTTP requests! Pivot to: 1) Probe local Python engine (http://127.0.0.1:18000) for headless browser rendering; 2) Switch to mobile app/mini-program REST API; 3) Use webview sniffer protocol.".to_string());
+        return Some("Diagnostic hypothesis: The response may indicate HTTP authorization or bot protection. Inspect the actual status, response and required authentication. Avoid repeating the same request; use only an already configured, supported browser/provider when appropriate. Do not assume a local service is available.".to_string());
     }
 
-    // 3. 海阔沙箱 DOM 禁忌
+    if lower.contains("access denied") || lower.contains("permission denied") {
+        return Some("Diagnostic hypothesis: Access was denied. Determine whether this is a local file/process permission error or remote authorization failure, then inspect the relevant path, ACL or account. Do not assume anti-bot protection or change permissions blindly.".to_string());
+    }
+
+    // 3. Missing globals identify an environment mismatch, not a specific domain.
     if lower.contains("window is not defined")
         || lower.contains("document is not defined")
         || lower.contains("fetch is not defined")
     {
-        return Some("Diagnostic insight: Hiker sandbox violation! Naked DOM APIs (window/document/fetch) do not exist in the Hiker engine. Use isomorphic functions: `request(url, options)`, `pdfa`, `pdfh`, `pd` instead.".to_string());
+        return Some("Diagnostic hypothesis: A JavaScript global is unavailable in this runtime. Inspect the actual execution environment (Node version, SSR, worker or sandbox) and the referenced module before choosing an environment-compatible API or browser-only boundary. Do not assume a particular sandbox from this error alone.".to_string());
     }
 
     // 4. 编译器/语法解析错误定位（Rust, TypeScript, Python, Node）
@@ -294,11 +309,13 @@ impl ToolExecutionGateway {
             approval_store: ToolApprovalStore::default_location(),
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
+            observation_revision: AtomicU64::new(0),
         }
     }
 
     pub fn begin_run(&self) {
         self.workspace_revision.store(0, Ordering::Relaxed);
+        self.observation_revision.store(0, Ordering::Relaxed);
         self.loop_guard
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -319,6 +336,7 @@ impl ToolExecutionGateway {
             approval_store: ToolApprovalStore::default_location(),
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
+            observation_revision: AtomicU64::new(0),
         }
     }
 
@@ -332,6 +350,7 @@ impl ToolExecutionGateway {
             approval_store: ToolApprovalStore::default_location(),
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
+            observation_revision: AtomicU64::new(0),
         }
     }
 
@@ -349,6 +368,7 @@ impl ToolExecutionGateway {
             approval_store,
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
+            observation_revision: AtomicU64::new(0),
         }
     }
 
@@ -375,6 +395,8 @@ impl ToolExecutionGateway {
             let mut guard = self.loop_guard.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
             if is_verification_request(&req.name, &req.arguments) {
                 guard.record_verification(&req.name, &req.arguments, self.workspace_revision.load(Ordering::Relaxed))
+            } else if is_workspace_observation(&req.name) {
+                guard.record_observation(&req.name, &req.arguments, self.observation_revision.load(Ordering::Relaxed))
             } else {
                 guard.record(&req.name, &req.arguments)
             }
@@ -564,10 +586,18 @@ impl ToolExecutionGateway {
             && result.get("exit_code").and_then(Value::as_i64) == Some(0)
             && is_verification_request(&request.name, &request.arguments);
         let risk = classify_tool_risk(&request.name, &request.arguments);
-        if status == ToolExecutionStatus::Succeeded
-            && ((matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive) && !verification)
-                || (request.name == "revise_task_plan"
-                    && result.get("requires_verification").and_then(Value::as_bool) == Some(true)))
+        let content_may_have_changed = matches!(status, ToolExecutionStatus::Succeeded | ToolExecutionStatus::Failed | ToolExecutionStatus::Panicked)
+            && matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive)
+            && !verification
+            && request.name != "manage_task";
+        if content_may_have_changed {
+            // A failed write can have partially changed the file. Metadata
+            // updates do not make observations of workspace contents fresh.
+            self.observation_revision.fetch_add(1, Ordering::Relaxed);
+        }
+        if content_may_have_changed
+            || (status == ToolExecutionStatus::Succeeded && request.name == "revise_task_plan"
+                && result.get("requires_verification").and_then(Value::as_bool) == Some(true))
         {
             self.workspace_revision.fetch_add(1, Ordering::Relaxed);
         }
@@ -647,6 +677,12 @@ impl ToolExecutionGateway {
     }
 }
 
+fn is_workspace_observation(name: &str) -> bool {
+    matches!(name, "view_file" | "view_outline" | "list_dir" | "find_by_name"
+        | "grep_search" | "ast_grep" | "search_graph" | "query_graph"
+        | "trace_path" | "get_code_snippet" | "get_architecture")
+}
+
 fn is_verification_request(name: &str, arguments: &Value) -> bool {
     let command_key = match name {
         "run_command" => "CommandLine",
@@ -665,7 +701,7 @@ fn is_verification_request(name: &str, arguments: &Value) -> bool {
     };
     let normalized = command.trim().to_ascii_lowercase();
     if normalized.is_empty()
-        || ["&&", "||", ";", "|", ">", "<", "\n", "\r", "`", "$"]
+        || ["&", ";", "|", ">", "<", "\n", "\r", "`", "$"]
             .iter()
             .any(|operator| normalized.contains(operator))
     {
@@ -675,10 +711,20 @@ fn is_verification_request(name: &str, arguments: &Value) -> bool {
         matches!(
             arg,
             "--help" | "-h" | "--version" | "--list" | "--collect-only"
+                | "--test-only" | "--test-list"
         )
+            || arg.starts_with("--help=")
+            || arg.starts_with("--collect-only=")
+            || arg.starts_with("--list=")
+            || arg.starts_with("--test-name-pattern")
     }) {
         return false;
     }
+    // Unwrap only the explicit direct/proxy RTK forms, never recursive wrappers
+    // or a shell passed as the inner command.
+    let normalized = normalized.strip_prefix("rtk proxy ")
+        .or_else(|| normalized.strip_prefix("rtk "))
+        .unwrap_or(&normalized).trim_start();
     const QUALITY_COMMANDS: &[&str] = &[
         "cargo test",
         "cargo check",
@@ -699,6 +745,9 @@ fn is_verification_request(name: &str, arguments: &Value) -> bool {
         "pytest",
         "python -m pytest",
         "python3 -m pytest",
+        "python -m unittest",
+        "python3 -m unittest",
+        "node --test",
         "go test",
         "mvn test",
         "mvn verify",
@@ -714,7 +763,7 @@ fn is_verification_request(name: &str, arguments: &Value) -> bool {
         "tsc --noemit",
         "npx tsc --noemit",
     ];
-    QUALITY_COMMANDS.iter().any(|prefix| {
+    is_quality_script_command(normalized) || QUALITY_COMMANDS.iter().any(|prefix| {
         normalized == *prefix
             || normalized
                 .strip_prefix(prefix)
@@ -722,8 +771,106 @@ fn is_verification_request(name: &str, arguments: &Value) -> bool {
     })
 }
 
+/// Skill authors commonly provide a direct validator instead of npm test.
+/// This only recognizes a quality-check invocation, not semantic correctness.
+/// Success still requires the foreground process's actual exit_code == 0.
+fn is_quality_script_command(command: &str) -> bool {
+    let Some((runner, rest)) = command.split_once(char::is_whitespace) else { return false; };
+    if !matches!(runner, "node" | "python" | "python3" | "py") { return false; }
+    let rest = rest.trim_start();
+    let script = if rest.starts_with(['\'', '"']) {
+        let quote = rest.chars().next().unwrap();
+        let Some(end) = rest[1..].find(quote) else { return false; };
+        &rest[1..end + 1]
+    } else {
+        rest.split_whitespace().next().unwrap_or("")
+    };
+    let filename = script.rsplit(['/', '\\']).next().unwrap_or("");
+    let Some((stem, extension)) = filename.rsplit_once('.') else { return false; };
+    let extension_matches = if runner == "node" {
+        matches!(extension, "js" | "cjs" | "mjs")
+    } else { extension == "py" };
+    extension_matches && ["validate", "verify", "test", "check"].iter().any(|prefix|
+        stem == *prefix || stem.strip_prefix(prefix).is_some_and(|suffix| suffix.starts_with(['-', '_', '.'])))
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn skill_validation_scripts_produce_quality_receipts_without_accepting_generators() {
+        for command in [r#"node "C:\技能 资源\scripts\validate-rule.cjs" scratch/rule.json"#,
+            "node scripts/test-rule.cjs scratch/rule.json", "python scripts/check_rule.py result.json"] {
+            assert!(is_verification_request("run_command", &json!({"CommandLine":command})), "{command}");
+            assert!(is_verification_request("verify_task_tool", &json!({"command":command})), "{command}");
+        }
+        for command in ["node scripts/generate.cjs result.json", "node arbitrary.cjs",
+            "node -e 'console.log(0)'", "node validate.cjs --help", "node validate.cjs; echo ok",
+            "python scripts/validate.js", "echo node validate.cjs"] {
+            assert!(!is_verification_request("verify_task_tool", &json!({"command":command})), "{command}");
+        }
+    }
+    #[test]
+    fn failure_guidance_does_not_invent_a_business_domain_or_service() {
+        let dom = extract_actionable_diagnostic("ReferenceError: window is not defined").unwrap();
+        assert!(dom.contains("execution environment"));
+        assert!(!dom.contains("Hiker") && !dom.contains("pdfa"));
+        let acl = extract_actionable_diagnostic("Access denied opening C:/data/config.json").unwrap();
+        assert!(acl.contains("ACL"));
+        assert!(!acl.contains("18000") && !acl.contains("Pivot to:"));
+        let http = extract_actionable_diagnostic("403 Forbidden Cloudflare").unwrap();
+        assert!(http.contains("hypothesis"));
+        assert!(!http.contains("127.0.0.1"));
+    }
+    #[test]
+    fn common_test_runners_and_single_rtk_wrappers_are_recognized() {
+        for command in ["node --test acceptance.test.cjs", "python -m unittest discover",
+            "python3 -m unittest tests.test_config", "rtk cargo test --locked",
+            "rtk proxy node --test acceptance.test.cjs"] {
+            assert!(is_verification_request("run_command", &json!({"CommandLine": command})), "{command}");
+        }
+        for command in ["node --test --help", "rtk proxy cargo test --list",
+            "rtk rtk cargo test", "rtk proxy powershell -Command cargo test",
+            "node --test & echo ok", "cargo test -- --help=true",
+            "node --test --test-name-pattern=absent", "echo node --test"] {
+            assert!(!is_verification_request("run_command", &json!({"CommandLine": command})), "{command}");
+        }
+        assert!(!is_verification_request("run_command", &json!({"CommandLine":"node --test", "RunInBackground":true})));
+    }
+
+    #[test]
+    fn workspace_reads_refresh_after_writes_but_not_metadata() {
+        let gateway = intelligence_gateway();
+        gateway.registry.lock().unwrap().insert("manage_task".into(), Arc::new(ReturnedTool { name:"manage_task", result:json!({"updated":true}) }));
+        for revision in 0..7 {
+            let read = gateway.execute(ToolExecutionRequest { call_id: format!("read-{revision}"), name: "read_file".into(), arguments: json!({"path":"settings.json"}) });
+            assert_eq!(read.status, ToolExecutionStatus::Succeeded);
+            gateway.execute(ToolExecutionRequest { call_id: format!("edit-{revision}"), name: "replace_in_file".into(), arguments: json!({"revision":revision}) });
+        }
+        for index in 0..5 {
+            let read = gateway.execute(ToolExecutionRequest { call_id:"same".into(), name:"read_file".into(), arguments:json!({"path":"settings.json"}) });
+            assert_eq!(read.status, ToolExecutionStatus::Succeeded);
+            let meta = gateway.execute(ToolExecutionRequest { call_id:"todo".into(), name:"manage_task".into(), arguments:json!({"Action":"write","Content":index}) });
+            assert_eq!(meta.status, ToolExecutionStatus::Succeeded);
+        }
+        let read = gateway.execute(ToolExecutionRequest { call_id:"blocked".into(), name:"read_file".into(), arguments:json!({"path":"settings.json"}) });
+        assert_eq!(read.status, ToolExecutionStatus::RepetitionBlocked);
+        gateway.begin_run();
+        let read = gateway.execute(ToolExecutionRequest { call_id:"new-run".into(), name:"read_file".into(), arguments:json!({"path":"settings.json"}) });
+        assert_eq!(read.status, ToolExecutionStatus::Succeeded);
+    }
+
+    #[test]
+    fn potentially_partial_failed_writes_allow_fresh_observation_and_recheck() {
+        let gateway = intelligence_gateway();
+        for _ in 0..3 {
+            let checked = gateway.execute(ToolExecutionRequest { call_id:"check".into(), name:"run_command".into(), arguments:json!({"CommandLine":"node --test"}) });
+            assert!(checked.verification);
+        }
+        gateway.receipt(ToolExecutionRequest { call_id:"partial-write".into(), name:"write_to_file".into(), arguments:json!({"path":"settings.json"}) }, ToolExecutionStatus::Failed, Instant::now(), json!({"error":"write interrupted"}));
+        let checked = gateway.execute(ToolExecutionRequest { call_id:"recheck".into(), name:"run_command".into(), arguments:json!({"CommandLine":"node --test"}) });
+        assert!(checked.verification);
+    }
+
     #[test]
     fn transparently_resolves_common_aliases_and_normalizes_args() {
         let tools = registry(FixtureTool { outcome: "ok" });

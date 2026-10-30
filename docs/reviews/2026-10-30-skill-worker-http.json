@@ -1,0 +1,49 @@
+{
+  "model": "gemini-3.8-flash-high",
+  "transport": "POST /api/agents/run + SSE",
+  "stage": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-skill-replay-v0csgu3o",
+  "hub_sha256": "2e3dd90aee2e7e8f042ebca2f597777401ed307088e8c21ce99f43b398f0dbe3",
+  "cases": [
+    {
+      "name": "fixture",
+      "task_id": "3c899b7b-c836-4b91-b992-e57f73939624",
+      "event_count": 54,
+      "events_file": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-skill-replay-v0csgu3o\\fixture.events.json",
+      "event_kinds": [
+        "context-usage",
+        "error",
+        "status",
+        "thinking",
+        "tool-result",
+        "tool-use",
+        "trace-snapshot"
+      ],
+      "skill_tool_used": true,
+      "generator_invoked": true,
+      "validation_receipt": true,
+      "artifact_verified": true,
+      "status": "failed",
+      "workflow_passed": false
+    },
+    {
+      "name": "application",
+      "task_id": "c5b08387-420a-44e4-a758-6420db2229a6",
+      "event_count": 51,
+      "events_file": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-skill-replay-v0csgu3o\\application.events.json",
+      "event_kinds": [
+        "context-usage",
+        "error",
+        "status",
+        "tool-result",
+        "tool-use",
+        "trace-snapshot"
+      ],
+      "skill_tool_used": false,
+      "generator_invoked": false,
+      "validation_receipt": false,
+      "artifact_verified": null,
+      "status": "failed",
+      "workflow_passed": false
+    }
+  ]
+}

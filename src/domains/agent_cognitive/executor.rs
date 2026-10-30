@@ -152,11 +152,15 @@ impl AgentLoop {
     }
 
     pub fn with_model(base_prompt: &str, model_override: Option<&str>) -> Self {
+        let workspace = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        Self::with_workspace_model(base_prompt, workspace, model_override)
+    }
+
+    /// Bind one Run workspace without changing the cwd of concurrent workers.
+    pub fn with_workspace_model(base_prompt: &str, workspace: PathBuf, model_override: Option<&str>) -> Self {
         let client = reqwest::Client::new();
 
-        let cwd = std::env::current_dir()
-            .map(|p| p.display().to_string())
-            .unwrap_or_else(|_| "Unknown".to_string());
+        let cwd = workspace.to_string_lossy().to_string();
 
         let os = std::env::consts::OS;
         let arch = std::env::consts::ARCH;
@@ -164,7 +168,8 @@ impl AgentLoop {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
         let app_paths = crate::config::app_paths::AppPaths::new();
-        let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
+        let mut config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
+        config.project_root = workspace;
 
         let system_prompt = format!(
             "{}\n\n[Elite Agent Tooling & Operating Protocol]\n\
@@ -178,10 +183,9 @@ impl AgentLoop {
                7. `list_dir`: Explore directory tree structures.\n\
                8. `manage_task`: Inspect or maintain your .superagent_todo.md physical execution checklist.\n\
              - Working Memory on Disk (Manus/Devin Pattern):\n\
-               For any task that requires multi-step planning or modifying code across multiple files:\n\
-               1. First create an execution checklist in `.superagent_todo.md` using `manage_task` (Action: \"write\").\n\
-               2. Execute step-by-step; mark items completed physically using `manage_task`.\n\
-               3. Do not mark completed or conclude before targeted tests run and pass via `run_command`.\n\n\
+               For one concrete deliverable, inspect, act and verify directly; do not create a ceremonial plan.\n\
+               For complex work use one `plan_task` contract after inspecting relevant context, and cite actual receipts with `update_task_progress` to complete its subgoals.\n\
+               `manage_task` is optional durable scratch memory, not a second mandatory plan and never proof of completion. Do not replace receipt-backed progress with checked Markdown boxes.\n\n\
              [Deterministic Engineering & TDD Protocol]\n\
              - Test-Driven Verification: When resolving bugs or developing features, write or identify targeted test cases first (Red -> Green -> Refactor), then verify against these tests.\n\
              - Compiler-in-the-Loop: When file editing tools return non-empty `diagnostics` or compiler errors, prioritize correcting these syntax/compiler issues immediately before proceeding.\n\n\
@@ -451,7 +455,7 @@ impl AgentLoop {
     }
 
     pub fn load_dynamic_plugins(&mut self) {
-        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let cwd = PathBuf::from(self.run_prelude_runtime.project_path());
         let dirs = vec![
             cwd.join("dynamic_tools"),
             cwd.join("skills").join("plugins"),
@@ -525,9 +529,7 @@ impl AgentLoop {
         initial_images: Vec<String>,
     ) -> Result<String, String> {
         // Clean legacy completed todo file if no tasks remain unfinished
-        let todo_path = std::env::current_dir()
-            .unwrap_or_default()
-            .join(".superagent_todo.md");
+        let todo_path = PathBuf::from(self.run_prelude_runtime.project_path()).join(".superagent_todo.md");
         if todo_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&todo_path) {
                 let has_unfinished = content.lines().any(|l| {
@@ -567,6 +569,9 @@ impl AgentLoop {
         }
         let mut circuit_breaker = CircuitBreakerGuard::default();
         let mut cognition = CognitiveRuntime::begin(prompt);
+        if let Ok(limit) = std::env::var("HUB_AGENT_MAX_MODEL_TURNS").unwrap_or_default().parse::<usize>() {
+            cognition.limit_model_turns(limit);
+        }
         self.plugin_registry.register(Box::new(
             crate::services::brain::tools::revise_task_plan::ReviseTaskPlanTool(cognition.task_progress())
         ));
@@ -655,9 +660,7 @@ impl AgentLoop {
             let projected_messages = self.project_llm_messages();
 
             let mut dynamic_guidance = cognitive_guidance.clone();
-            let todo_path = std::env::current_dir()
-                .unwrap_or_default()
-                .join(".superagent_todo.md");
+            let todo_path = PathBuf::from(self.run_prelude_runtime.project_path()).join(".superagent_todo.md");
             if let Ok(todo_content) = std::fs::read_to_string(&todo_path) {
                 let trimmed = todo_content.trim();
                 if !trimmed.is_empty() {
@@ -671,7 +674,7 @@ impl AgentLoop {
                     let directive = if has_unfinished {
                         "Checklist Directive: Refer to your active checklist above. Mark tasks as complete using `manage_task` when finished."
                     } else {
-                        "Checklist Directive: ALL active tasks are marked completed! Do NOT call `manage_task` again. Provide your final delivery summary directly and conclude the turn."
+                        "Checklist notes are checked. This does not complete a structured task contract or prove verification. Bind actual receipts using update_task_progress if a contract exists, then deliver when all required evidence is satisfied. Do not rewrite the checklist again."
                     };
                     dynamic_guidance.push_str(&format!(
                         "\n\n[CURRENT ACTIVE TASK CHECKLIST]\n\
@@ -684,7 +687,7 @@ impl AgentLoop {
                 }
             } else {
                 dynamic_guidance.push_str(
-                    "\n\n[Manus Protocol: Working Memory]\nIf this task involves multiple steps or code modifications, please start by calling `manage_task` (Action: 'write') to initialize your .superagent_todo.md execution checklist."
+                    "\n\n[Working Memory]\nNo physical checklist is required. For a simple deliverable, execute and verify directly. For complex work use one structured plan_task contract, then bind actual receipts with update_task_progress; do not create a duplicate Markdown plan."
                 );
             }
 

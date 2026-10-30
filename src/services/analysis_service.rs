@@ -168,11 +168,14 @@ async fn run_analysis(
         &format!("Starting code graph indexing for {project_path}"),
     );
 
-    let payload = json!({ "repo_path": project_path }).to_string();
+    let indexer_paths=match crate::services::indexer_paths::IndexerPaths::prepare(&project_root,&cache_dir,&executable){
+        Ok(paths)=>paths,Err(error)=>{fail_task(&task_manager,&task_id,error);return;}
+    };
+    let payload = json!({ "repo_path": indexer_paths.project }).to_string();
     let mut child = match Command::new(&executable)
         .args(["cli", "index_repository", &payload])
-        .current_dir(&project_root)
-        .env("CBM_CACHE_DIR", &cache_dir)
+        .current_dir(&indexer_paths.project)
+        .env("CBM_CACHE_DIR", &indexer_paths.cache)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
@@ -291,6 +294,7 @@ async fn run_analysis(
         "Indexer finished; validating graph schema and structural results",
     );
     let db_path = runtime_config.codebase_memory_db_path(Some(&project_path));
+    if let Err(error)=indexer_paths.publish(&db_path){fail_task(&task_manager,&task_id,format!("Graph publication failed: {error}"));return;}
     let db_path_string = db_path.to_string_lossy().to_string();
     let graph_overview = match understand_service::understand_project(&db_path_string) {
         Ok(value) if value.get("indexed").and_then(Value::as_bool) == Some(true) => value,

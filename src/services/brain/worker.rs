@@ -200,18 +200,20 @@ pub async fn run_worker(
             "\n【技能自治交付最高纲领 (Zero-Prompt Protocol)】：\n\
              当前任务已成功匹配并挂载专属业务技能 (Domain Skill)。\n\
              1. 你必须严格遵循挂载技能规约中的架构规范与工程方法论，作为你的内置专业本能；\n\
-             2. 【严禁抛出反问】：严禁向用户抛出方案选择、技术细节或架构追问，严禁只输出空洞反问或方案，必须直接推进解决问题并给出实际交付物；\n\
+             2. 按用户当前意图推进；缺少必要授权或关键信息时如实说明，不能用编造结果替代。可行性调查的交付物是证据与结论，不强迫生成规则；\n\
              3. 【成熟智能体自主闭环 (ReAct)】：\n\
                 - 若用户任务为【修复报错/修改现有代码】：仔细分析报错原因与上下文，自主调用 `read_file` 查阅代码，必要时使用 `web_fetch` 联网探针目标站点，定位根因后输出精准修复方案与修复后的代码；若涉及规则且需要验证，可调用配备的测试脚本；\n\
-                - 若用户任务为【新建规则/全生命周期产出】：自主编写规则，调用测试与口令生成工具，从命令输出中提取真实的 PasteMe 云端短口令（带 16 位随机哈希）和标准离线 Base64 原生口令，以及沙箱 5 星评分真实收据，杜绝凭空捏造；\n\
+                - 若用户任务为【分析本地应用能否转规则】：先检查指定路径及真实应用技术栈、接口和鉴权，不改查同名网站。先做无需桌面的文件/日志/接口调查；未验证的环节如实列出；\n\
+                - 若用户任务为【新建规则/全生命周期产出】：使用技能自身真实资源路径编写和验证；分别报告静态校验、数据页面、搜索/详情和真实媒体请求结果。仅在得到用户授权时发布云短口令或推送设备；\n\
                 - 若用户任务为【技术咨询/原理分析】：严密论证，直接输出深入浅出的技术解答；\n\
              4. 【优雅折叠完整源码】：当交付完整规则或大段代码时，建议使用 `<details><summary><b>点击展开查看规则完整源码 (JSON)</b></summary>\n\n```json\n...\n```\n</details>` 语法包裹，兼顾紧凑与复制体验；\n\
              5. 【绝不造假】：严禁在未调用工具的情况下臆造假口令！当工具执行失败时，认真根据报错输出进行反思修正（Self-Correction）！\n"
         );
     }
 
-    let mut agent = AgentLoop::with_model(&full_system_prompt, model.as_deref());
+    let mut agent = AgentLoop::with_workspace_model(&full_system_prompt, effective_root.clone(), model.as_deref());
     agent.emit_jsonl = true;
+    crate::services::brain::native_capabilities::register(&mut agent,&effective_root,model.as_deref());
 
     // 注册核心能力与工具箱 (Fully Armed Superagent Toolset)
     let provider = Arc::new(LocalShellProvider);
@@ -278,7 +280,7 @@ pub async fn run_worker(
 
     // 自动扫描与装载动态插件与 MCP 工具
 
-    agent.plugin_registry.load_dynamic_plugins();
+    agent.plugin_registry.load_dynamic_plugins_from(&effective_root);
 
     let runtime = Arc::new(SubagentRuntime::new(
         "worker",

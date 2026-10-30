@@ -1,0 +1,16 @@
+{
+  "profile": "C:\\Users\\刘本录\\AppData\\Roaming\\deepcloud-ui-dev",
+  "app_data_root": "C:\\Users\\刘本录\\.superagent",
+  "previous_model": {
+    "model": "claude-sonnet-4-6",
+    "fastModel": "claude-sonnet-4-6"
+  },
+  "previous_sidecar_config": {
+    "customPath": null,
+    "customDataDir": null,
+    "customPort": null
+  },
+  "default_model": "gemini-3.8-flash-high",
+  "credential_reused_without_copy": true,
+  "credential_content_changed": false
+}

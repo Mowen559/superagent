@@ -80,10 +80,11 @@ impl ToolExecutor for ProjectIndexTool {
 
         let project_path_opt = args.get("ProjectPath").and_then(Value::as_str);
         let (db_path, db_exists) = self.resolve_db_path(project_path_opt);
+        let readiness=crate::services::brain::native_capabilities::graph_readiness(std::path::Path::new(&db_path));
 
         match action {
             "check_index_status" => {
-                let primary_lang = if db_exists {
+                let primary_lang = if readiness["ready"] == true {
                     understand_service::detect_primary_language(&db_path).unwrap_or_else(|_| "unknown".to_string())
                 } else {
                     "unindexed".to_string()
@@ -93,8 +94,10 @@ impl ToolExecutor for ProjectIndexTool {
                     "status": "success",
                     "database_path": db_path,
                     "database_exists": db_exists,
+                    "ready":readiness["ready"],
+                    "readiness":readiness,
                     "primary_language": primary_lang,
-                    "message": if db_exists {
+                    "message": if readiness["ready"] == true {
                         "Index is ready for deep architectural comprehension."
                     } else {
                         "Database not found. Run analysis or use search_graph to build/verify."
@@ -102,12 +105,8 @@ impl ToolExecutor for ProjectIndexTool {
                 }))
             }
             "inspect_overview" => {
-                if !db_exists {
-                    return Ok(json!({
-                        "status": "index_missing",
-                        "database_path": db_path,
-                        "message": "Project index database has not been built yet. You can inspect directory structure with list_dir and find_by_name directly."
-                    }));
+                if readiness["ready"] != true {
+                    return Err(format!("Project graph is not ready: {}. Run project analysis or inspect source files; no architecture result is available.",readiness["state"]));
                 }
 
                 let overview = understand_service::understand_project(&db_path)
@@ -128,12 +127,8 @@ impl ToolExecutor for ProjectIndexTool {
                     .and_then(Value::as_str)
                     .ok_or_else(|| "Missing required parameter 'FilePath' for inspect_file".to_string())?;
 
-                if !db_exists {
-                    return Ok(json!({
-                        "status": "index_missing",
-                        "file": file_path,
-                        "message": "Index missing. Fallback to view_outline or read_file to inspect symbols."
-                    }));
+                if readiness["ready"] != true {
+                    return Err(format!("Project graph is not ready: {}. Fallback to view_outline or view_file; no symbol result is available.",readiness["state"]));
                 }
 
                 let file_intel = understand_service::understand_file(&db_path, file_path)

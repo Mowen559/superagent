@@ -1,5 +1,6 @@
 pub mod agent;
 pub mod analysis_service;
+pub mod indexer_paths;
 pub mod brain;
 pub mod claude_cli;
 pub mod cost_calculator;

@@ -80,12 +80,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         report.same_actual_model,
         args.output.display()
     );
-    if report
-        .results
-        .iter()
-        .any(|r| matches!(r.status.as_str(), "provider_error" | "request_timeout"))
-    {
-        return Err("Evaluation contains provider failures; inspect the bounded report".into());
+    if !report.workflow_complete(&fixtures) {
+        return Err("Evaluation contains unfinished planning workflows; inspect the bounded report".into());
     }
     Ok(())
 }

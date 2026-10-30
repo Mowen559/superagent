@@ -57,15 +57,13 @@ impl ToolExecutor for ManageTaskTool {
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
-        let file_path = std::env::current_dir()
-            .unwrap_or_default()
-            .join(".superagent_todo.md");
+        let file_path = self.workspace_root.join(".superagent_todo.md");
 
         match action.as_str() {
             "read" => {
                 let current = fs::read_to_string(&file_path)
                     .unwrap_or_else(|_| "No todo list found. Start by writing one.".to_string());
-                Ok(json!({ "status": "success", "content": current }))
+                Ok(json!({ "status": "success", "content": current, "file_path":file_path }))
             }
             "write" => {
                 fs::write(&file_path, content)
@@ -75,11 +73,11 @@ impl ToolExecutor for ManageTaskTool {
                     t.starts_with("- [ ]") || t.starts_with("* [ ]") || t.contains("[in_progress]") || t.contains("[pending]")
                 });
                 let message = if !has_unfinished && !content.trim().is_empty() {
-                    "All tasks marked as completed. You may now conclude the turn and present the final summary to the user. Do NOT call manage_task again."
+                    "Checklist notes are checked; this is not execution evidence. If plan_task exists, complete its subgoals with actual receipt_ids via update_task_progress. Conclude only when the required artifact and verification evidence are satisfied. Do not rewrite these notes again."
                 } else {
                     "Todo list updated."
                 };
-                Ok(json!({ "status": "success", "message": message }))
+                Ok(json!({ "status": "success", "message": message, "file_path":file_path }))
             }
             "append" => {
                 use std::io::Write;
@@ -92,7 +90,7 @@ impl ToolExecutor for ManageTaskTool {
                 writeln!(file, "{}", content)
                     .map_err(|e| format!("Failed to append to todo list: {}", e))?;
 
-                Ok(json!({ "status": "success", "message": "Content appended to todo list." }))
+                Ok(json!({ "status": "success", "message": "Content appended to todo list.", "file_path":file_path }))
             }
             "clear" | "reset" => {
                 if file_path.exists() {
@@ -102,5 +100,26 @@ impl ToolExecutor for ManageTaskTool {
             }
             _ => Err(format!("Unknown action: {}", action)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn checklist_reads_and_writes_are_bound_to_the_selected_workspace() {
+        let root=tempfile::tempdir().unwrap();let other=tempfile::tempdir().unwrap();
+        let name=".superagent_todo.md";
+        fs::write(root.path().join(name),"selected workspace").unwrap();
+        fs::write(other.path().join(name),"other workspace").unwrap();
+        let launcher=std::env::current_dir().unwrap().join(name);
+        let before=fs::read(&launcher).ok();
+        let tool=ManageTaskTool::new(root.path().to_path_buf());
+        assert_eq!(tool.execute(json!({"Action":"read"})).unwrap()["content"],"selected workspace");
+        tool.execute(json!({"Action":"write","Content":"- [ ] scoped change"})).unwrap();
+        tool.execute(json!({"Action":"append","Content":"- [x] verified scope"})).unwrap();
+        assert!(fs::read_to_string(root.path().join(name)).unwrap().contains("verified scope"));
+        assert_eq!(fs::read_to_string(other.path().join(name)).unwrap(),"other workspace");
+        assert_eq!(fs::read(&launcher).ok(),before,"launcher checklist must not change");
     }
 }

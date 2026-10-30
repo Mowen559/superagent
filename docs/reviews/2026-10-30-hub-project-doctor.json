@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "workspace": "D:\\抖音\\deepcloud\\super-agent",
+  "registered_tools": null,
+  "graph": {
+    "state": "ready",
+    "ready": true,
+    "path": "C:\\Users\\刘本录\\.cache\\codebase-memory-mcp\\D-抖音-deepcloud-super-agent.db",
+    "nodes": 15316,
+    "edges": 62401,
+    "reason": "Readable graph schema with nodes; semantic accuracy not certified"
+  },
+  "understand": {
+    "ready": true,
+    "tool": "project_index",
+    "depends_on": "graph",
+    "metadata_path": null
+  },
+  "supermemory": {
+    "state": "ready",
+    "path": "D:\\抖音\\deepcloud\\super-agent\\.supermemory\\supermemory.json",
+    "records": 1,
+    "scope": "current_project"
+  },
+  "rtk": {
+    "state": "integrated",
+    "source_filter": "rtk::core::filter",
+    "terminal_filter": "LocalShellProvider -> compress_by_command",
+    "process_metrics": {
+      "totalOriginalBytes": 0,
+      "totalCompressedBytes": 0,
+      "totalOriginalTokens": 0,
+      "totalCompressedTokens": 0,
+      "totalTokensSaved": 0,
+      "overallReductionPercent": 0.0,
+      "totalInvocations": 0
+    },
+    "note": "Process metrics differ from rtk gain; zero usage is not a failed readiness check"
+  },
+  "requirement_engine": {
+    "ready": true,
+    "tool": "requirement_engine",
+    "actions": [
+      "analyze",
+      "plan"
+    ],
+    "scope": "analysis_and_future_plan_only",
+    "model_route": "not_probed"
+  },
+  "execution": {
+    "tools": [
+      "view_file",
+      "replace_in_file",
+      "run_command"
+    ],
+    "verified": false,
+    "reason": "Use actual worker receipts and an independent check; readiness does not certify task success"
+  }
+}

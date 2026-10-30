@@ -1,0 +1,25 @@
+{
+  "baseUrl": "http://127.0.0.1:3001",
+  "sdkModels": [
+    "gemini-3.8-flash-high"
+  ],
+  "taskId": "80e7eae6-9068-48fe-8506-a8372f81bd86",
+  "status": "timeout",
+  "probeInvoked": true,
+  "passed": false,
+  "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-final-sdk-FzJrjh",
+  "evidence": null,
+  "tools": [
+    "plan_task",
+    "run_command",
+    "run_command",
+    "run_command",
+    "update_task_progress",
+    "update_task_progress",
+    "run_command",
+    "run_command",
+    "update_task_progress",
+    "capability_status"
+  ],
+  "finalText": ""
+}

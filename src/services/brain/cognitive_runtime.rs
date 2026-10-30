@@ -99,6 +99,8 @@ impl CognitiveRuntime {
         ]
         .iter()
         .any(|marker| scope_prefix.starts_with(marker));
+        let investigation_only=["只做调查","只做分析","只分析","仅分析","只检查","只做逆向理解","investigation only","analysis only","read-only investigation"]
+            .iter().any(|marker|scope_prefix.starts_with(marker));
         let proposal_needs_workspace = contains_any(
             &normalized,
             &[
@@ -134,6 +136,11 @@ impl CognitiveRuntime {
             intent.capability.suggested_mutation_tools.clear();
             intent.capability.suggested_verification_tools.clear();
         }
+        if investigation_only {
+            task_kind=TaskKind::Investigative;
+            intent.capability.suggested_mutation_tools.clear();
+            intent.capability.suggested_verification_tools.clear();
+        }
 
         let evidence_required = if proposal_only {
             proposal_needs_workspace
@@ -155,6 +162,9 @@ impl CognitiveRuntime {
         ];
         if proposal_only {
             default_anchors.push("Proposal-only scope: inspect only as needed and deliver the requested plan. Proposed future implementation steps are not authorized actions in this Run; do not execute or claim them completed.".to_string());
+        }
+        if investigation_only {
+            default_anchors.push("Investigation-only scope: gather evidence and report findings. Do not change business source code or create an implementation step just to satisfy a completion gate; code mutation and implementation tests are not required for this read-only objective.".into());
         }
 
         for path in &intent.constraints.protected_paths {
@@ -207,6 +217,11 @@ impl CognitiveRuntime {
 
     pub fn task_kind(&self) -> TaskKind {
         self.task_kind
+    }
+
+    /// Hosts may impose a smaller deadline, but cannot expand an existing one.
+    pub fn limit_model_turns(&mut self, max_turns: usize) {
+        self.max_model_turns = self.max_model_turns.min(max_turns.max(1));
     }
 
     pub fn task_progress(&self) -> SharedTaskProgress {
@@ -411,6 +426,11 @@ impl CognitiveRuntime {
             understanding,
         );
         res.push_str(&format!("{}{}", phase_progression_block, pivot_mandate));
+        res.push_str(&format!(
+            "\n[Turn Budget]\nRemaining model turns including this request: {} of {}. Batch independent read-only calls when useful and reuse facts already supplied in workspace excerpts or prior results. Read further only to resolve a material gap; once the requested outcome is supported, advance to the plan, action or delivery. Record unresolved facts honestly instead of exhausting the budget browsing unrelated files. The deadline never relaxes verification or authorization requirements.\n",
+            self.max_model_turns.saturating_sub(self.model_turns) + 1,
+            self.max_model_turns,
+        ));
         Ok(res)
     }
 
@@ -456,7 +476,10 @@ impl CognitiveRuntime {
         if receipt.name == "ask_user" && receipt.status == ToolExecutionStatus::Succeeded {
             self.inquiry_tool_calls += 1;
         }
-        self.observe_tool(receipt.status, receipt.risk, receipt.verification);
+        let evidence_risk = if receipt.is_process_observation() {
+            ToolRisk::ReadOnly
+        } else { receipt.risk };
+        self.observe_tool(receipt.status, evidence_risk, receipt.verification);
     }
 
     fn observe_tool(&mut self, status: ToolExecutionStatus, risk: ToolRisk, verification: bool) {
@@ -614,6 +637,33 @@ fn contains_any(value: &str, needles: &[&str]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn explicit_read_only_investigation_never_requires_an_unrelated_mutation() {
+        for objective in ["只做调查：检查代码错误与调用链，不修改业务源码", "请只做分析：当前代码为什么失败", "analysis only: inspect the current code error"] {
+            let mut runtime=CognitiveRuntime::with_mode(objective,ReasoningMode::Adaptive);
+            assert_eq!(runtime.task_kind(),TaskKind::Investigative);
+            assert!(runtime.intent.capability.suggested_mutation_tools.is_empty());
+            runtime.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::ReadOnly,false);
+            assert_eq!(runtime.review_completion("已读取当前源码并核对调用链，边界错误的原因和影响已由实际工作区证据确认，本轮没有修改业务源码。"),CompletionDecision::Accept);
+        }
+        assert_eq!(CognitiveRuntime::with_mode("先调查代码错误，再修改并验证",ReasoningMode::Adaptive).task_kind(),TaskKind::Execution);
+        assert_eq!(CognitiveRuntime::with_mode(
+            r"D:\太极\动漫共和国概念版帮我看看，我安装的这个应用，是否可以转化为海阔世界的一个可用规则",
+            ReasoningMode::Adaptive).task_kind(), TaskKind::Investigative);
+        assert_eq!(CognitiveRuntime::with_mode("请根据skill生成海阔规则并验证", ReasoningMode::Adaptive)
+            .task_kind(), TaskKind::Execution);
+    }
+
+    #[test]
+    fn real_deadline_is_visible_and_cannot_be_expanded() {
+        let mut runtime = CognitiveRuntime::with_mode("只做规划：分析当前项目", ReasoningMode::Adaptive);
+        runtime.limit_model_turns(2);
+        assert!(runtime.next_guidance().unwrap().contains("Remaining model turns including this request: 2 of 2"));
+        runtime.limit_model_turns(99);
+        assert!(runtime.next_guidance().unwrap().contains("Remaining model turns including this request: 1 of 2"));
+        assert!(runtime.next_guidance().is_err());
+    }
 
     #[test]
     fn classifies_execution_investigation_and_conversation() {

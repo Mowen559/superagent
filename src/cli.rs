@@ -14,6 +14,16 @@ pub struct Cli {
 pub enum Commands {
     /// Install this application globally to the system PATH
     Install,
+    /// Inspect local native capability readiness without model requests.
+    Doctor {
+        #[arg(long)]
+        project: Option<std::path::PathBuf>,
+    },
+    /// Build and validate the real native graph for a project (no model calls).
+    Index {
+        #[arg(long)]
+        project: std::path::PathBuf,
+    },
     /// Headless worker for Superagent
     SuperagentWorker {
         /// Base prompt
@@ -278,6 +288,18 @@ pub fn dispatch() {
             std::process::exit(0);
         }
         Some(Commands::Install) => crate::cli_commands::handle_install(),
+        Some(Commands::Doctor { project }) => {
+            let root=project.unwrap_or_else(||std::env::current_dir().unwrap_or_default());
+            let config=crate::config::runtime::RuntimeConfig::from_env(&crate::config::app_paths::AppPaths::new());
+            println!("{}",serde_json::to_string_pretty(&crate::services::brain::native_capabilities::snapshot(&root,&config,None)).unwrap());
+        }
+        Some(Commands::Index { project }) => {
+            let config=crate::config::runtime::RuntimeConfig::from_env(&crate::config::app_paths::AppPaths::new());
+            match crate::services::indexer_paths::index_project(&config,&project){
+                Ok(result)=>println!("{}",result),
+                Err(error)=>{eprintln!("{}",serde_json::json!({"status":"failed","error":error}));std::process::exit(1);}
+            }
+        }
         Some(Commands::Service { port }) => run_service(port),
         Some(Commands::Chat { model, project, system }) => {
             crate::repl::run_chat(model, project, system);

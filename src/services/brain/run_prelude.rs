@@ -70,7 +70,10 @@ impl RunPreludeRuntime {
 
     pub fn prepare(&self, objective: &str) -> RunPrelude {
         let mut routes = route_objective(objective);
-        let memories = SupermemoryStore::new(&self.config, None).search_keyword(objective, 5);
+        let project_store = SupermemoryStore::new(&self.config, Some(&self.project_path));
+        let memory_result = project_store.search_scored_result(objective, 5, None, None);
+        let memory_warning = memory_result.as_ref().err().cloned();
+        let memories = memory_result.unwrap_or_default().into_iter().map(|hit| hit.record).collect::<Vec<_>>();
         if !memories.is_empty() && !routes.contains(&CapabilityRoute::KnowledgeRetrieval) {
             routes.push(CapabilityRoute::KnowledgeRetrieval);
         }
@@ -94,6 +97,9 @@ impl RunPreludeRuntime {
                 &format!("- {:?}: {}\n", route, route.guidance()),
                 MAX_PRELUDE_CHARS,
             );
+        }
+        if let Some(error) = memory_warning {
+            push_bounded(&mut projection, &format!("Project memory unavailable: {}\n", sanitize(&error, 400)), MAX_PRELUDE_CHARS);
         }
 
         // 1. 注入工作区宏观拓扑感知 (Workspace Topography)
@@ -490,6 +496,35 @@ fn scan_recommended_skills(root: &std::path::Path, objective: &str) -> Option<St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scoped_prelude_reads_project_memory_not_global_decoy() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("selected-project");
+        std::fs::create_dir(&project).unwrap();
+        let config = RuntimeConfig {
+            workspace_root: root.path().to_path_buf(),
+            understand_anything_root: root.path().join("understand"),
+            shadow_git_root: root.path().join("global-shadow"),
+            project_root: root.path().to_path_buf(),
+            projects_root: root.path().join("projects"),
+            codebase_memory_cache_root: root.path().join("graphs"),
+            codebase_memory_bin: "missing-indexer".into(),
+            rtk_bin: "unused-rtk".into(),
+            sso_api_url: String::new(),
+        };
+        for (scope, marker) in [(None, "GLOBAL_DECOY_MARKER"), (Some(project.to_str().unwrap()), "PROJECT_ONLY_MARKER")] {
+            let mut data = crate::models::memory::SupermemoryStoreData::default();
+            data.memories.push(serde_json::from_value(serde_json::json!({
+                "id":"canary", "name":"memory canary", "summary":marker,
+                "nodeType":"decision", "sourceLabel":"fixture"
+            })).unwrap());
+            SupermemoryStore::new(&config, scope).save_result(&data).unwrap();
+        }
+        let prelude = RunPreludeRuntime::new(config, project.to_string_lossy()).prepare("memory canary");
+        assert!(prelude.prompt_projection().contains("PROJECT_ONLY_MARKER"));
+        assert!(!prelude.prompt_projection().contains("GLOBAL_DECOY_MARKER"));
+    }
 
     #[test]
     fn workspace_context_supplies_real_sources_and_explicit_truncation() {

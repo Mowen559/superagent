@@ -36,6 +36,10 @@ impl PluginRegistry {
     /// 自动扫描动态插件/技能目录并挂载 (MCP Foundation)
     pub fn load_dynamic_plugins(&self) {
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        self.load_dynamic_plugins_from(&cwd);
+    }
+
+    pub fn load_dynamic_plugins_from(&self, cwd: &std::path::Path) {
         let dirs = vec![
             cwd.join("dynamic_tools"),
             cwd.join("skills").join("plugins"),

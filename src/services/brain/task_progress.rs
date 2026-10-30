@@ -117,7 +117,8 @@ impl TaskProgress {
             ToolRisk::WorkspaceMutation | ToolRisk::Destructive
         ) {
             EvidenceKind::Mutation
-        } else if matches!(receipt.risk, ToolRisk::ReadOnly | ToolRisk::Network) {
+        } else if matches!(receipt.risk, ToolRisk::ReadOnly | ToolRisk::Network)
+            || receipt.is_process_observation() {
             EvidenceKind::Observation
         } else {
             return;
@@ -293,7 +294,7 @@ impl TaskProgress {
     }
 
     pub fn render(&self) -> Option<String> {
-        self.contract.as_ref().map(|plan| format!("{}\n[Subgoal Evidence]\n{}\nFor added requirements use revise_task_plan with this plan_revision and only the changed fields; unmentioned requirements and unaffected progress are retained. Do not reread unchanged sources or rewrite the entire plan. Use update_task_progress to bind receipts. New or changed steps require fresh evidence; verification must be current. Full replacement clears bindings.\n", plan.render(), self.snapshot()))
+        self.contract.as_ref().map(|plan| format!("{}\n[Subgoal Evidence]\n{}\nFor added requirements use revise_task_plan with this plan_revision and only the changed fields; unmentioned requirements and unaffected progress are retained. Do not reread unchanged sources or rerun successful checks merely to advance progress. For each evidenced subgoal call update_task_progress(action=complete_step, step_id=<id>, receipt_ids=[<actual matching receipt ID>]) in dependency order. Confirm that the receipt supports that step's acceptance condition before citing it. Markdown Todo updates and action=status do not complete steps. New or changed steps require fresh evidence; verification must be current. Full replacement clears bindings.\n", plan.render(), self.snapshot()))
     }
 
     fn matches_step(&self, id: &str, kind: EvidenceKind, evidence: &[&Evidence]) -> bool {

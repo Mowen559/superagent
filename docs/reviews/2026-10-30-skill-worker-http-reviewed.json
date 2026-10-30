@@ -1,0 +1,104 @@
+{
+  "model": "gemini-3.8-flash-high",
+  "transport": "POST /api/agents/run + SSE",
+  "stage": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-skill-replay-i5n2bu79",
+  "hub_sha256": "a08bd44413dc1ed0a6f54a1cd0ccb1c3ff9f6ee14433ca164754e964717a7567",
+  "cases": [
+    {
+      "name": "fixture",
+      "task_id": "fed62719-ae6b-4a38-bd3d-81d25f80e69c",
+      "event_count": 26,
+      "status": "completed",
+      "events_file": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-skill-replay-i5n2bu79\\fixture.events.json",
+      "event_kinds": [
+        "context-usage",
+        "status",
+        "text",
+        "tool-result",
+        "tool-use",
+        "trace-snapshot"
+      ],
+      "skill_tool_used": true,
+      "generator_invoked": true,
+      "probe_invoked": false,
+      "validation_receipt": true,
+      "artifact_verified": true,
+      "workflow_passed": true
+    },
+    {
+      "name": "application",
+      "task_id": "2a49e73b-c5fb-4eda-8354-e5fcf348efb2",
+      "event_count": 24,
+      "status": "completed",
+      "events_file": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-skill-replay-i5n2bu79\\application.events.json",
+      "event_kinds": [
+        "context-usage",
+        "status",
+        "text",
+        "tool-result",
+        "tool-use",
+        "trace-snapshot"
+      ],
+      "skill_tool_used": false,
+      "generator_invoked": false,
+      "probe_invoked": true,
+      "validation_receipt": false,
+      "artifact_verified": null,
+      "workflow_passed": true,
+      "independent_checks": {
+        "same_requested_app": true,
+        "dll_hash_matches": true,
+        "no_desktop": true,
+        "real_channels": true,
+        "real_search": true,
+        "real_episodes": true,
+        "decoded_video": true,
+        "mobile_not_misrepresented": true
+      },
+      "application_evidence": {
+        "application": "D:\\太极\\动漫共和国概念版",
+        "dll_sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+        "no_desktop": true,
+        "installed_version": "1.4.4",
+        "isolated_state_root": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\dmghg-headless-f1gmjlbz",
+        "channels": 8,
+        "list_items": 10,
+        "search_keyword": "仙逆",
+        "search_items": 3,
+        "detail_id": 181655,
+        "detail_title": "仙逆",
+        "episode_count": 164,
+        "play_variants": 1,
+        "media": {
+          "host": "m3bkbfdm.hzhcbkj.cn",
+          "status": 206,
+          "content_type": "application/vnd.apple.mpegurl; charset=utf-8",
+          "bytes_read": 2048,
+          "hls_manifest": true,
+          "first_child": {
+            "host": "h23.static.yximgs.com",
+            "status": 206,
+            "content_type": "image/png",
+            "bytes_read": 2048,
+            "hls_manifest": false
+          }
+        },
+        "mobile_standalone_verified": false,
+        "dependency": "Windows installed electron_bridge.dll and resources/lua",
+        "decoder": {
+          "audio-codec-name": "aac",
+          "video-params/w": "1920",
+          "video-params/h": "816",
+          "time-pos": "0.202000",
+          "decoded_video": true,
+          "outputs": {
+            "audio": "null",
+            "video": "null"
+          }
+        }
+      },
+      "application_evidence_sha256": "7e8c3758ee2d1fcaf05b689fc5aca00ce9ec5cedeedd936b247d394bba54b874"
+    }
+  ],
+  "review_note": "Offline independent app path, native DLL hash and output checks; raw replay report preserved."
+}

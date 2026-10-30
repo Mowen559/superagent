@@ -106,6 +106,34 @@ fn failed_tools_plans_todos_and_background_processes_are_not_step_evidence() {
 }
 
 #[test]
+fn foreground_process_facts_are_citable_observations_but_not_mutation_or_verification() {
+    let mut runtime = TaskProgress::default();
+    runtime.apply_plan(plan());
+    let mut observed = receipt("actual-shell-id", "run_command", ToolRisk::ProcessControl, false);
+    observed.result = json!({"exit_code":0,"stdout":"actual directory listing"});
+    runtime.observe(&observed);
+    complete(&mut runtime, "inspect", &["actual-shell-id"]).unwrap();
+    assert!(complete(&mut runtime, "change", &["actual-shell-id"]).is_err());
+    assert!(!observed.verification);
+    assert!(runtime.snapshot().to_string().contains("actual-shell-id"));
+
+    use super::cognitive_runtime::{CognitiveRuntime, CompletionDecision, ReasoningMode};
+    let mut investigation = CognitiveRuntime::with_mode("分析本地安装应用的技术栈", ReasoningMode::Adaptive);
+    investigation.observe_receipt(&observed);
+    assert_eq!(investigation.review_completion("已通过真实的命令执行结果查验安装目录及其技术栈，结论基于实际输出；本轮没有改动安装文件，也不把目录信息当成业务播放验证。"), CompletionDecision::Accept);
+
+    for (id, status, result) in [
+        ("failed-shell", ToolExecutionStatus::Failed, json!({"exit_code":1})),
+        ("background-shell", ToolExecutionStatus::Succeeded, json!({"process_id":123})),
+    ] {
+        let mut bad = receipt(id, "run_command", ToolRisk::ProcessControl, false);
+        bad.status = status; bad.result = result;
+        runtime.observe(&bad);
+        assert!(complete(&mut runtime, "inspect", &[id]).is_err());
+    }
+}
+
+#[test]
 fn context_gap_resolution_checks_source_and_real_user_responses() {
     let mut runtime = TaskProgress::default();
     let mut contract = plan();
