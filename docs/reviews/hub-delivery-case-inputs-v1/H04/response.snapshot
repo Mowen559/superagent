@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Test HLS Streams</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="hls.js test streams">
+    <link rel="stylesheet" href="https://static.mux.com/css/mux-markdown.css">
+  </head>
+  <body>
+    <p>
+      <a href="https://mux.com"><img src="https://banner.mux.dev/?text=Test%20Streams" alt="hls.js streams"></a>
+    </p>
+    <h1>Test Streams</h1>
+
+    <p>There's not much to see here, this is just some test HLS streams, primarily used by <a href="https://github.com/video-dev/hls.js/">hls.js</a> and hosted with 💖 by <a href="https://mux.com">Mux</a>.
+
+    <p>
+      <ul>
+        <li>
+          <a href="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">Big Buck Bunny - adaptive qualities</a>
+        </li>
+        <li>
+          <a href="https://test-streams.mux.dev/x36xhzz/url_6/193039199_mp4_h264_aac_hq_7.m3u8">Big Buck Bunny - 480p only</a>
+        </li>
+        <li>
+          <a href="https://test-streams.mux.dev/test_001/stream.m3u8">ARTE China, ABR</a>
+        </li>
+        <li>
+          <a href="https://test-streams.mux.dev/dai-discontinuity-deltatre/manifest.m3u8">Ad-insertion in event stream</a>
+        </li>
+        <li>
+          <a href="https://test-streams.mux.dev/issue666/playlists/cisq0gim60007xzvi505emlxx.m3u8">hls.js/issues/666</a>
+        </li>
+        <li>
+          <a href="https://test-streams.mux.dev/bbbAES/playlists/sample_aes/index.m3u8">SAMPLE-AES encrypted</a>
+        </li>
+        <li>
+          <a href="https://test-streams.mux.dev/pts_shift/master.m3u8">DK Turntable, PTS shifted by 2.3s</a>
+        </li>
+        <li>
+          <a href="https://test-streams.mux.dev/tos_ismc/main.m3u8">Tears of Steel, HLS with IMSC Captions</a>
+        </li>
+      </ul>
+    </p>
+  </body>
+</html>

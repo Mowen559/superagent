@@ -17,6 +17,8 @@ const MAX_QUESTION_CHARS: usize = 320;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskContract {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivery: Option<super::delivery_evidence::DeliveryContract>,
     pub interpretation: String,
     pub success_criteria: Vec<String>,
     #[serde(default)]
@@ -69,6 +71,7 @@ impl TaskContract {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "delivery": super::delivery_evidence::DeliveryContract::schema(),
                 "interpretation": {"type": "string", "minLength": 1, "maxLength": MAX_INTERPRETATION},
                 "success_criteria": {"type": "array", "minItems": 1, "maxItems": MAX_CRITERIA, "items": {"type": "string", "minLength": 1, "maxLength": MAX_ITEM_CHARS}},
                 "constraints": {"type": "array", "maxItems": MAX_CONSTRAINTS, "items": {"type": "string", "minLength": 1, "maxLength": MAX_ITEM_CHARS}},
@@ -98,6 +101,11 @@ impl TaskContract {
 
     pub fn from_value(value: Value) -> Result<Self, String> {
         let contract: Self = serde_json::from_value(value).map_err(|error| error.to_string())?;
+        if let Some(delivery) = &contract.delivery { delivery.validate()?; }
+        if contract.delivery.as_ref().is_some_and(|d| d.scope == super::delivery_evidence::DeliveryScope::ReadOnly)
+            && contract.steps.iter().any(|s| s.evidence_kind == EvidenceKind::Mutation) {
+            return Err("read_only delivery cannot contain mutation steps".into());
+        }
         let mut issues = Vec::new();
         if serde_json::to_string(&contract)
             .map_err(|e| e.to_string())?
@@ -225,6 +233,9 @@ impl TaskContract {
             ));
         }
         output.push_str("Follow dependencies, compare outcomes with every success criterion, and update this plan when new evidence changes the understanding. Original user instructions remain authoritative.\n");
+        if let Some(delivery) = &self.delivery {
+            output.push_str(&format!("Delivery declaration (not proof): {}. Use verify_delivery for physical and registered domain checks.\n", serde_json::to_string(delivery).unwrap_or_default()));
+        }
         output
     }
 }
@@ -282,6 +293,17 @@ pub(crate) mod tests {
         assert!(plan.contains("Regression checks pass"));
         assert!(plan.contains("inspect workspace instructions"));
         assert!(plan.contains("not completion evidence"));
+    }
+
+    #[test]
+    fn legacy_contracts_and_readonly_delivery_have_compatible_explicit_scope() {
+        assert!(TaskContract::from_value(sample()).unwrap().delivery.is_none());
+        let mut value = sample();
+        value["delivery"] = json!({"version":1,"scope":"read_only","target":"existing report","artifacts":[]});
+        for step in value["steps"].as_array_mut().unwrap() { step["evidence_kind"] = json!("observation"); }
+        assert!(TaskContract::from_value(value.clone()).is_ok());
+        value["steps"][1]["evidence_kind"] = json!("mutation");
+        assert!(TaskContract::from_value(value).is_err());
     }
 
     #[test]

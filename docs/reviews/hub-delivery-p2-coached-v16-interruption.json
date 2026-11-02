@@ -1,0 +1,14 @@
+{
+  "task_id": "331493d0-65ed-4f6a-b70a-124e39b68d7d",
+  "classification": "infra_interrupted",
+  "original_report_unchanged": true,
+  "original_report_sha256": "924e3d2944e50e1ac8c9e607b28baeb58ef7095fbcff30868f059cf12bebbcab",
+  "observed_status": "submitted",
+  "observations": [
+    "replay process and service no longer available",
+    "previously recorded workspace contains no three delivery files",
+    "coached project source copy also empty",
+    "proxy8045 reachable"
+  ],
+  "business_success_certified": false
+}

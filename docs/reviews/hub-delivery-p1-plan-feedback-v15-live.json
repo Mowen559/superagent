@@ -1,0 +1,109 @@
+{
+  "task_id": "d479a294-f5e1-4043-9447-d6bd6c7665ac",
+  "source_report_sha256": "f152df2df18ec3ade8b8f261f9db8114dc78b7b114373486c3173c44dd73763c",
+  "candidate_sha256": "262e7eed1225cefd5077e8c3d64a15e97ddf59d5a6c7b459ec6351e705d739cb",
+  "planning_results": [
+    {
+      "error": "invalid type: string \"1\", expected u32",
+      "kind": "execution_failed"
+    },
+    {
+      "error": "plan cannot remove or weaken host delivery requirements: artifact \"readme\" must retain path \"README.md\", required=true, validator=None; received Some(ArtifactRequirement { id: \"readme\", path: \"README.md\", required: true, validator: Some(\"null\") })",
+      "kind": "execution_failed"
+    },
+    {
+      "status": "planned",
+      "task_contract": {
+        "delivery": {
+          "version": 1,
+          "scope": "implementation",
+          "target": "D:\\太极\\动漫共和国概念版",
+          "artifacts": [
+            {
+              "id": "rule",
+              "path": "rule.json",
+              "required": true,
+              "validator": "dmghg-production-runtime"
+            },
+            {
+              "id": "bridge",
+              "path": "bridge.py",
+              "required": true,
+              "validator": "dmghg-bridge-contract"
+            },
+            {
+              "id": "readme",
+              "path": "README.md",
+              "required": true,
+              "validator": null
+            }
+          ]
+        },
+        "interpretation": "为 D:\\太极\\动漫共和国概念版 编写内聚自立的本地适配 bridge.py 与符合 PC 生产运行库契约的 rule.json，并编写包含依赖、启动与导入方法的 README.md。通过 verify_delivery 闭环检验。",
+        "success_criteria": [
+          "bridge.py 符合桥接契约并在 127.0.0.1:18002 稳定提供 HTTP 服务，满足超时与白名单约束",
+          "rule.json 通过 PC 生产运行库校验，分类、分页、搜索、详情与播放链路畅通",
+          "README.md 说明详尽真实，准确列出已测/未测范围",
+          "verify_delivery 对 rule 和 bridge 均返回成功收据"
+        ],
+        "constraints": [
+          "Windows x64 Native Python environment",
+          "No desktop GUI / no window",
+          "No modification of original application directory D:\\太极\\动漫共和国概念版",
+          "No reading of user account / session",
+          "No automatic publishing, short-command push, or LAN push",
+          "Bridge binds only to 127.0.0.1 and default port is 18002 (allowed ports 18000, 18001, 18002)",
+          "Bridge must handle slow/incomplete HTTP requests with a <=5s timeout (disconnect within 8s) and be self-contained"
+        ],
+        "steps": [
+          {
+            "id": "probe_target",
+            "goal": "快速探测 D:\\太极\\动漫共和国概念版 的原生 bridge 与数据响应",
+            "acceptance": "验证安装路径与原生库可用性，获取真实协议数据格式与频道列表",
+            "depends_on": [],
+            "evidence_kind": "observation"
+          },
+          {
+            "id": "write_bridge",
+            "goal": "编写内聚自立的 bridge.py 桥接服务",
+            "acceptance": "独立实现且可单独运行的 bridge.py，符合只读白名单、超时控制及 127.0.0.1 约束",
+            "depends_on": [
+              "probe_target"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "write_rule",
+            "goal": "编写海阔规则 rule.json",
+            "acceptance": "符合 PC 生产运行库契约的 rule.json，支持分类、分页、搜索、详情与 lazy 播放解析",
+            "depends_on": [
+              "write_bridge"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "write_readme",
+            "goal": "编写说明文档 README.md",
+            "acceptance": "包含运行依赖、启动命令、导入方法及真实已测/未测边界的 README.md",
+            "depends_on": [
+              "write_rule"
+            ],
+            "evidence_kind": "mutation"
+          },
+          {
+            "id": "verify_artifacts",
+            "goal": "调用 verify_delivery 验证全套交付物",
+            "acceptance": "verify_delivery 通过，包含 rule 与 bridge 验证器无报错",
+            "depends_on": [
+              "write_bridge",
+              "write_rule",
+              "write_readme"
+            ],
+            "evidence_kind": "verification"
+          }
+        ],
+        "open_questions": []
+      }
+    }
+  ]
+}

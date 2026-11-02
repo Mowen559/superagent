@@ -1,0 +1,26 @@
+{
+  "task_id": "98433cf5-f342-4f46-a37f-9b9e3c3d07ff",
+  "status": "timeout",
+  "duration_ms": 1500490,
+  "model_turns": 39,
+  "expected_target": "D:\\太极\\动漫共和国概念版",
+  "declarations": [
+    {
+      "target": "D:\\\\太极\\\\动漫共和国概念版",
+      "target_exact_match": false,
+      "target_backslashes": 4,
+      "artifacts_equal": false,
+      "same_existing_target": true
+    },
+    {
+      "target": "D:\\\\太极\\\\动漫共和国概念版",
+      "target_exact_match": false,
+      "target_backslashes": 4,
+      "artifacts_equal": false,
+      "same_existing_target": true
+    }
+  ],
+  "late_error": "plan cannot remove or weaken host delivery requirements",
+  "planned_was_acknowledged": true,
+  "host_business_files_changed": false
+}

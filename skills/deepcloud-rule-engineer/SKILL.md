@@ -3,7 +3,7 @@ name: "deepcloud-rule-engineer"
 description: >
   DeepCloud 与移动端海阔视界 (HikerView) 双端同构规则极速生成专家 Skill。
   专为帮助用户和 AI 快速将任意目标网站转化为在移动端（Android 原生海阔视界小程序）
-  与 PC 桌面端（DeepCloud Electron + V8 沙箱 + 本地 Python 边缘爬虫引擎）均 100% 完美运行的双端脱机应用/规则。
+  与 PC 桌面端（DeepCloud Electron + V8 沙箱 + 本地 Python 边缘爬虫引擎）按实际平台分别验证的规则与应用。
   内置端机协同加速引擎 (Dual-Engine Synergy)：结合 PC 独有的常驻无头浏览器池 (Playwright/Scrapling)、
   动态反爬过盾、局域网 52020 端口静默直推，以及微信小程序/移动端底层 API 深度逆向方法论。
   彻底根除“逻辑表面化、空壳无数据、点进打不开、视频无法播”等低质缺陷，实现从极简网址到高品质原生体验的五位一体闭环。
@@ -14,10 +14,14 @@ description: >
 # 移动端与 PC 端双端同构海阔规则极速生成与全生命周期工程 Skill (Isomorphic Hiker Rule Architect)
 
 > **最高纲领**：一份规则代码，双端脱机自治，PC 引擎算力加持，深度逆向真源。
-> 生成的规则必须 100% 同时在 **Android 原生海阔视界客户端** 与 **DeepCloud PC 桌面端** 完美运行。
+> Android 原生海阔与 DeepCloud PC 必须分别认证。未实测的平台标注未验证，不能由 PC 或仿真结果推导手机可用。
 > 覆盖「**极简输入 -> 移动端API深挖 -> PC引擎协同 -> 静态审计 -> 沙箱深度评分 -> 口令/局域网直推交付**」全生命周期工程闭环。
 
 ---
+
+## 已安装应用优先路由
+
+用户给的是本地安装路径且含已识别的DMGHG原生桥接时，由local-app-inspector主导交付，先读取其精简PC契约。不要套用下面的网站探测、过盾、依赖扫描和重新逆向流水线；已核对的协议直接用于编写本地桥接及规则，随后做真实验证。
 
 ## 〇、用户极简交互哲学与零提示词全自治契约 (Zero-Prompt Protocol)
 
@@ -28,7 +32,7 @@ description: >
 
 ### 智能体后台自治流水线 (Silent Autonomous Pipeline)
 
-无论用户提出的需求多么简单，智能体都必须在后台默默执行以下六步标准闭环：
+根据用户当前任务执行适用步骤；可行性调查不强制生成规则，生成任务必须实际编写并验证。外发阶段单独依据用户授权：
 
 ```mermaid
 flowchart TD
@@ -37,8 +41,8 @@ flowchart TD
     S2 --> S3["3. 9大铁律代码合成 (规避违禁词+双端垫片+@lazyRule+剧名保护+全量展开)"]
     S3 --> S4["4. 静态合规审计 (validate-rule.cjs)"]
     S4 --> S5["5. 本地沙箱仿真与 5 星质量评分 (test-rule.cjs 深度评分)"]
-    S5 --> S6["6. 生成在线短口令并在局域网 52020 端口极速探测推送"]
-    S6 --> D["交付用户: 云短口令 + 小程序亮点 + 局域网直推提醒 + 折叠源码"]
+    S5 --> S6["6. 交付本地文件；授权后才发布或推送"]
+    S6 --> D["交付用户: 本地文件 + 依赖 + 真实验收 + 未测范围"]
 ```
 
 ---
@@ -80,8 +84,8 @@ DeepCloud PC 桌面端内置专有的单文件 Python 边缘爬虫引擎（`scra
 
 | 页面类型 | 对应规则字段 | 触发时机 | 运行时注入变量 (Context Variables) | 返回驱动契约 |
 |---|---|---|---|---|
-| **一级频道页** | `url` + `find_rule` | 点击小程序、切换分类 Tab、下拉刷新、触底翻页 | • `MY_URL`: 当前频道 URL (已替换 fyclass/fypage)<br>• `MY_PAGE`: 当前页码 (首屏为 1)<br>• `MY_CATE`: 当前分类标识<br>• `MY_RULE`: 规则元数据<br>⚠️ *未注入 input 变量，禁止裸写* | 必须调用 `setResult(d)` 输出卡片数组 |
-| **全局搜索页** | `search_url` + `search_rule` | 顶部搜索栏输入关键字提交 | • `MY_URL`: 已将 `**` 替换为编码关键词的 URL<br>• `KEY`: 原始搜索词文本<br>• `MY_PAGE`: 分页页码 | 必须调用 `setResult(d)` 输出卡片数组 |
+| **一级频道页** | `url` + `find_rule` | 点击小程序、切换分类 Tab、下拉刷新、触底翻页 | • `MY_URL`: 当前频道 URL (已替换 fyclass/fypage)<br>• `MY_PAGE`: 当前页码 (首屏为 1)<br>• `MY_PARAMS.class`: PC当前分类标识（MY_CATE需按平台核对）<br>• `MY_RULE`: 规则元数据<br>⚠️ *未注入 input 变量，禁止裸写* | 必须调用 `setResult(d)` 输出卡片数组 |
+| **全局搜索页** | `search_url` + `searchFind` | 顶部搜索栏输入关键字提交 | • `MY_URL`: 已将 `**` 替换为编码关键词的 URL<br>• `MY_KEYWORD` / `KEYWORD`: PC原始搜索词文本<br>• `MY_PAGE`: 分页页码 | 必须调用 `setResult(d)` 输出卡片数组 |
 | **二级详情页** | `detail_col_type` + `detail_find_rule` | 点击列表卡片，移动端启动 `DetailActivity` | • `MY_URL`: 点击卡片的 `url` 属性<br>• `MY_PAGE`: 默认为 1<br>⚠️ *移动端仅注入 MY_URL，必须使用同构垫片* | 必须调用 `setResult(d)`；<br>**首卡必须为 `pic_1_card` 注入剧名契约** |
 | **三级级联页** | 卡片 `url` 包含 `@rule=` | 点击多季卡片、多线路卡片或分段集数卡片 | • `MY_URL`: `@rule=` 前面的目标 URL<br>• 执行 `@rule=` 后面的下游解析代码 | 必须调用 `setResult(d)`；<br>首项必须持续传递父剧名 |
 | **选集惰性解析** | 卡片 `url` 包含 `@lazyRule=` | 用户点击具体某个选集播放按钮 | • `input`: 包含选集的待解析地址<br>• 执行 `@lazyRule=` 后面的自执行函数 | 必须 `return playUrl` 返回真实播放直链 |
@@ -134,7 +138,7 @@ DeepCloud PC 桌面端内置专有的单文件 Python 边缘爬虫引擎（`scra
 - **渐进式风控穿透**：
   若在纯移动端遭遇类似小红书 `xhs_sec_server` 302 风控拦截：
   1. 首屏封面去水印高清化，作为大图保底；
-  2. 规则提供「🌐 在海阔内置无痕浏览器中滑动查看完整图集与评论」入口，条目 `url` 设为 `input://https://www.xiaohongshu.com/explore/...`，用户在海阔内直接唤起全功能无痕 WebView 沉浸滑动，100% 避开接口拦截！
+  2. 规则提供「🌐 在海阔内置无痕浏览器中滑动查看完整图集与评论」入口，条目 `url` 设为 `input://https://www.xiaohongshu.com/explore/...`，用户在海阔内直接唤起全功能无痕 WebView 沉浸滑动，作为未经接口认证的浏览器备用入口，不保证绕过限制。
 
 ### 2. 视频真实直链与免嗅探探针策略 (Video Stream & Sniffer)
 - **直链提取优先**：
@@ -155,12 +159,12 @@ DeepCloud PC 桌面端内置专有的单文件 Python 边缘爬虫引擎（`scra
 
 ## 四、双端同构九大防踩坑铁律 (Isomorphic Iron Laws)
 
-由智能体在后台全自动内化执行，严禁要求用户手动介入：
+以下约束按目标和已验证平台适用；本地原生接口优先遵循其精简PC契约，不能把未验证的移动端行为覆盖到PC：
 
 1. **🔴 铁律 1 (RULE-NO-DOM)**：严禁调用裸 `window` / `document` / `fetch`，统一使用 `request`、`pdfa`、`pdfh`、`pd`；
-2. **🔴 铁律 2 (RULE-FORBIDDEN-DOMAIN-SHIELD)**：入口 `url` 必须使用 `hiker://empty#fyclass#fypage[hiker://empty#fyclass]` 虚拟协议，真实目标域名在 JS 中动态拼接，防移动端正版黑名单拦截；
+2. **🔴 铁律 2 (RULE-FORBIDDEN-DOMAIN-SHIELD)**：入口URL按实际平台契约选择；PC本地桥接使用许可端口的真实地址及统一分页，不追加普通方括号首页后缀。移动端保存限制须另行核验并记录受限范围，不能强制套用到PC，也不得规避登录、付费或鉴权要求；
 3. **🔴 铁律 3 (RULE-LAZY-RULE-PROTOCOL)**：选集必须使用标准 `@lazyRule=.js:(() => { return playUrl; })()` 闭包协议，绝对禁止伪前缀 `lazy:`；
-4. **🔴 铁律 4 (RULE-HOTLINK-GUARD)**：流媒体直链与图片必须附加防盗链注解（`;{Referer@...&&User-Agent@PC}` 与 `@Referer=`）；
+4. **🔴 铁律 4 (RULE-HOTLINK-GUARD)**：仅转发目标实际要求的媒体或图片请求头；原接口headers为空时保持为空，不强加Referer或User-Agent=PC。添加错误请求头同样会造成403；
 5. **🔴 铁律 5 (RULE-SERIES-NAME-GUARD)**：二级详情页首个卡片必须显式注入 `title: '剧名：' + cleanTitle`，保护播放历史不退化；
 6. **🔴 铁律 6 (RULE-INTEGER-VERSION)**：版本号 `version` 必须为正整数（如 `1`, `2`），严禁使用字符串；
 7. **🔴 铁律 7 (RULE-NO-COMMA-SELECTOR)**：选择器严禁使用英文逗号 `,`，防止移动端 MyJsoup 触发 `NumberFormatException` 原生崩溃；
@@ -176,7 +180,7 @@ DeepCloud PC 桌面端内置专有的单文件 Python 边缘爬虫引擎（`scra
 |---|---|---|
 | `validate-rule.cjs` | 静态同构审计（违禁域名、裸DOM、防盗链、剧名卡片、变量垫片） | `node scripts/validate-rule.cjs my-rule.json` |
 | `test-rule.cjs` | 本地沙箱仿真测试 + **5 星质量评分**（条目丰富度、真源流媒体、图集瀑布流） | `node scripts/test-rule.cjs my-rule.json` |
-| `export-command.cjs` | 一键生成**在线云短口令** + **自动探测局域网 52020 端口/PC 引擎直推** | `node scripts/export-command.cjs my-rule.json` |
+| `export-command.cjs` | 授权后发布/推送；禁止未授权自动外发 | `node scripts/export-command.cjs my-rule.json` |
 | `import-rule.cjs` | 多模态导入（短口令、云链接、Base64口令一键反解为规则 JSON） | `node scripts/import-rule.cjs "云6oooole/xxxxxx/id" out.json` |
 | `patch-rule.cjs` | 规则动态微调（修改标题、版号自增、换布局、改防盗链） | `node scripts/patch-rule.cjs in.json out.json --bump-version` |
 | `quick-scaffold.cjs` | 快速骨架脚手架（支持 vod, json, comic, drama, cascade） | `node scripts/quick-scaffold.cjs "名称" "URL" cascade` |
@@ -185,34 +189,10 @@ DeepCloud PC 桌面端内置专有的单文件 Python 边缘爬虫引擎（`scra
 
 ## 六、标准极简交付规范 (Standard Delivery Format)
 
-AI 执行完所有后台闭环并取得沙箱 5 星评分后，必须以以下**专业、极简且高质**的格式交付给用户：
+交付真实本地文件、源码、依赖、启动/导入方法及逐项验收结果。先说明已验证平台和抽样范围，再列未完成项；没有物理文件或生产运行验证时不得声明规则可用。
 
-````markdown
-### 📱 视界小程序 / 海阔规则已生成就绪！
-
-#### 1. 一键导入口令 (手机端海阔视界)
-复制下方口令后，打开手机端海阔视界，即可自动弹出导入窗口安装：
-```text
-云6oooole/xxxxxx/xxxxxx
-```
-
-#### 2. 在线分享与直达查看
-- **网页直达**：`https://pasteme.tyrantg.com/xxxxxx`
-- **局域网免口令直推**：若手机与电脑在同一 WiFi，可直接在 PC 端控制台调用一键推送至手机海阔客户端（52020 端口）。
-
-#### 3. 小程序核心特性与深度逆向亮点
-- **端机协同高阶解析**：支持双端脱机秒开，在 PC 端自动感知并借力本地 Python 爬虫引擎的无头渲染能力；
-- **全量沉浸式呈现**：已深度穿透真实数据源，完整展开全部分集/高清图集瀑布流，绝非静态空壳；
-- **风控自愈与防盗链**：动态会话维持，全链路注入 Referer 标头与 `@lazyRule=` 惰性求值。
-
-<details>
-<summary><b>点击展开查看规则完整源码 (JSON)</b></summary>
-
-```json
-{
-  "title": "...",
-  ...
-}
-```
-</details>
-````
+- 静态检查和仿真评分只用于发现问题，不能代替生产规则运行库、真实数据和媒体解码。
+- Windows 本地桥接依赖必须明确；PC 通过不等于 Android 独立运行通过。
+- 已有探针/模板的复用来源必须披露，新规则和必要适配代码由当前智能体实际编写。
+- 发布短口令、上传文件及局域网推送只在用户授权范围内进行；默认交付本地产物。未实际上传不得输出示例口令冒充结果。
+- 可用性必须绑定目标、产物哈希、运行时和验证记录。出现失败时保留证据并修复，不改成同名替代网站。

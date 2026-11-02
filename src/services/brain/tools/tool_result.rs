@@ -1,13 +1,18 @@
 use crate::domains::agent_cognitive::executor::ToolExecutor;
 use crate::services::brain::tool_result_store::ToolResultStore;
 use serde_json::{json, Value};
+use std::sync::{Arc, Mutex};
 
 pub struct ReadToolResultTool {
-    store: ToolResultStore,
+    store: Arc<Mutex<ToolResultStore>>,
 }
 
 impl ReadToolResultTool {
     pub fn new(store: ToolResultStore) -> Self {
+        Self { store: Arc::new(Mutex::new(store)) }
+    }
+
+    pub fn from_shared(store: Arc<Mutex<ToolResultStore>>) -> Self {
         Self { store }
     }
 
@@ -48,7 +53,8 @@ impl ToolExecutor for ReadToolResultTool {
             .and_then(Value::as_u64)
             .unwrap_or(8_000)
             .clamp(100, 16_000) as usize;
-        let slice = self.store.read_slice(reference, offset, max_chars)?;
+        let slice = self.store.lock().unwrap_or_else(|e| e.into_inner())
+            .read_slice(reference, offset, max_chars)?;
         Ok(json!({
             "reference": slice.reference,
             "content": slice.content,

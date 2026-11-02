@@ -1,0 +1,46 @@
+{
+  "diagnostic_only": true,
+  "certification": false,
+  "oracle_sha256": "8b4b40715a25ceb0443d19fd1b77b7117e08fac99b3c14b8315900be9ca98158",
+  "artifacts": {
+    "bridge.py": "e4b3d2de79fa93a40e1bc35dafac1a1593a890eeb5d47edb6a7a5812e61302f3",
+    "rule.json": "8bc27a92050dceb6f6fd29b4db45523235bce4add0b8177eaa7d784646544754",
+    "README.md": "b744f0d6739f63e1e2735f64e425c7e97b1aafd5052f5d3aebca9dabcc2f32b3"
+  },
+  "observations": [
+    {
+      "stage": "media",
+      "facts": {
+        "status": 206,
+        "content_type": "application/octet-stream",
+        "bytes_read": 2048,
+        "hls_manifest": false
+      }
+    },
+    {
+      "stage": "rule_media_shape",
+      "facts": {
+        "scheme": "https",
+        "header_names": [],
+        "has_fragment": false,
+        "has_whitespace": false
+      }
+    },
+    {
+      "stage": "decoder",
+      "facts": {
+        "audio-codec-name": "aac",
+        "video-params/w": "1920",
+        "video-params/h": "816",
+        "time-pos": "1.082000",
+        "decoded_video": true,
+        "outputs": {
+          "audio": "null",
+          "video": "null"
+        }
+      }
+    }
+  ],
+  "oracle_passed_this_diagnostic": true,
+  "source_unchanged": true
+}

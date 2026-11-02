@@ -1,0 +1,16 @@
+{
+  "sdk_source": "deepcloud-ui/src/lib/agent-sdk/client.ts:interact",
+  "request_shape": {
+    "steeringPrompt": "CONTRACT_CANARY_NOOP"
+  },
+  "backend_required_shape": {
+    "response": "string",
+    "action": "steer"
+  },
+  "response": {
+    "status": 422,
+    "body": "Failed to deserialize the JSON body into the target type: missing field `response` at line 1 column 42"
+  },
+  "user_instruction_delivered": false,
+  "status": "known_contract_gap_pending_P6"
+}

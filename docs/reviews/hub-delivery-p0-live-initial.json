@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "c510b80b4121fc6b42d356aa8d6efd2b3c55b4ee223aec0545a2ccfb45cddbd3"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:3001",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [],
+  "configured_models": [],
+  "fatal": "Error: Requested model not configured"
+}

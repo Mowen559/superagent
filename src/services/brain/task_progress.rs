@@ -36,6 +36,7 @@ pub enum ProgressUpdate {
 
 #[derive(Debug, Default)]
 pub struct TaskProgress {
+    delivery: Option<super::delivery_evidence::DeliveryEvidence>,
     contract: Option<TaskContract>,
     evidence: VecDeque<Evidence>,
     completed: HashMap<String, Vec<String>>,
@@ -46,7 +47,21 @@ pub struct TaskProgress {
 }
 
 impl TaskProgress {
+    pub fn configure_delivery(&mut self, root: &std::path::Path, session: &str, run: &str) -> Result<(), String> {
+        let mut delivery = super::delivery_evidence::DeliveryEvidence::new(root, session, run)?;
+        if let Some(path) = std::env::var_os("HUB_DELIVERY_PROFILE_PATH") {
+            delivery.load_profile(std::path::Path::new(&path))?;
+        }
+        self.delivery = Some(delivery);
+        Ok(())
+    }
+
+    pub fn verify_delivery(&mut self, ids: &[String]) -> Result<serde_json::Value, String> {
+        self.delivery.as_mut().ok_or("delivery is not bound to a Run workspace")?.verify(ids)
+    }
+
     pub fn apply_plan(&mut self, plan: TaskContract) {
+        if let Some(delivery) = &mut self.delivery { delivery.declare(plan.delivery.as_ref()); }
         if self.contract.is_some() {
             self.revision = self.revision.saturating_add(1);
         }
@@ -57,11 +72,19 @@ impl TaskProgress {
         self.plan_revision = self.plan_revision.saturating_add(1);
     }
 
+    pub fn normalize_plan_delivery(&self, mut plan: TaskContract) -> Result<TaskContract, String> {
+        if let (Some(delivery), Some(declaration)) = (&self.delivery, &plan.delivery) {
+            plan.delivery = Some(delivery.normalize_declaration(declaration)?);
+        }
+        Ok(plan)
+    }
+
     pub fn has_plan(&self) -> bool {
         self.contract.is_some()
     }
 
     pub fn invalidate_after_rollback(&mut self) {
+        if let Some(delivery) = &mut self.delivery { delivery.invalidate(); }
         self.revision = self.revision.saturating_add(1);
         self.evidence.clear();
         self.completed.clear();
@@ -268,6 +291,7 @@ impl TaskProgress {
     }
 
     pub fn completion_gap(&self) -> Option<String> {
+        if let Some(gap) = self.delivery.as_ref().and_then(|d| d.completion_gap()) { return Some(gap); }
         let plan = self.contract.as_ref()?;
         if let Some(step) = plan.steps.iter().find(|s| !self.step_satisfied(&s.id)) {
             return Some(format!(
@@ -282,6 +306,7 @@ impl TaskProgress {
     pub fn snapshot(&self) -> serde_json::Value {
         serde_json::json!({
             "has_plan": self.has_plan(),
+            "delivery_evidence": self.delivery.as_ref().map(|d| d.snapshot()),
             "plan_revision": self.plan_revision,
             "steps": self.contract.as_ref().map(|p| p.steps.iter().map(|s| serde_json::json!({
                 "id": s.id, "complete": self.step_satisfied(&s.id), "receipt_ids": self.completed.get(&s.id)
@@ -295,6 +320,7 @@ impl TaskProgress {
 
     pub fn render(&self) -> Option<String> {
         self.contract.as_ref().map(|plan| format!("{}\n[Subgoal Evidence]\n{}\nFor added requirements use revise_task_plan with this plan_revision and only the changed fields; unmentioned requirements and unaffected progress are retained. Do not reread unchanged sources or rerun successful checks merely to advance progress. For each evidenced subgoal call update_task_progress(action=complete_step, step_id=<id>, receipt_ids=[<actual matching receipt ID>]) in dependency order. Confirm that the receipt supports that step's acceptance condition before citing it. Markdown Todo updates and action=status do not complete steps. New or changed steps require fresh evidence; verification must be current. Full replacement clears bindings.\n", plan.render(), self.snapshot()))
+            .or_else(|| self.delivery.as_ref().filter(|d| d.completion_gap().is_some()).map(|d| format!("[Required physical delivery]\n{}\nCreate the declared artifacts and use verify_delivery. A probe or plan does not satisfy this requirement.\n", d.snapshot())))
     }
 
     fn matches_step(&self, id: &str, kind: EvidenceKind, evidence: &[&Evidence]) -> bool {

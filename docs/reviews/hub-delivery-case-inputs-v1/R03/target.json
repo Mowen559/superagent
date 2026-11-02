@@ -1,0 +1,147 @@
+{
+  "root": "D:\\太极\\动漫共和国概念版",
+  "resource_files": [
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\concrt140.dll",
+      "sha256": "b2faf3b85b23c840b654e57d5497a0ad31acd02fb01856cad4725a1715d5f78e",
+      "bytes": 321696
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\dartjni.dll",
+      "sha256": "93e9ff077e4f1eb247056df9bb6bb4fcc65b58214ff38a2bf074fa95a635daf8",
+      "bytes": 68096
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\dmghg.exe",
+      "sha256": "fa77115b90ee70d7a348552ea2c9eb1bc0270b5732835272ccaf703417514f50",
+      "bytes": 210944
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\electron_bridge.dll",
+      "sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+      "bytes": 8902144
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\flutter_media_kit_probe.exe",
+      "sha256": "fa77115b90ee70d7a348552ea2c9eb1bc0270b5732835272ccaf703417514f50",
+      "bytes": 210944
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\flutter_windows.dll",
+      "sha256": "c0304beba5fe98477177e151c673adad98d0442f50efa25d03ff5f207cc21056",
+      "bytes": 20803584
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\libmpv-2.dll",
+      "sha256": "2d407f51493633346e71d4a3db010b3d00b43cde5a910faa9448837fc8ce90ed",
+      "bytes": 38445568
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\media_kit_libs_windows_video_plugin.dll",
+      "sha256": "dac3e652f6830cb243aecf0372333d22b1d6bcbaba12a8dfb3d053fc8bef29ff",
+      "bytes": 11776
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\media_kit_video_plugin.dll",
+      "sha256": "13bc30adf2cea74f6afb9cca49c1f2e3d54ebb6160b28ff1b15b29a38280ebf4",
+      "bytes": 221184
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140.dll",
+      "sha256": "def46aa6a8f72f27bafac0c43334419486a4d1dcdb6c479a8ef7034b3e1fa4cb",
+      "bytes": 553552
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_1.dll",
+      "sha256": "2dd670f874562fbdca5b022df1943d70a57ba91fde559280e3a1daebe4db2380",
+      "bytes": 35488
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_2.dll",
+      "sha256": "1d60da3ac2b06482912ca852fa7047436e6e474b4cfffa3bf77f4598cfbf454c",
+      "bytes": 278608
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_atomic_wait.dll",
+      "sha256": "e7963645e0d1db08e300614d4c5fa7194bd8173e9ab7a5558859e6b232ed3241",
+      "bytes": 48800
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_codecvt_ids.dll",
+      "sha256": "ae8d922b00cdd93e3ebecc37beb46c800f383ebdeb9f9e5b84e04a72428b6fb3",
+      "bytes": 31392
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\dkjson.lua",
+      "sha256": "cfe885bca49183e83302a3fa6ae4dae84bc86860f7fa6f8316539b10d2fa35e8",
+      "bytes": 23129
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\headers.lua",
+      "sha256": "825c6b30273d0c6319a834c64b79b1803ad59ac5d5a1a230ce75a35f89b27769",
+      "bytes": 3796
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\http.lua",
+      "sha256": "1759d0108a2317aada792f3a54e6c0ff129e1c43771f8adc977b3ef0e56302f8",
+      "bytes": 14972
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\ltn12.lua",
+      "sha256": "f54c41c2fef6c697da7c8536023d165d1dee53e6e47613bd31629f2d0ff61c19",
+      "bytes": 9219
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\mime.lua",
+      "sha256": "5d8a42f4c2b5094c7f1f8d670a9f54f8af9d26299f7fd57cc101799c635d6e9a",
+      "bytes": 2557
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\socket.lua",
+      "sha256": "a6bee7f5b7ae5e7d622c92b94e0a5e54a30f1d522303442e22c98b6a09279bfd",
+      "bytes": 4606
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\url.lua",
+      "sha256": "4b5298c20970a25d6d5ff49c794f07bf2a466f04ff31a640975372604e365f8b",
+      "bytes": 11999
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\screen_retriever_windows_plugin.dll",
+      "sha256": "b4ef19dbeac5506b5554148a25b32ea284359a2ab6e56a03932d44008a727eec",
+      "bytes": 120832
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\tray_manager_plugin.dll",
+      "sha256": "68ee337e2029f3a46076fbba46049b9c10b577f93fe81ee43d04dce650c09abd",
+      "bytes": 106496
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\Uninstall.exe",
+      "sha256": "7cc3643deaf2e2e7748d5fb84b4bba450d91eec3249bd88274f0d6c1f9981eed",
+      "bytes": 124485
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\url_launcher_windows_plugin.dll",
+      "sha256": "d02bbb9ee40a8f5e77bdb443ec2d8a5766c3c0ed934edbda35bbb256a79950b6",
+      "bytes": 98304
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\vcruntime140.dll",
+      "sha256": "184146852727a9db4eea06178716bec3cdbb1015c911f6b0f915b184ad7775b2",
+      "bytes": 123472
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\vcruntime140_1.dll",
+      "sha256": "e6bfb3662ab4b1969a73441dbe35c96d51441b6bff8cf1fe7430bd5b246ca605",
+      "bytes": 47264
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\window_manager_plugin.dll",
+      "sha256": "81a0a290c20c548b55d2571765973b58a28f2f69bfcbc789f283739f873cfd93",
+      "bytes": 131072
+    }
+  ],
+  "account_state_read": false,
+  "installed_directory_mutation_allowed": false
+}

@@ -66,12 +66,12 @@ function validateRule(ruleContent) {
     const forbiddenDomains = ['v.qq.com', 'qq.com', 'iqiyi.com', 'youku.com', 'bilibili.com', 'mgtv.com'];
     const hitSearch = forbiddenDomains.find(d => rule.search_url.toLowerCase().includes(d));
     if (hitSearch) {
-      issues.push(`【移动端保存阻断】搜索链接 search_url 包含敏感正版域名 "${hitSearch}"！建议使用 "hiker://empty?q=**" 虚拟协议并在 search_rule 内部动态请求。`);
+      issues.push(`【移动端保存阻断】搜索链接 search_url 包含敏感正版域名 "${hitSearch}"！建议使用 "hiker://empty?q=**" 虚拟协议并在 searchFind 内部动态请求。`);
     } else {
       passes.push('搜索链接 search_url 合规');
     }
   }
-  const jsFields = ['find_rule', 'search_rule', 'detail_find_rule', 'lazy'];
+  const jsFields = ['find_rule', 'searchFind', 'search_find', 'search_rule', 'detail_find_rule', 'lazy'];
   const dummyContext = {
     input: 'https://example.com',
     request: () => '<html></html>',

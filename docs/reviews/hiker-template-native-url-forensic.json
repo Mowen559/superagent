@@ -1,0 +1,22 @@
+{
+  "task_id": "ba2a8fe9-f475-43d2-8709-ecfd2f2c7983",
+  "rule_sha256": "cfbf6e3c573f008b9a4c5a6b970542fd27c07305671ff8f7e3ee1f02c08e0ff9",
+  "malformed_bracket_suffix": {
+    "status": 500,
+    "keys": [
+      "ok",
+      "error"
+    ],
+    "items": 0,
+    "error": "{'message': 'auth_network_error: 网络错误'}"
+  },
+  "uniform_url": {
+    "status": 200,
+    "keys": [
+      "ok",
+      "data"
+    ],
+    "items": 10,
+    "error": ""
+  }
+}

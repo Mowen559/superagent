@@ -1,0 +1,2770 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\concrt140.dll",
+      "sha256": "b2faf3b85b23c840b654e57d5497a0ad31acd02fb01856cad4725a1715d5f78e",
+      "bytes": 321696
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\dartjni.dll",
+      "sha256": "93e9ff077e4f1eb247056df9bb6bb4fcc65b58214ff38a2bf074fa95a635daf8",
+      "bytes": 68096
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\dmghg.exe",
+      "sha256": "fa77115b90ee70d7a348552ea2c9eb1bc0270b5732835272ccaf703417514f50",
+      "bytes": 210944
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\electron_bridge.dll",
+      "sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+      "bytes": 8902144
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\flutter_media_kit_probe.exe",
+      "sha256": "fa77115b90ee70d7a348552ea2c9eb1bc0270b5732835272ccaf703417514f50",
+      "bytes": 210944
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\flutter_windows.dll",
+      "sha256": "c0304beba5fe98477177e151c673adad98d0442f50efa25d03ff5f207cc21056",
+      "bytes": 20803584
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\libmpv-2.dll",
+      "sha256": "2d407f51493633346e71d4a3db010b3d00b43cde5a910faa9448837fc8ce90ed",
+      "bytes": 38445568
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\media_kit_libs_windows_video_plugin.dll",
+      "sha256": "dac3e652f6830cb243aecf0372333d22b1d6bcbaba12a8dfb3d053fc8bef29ff",
+      "bytes": 11776
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\media_kit_video_plugin.dll",
+      "sha256": "13bc30adf2cea74f6afb9cca49c1f2e3d54ebb6160b28ff1b15b29a38280ebf4",
+      "bytes": 221184
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140.dll",
+      "sha256": "def46aa6a8f72f27bafac0c43334419486a4d1dcdb6c479a8ef7034b3e1fa4cb",
+      "bytes": 553552
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_1.dll",
+      "sha256": "2dd670f874562fbdca5b022df1943d70a57ba91fde559280e3a1daebe4db2380",
+      "bytes": 35488
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_2.dll",
+      "sha256": "1d60da3ac2b06482912ca852fa7047436e6e474b4cfffa3bf77f4598cfbf454c",
+      "bytes": 278608
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_atomic_wait.dll",
+      "sha256": "e7963645e0d1db08e300614d4c5fa7194bd8173e9ab7a5558859e6b232ed3241",
+      "bytes": 48800
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_codecvt_ids.dll",
+      "sha256": "ae8d922b00cdd93e3ebecc37beb46c800f383ebdeb9f9e5b84e04a72428b6fb3",
+      "bytes": 31392
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\dkjson.lua",
+      "sha256": "cfe885bca49183e83302a3fa6ae4dae84bc86860f7fa6f8316539b10d2fa35e8",
+      "bytes": 23129
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\headers.lua",
+      "sha256": "825c6b30273d0c6319a834c64b79b1803ad59ac5d5a1a230ce75a35f89b27769",
+      "bytes": 3796
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\http.lua",
+      "sha256": "1759d0108a2317aada792f3a54e6c0ff129e1c43771f8adc977b3ef0e56302f8",
+      "bytes": 14972
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\ltn12.lua",
+      "sha256": "f54c41c2fef6c697da7c8536023d165d1dee53e6e47613bd31629f2d0ff61c19",
+      "bytes": 9219
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\mime.lua",
+      "sha256": "5d8a42f4c2b5094c7f1f8d670a9f54f8af9d26299f7fd57cc101799c635d6e9a",
+      "bytes": 2557
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\socket.lua",
+      "sha256": "a6bee7f5b7ae5e7d622c92b94e0a5e54a30f1d522303442e22c98b6a09279bfd",
+      "bytes": 4606
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\url.lua",
+      "sha256": "4b5298c20970a25d6d5ff49c794f07bf2a466f04ff31a640975372604e365f8b",
+      "bytes": 11999
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\screen_retriever_windows_plugin.dll",
+      "sha256": "b4ef19dbeac5506b5554148a25b32ea284359a2ab6e56a03932d44008a727eec",
+      "bytes": 120832
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\tray_manager_plugin.dll",
+      "sha256": "68ee337e2029f3a46076fbba46049b9c10b577f93fe81ee43d04dce650c09abd",
+      "bytes": 106496
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\Uninstall.exe",
+      "sha256": "7cc3643deaf2e2e7748d5fb84b4bba450d91eec3249bd88274f0d6c1f9981eed",
+      "bytes": 124485
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\url_launcher_windows_plugin.dll",
+      "sha256": "d02bbb9ee40a8f5e77bdb443ec2d8a5766c3c0ed934edbda35bbb256a79950b6",
+      "bytes": 98304
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\vcruntime140.dll",
+      "sha256": "184146852727a9db4eea06178716bec3cdbb1015c911f6b0f915b184ad7775b2",
+      "bytes": 123472
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\vcruntime140_1.dll",
+      "sha256": "e6bfb3662ab4b1969a73441dbe35c96d51441b6bff8cf1fe7430bd5b246ca605",
+      "bytes": 47264
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\window_manager_plugin.dll",
+      "sha256": "81a0a290c20c548b55d2571765973b58a28f2f69bfcbc789f283739f873cfd93",
+      "bytes": 131072
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\aes.js",
+      "sha256": "ca3f3bd18c6f149707b73d60c50142c00a3d46f557739ba5fdef0bc3c482ea6b",
+      "bytes": 191049
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\beautify.js",
+      "sha256": "420d1ae08f7fb55f56e1da64b1dd772ea8e3dca02f3dd56b3065cae5f7af07ba",
+      "bytes": 118737
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\crypto-java.js",
+      "sha256": "13e972a7f78dd843f1e1c50943c79a21d0525a6de549caa82f7774fa9597632a",
+      "bytes": 18960
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcCall.js",
+      "sha256": "7ed4def74b450fe7cd0577ca36a819e8dff74c8e0f40381f625a55ebf334b34e",
+      "bytes": 15867
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcInvoke.js",
+      "sha256": "251650ef65d69012a9f22514771339a7ac5da514d33c59f8f1891e6de44bb85f",
+      "bytes": 5001
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcInvoke2.js",
+      "sha256": "8530badb12baefff91f5760ac08ed89fc8bb9ac584564192e8f37e8d24eba8ac",
+      "bytes": 3191
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcJiexi.js",
+      "sha256": "b63afd977cc81e35b3322b8b06dfeb648b2e68f34d4e24ba7267e2933abd81fc",
+      "bytes": 41425
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcParse.js",
+      "sha256": "8b873b114b809e040952f4c34846733d5e324cfe25b9f3c84a996b8b43b241e9",
+      "bytes": 51480
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcPublic.js",
+      "sha256": "c4acf19166f9d174db93510fa62a75008f5275551b80175b713fcde3b6b5a884",
+      "bytes": 19561
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcSet.js",
+      "sha256": "49bd52e840f1b9b1481405a65bf14c4ea6de0b1637cba7e21e440a92077a1fa6",
+      "bytes": 17613
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\libs.js",
+      "sha256": "a6f2a98aa647c57a42abef0bed9f192a7bdc5532ad5d5899f1080244ad3c21e4",
+      "bytes": 1312
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\categories-header.js",
+      "sha256": "ad3fbfc79aa538c0926a947d410909f359cc8704ef5db768450ef6dfaa2ee417",
+      "bytes": 19817
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\globalmap.js",
+      "sha256": "1f3706832324ced503435f405f9438149435d681061ca8025d9855845665d7f0",
+      "bytes": 9831
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\gzip.js",
+      "sha256": "22b1f0853ecd5aa67ce3cea6c041893df8bcee95ad56f4c5f8fa06b04d14ae88",
+      "bytes": 1515
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\hikerPop.js",
+      "sha256": "4049831927eb16227d8e231dd4aa24d83119e2776357f6845e73807f2c62e921",
+      "bytes": 22624
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\pinyin-match.js",
+      "sha256": "96c72cb0cd0f225e59b188dc37987028b01a34d88ae5f073642ef151ce315272",
+      "bytes": 28644
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\Readability.js",
+      "sha256": "91306fa2c3259313015a99dece43dd6b1129b254ba2b8058187245c8e097abc2",
+      "bytes": 92188
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcBookCase.js",
+      "sha256": "5ce0f184840d47cc9c6fd7add22f71e342623e54a4909fea7585509eb545a0c4",
+      "bytes": 26699
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJu.js",
+      "sha256": "643176bba21e4e0dc908d025819b08de8588f3ba5b66b76be8259e2e0058fac4",
+      "bytes": 117147
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuManage.js",
+      "sha256": "10394d4a7f1eb1ae469801478a9cddc4a29ac155dbc40e92bc3cb244fc73f7a6",
+      "bytes": 39688
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuMethod.js",
+      "sha256": "039d1be4fa9d21c74aa8a16fe18c0578530e690ed4faaeabc5744e143b0e7980",
+      "bytes": 82949
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuMethod2.js",
+      "sha256": "c6ba8ef569a55b5ae33bca151a2ee4a69e4fc82e89a6bed8104db3c5c082c056",
+      "bytes": 28587
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuPublic.js",
+      "sha256": "2d82112d107b877f54b81552012823bc21216ac1abed76bb49ca89372df4db29",
+      "bytes": 67712
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuSet.js",
+      "sha256": "252e0e9f3f4e713b04882575e96603d34bf801f6dbad68ea441806bfde00b7c3",
+      "bytes": 71252
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcLive.js",
+      "sha256": "8b3591d3db7d31b52d6d346b6f422a393998a2a2366e75236ab0fc6945e25e0d",
+      "bytes": 35997
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcParseS.js",
+      "sha256": "8b347c594c19bfd7621a97c1c914b51b4d59489d35c9e3610ebb08e5ca8c89ae",
+      "bytes": 3841
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcSimple.js",
+      "sha256": "ca3db4c7a8e08dcf983cda5e3eea45a3dac4eb5115d74aec1ec4571da3eef024",
+      "bytes": 14831
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcTmplVersion.js",
+      "sha256": "8e4c45f7316989871ccf58c224f1d4780ef59da162b71a28f55ac2f93d313a1c",
+      "bytes": 18043
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\GetAppApi.js",
+      "sha256": "3722b1547dcdbbda7205529f0a7806e911c310ed8fde2aadbec2c1d4c86f452e",
+      "bytes": 739
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\parseCode.js",
+      "sha256": "650670706e1bf58ed32faa4fd73d46d9e5ab059ae3f5964bc9d036fbc20ded9d",
+      "bytes": 3767
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\pyDriver.js",
+      "sha256": "1789804bbc07a43be1ec3bab893cf6c651c830e69c66c65ff44f339f1eb948d7",
+      "bytes": 42344
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\采集cms.js",
+      "sha256": "2ddc4e9fc26923eb1d9df27cdc3f9d7f971dbdbeb14cd2ce3a1b2952199b1cef",
+      "bytes": 449
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-action-router.test.js",
+      "sha256": "7e3ffc1533dca030e1c93ecc6c930e65485c4b40355bf1ac5cc999c30789555b",
+      "bytes": 5955
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-backup-compat.test.js",
+      "sha256": "c5b0f45bde5d363cd8c729602783fcdd4c9ebfda5ff995557920a0ac01ebf310",
+      "bytes": 1990
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-browser-fetcher.test.js",
+      "sha256": "bee47d5754953f39a1a962d0407517819b011862d48e9573f65024beaddc982f",
+      "bytes": 9110
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-comic-subrule-resolution.test.js",
+      "sha256": "c382a588ceefbc1ecf95af79140a71325845f7890f35f542b5134b1e6fcb52b1",
+      "bytes": 3301
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-dom-parser.test.js",
+      "sha256": "52b6c8ec677bf28a53a8d61f122ca4aa32c324ab00428603866c43a97a95d0f3",
+      "bytes": 3236
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-download-manager.test.js",
+      "sha256": "0884db3e5f86b883d0f85232c715bf3d201a50e9bb8876b2740ed13ee5454c3e",
+      "bytes": 8636
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-http-client.test.js",
+      "sha256": "0dce8b5ae42eedf5582dc698676a6892096adc1177e2eff7806bb88c95f7cef2",
+      "bytes": 15391
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-legacy-rule-parser.test.js",
+      "sha256": "2775c76ca6817ef6984be483f463e6bdab26144001fb8cbeffdee47869905050",
+      "bytes": 2182
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-page-alias-registry.test.js",
+      "sha256": "b8cb703a2ad2389755b2d4fa2c1ba1dbb6c6e19d06de26727d47949fd755ed4b",
+      "bytes": 5995
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-page-ej-and-meta-search.test.js",
+      "sha256": "46b2f66535ff03f37cb7c928d5074f95e7f795988ce10ee3f6e10dc71d219cb6",
+      "bytes": 8406
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-page-model.test.js",
+      "sha256": "2b424c01976d6635790cf60badaac4e592bd5906a71273904ab48fe834acbc1e",
+      "bytes": 14611
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-real-backup.fixture.js",
+      "sha256": "b88a7b09a022f58ac271151c6edfd6bbdd3b7d4a4de2ca04756cd820323f9b45",
+      "bytes": 6119
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-rule-catalog.test.js",
+      "sha256": "26c7178a1015b39a0d94df63d1feec2b19dca5f8d2c166243a87d263cc9b5ba9",
+      "bytes": 1773
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-rule-filters.test.js",
+      "sha256": "1f6f07bfedb7e936804563626a42faaba73b834430c23a3c07d74b8f89345235",
+      "bytes": 2568
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-rule-soft-delete.test.js",
+      "sha256": "1bd7436c4aea8f7a1b095de3c15aacdbf79904ef2469d32cc7817c2352223031",
+      "bytes": 7250
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-runtime.test.js",
+      "sha256": "1298d0696425218e1c3546efd018c4c59ce28c7732757099ddb368fadb42a1fb",
+      "bytes": 102976
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-security.test.js",
+      "sha256": "a5308662157dae3683b6506a27ca22d3bd1281fbd3bfc46b2e2d7254be86e211",
+      "bytes": 2357
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-sync-db.test.js",
+      "sha256": "582a937b37a56395d8188e8d114439aed74284b93aaa9053746758aab51bdb63",
+      "bytes": 2818
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-sync-model.test.js",
+      "sha256": "167dce86d32ae408886bacbeb7c24dab9f715f82b0660555a65c3b9411edef12",
+      "bytes": 2074
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-v881-builtins.test.js",
+      "sha256": "e4efb0914783a4bd817675433d05466604f49cc3dd4b090035ec659142069e52",
+      "bytes": 41902
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerAliProxy.js",
+      "sha256": "f5a541cd05d2d8d5a5329b6e5ca6fd419b4ac110566d55dff3f5322187949db5",
+      "bytes": 10090
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerDomParser.js",
+      "sha256": "fce3100338725381c48bc6146b3d3e60ab93267ecccc00d788e91166c7b646c7",
+      "bytes": 14975
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerEcosystemRegistry.js",
+      "sha256": "e3a1d5f8fbe9d471ec4c5a574589952f6712f5196ff30cfb523959d3c898a6ae",
+      "bytes": 5050
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerHttpClient.js",
+      "sha256": "c870834df22db008ea87fa257e93bae3f5870ee622df616e09eb9f1dbb4df27e",
+      "bytes": 26841
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerLegacyRuleParser.js",
+      "sha256": "453022559afff7e532074733fafc958e2f584fc6eb7ea90eb7bf0f25483ca705",
+      "bytes": 2860
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerModuleLoader.js",
+      "sha256": "17faad0d2301ffdc4bccdca1e824b554d1539a682420250178714b29c275227c",
+      "bytes": 47005
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerOfflineCache.js",
+      "sha256": "5a35400098692e9abe0c25441fcdda28657c7cb2ee9df3f82e1eb4401f0fccd0",
+      "bytes": 4581
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerPageAliasRegistry.js",
+      "sha256": "a7238606facc20d7d61ce524cf27ebfddc4c8eeae381300e3f28bca6b4b327ab",
+      "bytes": 8741
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerRuntime.js",
+      "sha256": "b959fc9e5d2a1fc96bc0eb6f313038456e7425c36fa77f718a7cffd9110a3e78",
+      "bytes": 62650
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerSandboxBuiltins.js",
+      "sha256": "c6bb51bfc9afb43dac754b98b8b6f617059fb6ee450af0e61f37516f713e63be",
+      "bytes": 28055
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerUrlDSL.js",
+      "sha256": "c9554e75d44935fea3bcc14f0efa107a5e4c3ed93316982d73a3d0c495ac4f3e",
+      "bytes": 8569
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerVirtualProtocolResolver.js",
+      "sha256": "ea012232918cb04d2bb25a259b1a600af514feb841e9a95def08d0adb9bffe0c",
+      "bytes": 7974
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HostAdapter.js",
+      "sha256": "148e8c29620d328f18c5a2782eac62ee6557fd2bbb195f3697fde87ef5528002",
+      "bytes": 34909
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\index.js",
+      "sha256": "d70114f9ac7907cb6f34ede3232831d66b9ea9772330a3d9a3ead7fcac311adb",
+      "bytes": 1765
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\android-base64.js",
+      "sha256": "a0359597c8edbdef2bb2a656188fc53884d874d24a23e45c7b624279be0682a4",
+      "bytes": 2576
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\cache\\ScriptCachePool.js",
+      "sha256": "1bd6efc67a38f9f79bb12eeb2d6923fd389491434492ca751366d6f8f33cc1f7",
+      "bytes": 3018
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\crypto-util.js",
+      "sha256": "06dde7dbc582b9811f932a28efd7ef30a37a6abf8463eb925aa129c9bf7a0c0f",
+      "bytes": 18276
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\ecosystem-shims.js",
+      "sha256": "f086455ecf7ce18f980e131c76e2495deabe10df5f35446de789df4900ae9652",
+      "bytes": 2559
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\index.js",
+      "sha256": "bdb08d676ccc28d6108b30eeff58319d79c428c936912972fe244b0d659523eb",
+      "bytes": 29230
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\java-shims.js",
+      "sha256": "6d1054d08f2ad44719d074cfab017c9f05fb14821b75d85e35d7c9153a852944",
+      "bytes": 102649
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\plugins\\common-shims-plugin.js",
+      "sha256": "88519751fe1cd97f9dd3b08cb3bfae9042dd87ae6f8b531e40f890366f171bbb",
+      "bytes": 3970
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\plugins\\qingmu-plugin.js",
+      "sha256": "415fa6ace91b008f60da45d9b91859ff343e532f90997ba636246e4b217300bf",
+      "bytes": 19255
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\plugins\\virtual-modules-plugin.js",
+      "sha256": "994dfdc954ff473f1cecab48dce3e2dfa8ce44e9af5bae85c49251aafdc98058",
+      "bytes": 4018
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\registry\\ShimRegistry.js",
+      "sha256": "92228b61715c863a7c00a0faa6a49731b11c3f5d6ac98b150b2e867910459c7b",
+      "bytes": 7495
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\rule-helpers.js",
+      "sha256": "15231d3f942593a1bf3e34f4ef4c13b134e99a36603856ff3fe1a74d85f572c4",
+      "bytes": 27393
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\xpopup-shim.js",
+      "sha256": "3f02680c71fa873146f352b3cebcca8791139aa1cb9c274d641efea8f79eb4c7",
+      "bytes": 9831
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\asar-updater.js",
+      "sha256": "89c0014f052f5775fcba6310b1572e17af65ff608ae7ef9747a1984d12c2ac26",
+      "bytes": 16371
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\browser-store-injector.js",
+      "sha256": "a3896f984e69e53291492fb9a2da07bcb4c62d8b850e3f77d602a09993f696f2",
+      "bytes": 191
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\browser-tab-media-bridge.js",
+      "sha256": "a25723f6f1789fe47db11384cec365a06a97fc8dbbc0f956fb10c62f6a71f73d",
+      "bytes": 12206
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-popup-preload.js",
+      "sha256": "b9ea721972de8ff916ac65f364cb365516c3ea11a44b3be4552380b933eaee51",
+      "bytes": 72693
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-popup-window.js",
+      "sha256": "c52a8c751d3de63dc5afa5fe0ab77fa09c176ad9ce966a00849b2947b7fca1e0",
+      "bytes": 26686
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-side-panel-host.js",
+      "sha256": "f97fbd012969b61942a1febf3e5a70d77d8a245055d8c1e60050ea92068542d2",
+      "bytes": 6540
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-sw-preload.js",
+      "sha256": "0e5dcfd11343ebb9d539c694302de73ebb859010ccec655de0b266870223b068",
+      "bytes": 3662
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hg-cenc-service.js",
+      "sha256": "96745c9e8a434f0dece065d7a8d8696b439fd073566397f62c4d68661e3708d2",
+      "bytes": 23208
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-browser-fetcher.js",
+      "sha256": "0b6943c09556f8c7618c7e5d977301827cbc2a6ff9367fbc8e6d388e0b43b956",
+      "bytes": 16944
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-browser-host.js",
+      "sha256": "bb57ee5217f4be323cdc1eccbb5af9be59a7817413c09f72217c5120e531c7ba",
+      "bytes": 554
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-browser-preload.js",
+      "sha256": "2802c15308f12d3da0a42d768621dcb681f365d705db9e81de7202e8c72d8bf8",
+      "bytes": 68383
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-bundle-manager.js",
+      "sha256": "8a5a789fd6f1b8a739d578c8100626cb9df9e2a3e1ebed7fcf5769646c842075",
+      "bytes": 18967
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-download-helpers.js",
+      "sha256": "61aac6c9f3a95738eeca35d9ad8890e496cfe7cf2aa4054016ed6f51ebc0150d",
+      "bytes": 13281
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-download-manager.js",
+      "sha256": "eba51d0da5c8eda9da4e764578d134eac3877df5315c38e95e553ae1ae726c1f",
+      "bytes": 606
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-rule-filters.js",
+      "sha256": "7b4ee554a1cad437e68cbd9bbbd780941588cc1f0ff0db553e6ba4f92e0ae72e",
+      "bytes": 6484
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-rule-parser.js",
+      "sha256": "6d05ac402aaf084022f66adf40b35f14a765bce9ecfc783bdd80c84e434d8eeb",
+      "bytes": 71764
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-security.js",
+      "sha256": "f979d189cd4279a63e4e6f75e8d53829abd28f4fd75f5bab4424a41693a03763",
+      "bytes": 5963
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-db.js",
+      "sha256": "a8d5ee62899968a9e9af7d9753ede9a620081903cc04ccad2ee4ae4a560377f0",
+      "bytes": 18216
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-engine.js",
+      "sha256": "a68940c86673a2dc0249279d9de1883deeb70d020ebccf566e84893ebb8f8c11",
+      "bytes": 60979
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-fetch-worker.js",
+      "sha256": "a4c56b2957ce7eb86fb3099dd5a71a543aa061ad7f0d36c07428d4060948e256",
+      "bytes": 27068
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-sandbox-process-host.js",
+      "sha256": "74ab6544fc18ff11eb7fbe5e2461fbd629caf66ae01679a6a39fc8554164eb50",
+      "bytes": 4046
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-sandbox-process.js",
+      "sha256": "f7aaa7b8cb329fcb343222c1b42bec4401dfcaf9710188abb792f1b8f1e94994",
+      "bytes": 2853
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-sandbox-worker.js",
+      "sha256": "5840b33a16dc9fbea8db36f9918d39c68a9a1d50d5c9b3d4507c40075e91039a",
+      "bytes": 146615
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\index.js",
+      "sha256": "74516ee6bec4e9ab9ecd8f44d865bd8c322a0505be311fc09c7d544dcd42f0a0",
+      "bytes": 354
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\installer-updater.js",
+      "sha256": "48887779783e61af3f25770104306b63be3c5980c0c0d15ce272415633451296",
+      "bytes": 11553
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\pc-python-hiker.js",
+      "sha256": "3d5b3f49ac8b1555594c6f142ccd155aa99cd4f729e5aba7c4d38bee3cf3ae4b",
+      "bytes": 7043
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\vision-cropper-client.js",
+      "sha256": "510c68373afa9435a8d4296f499473ce954111512839ecaedcd6c7dd97975b15",
+      "bytes": 15771
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\scripts\\hub-delivery-replay.cjs",
+      "sha256": "983e9eebac05955aa1950c4e42ce8caf9801bfa9fda0b73d0d094199dba9c124",
+      "bytes": 13364
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\scripts\\hub-rule-runtime.cjs",
+      "sha256": "5a12c86d3e671862fa5106e22ebec4594d88b7cf582ffa8956f9ec9e04187b7f",
+      "bytes": 8075
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+      "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884",
+      "bytes": 15395
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\Cargo.lock",
+      "sha256": "149b8d71e82b105b81f06b3718ecb184f3e019649005cc74de23fd328ef4361f",
+      "bytes": 207964
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\Cargo.toml",
+      "sha256": "a854a2ef19c82a6c20cf5be2835b76a9e8178f37f87669b159ed7ef903e9d810",
+      "bytes": 4676
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "sha256": "3f1267f847fa4fc7b8d565baf3f35c85c73bf8a45bee1380c8c794fd8e4518df",
+      "bytes": 9078
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\scripts\\hub_delivery_evals.py",
+      "sha256": "e588d8b61a22dae6b5e7140959cfc3827b63225e634d6cc16fa9332dd0a87522",
+      "bytes": 15995
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\SKILL.md",
+      "sha256": "21e73991e764a04bb3accf75013e5ce5c475c35b34630240d02b10c3bdcb3413",
+      "bytes": 16044
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\local-app-inspector\\scripts\\dmghg_probe.py",
+      "sha256": "4cc97eb38f9d0a3ff3662540f9ea0419d18d49e035911f161590f536e9f9439f",
+      "bytes": 11379
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\local-app-inspector\\SKILL.md",
+      "sha256": "9cd0359f4fb491c3dcac0b742a5d8984aac90fe4d34dffe4ab95ab79da5ecd0f",
+      "bytes": 5452
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\application\\mod.rs",
+      "sha256": "ed86152697be698760ea451875d9c4f2740a3ab701af189d35d3b859ff3c33ef",
+      "bytes": 21
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\application\\usecases\\codebase_understanding_usecase.rs",
+      "sha256": "444e8f959f4a1d02024fb2d8536104b5c47813b9285ebd4371cf29f9eda90476",
+      "bytes": 340
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\application\\usecases\\mod.rs",
+      "sha256": "6b2883cc47e6c5e9ce41fbc1f4264b77b6192f6b046fe6baa5bcbee715b5daa8",
+      "bytes": 76
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\application\\usecases\\workspace_orchestrator.rs",
+      "sha256": "3bd33b8c7e933b2d28667392229728708ba603c95220eb34c0671f41004f157b",
+      "bytes": 332
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\bin\\hub.rs",
+      "sha256": "3cab46d48a5efffe940b52611a1acf9c5e4c8ea959b72d4314f8060e9d4e6a45",
+      "bytes": 258
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\bin\\superagent.rs",
+      "sha256": "c1d45635acc643cbd83b7bd527bfe354140f101d346420de17f2053a8de986ec",
+      "bytes": 16380
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\cli.rs",
+      "sha256": "eee9ccdd11583ed242aee5d28e113166ef7cb3e7a30907fc084242907102728b",
+      "bytes": 13669
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\cli_commands.rs",
+      "sha256": "6b0433703c3cd3bfb14e90d1c100d5c89c11a9f270daed86603cc38054829117",
+      "bytes": 40926
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\agent_settings.rs",
+      "sha256": "708522ff5267114fe2c5e35a05c9479baa52c2f5b92bff890d53a69f91d2b949",
+      "bytes": 1752
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\app_paths.rs",
+      "sha256": "91390ac55c114dbe32b3baa39655b586a729af885cdf8f7abeda13b18fa5bf43",
+      "bytes": 3980
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\claude_settings.rs",
+      "sha256": "6830f61cfca2e47ebab6a57defa4e8d7b1b5d8defea3e2d3047453b6e2a09e63",
+      "bytes": 8688
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\llm_settings.rs",
+      "sha256": "a9f64c40841faa3afa96b91c9274b65a09c34b9df7252f211aacc7cabf1111f7",
+      "bytes": 15977
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\mod.rs",
+      "sha256": "2951e705368f30851bdfd408d7b8cd756292fa1a7826dbe99e7f31a175111d64",
+      "bytes": 160
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\persona_settings.rs",
+      "sha256": "2f7ac4414255a8433e4cc519abd201ec2d90371ee6a47931cec360fc5d0d1972",
+      "bytes": 12944
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\rtk_shim.rs",
+      "sha256": "3def6db5ddb0f49bd52e901b458f58a30fcbc951fcc502c932c81e1f39555f0e",
+      "bytes": 3429
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\config\\runtime.rs",
+      "sha256": "f678316e6275766b13ecfbf5ec3fac4dab2e2c8909e4a1147898620ebb17b035",
+      "bytes": 14400
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\agent_blackboard.rs",
+      "sha256": "a700bfab09c5aef6aef58314db3430eefd9d9f131cd48524fc2b01d78f0d31fc",
+      "bytes": 3144
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\agent_evaluator.rs",
+      "sha256": "6fd0bb010fc54b93d689e95131dbca399c1d551a4f05f53783cbcbabfa1e13fa",
+      "bytes": 4497
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\agent_tracing.rs",
+      "sha256": "95d1ffce88848c33700376d055a69676693dc76ba6909c0f0371687f7a24ef03",
+      "bytes": 2980
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\capability_scout.rs",
+      "sha256": "90b8b4145ee98d023bbfc9a59502dbeedf0bc099b12f460997ad85783c629805",
+      "bytes": 28853
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\circuit_breaker.rs",
+      "sha256": "064dac6f361d604f237768e5c0e4c19a17b1ee75730cbdd45c9fa567da07b531",
+      "bytes": 10108
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\event_projection.rs",
+      "sha256": "150f21386c09eba0eac282b6d08652e99862169cb05493c33d4026825d116af4",
+      "bytes": 11606
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\executor.rs",
+      "sha256": "683ee7166b699fae6b9495b9be518df74516e07697fd1f408968f7c38866f644",
+      "bytes": 68095
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\fuzzy_json_repair.rs",
+      "sha256": "2a0158dbcb8ac48b9e3d9f5fa5ac59ead48fed30f27eb060cd35410be04e01f5",
+      "bytes": 11079
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\hitl_continuation.rs",
+      "sha256": "0954ea448e425ac8c50e341006a6606826a315769f99956a3887fcda9fcaa209",
+      "bytes": 7219
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\hypothesis_engine.rs",
+      "sha256": "5ef1339cbe000ac75fff37859e5c57f1c5a666db95b5bb762829fb93968400f2",
+      "bytes": 10278
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\intent.rs",
+      "sha256": "eb28555ac89b738ac941d06cf0cbf59d1b93b961922a7e87e0f28e159ea78fb2",
+      "bytes": 18413
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\mod.rs",
+      "sha256": "a4bca22372efee9e9a6f2222471777fcf5697a4f84c5f577ea18546f44fbc863",
+      "bytes": 562
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\plan_reflection.rs",
+      "sha256": "590dd6117242309eb8a0ee78248f1696730e010bb6640385f3a9c4de19b041a3",
+      "bytes": 14575
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\prompt_composer.rs",
+      "sha256": "36b936d5608f1093e6b9e7356cf77ed6469e4ed19a10ffa16810e7e8b8e2f09a",
+      "bytes": 4826
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\semantic_compactor.rs",
+      "sha256": "f4782a2a4c435f898dc1f486236e514d719c338e03c8aa966c7848d9ad4fbf16",
+      "bytes": 5256
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\skill_crystallizer.rs",
+      "sha256": "17fb505906db7e0fb14cab9eec94e974fdeba42124b611ff180f9b35f71ce25d",
+      "bytes": 12631
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\socratic_inquiry.rs",
+      "sha256": "bf14c13e1936159199e066e3391ce9e954268347f43ce83d436f4e08db2cfbfb",
+      "bytes": 19624
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\stuck_detector.rs",
+      "sha256": "5d82f89b8c24efbffe5ab6db326fb878707601e762226696286d89412adcc26e",
+      "bytes": 6409
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\tdd_evaluator.rs",
+      "sha256": "98d0bf0a1a41a2749c49ba1d1cc8a95785448abb75e308ec6a65b2f5cf37bd2f",
+      "bytes": 1987
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\verification_gate.rs",
+      "sha256": "8433f916c80030b6f5dce41ae9ddcdfd30f1e460c0ac26efa306426ee398cabd",
+      "bytes": 13937
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\architecture_analyzer.rs",
+      "sha256": "0477f77015e36197676849bc2f1a3a06a6cf71b932dd1c13e6cd13891969f56e",
+      "bytes": 10872
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\code_complexity.rs",
+      "sha256": "d485914f7b5c45e99bdcf2bcc44e6298224f602d0c506509be0c5057ebc1bb21",
+      "bytes": 10048
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\code_intelligence\\mod.rs",
+      "sha256": "c6c9a7ffa1d0836d4cb70ec8c12b7d7d1e0f62f6a253d10e2d037dfd8d160f9f",
+      "bytes": 2301
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\code_intelligence\\queries.rs",
+      "sha256": "545722f4cfb4339df793f5ffd221a7a514081155037429b9795d5e4588f1a76c",
+      "bytes": 28898
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\code_intelligence\\tests.rs",
+      "sha256": "cc4d3d2bb608b5dbfcadb66d85be8dc4d1ee80ec7453923a7cb962d7ff617b8b",
+      "bytes": 2837
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\code_intelligence\\traversal.rs",
+      "sha256": "3b797ae2e5020f9aa07aa9703fb10ee9972f1f81c5b0d98ea83ec734414a4491",
+      "bytes": 11215
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\code_intelligence\\types.rs",
+      "sha256": "3d61de35b292af1bfdc35c5b6f27c04ff95ab6eb4e156a87ddc485613f38d02d",
+      "bytes": 2169
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\code_similarity.rs",
+      "sha256": "1a65d18cb7b059c5474d04b8d00557200b37a39068b843c6aa695cc18c72ef6a",
+      "bytes": 9491
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\domain_analyzer.rs",
+      "sha256": "d27bcd21c632dd1ad55ae5a0017ae7eb9e6edf4fc77b3053dc5e2aee0565baa7",
+      "bytes": 9150
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\impact_analyzer.rs",
+      "sha256": "8c18c21bc1f065294cf61070520a8c4e04c28c60151266eeaac513ad3c2598c8",
+      "bytes": 7211
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\mod.rs",
+      "sha256": "dc7cbb1f9e1a0dab8f78a3d7e85774d1f4a8f7cfa85b281a632d59310c4f9464",
+      "bytes": 195
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_analysis\\requirement_analyzer.rs",
+      "sha256": "167b0b230ef22ad92d0617a9d94e5983122b4afec8aa1b0801da6648264ba83d",
+      "bytes": 18716
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_review\\engine.rs",
+      "sha256": "a9e67fe6fdc3d747de4cd94c7ed50cf16bf3e7d4228c6b212da1ae3b4926a7ee",
+      "bytes": 8587
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_review\\mod.rs",
+      "sha256": "fb2936deff8000623e8f42c13c6ada3d33b204873527a658a72825c29abd710a",
+      "bytes": 248
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_review\\rules.rs",
+      "sha256": "206989b56b66342605bb344628de7912b58d02d1cc3c48498075d2b66374ce90",
+      "bytes": 6518
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_review\\tests.rs",
+      "sha256": "7d2d5bacf8fc8c5608847866527768d54fb40be9bbc236ccfa794e8cf2ca3408",
+      "bytes": 3058
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\code_review\\types.rs",
+      "sha256": "0f8a420249969b55f8158a06d6bcedb83caf07b6e372beaad66b4e4c726c2cf9",
+      "bytes": 2166
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\conversation\\context.rs",
+      "sha256": "0c1407d61bdd90bba4ac293f7e1859803eba720e330851b48a24968b622e1bf5",
+      "bytes": 12610
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\conversation\\mod.rs",
+      "sha256": "0180162bce884be38716cc0b2b928a7c9cd36c8a5c79182409b21f23ca7f55d8",
+      "bytes": 100
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\knowledge_graph\\episodic_memory.rs",
+      "sha256": "696047fea837483aae75d7c84ef292981d76d0fabc0c6b84531256ea2fcd8646",
+      "bytes": 4309
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\knowledge_graph\\graph_freshness.rs",
+      "sha256": "5c7e7a85d1c487f7c8d47bac36635720d32160fa9fe18f2658765139ec18195f",
+      "bytes": 8319
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\knowledge_graph\\graph_service.rs",
+      "sha256": "3f2e5f4e8dca7d1f7c4095aa1b1a455927718eca61cc20b76080f92b88d6709d",
+      "bytes": 4161
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\knowledge_graph\\mod.rs",
+      "sha256": "c2523262e41153b5584b1d993ad1419413e9f39e6669648b33c91945ee405e06",
+      "bytes": 162
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\knowledge_graph\\understand_service.rs",
+      "sha256": "a04fd4892e65775843f0a3a8d2a3c361a88c151b356dc50c13e1cdf81e83002d",
+      "bytes": 19982
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\knowledge_graph\\understanding_cache.rs",
+      "sha256": "3d537ba2a8f25bf4203124f681e475bffa9b6698b3d66df77f08cf351106a66a",
+      "bytes": 4818
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\knowledge_graph\\vector_service.rs",
+      "sha256": "0c4baa43f130e156b447164f7625bf1e12eec1d8970924fa8c264f18b7c037af",
+      "bytes": 10044
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\mcp_ecosystem\\dynamic_discovery.rs",
+      "sha256": "08873572b2b0607555b2836d83d9dde14db2314e5a9e91f0b801110b2590a3b2",
+      "bytes": 6494
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\mcp_ecosystem\\mod.rs",
+      "sha256": "bef466293277f44d3d9bd1545f020330af5fbc42e2e56faf7d378d55cd86a986",
+      "bytes": 105
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\mcp_ecosystem\\tool_retriever.rs",
+      "sha256": "9eb097c78c2b8c2e5c16dd3d8a144cb0e7d035fc6e211cdc159b1dc883f81de9",
+      "bytes": 3624
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\mod.rs",
+      "sha256": "769208fb022667bf98531b6e61f338cf606a2f65ec1a5b5cf09b07fc6213cf8c",
+      "bytes": 322
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\assessment.rs",
+      "sha256": "110ea6c3d41de0762c7064a3ad3d0a783ce6eb1abda631405d0f7c3ff68cdf93",
+      "bytes": 11528
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\catalog.rs",
+      "sha256": "dc3e2b1e987c55fd4cec869881f59092cad5dcfd29df83009614ee9101802ab5",
+      "bytes": 14186
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\discovery.rs",
+      "sha256": "a9a4ef3ab5318925513cee23b98f51faa2e0ecceb89ca7201d50644c65c0f444",
+      "bytes": 10384
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\eval.rs",
+      "sha256": "16ec100366fb3057eda3930a35052070df290e831bf2a309337e9bc872a938ed",
+      "bytes": 14481
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\mod.rs",
+      "sha256": "36b568e089ffb57373e78eeeaab2629a4187e4ed44e3c6ebb3a330af087e38fc",
+      "bytes": 13166
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\policy.rs",
+      "sha256": "246ce90efe7cfdbe14fadca23d0e1e076a1087c9364fb7f9f743d14153159fc9",
+      "bytes": 3292
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\probe.rs",
+      "sha256": "f847f4b142b6b0988d7533c50b75fdbf546d8bcbb299397f48272ac5b13a0a12",
+      "bytes": 5981
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\tests.rs",
+      "sha256": "d8c18d5277233846c8a72b0d9c9c212b6bb4fa999b4ba32e283423fb18069cc2",
+      "bytes": 18435
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\types.rs",
+      "sha256": "7e62b5fbff3ff68b2ddbd2c7255b54e03a4460cbed217b91549aa33f74abef3b",
+      "bytes": 3036
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\capabilities\\utils.rs",
+      "sha256": "edadbab9a2dda126572291e1d436404986d54f0227ddd8c07972bb6199023737",
+      "bytes": 2428
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\gateway.rs",
+      "sha256": "b638c3ae1e9fe51797ded347306969a3f8b394fc3ad6001fd4df63566f15e563",
+      "bytes": 35464
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\health.rs",
+      "sha256": "5b6b9a5baa8a14c04618a99dfb776612cefff4780603e9f6d346e0bfc2ff8cc6",
+      "bytes": 16091
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\mod.rs",
+      "sha256": "03cce6f6449ea61bc125bcd0baef86d0ca9e8717d94f27c146b2bca5dd428ded",
+      "bytes": 147
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\model_attempt_router.rs",
+      "sha256": "1dfd21b0769d5626824fccf3b7507cffb341bca60fb8ad47110ff12212dd6f12",
+      "bytes": 6450
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\anthropic.rs",
+      "sha256": "0778a8436ad79862158164637476e7af312dc70372a618e0489cb8cd1d15e65c",
+      "bytes": 15909
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\anthropic_upstream.rs",
+      "sha256": "1fce36f907fc4532f5abe329b12d5f0bd9b185e8e4f9685783c731998e14d8f9",
+      "bytes": 23909
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\gemini.rs",
+      "sha256": "04cedf7f6f17ff03e380c7aafd2559b5eb4d94771ab401fdaab3af41f669d26e",
+      "bytes": 9545
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\gemini_internal_upstream.rs",
+      "sha256": "18197b679e52d49ce6b957268969cf3e5ef53d4dc72eff7ec597ba56fdf0dd18",
+      "bytes": 22039
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\mod.rs",
+      "sha256": "52884087983f0b1c41f368fe92e7a50f90a162580434abeb298be8e7f697b8c1",
+      "bytes": 1040
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\openai.rs",
+      "sha256": "267b402c5033104218c5f81ec03797f98079583008176e56312e7331bf5d219b",
+      "bytes": 989
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\openai_responses\\mod.rs",
+      "sha256": "7129916b6c275c4ed2b03658753a8a92960d4471de3b1706f2ce0389cd149fa6",
+      "bytes": 7837
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\openai_responses\\request.rs",
+      "sha256": "05fddd394e938c7a4a97aa6f5ce8090bb816d7f0d788cfdcadc2c09a888d7f4d",
+      "bytes": 8631
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\openai_responses\\response.rs",
+      "sha256": "a9eb0384c1acc75ceb16d3f659f760883f35d16c08685c43d53e7d7d46cea9c6",
+      "bytes": 3583
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\openai_responses\\stream.rs",
+      "sha256": "0a549a0746371062829b52a53b49f37749a0c7da0ed5e68442a8cbca4d168d06",
+      "bytes": 14612
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\sse.rs",
+      "sha256": "8b697675477abec56cb2bcec23f5da5d350c1cd4f22de248996cdd5741aca287",
+      "bytes": 16760
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\streaming\\anthropic.rs",
+      "sha256": "b428401f27f6bdc9e0ae64c92d2b47b9397004081edc211dae874823cc19ff1e",
+      "bytes": 41918
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\streaming\\gemini.rs",
+      "sha256": "c99719bc6fbb7b3fa13c12bd76c33372190cb34ea10070e05e15ab3656b31104",
+      "bytes": 3742
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\streaming\\mod.rs",
+      "sha256": "20415b04fcc428d00d8eced10a7a925db0f4feb78f422698b479658a1cb1acda",
+      "bytes": 175
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\streaming\\tests.rs",
+      "sha256": "a4e9ed2469b075c7d41cbbd6330fea981550f3e9796e09884338793abdaec6c4",
+      "bytes": 23104
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\streaming\\types.rs",
+      "sha256": "358882482d9b361cdbc1f7ce4ff0bf50454ef4c8d25e8a227a7e34399194371a",
+      "bytes": 3443
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\protocols\\upstream.rs",
+      "sha256": "520fa242fad71166a45553c828a9802876d7f59a17ea7c4dfb32a740e5f6d383",
+      "bytes": 13594
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\providers\\analysis.rs",
+      "sha256": "406185bf5d62c6f181bf0c5d984eb349236b4a735c3f2ccf47f38f9b7072b7cc",
+      "bytes": 9092
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\providers\\mod.rs",
+      "sha256": "6c3cd54c7d7dcffa26f0903f82dcf938a4e15fe98b650c1c0bb37a345c9e2ef4",
+      "bytes": 25079
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\providers\\tests.rs",
+      "sha256": "429e1dbeeb0201bdda6962fb27ea15296434f24c0755f1986233db7693d1cf97",
+      "bytes": 6358
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\providers\\types.rs",
+      "sha256": "a58a8ff33263e3eecd587f615002ffa0f645addd5c20b4bb967a28c21497491c",
+      "bytes": 5938
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\model_gateway\\routing.rs",
+      "sha256": "d475bd827676b016de5ae6e7f8ff2f5c784f36a0ca3ec545f7a98a04d90503a6",
+      "bytes": 27147
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\multimodal\\browser_driver.rs",
+      "sha256": "3722872e24b7e6fb083c07a358a220586326c57585a4f74a746c6b59fb00abd9",
+      "bytes": 2228
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\multimodal\\mod.rs",
+      "sha256": "c377ce195e38926e8374c2894a8510b10e1b374afc528cd94add2620a5349f4f",
+      "bytes": 137
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\multimodal\\vision_verifier.rs",
+      "sha256": "ac4fc3b6eb9944a8a3ac63f168c3e7c8130df9ebfbfd6c840e3b4cdd3e66afe6",
+      "bytes": 1195
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\project_management\\adr_service.rs",
+      "sha256": "5531f216572e11c214c9f072976c2cdaf0c777a2f51d9b95c3bbd5a673b1c5c2",
+      "bytes": 8142
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\project_management\\mod.rs",
+      "sha256": "07b2ab6c90e90f962c7bbcb91dd359e346f2430e14022f02c270e857ee8a6cb5",
+      "bytes": 148
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\project_management\\onboard_service.rs",
+      "sha256": "8ff04e7b058777633356b361794a82365407ca66cd599cc0c7d2c8af6685a8cb",
+      "bytes": 9539
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\project_management\\project_inventory.rs",
+      "sha256": "2b38038fca3255d9703668a1fa5860403958551d7d84c2e2b282db206b12b409",
+      "bytes": 14539
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\project_management\\project_manager.rs",
+      "sha256": "7a72850718532d3be99649ea022983e6673d4aefd8b3d7cc5339473ada0a5301",
+      "bytes": 4190
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\project_management\\task_manager.rs",
+      "sha256": "36a4d9bdf35240da97a14a23041e1fcb8e6502f7171203e1858c03587177092f",
+      "bytes": 27772
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\project_management\\tour_builder.rs",
+      "sha256": "62edbf1d05726a6abd2730378da1f82f8ebb821599f110588e5c1fa3b7f64bcf",
+      "bytes": 8499
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\docker_sandbox.rs",
+      "sha256": "1bbf2bde4fcf51be8df8d91d920fb372d0ec186c20cea8a076b1cc688fd4e6e2",
+      "bytes": 777
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\env_bootstrapper.rs",
+      "sha256": "2f51a4ea41281c5d7d37cee55f665b77c9c8444eae58e6eda75fdeb2206dc51f",
+      "bytes": 10871
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\local_sandbox.rs",
+      "sha256": "cba119ab8e04f5ca376c5ec60f908f6cbc2a78cc31a0ddbbae76d1613cd32361",
+      "bytes": 5795
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\mod.rs",
+      "sha256": "e8f8454173fb51dfc33f6d3e2bffd3017c3a642b0d41c34233991f9ad826c87f",
+      "bytes": 646
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\reflexion_engine.rs",
+      "sha256": "f84d97a65269cd2f4bdf290c78d512bd4ef70fe6a8d07113cc2d725f32e4b078",
+      "bytes": 10443
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\sandbox_runtime.rs",
+      "sha256": "054ad54210a1569007450db8a1711f5e010453b8096f1483961aea015f661ef7",
+      "bytes": 517
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\spider_assertion.rs",
+      "sha256": "ed640eaea0ae59c165aa3176384323baf276685706749433d31dd41c10339498",
+      "bytes": 12624
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\sandbox\\spider_runner.rs",
+      "sha256": "1c06af5d19a8ba8f5a9abd214977972c84899ff9d673e2a5d9977fdbfbdea3a2",
+      "bytes": 7791
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\consciousness.rs",
+      "sha256": "3032d4908cdf29ce52db92d396aa66f00d4a77c15ff466ea9414e1773f028790",
+      "bytes": 3401
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\message_bus.rs",
+      "sha256": "c686fde13ed1dda2fce4d77eca9eb7f4f19b04fd7c95fa38dfbdb1dae1393ffd",
+      "bytes": 14815
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\mod.rs",
+      "sha256": "1d61179d9926c11018f0e9c751b2bb79bd512c0176230b71bb2e3276bf385eda",
+      "bytes": 320
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\swarm.rs",
+      "sha256": "bf7e836850b96697ce87972e760e7ded0fa23ed6219f602a5f17bde22c8a1826",
+      "bytes": 13791
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\swarm_channel.rs",
+      "sha256": "89f23ec0a4be1013ccc789c1e44f2ada7b0d068b4b0b652cf934ec0182868bd4",
+      "bytes": 7075
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\swarm_heartbeat.rs",
+      "sha256": "0e755d4a31dd605359ab108966f9d43d498ffe57bd99f1507473c38da57944c2",
+      "bytes": 8716
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\swarm_topology.rs",
+      "sha256": "619e6aff488e22faf28e29b27e6a69f065287e9c20683f375cd3f987f9fff2c5",
+      "bytes": 21503
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\swarm_intelligence\\workflow.rs",
+      "sha256": "90ba1dc28f50c47c52f802a4bd1418e4a58287b9d36f6c4e2109d4be7ad22ae9",
+      "bytes": 8090
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\token_compression\\mod.rs",
+      "sha256": "25175673eaeecbc7f51d1ae4395945e223f1d960c24e66932d28901ac768531a",
+      "bytes": 7719
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\token_compression\\terminal_compressors.rs",
+      "sha256": "fb1180de99578d33aaef4b8ab9b788b59261a2231cc7910791db92a78235da20",
+      "bytes": 18058
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\token_compression\\tests.rs",
+      "sha256": "f891dbc8fe28c5c31b7f705dc5944914d49f188c148fc28e3ab5d56b2ed3dea3",
+      "bytes": 10157
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\token_compression\\tracker.rs",
+      "sha256": "f07857496e55c6c61c305afbb9fbc0f22d788812d037da01c94208b49dd29970",
+      "bytes": 3489
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\change_classifier.rs",
+      "sha256": "f0d19a0b653b020d61a3d36e944154292c336686ac6b7d0016c99cc712f6cf23",
+      "bytes": 12765
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\change_set.rs",
+      "sha256": "8a1fffa85c15228a0bc95b2993e0e748ce59247c35bfecc907ab1059daffc4e9",
+      "bytes": 20647
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\diff_grouping.rs",
+      "sha256": "3fbb10b6b1f16aea6c8982b49204054887aa45f7663c0a2692a187d0676f9b5b",
+      "bytes": 8315
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\diff_impact.rs",
+      "sha256": "e457ec3080e9e7db8a2f660c8ddc5065972d9ff1c03e8f7ff06a19b41fc20be4",
+      "bytes": 21898
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\diff_relocation.rs",
+      "sha256": "8c0896b3fad986de8f21273d1e408feca5ab2834dfeab7638f43b336a2f49aaa",
+      "bytes": 17944
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\diff_transaction.rs",
+      "sha256": "91fe1c187a7fde33fa1d64b834d73e6ccef12c506bf20bd517b8afefd6525e3d",
+      "bytes": 26788
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\git_service.rs",
+      "sha256": "bf25c778f713be8aa0f83e6ee70af761055efbc61653ad9f57dc07446cb4b50c",
+      "bytes": 21127
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\mod.rs",
+      "sha256": "df7660b04e2c96962ae1b19e310436eb4d03c7642534b5a61ad4848efdc156fc",
+      "bytes": 207
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\regression_guard.rs",
+      "sha256": "b3b3cd1a167924ae337461e0c3fae12338553cf7ae421e765180c3d25fa283d0",
+      "bytes": 21302
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\version_control\\repo_map.rs",
+      "sha256": "29e3c18e523ed30eb72a323c46d787589da594019b77508cbfddf49a3a2bbd26",
+      "bytes": 8277
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\infrastructure\\fs_path.rs",
+      "sha256": "4e721d3a41e38bf822d05d9eac6c1e3f2fd7b77b1ee5dff1bfc71a15ef85cb21",
+      "bytes": 7963
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\infrastructure\\mod.rs",
+      "sha256": "a418f577fe2867b1f9688c115e74b21e66d9e9409b782e29e457a8603af75a25",
+      "bytes": 157
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\interfaces\\mcp\\mod.rs",
+      "sha256": "d8b0e46dfff2e0bb03951f2beb12230d87a724a6315e4f692b8ffe01846c2cc2",
+      "bytes": 14728
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\interfaces\\mod.rs",
+      "sha256": "7f0c2456326c7653c88dde8ff0dbc63f70fc2cf9f35282ddb45538aeffe45bc4",
+      "bytes": 133
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\lib.rs",
+      "sha256": "f59e3e5da18b2cebc20a6719bc38a9a3ece15ba51e172e3c9f71b0fa0e615015",
+      "bytes": 987
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\mcp_server.rs",
+      "sha256": "fb98eaf58b28a958daeea7f68c5620e56c77299e9a5709ccbea52e57028bde12",
+      "bytes": 32759
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\models\\api.rs",
+      "sha256": "114f42bea04a2fadd32067d91befbbfaa46b194377454352fd05ebb975f6b069",
+      "bytes": 1974
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\models\\graph.rs",
+      "sha256": "636d0ce8d7f27f02a7333c27dcd5af63e0dca985bb0eab75a1ff5e10eeeccd3d",
+      "bytes": 1062
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\models\\memory.rs",
+      "sha256": "761fd79e4016fe82e967387050fb62b3924178c2bc8e742367b85e62b4d41316",
+      "bytes": 4020
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\models\\mod.rs",
+      "sha256": "42b9bcdc86d49077b330d1d3155c87cf1a71404b24eacc7318156e7ca80ae18d",
+      "bytes": 80
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\models\\reverse.rs",
+      "sha256": "66fb4004ef2838a6400c8437b9185453e99538b952908fbac8f0322749fd8d65",
+      "bytes": 7582
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\models\\task.rs",
+      "sha256": "c7d08a8e270aaace604df454737dfd2c7fb4d8f36b71847f220f68843b8159aa",
+      "bytes": 3047
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\repl.rs",
+      "sha256": "ae6d905b5f5eece32266384db9a140e3612586df711d9e5f7618e658511a4a22",
+      "bytes": 17629
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\reverse_engineering\\engine.rs",
+      "sha256": "e6a6cfd37754faaa5e1b57889ead4ed72bfc0da3d62137b884d97f8647f826e5",
+      "bytes": 17857
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\reverse_engineering\\mod.rs",
+      "sha256": "0ffb5ddb3b8e3f38e5060b9cf288b7678cefc5f8d22d984952502033bc82a9df",
+      "bytes": 33
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\reverse_engineering\\rules.rs",
+      "sha256": "b0f0546198778bea496439b65ae2ecf633bbf08169acc2646a6bada76b791241",
+      "bytes": 958
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\config.rs",
+      "sha256": "cc3dc59ad7efd657663964be5d08d86396d968b023bb1d07cb1a92616c8b8db2",
+      "bytes": 5298
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\diff.rs",
+      "sha256": "696d5726e02163bb3f5af05e7f97ea6a4e7ec89369b3a5c2b5b2717187db7f32",
+      "bytes": 33556
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\interact.rs",
+      "sha256": "7a4df2a37622269cdd16b321efddf65b5209b204bc849495f78a1a6a115af4a2",
+      "bytes": 4406
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\mod.rs",
+      "sha256": "a65b1a488ad8e560b76d69f075308231688a454efdb575421f5eb8da148f79d1",
+      "bytes": 4795
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\models.rs",
+      "sha256": "f0ca43c28e650380a17cef4b71e0663fad0582f471b3a776de12360bdabb1f52",
+      "bytes": 2046
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\run.rs",
+      "sha256": "a174ebcbf79ac5c48c6ee80020fd22ff50efe103fed662506d5a6ae42670f9f2",
+      "bytes": 25105
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\settings_api.rs",
+      "sha256": "138263e50e6f4b827762a4aeebba6b9b568f1d752418b096ddcd5f5845ddd994",
+      "bytes": 438
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\skills.rs",
+      "sha256": "abe65ef0bf42ed74be3ccd9d2f248322ac4f010f3ea5e1faa0f8141eb139daa3",
+      "bytes": 6041
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\analyze.rs",
+      "sha256": "c983b62d67fcc32c82493207834e614f92d1809620873f0c9883e2b364e9a3be",
+      "bytes": 14934
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\capabilities.rs",
+      "sha256": "5fafcb57ab010c233abfc4254774fcc1f26a7199192387d75e654a870ceb6a86",
+      "bytes": 1696
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\claude.rs",
+      "sha256": "2deb96274af60679316074508e88cd976c06be91a0b90bfb3498f6f569aa00eb",
+      "bytes": 5275
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\compress.rs",
+      "sha256": "d716156fc88a243c2e95b2ade60cbea35438385fc2efc00957686d6fac8e9abb",
+      "bytes": 4886
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\context.rs",
+      "sha256": "d2adfd6dc3285b56217a80ed58aed321c443357239c95f116ba78994b4612d37",
+      "bytes": 5452
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\evolution.rs",
+      "sha256": "306b2d15e9bf9ac8e048c40dd48d231a9121708d0ae1ccd34f6c7f4900a36953",
+      "bytes": 2734
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\files.rs",
+      "sha256": "2fe9ca694cf4ed4545f29b88da32703ab1b4bab44a667febc9571c04bf5889b4",
+      "bytes": 10766
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\git.rs",
+      "sha256": "6eb295dc21cec2cd682a7358061eb3de7e656e3560d80652fb5c729c1a1f4b06",
+      "bytes": 16685
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\health.rs",
+      "sha256": "f7b9016b127e36bd7318ab72ff229f432d12c6ecd3ec0663e327b6fc131cf357",
+      "bytes": 1694
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\mcp.rs",
+      "sha256": "6a9ff194c5942d81a87b5c6b00b5769b61eb8ad82c740de76049a21a0f0db2b7",
+      "bytes": 7840
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\mcp_skills.rs",
+      "sha256": "e6f52d01b74b09f4f5324ffbc2398fd0e038caada8748551870c2db7278c687b",
+      "bytes": 3317
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\memory.rs",
+      "sha256": "bbc76b8045bb289089b40ca6c9593df8373e17d1d84298beaa795cf24825a852",
+      "bytes": 5099
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\mod.rs",
+      "sha256": "536f1100d370a1ddbae9cbb280734d41aaa0d3ee25efc9bb8d7cd7c0783e3e54",
+      "bytes": 491
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\openapi.rs",
+      "sha256": "ba9cbe883906b64b57a89350e604eb52d15529675f0b8bca7c7d1b35cc4a9951",
+      "bytes": 4762
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\projects.rs",
+      "sha256": "ac2b7d625572262403c68fdf4a4029abebccfb05ac5ceab11f40db0e8b4688c3",
+      "bytes": 1589
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\proxy\\audit.rs",
+      "sha256": "3799a4a65372f22842c53aabf18107af74e03270d1fea7f540bc0754f814bb1b",
+      "bytes": 7557
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\proxy\\dispatch.rs",
+      "sha256": "98a43fe52652d70b2e8df5345386f2c8641358a5134be76f4bf69f83870e3139",
+      "bytes": 27181
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\proxy\\health_check.rs",
+      "sha256": "1d6505120c62015a6b835c00c8bf372682894f9ed78c051a34525653766a0c86",
+      "bytes": 6386
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\proxy\\mod.rs",
+      "sha256": "03687a8f3443df0dab7aba72a2b3d0031ecb8125c3ef2fff153a379dccf35c12",
+      "bytes": 272
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\proxy\\router.rs",
+      "sha256": "1b90290c501b3d8c98310a66c2d92798b73afab95bcfad9658a371f5948e1184",
+      "bytes": 2158
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\proxy\\tests.rs",
+      "sha256": "003dd43069823a3401208f9e27db97c52603d16405b374369d57e853f453c94e",
+      "bytes": 6975
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\qa.rs",
+      "sha256": "3a250ded7ff9268227299cd244cb36ff1ce562861da5de8c1803f492b9311e17",
+      "bytes": 6815
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\reverse.rs",
+      "sha256": "2eace1b041474a9f934ac477d80fcfc684b145b2179d33cda42d43735f4b3167",
+      "bytes": 5471
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\ruflo_adapter.rs",
+      "sha256": "55e7856b9bc444faa75fec8e67a5f05cefef20b7671603340a996ab005ed0f0e",
+      "bytes": 21624
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\accounts.rs",
+      "sha256": "13e3dbb26164207941beb87b75aa7dd48a3bff1baf7c5a8455b4a2f357e05d07",
+      "bytes": 3527
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\capabilities.rs",
+      "sha256": "85c209204bd3364f6660ece3a7149d6b5ea8e66dd0ed10964367384bc5dcd10e",
+      "bytes": 2690
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\llm.rs",
+      "sha256": "9814eaeb8cd5f5b3792e30b115c3d8f9e20faf340f6ff5dc11fcfbb5b13a9c23",
+      "bytes": 20279
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\logs.rs",
+      "sha256": "a2370c6cdf2e80661a831987cd98526393350f4b4bed8abe40146e84ca14b31b",
+      "bytes": 2989
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\mod.rs",
+      "sha256": "5f9ddaa89b9a3e73151b2ed3d650c19828c03da84a5147e9075cfe3369984f7f",
+      "bytes": 2524
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\oauth.rs",
+      "sha256": "75306fe2db7fe3967644fcc7caf67b8b341862498d8296af41323a81e8efc398",
+      "bytes": 2376
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\persona.rs",
+      "sha256": "c25c0aed67b99f16d5a96ae62f7775cf91d9949ef9ffd5f05a56c58ca82b5703",
+      "bytes": 2520
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\routing.rs",
+      "sha256": "02f96b79d857d863ae1fad523d787fa563f7a1e2f68d07c92378af6019fce0d3",
+      "bytes": 1317
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\tests.rs",
+      "sha256": "c1e5e4acca7efe79d9ab54d2e064a601c4721a9fac51a51ee982a0ff179d76ca",
+      "bytes": 1478
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\settings\\types.rs",
+      "sha256": "a5f41aa9c31be01297baec88d305b17f4ca7b38ab765efecf15fec3ed235a27d",
+      "bytes": 2879
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\skills.rs",
+      "sha256": "e118051543a695934686f876240c531db747452b8cee599efd1f67d36c97a6ea",
+      "bytes": 3824
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\stats.rs",
+      "sha256": "24e9f9679ceacba1b18c65ba637cd63bee68c3a7aabd6b496303d0763f6bed0c",
+      "bytes": 1625
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\tasks.rs",
+      "sha256": "a18006e194640e3f4ca2e187ac5837d5fcf521368ae1c7da360c41bdbc529c43",
+      "bytes": 14099
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\tool_approvals.rs",
+      "sha256": "44ab9654fed83efdb25b170e2ed32eaa7181e5200ef4bc41bd7d07fb67c5f84b",
+      "bytes": 6387
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\understand\\comprehension.rs",
+      "sha256": "d193f8a464b1c135fc7ab94aaeea0b88b3e7044c4842e482075402ae4bab74b3",
+      "bytes": 12471
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\understand\\graph_queries.rs",
+      "sha256": "c594d70f928b3bfa03d29f9fd4e1dc0540322065568893a1ad13b50f69aba705",
+      "bytes": 18667
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\understand\\mod.rs",
+      "sha256": "4aa4409a0b850e02ef7c9dc73e360e7cf6bdab2d1e369fb2c4cad9c9d1ac7bda",
+      "bytes": 3340
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\vision.rs",
+      "sha256": "1041add23bd3400374a9f443b6dafa0cb32b6e78dd4946becdfd1447f54edccc",
+      "bytes": 16738
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\workspaces.rs",
+      "sha256": "7c0aa9e8ef2223c9a76bcfde952daa10ff6e7bd7e2ff1ea98f986a1c7e57a351",
+      "bytes": 28354
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\server.rs",
+      "sha256": "c08aa64a4b9f08280cf005d01e316a73f655d0e5b4f24e5a2a68b0ba4ffe6249",
+      "bytes": 11132
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\acp\\discovery.rs",
+      "sha256": "22f05ded7e26bee572531bf390a2e73b5c8b76a7c9d257c042b1f83e70b10153",
+      "bytes": 9222
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\acp\\mod.rs",
+      "sha256": "ce76dee69b90528f05bd2d3ab3656ca3f1d47dc06656cedf0595818e90dbd88c",
+      "bytes": 650
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\acp\\runner.rs",
+      "sha256": "9ef8b7495f13b19111d33289be9da23f6ca29d12acf777120a8d4bb84e475a4f",
+      "bytes": 21801
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\app_server.rs",
+      "sha256": "12909d6c87f81da5b882783a85f0880bd63004253c6c734f1752d7201701d3ea",
+      "bytes": 19138
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\args.rs",
+      "sha256": "b2c5960639a622403a857c8208a03dd084b978195336694d8b8951d058ee9cfe",
+      "bytes": 4866
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backend.rs",
+      "sha256": "4cee2b6a7df561a2b3d1745f2984fb2d0b2f985db6a346bdcaea98367e0403bb",
+      "bytes": 2888
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\antigravity.rs",
+      "sha256": "d8de18aa28504c3bb241e88c10f71c43eadac7b85fd2c79265450f5c1877ac97",
+      "bytes": 3428
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\claude.rs",
+      "sha256": "06fcb3373115b28b9e5ea6c1aa9b77423511141d03ae638f5f271a0229b088c4",
+      "bytes": 8471
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\codebuddy.rs",
+      "sha256": "5784e65bb73475ac330846032314fc810ede09b006137880bdb3c23f88be493a",
+      "bytes": 5756
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\copilot.rs",
+      "sha256": "7071330d0a4bbdaee4849a4843c4333d18cb50c1d288ebd6d6dc479c2ab5959c",
+      "bytes": 4514
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\cursor.rs",
+      "sha256": "ecbcd704f48b687bb0138531d31528f6156bf925b14ddb107df1a93ea2c523bf",
+      "bytes": 5797
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\deveco.rs",
+      "sha256": "5a607ee5be47305e876885e56e158e5f1659ef5f77822562f17625b1d6766852",
+      "bytes": 3393
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\grok.rs",
+      "sha256": "60970a826068f25cf67439a2cdced0316119006e143d3e0bed68b5f8b47adfe1",
+      "bytes": 3790
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\hermes.rs",
+      "sha256": "5b28037f811e4013721a820182bfce214e7650ff300751aab4f2eeaf00b1f81c",
+      "bytes": 3587
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\kimi.rs",
+      "sha256": "281011051113c67c49534fea2a2456479cbbe3a0cd5a1e3ebbd82a5490ba562a",
+      "bytes": 3542
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\kiro.rs",
+      "sha256": "df55b88c5819c951296e7ba7a772679a6f18d8e7dcfcc62c28bd4d50f04901eb",
+      "bytes": 3550
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\mod.rs",
+      "sha256": "5a839200bd4e592a0fccda5ef050dc898d6740477cf11bdfa4760870719bc41f",
+      "bytes": 296
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\openclaw.rs",
+      "sha256": "ddfb1ce84dc344d5a7e718cf2686cdcfce3859a7782de1598ad68384bfcaec48",
+      "bytes": 4522
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\opencode.rs",
+      "sha256": "a39308815e642eb8b72d1392980ccff3e0cac9149d5f98259eba3f05be077e2e",
+      "bytes": 3307
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\pi.rs",
+      "sha256": "ed0d785889eb722733f0ccc5f0a158f1c90cf9ac13709a10a7f74acd62e6ac94",
+      "bytes": 3301
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\qoder.rs",
+      "sha256": "30658db82ffcb3a1152db0f2d69472a9e3ba20f1ca7b12e126dbc6f65972925e",
+      "bytes": 3599
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\qwen.rs",
+      "sha256": "b11f5c1c13fd55406870da7ff63967fdf2a2f04f17b84a9176c51d3320d8289c",
+      "bytes": 2953
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\superagent.rs",
+      "sha256": "b37d4965fc90d3f3757975ff8b4a257a146d4d025bc4ad3cf0bd4f03ebc6644a",
+      "bytes": 12085
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\backends\\traecli.rs",
+      "sha256": "fe834a81caa6d35fa136253c257640fb6ccd5bf9c3276f0b9fec042e1d02513e",
+      "bytes": 3747
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\adapter.rs",
+      "sha256": "3935814c816932afca31d5e809d23e51b74ab9cd5a0dab0a45c7dbd6c88e410b",
+      "bytes": 3852
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\adapters\\claude.rs",
+      "sha256": "0eada9161e36fd4e52bdf0f10e3a69376c11d8597ee631d7fd7ecfc167f72f2c",
+      "bytes": 7480
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\adapters\\codex.rs",
+      "sha256": "d1d5120a99da5a84beef0e4b72177af7a060724030e586382e96af5b6b299744",
+      "bytes": 9075
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\adapters\\mod.rs",
+      "sha256": "6c8a5c5dcab98624d8bddc6eeeb75a3871e072231a6441ac49ae9a087b249f99",
+      "bytes": 33
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\coordinator.rs",
+      "sha256": "2dce69a001eb489747f49aa82a6de28dd916bb76867ed0e5b13beea3b331423a",
+      "bytes": 5925
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\history.rs",
+      "sha256": "52359eb68c5229e2c819c8d93d4149189101794493483cfe6e0f6142930cf404",
+      "bytes": 4731
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\mod.rs",
+      "sha256": "61c46ffcf3ea8f052418b4cba29a3eb89d49b4a432e58bcc8dfbf6f649090236",
+      "bytes": 538
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\config_sync\\transaction.rs",
+      "sha256": "0f241c4038504fca458e331388d704fcc3aec55f08ca551fc166fedadb14867a",
+      "bytes": 7935
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\context_prober.rs",
+      "sha256": "a21b6d80186334b6d883c020f57af9ff3f85e300322564a14c09a89c14623c57",
+      "bytes": 2544
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\discovery.rs",
+      "sha256": "a3a1ec38b6648cddbda0ccc00b079d09a0b989b943d6853bf83a859e00e4b41c",
+      "bytes": 3511
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\installer.rs",
+      "sha256": "3dfdf6f473daccbac48f8d7035d5ecd89555c094a17f0f3f2c20d70378e3ae3e",
+      "bytes": 6345
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\json_lines.rs",
+      "sha256": "dd2c4903390bb401b22106634fc1df495540122437ab83a296857c0cd825aa9f",
+      "bytes": 15478
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\mcp.rs",
+      "sha256": "c8f253073d36d079553c157ce0db51bc81ba22c18ec8c093cd9854c387ba313e",
+      "bytes": 1438
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\mod.rs",
+      "sha256": "046dcba11b7adc65b552373d4a9b50784c895bf72f08a2d51758cf6114d2ebae",
+      "bytes": 1229
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\models.rs",
+      "sha256": "0ccccf69c81ae45c522003ca862b178af20c25ac6fd12cafff743a0487713ed8",
+      "bytes": 4067
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\proc.rs",
+      "sha256": "506009abdf6757c8e7d304a853f1ffd68b3d3c724617a1d686ae13e91b5e4d78",
+      "bytes": 7037
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\provider_store.rs",
+      "sha256": "0b19d1db221a36a2cf06ee9be2c7cc945d7d2af3c19936d7f64b2a4e81f550ea",
+      "bytes": 3378
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\registry.rs",
+      "sha256": "fbf156d58511475234848212678c1c72052934ba29426f0eb527bd5e7e4cc515",
+      "bytes": 15130
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\registry_db.rs",
+      "sha256": "7a66ffbf46891c2565d477014e4f70bdf0f0f5fa0b668eea4504c3f509fc3d34",
+      "bytes": 6273
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\run_ledger.rs",
+      "sha256": "673806578de0cb1f53476153cfb57f3dd11d37e106884a75d5a90f4a02ae53d8",
+      "bytes": 3329
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\skills.rs",
+      "sha256": "9188edad40efe026aa4e661c3f375029c4bb1591f1ea709bfb2ec60cb855f024",
+      "bytes": 15868
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\skills_sync.rs",
+      "sha256": "848baf548690de6e2d6f8d76ba56c84ffe72355ba95943444ae5c0f6eb72e32a",
+      "bytes": 16250
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\stream_json.rs",
+      "sha256": "cecda1ef072099f6bb8cd34f46f0c17daab62e984ac2eeec54935b5a353a1ced",
+      "bytes": 19354
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\sync_utils.rs",
+      "sha256": "b1b0501761739555a835e000484f2dfef7a171dfbb8a2b2f1dd6af8f280c0f22",
+      "bytes": 13803
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\agent\\types.rs",
+      "sha256": "de3159fef2f9452f9b71452dda81521d42aab3da293c8660388d250fbd835814",
+      "bytes": 8344
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\analysis_service.rs",
+      "sha256": "73e055cb04271cfa3777f6d4a878b32b7964305bb8e0e4bd4eed0ac3dc4074cd",
+      "bytes": 27895
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\auth_validator.rs",
+      "sha256": "3759c55c051aa5f05d6bec20fddb39b52945a2301646f87434e2e0f40dbc589d",
+      "bytes": 2843
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\architectural_linter.rs",
+      "sha256": "20eb90b5484894f16851e9fcb37db7041cdfad83bea529426da11dddd5ece0cd",
+      "bytes": 9134
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\capabilities\\certification.rs",
+      "sha256": "59c8ddf62774e01e3677c15593e02cbdf437e069b34c8f90f0540ba12bb3c35f",
+      "bytes": 5985
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\capabilities\\mod.rs",
+      "sha256": "bba6cfa08fe394bede791b4858c5ffc0c39b23a430e017ad1e46cc7a76956805",
+      "bytes": 61
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\capabilities\\shadow_git.rs",
+      "sha256": "7eb892f4b9bf3a04c505943772351b234b12c3fb37ff52f8b72db7d7cc1499b1",
+      "bytes": 1381
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\capabilities\\shell.rs",
+      "sha256": "2fec0ddc6a4011cb966f44ad960554cccec0fcd1308ee936335486d59fe98f86",
+      "bytes": 13707
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\cognitive_runtime.rs",
+      "sha256": "44e1501b1fabd57377e39da11e51769060db413f417ae47d44255d4e64895fd0",
+      "bytes": 46055
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\compaction_runtime.rs",
+      "sha256": "ce060ca6f004540cc54dfc6ffc977e88af0ec618d612872866499b2737857398",
+      "bytes": 18997
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\context.rs",
+      "sha256": "ffb4376c7c7e929e3064271542f098346f5fbc576b379a1b4eabf760b9e10a73",
+      "bytes": 1358
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\context_budget.rs",
+      "sha256": "4f247086253c00ba96c04668901d28f91518c0aa76ebc4641f96102997c24913",
+      "bytes": 4333
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\context_interceptor.rs",
+      "sha256": "641a6a9629fc11dcb582f9cb931f4abecce825c1d6b15ce58029d6261c6a7dae",
+      "bytes": 3403
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\contextual_chunker.rs",
+      "sha256": "057decede4cc1f049cf28c74b06eb91fa06cac4983a9edd4e94901355abe7c64",
+      "bytes": 9524
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\delivery_evidence.rs",
+      "sha256": "5568d1d92d8528d7ad66e2c6888dd6c46e6b95d18d7c754981964788fc06f1eb",
+      "bytes": 21698
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\embedding_service.rs",
+      "sha256": "cf011c4cb5f2ceca5c4e33e9757da7832cdec18d243a511a69fa8d56541399eb",
+      "bytes": 4795
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\eval_harness.rs",
+      "sha256": "f3290f39d10aa62a3fb5f8e871c3d0c92ebf561fa04633efe98a529a0bbbe9ce",
+      "bytes": 21256
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\events.rs",
+      "sha256": "8ac67356852c15264bd49953f248098e3eab2fe4842a5b0350fd4101e2c66fe5",
+      "bytes": 6566
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\evolution_memory.rs",
+      "sha256": "13bb696ef3cd0f31e244cf80c92ddad44d76c2d01b6bdd8781d6a619737beeee",
+      "bytes": 21691
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\execution_coaching.rs",
+      "sha256": "d07dad19edcc9de6dcb0afe6cb06472d3241ed1fc856f4dd9c96329bf8d4ca4d",
+      "bytes": 23876
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\interaction_runtime.rs",
+      "sha256": "071fa42de6b9f097c3d84ea611ada674166306c374feb633cc99810d80165126",
+      "bytes": 11234
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\ipc.rs",
+      "sha256": "410798eb4b9315126a6d2ecce184dba1abb4db3a4c195e094493b95ef46d5697",
+      "bytes": 6226
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\knowledge_corpus\\extractors.rs",
+      "sha256": "de37404316963f63a34d73cccc5c846b230edc4aa58b68f2f47e0edd0dda4f23",
+      "bytes": 9248
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\knowledge_corpus\\mod.rs",
+      "sha256": "614360768c273ba366322f74bdbbdff46bbe4e95489523213f8e5bd8e2d4beb2",
+      "bytes": 435
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\knowledge_corpus\\runtime.rs",
+      "sha256": "0f1b217a63b8b6f53a67f60bef988068fd97c3cbb948fcd3e3be1005f5641900",
+      "bytes": 18510
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\knowledge_corpus\\tests.rs",
+      "sha256": "0635b49c45060d9d722308207d3a4797c6770dcacc39c64f85ca6e2bef20e08e",
+      "bytes": 7002
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\knowledge_corpus\\types.rs",
+      "sha256": "d75b6e0107ece0712eb4583948e66159161dc2bd372e36053d040ab97e8ab303",
+      "bytes": 4276
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\mod.rs",
+      "sha256": "226f9cf5c0a2755e944d6f68cd43c0fc5e6ca1ad25b223872495c833080741b8",
+      "bytes": 1092
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\native_capabilities.rs",
+      "sha256": "397a22e46608dd3ec74667964c52df21ffd6f7b44ba95a056c06a98a2745928f",
+      "bytes": 11432
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\run_plan.rs",
+      "sha256": "6fa7ff88e14ab353c60b92882495bf4612e411f829872ce9e8a845fcdae7465b",
+      "bytes": 16270
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\run_prelude.rs",
+      "sha256": "5e88a701a007dbf9bdf32bc3e7c1bcb805a7bebab2f94c93d6fd2e9ef2582b75",
+      "bytes": 25071
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\session_checkpoint_store.rs",
+      "sha256": "6d96addf20ba769edf81ff31f2995b55e5c680fa4dff05d8b935eca563f79bc1",
+      "bytes": 11285
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\session_ledger.rs",
+      "sha256": "76bec963c29a497402c3907457f565e80bc18f4605fc7dda4b571b6d7743a162",
+      "bytes": 11165
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\session_lifecycle.rs",
+      "sha256": "76716ed166c143acc5c74b003c2010c5368987cfe4d0fd2583257cb83b3c0089",
+      "bytes": 2358
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\steering_queue.rs",
+      "sha256": "d8d2582874c5e8f7bdf2e53ac3540b583e40cd6f8a4085388a7e180e9b93ec19",
+      "bytes": 14559
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\subagent_runtime.rs",
+      "sha256": "4118f1ec69fbe9802a2452819577994c34410329cf25b865d4759a14d0847834",
+      "bytes": 25723
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\supervisor.rs",
+      "sha256": "12c38f8da65e7aaf51a5bc97de3352050666345d70176a7ce7f8423540f2892f",
+      "bytes": 12339
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\task_evaluation.rs",
+      "sha256": "67676230f944d3c29c23431ae2ea115ba064052174ad6578d3b6c72d6e817c9f",
+      "bytes": 24858
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\task_plan_revision.rs",
+      "sha256": "34cfd03547d7ab45c6a240027cd5e19a917b2586f3ac334f234c6fcbac3a5dd5",
+      "bytes": 6193
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\task_progress.rs",
+      "sha256": "a3815eb0da3d2e34b5854a0a94da5593ef9533a2867f0225768948be8ca49c67",
+      "bytes": 16729
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\task_progress_tests.rs",
+      "sha256": "7ad398ef1196fbc729924dbddc45ba6d80aba811fee48b5bee277d0538dc4781",
+      "bytes": 17200
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\task_understanding.rs",
+      "sha256": "b15202de5ca45c2c52d31fbabd45c9b876664b562c16fd23ddc50857ce4edfc3",
+      "bytes": 15134
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\terminal_receipt.rs",
+      "sha256": "fb127b191b2a74e6dba32c4cc6778726c375d8b614d894a33b582f307de8582b",
+      "bytes": 3323
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_approval_store.rs",
+      "sha256": "9a83eb729cfd004cc7d6563d4cba38d43370c1c0a0ac477837d0b7d5564ab9d9",
+      "bytes": 19019
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_call_identity.rs",
+      "sha256": "4d5e863d2894d3bff45ebb2849bfd6fca5c44854fa0afdc58b02d344ae2a0671",
+      "bytes": 1663
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_execution_gateway.rs",
+      "sha256": "605e6f90099be41d804c7aad99aa9d4d694894c6cc2df4c07dc1008d754d88a6",
+      "bytes": 70863
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_loop_guard.rs",
+      "sha256": "b75d80719827fc2bb550db0b8ef9b229993d5a2f7a767a45730ff6d580beb550",
+      "bytes": 5113
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_pairing.rs",
+      "sha256": "d6ca2678e33f98e196866b388641e81dd4d857de9cb7f20a88d40eb0bc42fc36",
+      "bytes": 3223
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_policy.rs",
+      "sha256": "e4b602af667dd6848893a32fedbfed49ae725f99628e435d661b0caab9925837",
+      "bytes": 16007
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_result_store.rs",
+      "sha256": "941a5ba8afe5691775475020420962981f278c0a4508846515928e85e01c6a2b",
+      "bytes": 6606
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\benchmark_tool.rs",
+      "sha256": "b63d8a3f2edcaf740778da4579189926d37742bb058236c1bd45abc8091744bd",
+      "bytes": 3271
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\blackboard_tool.rs",
+      "sha256": "f79b3a2b8a616fa66005168d18f77f3df7f5d813da5a161ed4a1beb83c33019d",
+      "bytes": 6967
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\browser_vision.rs",
+      "sha256": "33f971ee82a57e0f41f39d52accc11b63a3cc350851912389d860d18870c31a0",
+      "bytes": 3433
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\checkpoint.rs",
+      "sha256": "081d7a0ab0236603a31e262e19e30c4ddb493d583dc7644a86c9ac967c11f3c4",
+      "bytes": 5724
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\code_review.rs",
+      "sha256": "dcb757ae6af32b8ea93d733c50d3987f5655aed02089a7b92a02903dd565f863",
+      "bytes": 2736
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\dynamic_mcp.rs",
+      "sha256": "3338a991687565aee88b4221a20be9dd15abc84607021a23227e821e102c540a",
+      "bytes": 7697
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\dynamic_tool.rs",
+      "sha256": "2f62c765ff1b40dc4324abab7db43d2f1b688e73bdc7007b31af6fc79d5db42a",
+      "bytes": 10994
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\fs\\diagnostics.rs",
+      "sha256": "2c131699b649948a26b6dbe0af34d654155c003dc42af2bcaa13d9ee3f58516c",
+      "bytes": 14914
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\fs\\mod.rs",
+      "sha256": "8d08b290701bfb9b16c72f4d9a2cc35cacf3a49938f4029f3b5c9b685de965e3",
+      "bytes": 1074
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\fs\\read_tools.rs",
+      "sha256": "cee94ef992f44880baa500ab6defeef4d586c2cb19e7e730be2c1c7ad5a31bff",
+      "bytes": 20059
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\fs\\search_tools.rs",
+      "sha256": "a8d9b18f702cbd4e63652b02be81381ba2999b1411f3bb5349c6977b2ea6b5fc",
+      "bytes": 8832
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\fs\\tests.rs",
+      "sha256": "d4cf9a848952a08e559c226959e8c4f85894206df054dfc25996a733e410a440",
+      "bytes": 4216
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\fs\\write_tools.rs",
+      "sha256": "8ad2768951135b94c5952ed61e659b215795b35305d3c879c3f10876064e67a8",
+      "bytes": 14703
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\harness_acp.rs",
+      "sha256": "67d0d17de3143a3cbd11e8dba47f42a3afd9db450518ecacbb06cc145d9deae4",
+      "bytes": 16838
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\hermes.rs",
+      "sha256": "9aeb77d9e407c6b2c31bc6dc5e9c047c04adfb66ecfd44f8d618b6dbce9b6d65",
+      "bytes": 4357
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\impact_radar.rs",
+      "sha256": "8a70c88598da554632315fade2fb8b698bfcb22e1ac18b31e43cb9a653b2039b",
+      "bytes": 2789
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\interaction.rs",
+      "sha256": "d3880c2aeb4f953f609d82de069121cba898303b47015c6f497bd2e64729a958",
+      "bytes": 5147
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\knowledge.rs",
+      "sha256": "99aad04367723a8f4e36dcc4c598d4ab9129af17c0a31866d05317425925c9ac",
+      "bytes": 7969
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\lsp_client.rs",
+      "sha256": "3466875a84e9f0fe089c15c19ae97d427aa41ee1985cc71f4b1b5ce713f26491",
+      "bytes": 8298
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\lsp_tool.rs",
+      "sha256": "96d8e656d19c381738baf8fea720ac64a6f9e1e03c7cdc5b806d1c25d910d84d",
+      "bytes": 5460
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\manage_process.rs",
+      "sha256": "6af211b445224da3fdde326715d960d6ad8e5898c62dfbffc9a94c9b250dafba",
+      "bytes": 3939
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\mcp_client.rs",
+      "sha256": "36d3d0ebcc27e7b034aa278c24bd23946e3afe674afd7e80b3abd8862253c8b1",
+      "bytes": 9860
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\mod.rs",
+      "sha256": "d4eef947874890cfc20bd9afdb013b17508892ab4ba7499f3a63ae6033fa4ad6",
+      "bytes": 887
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\native_graph.rs",
+      "sha256": "7091eda4df2f16e0e834689f24abcf6762c838687c3428e28e172339fc8e045b",
+      "bytes": 8757
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\native_harness.rs",
+      "sha256": "f60d0719b36348599e3393dd6c5a0f5a847b1540da8b2de31d860245828c4424",
+      "bytes": 3846
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\native_memory.rs",
+      "sha256": "cfbfc76c4300dbc4d791c652ec3461ed32b61f5792e64d08263ebd47e13eda09",
+      "bytes": 8423
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\openclaw.rs",
+      "sha256": "7e1605e4ba841c413909f8342aaf48e35fe8ee2de892499c011edc4d514d197b",
+      "bytes": 2746
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\plan_task.rs",
+      "sha256": "8fd81687e0fd29be2ea033c1b222010a841a57c7e89fc71303f96b8509199025",
+      "bytes": 1219
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\process_manager.rs",
+      "sha256": "ceb8ba6ead3947c7feb7486a3b16ad1463b038747267bee59fdbf0f76778d375",
+      "bytes": 5719
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\project_index_tool.rs",
+      "sha256": "603de6702d0434afae6887e057b28ad1f95273b9af9e2d1ade6264fc8e85d9b5",
+      "bytes": 6411
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\registry.rs",
+      "sha256": "1d0783cd98b0e1cc91c1cd07327d569cdb6dc9011361ae3e483826c4e5a6e05d",
+      "bytes": 2651
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\reload_plugins.rs",
+      "sha256": "f506275a44dfaef9178abf0aee0d00bc5fad4e7e06a2b8dae484a1dec7d93a05",
+      "bytes": 4763
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\repo_map_tool.rs",
+      "sha256": "2a9ae2588e8285a5031ca1dd3aec1f86552d4b009f38488d09ebdb82e3fc06b0",
+      "bytes": 2930
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\revise_task_plan.rs",
+      "sha256": "8890a03f96be698a2b97530ee24d2a567fe6338e281519dd658bd98e6bb5d04e",
+      "bytes": 1177
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\self_evolve.rs",
+      "sha256": "f2c2794055414079e2e47cb6df1b9fdbcb4b81e6c6fa832a3f6c6145f941659c",
+      "bytes": 1892
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\self_persona_tool.rs",
+      "sha256": "311d35621f12daef64faf4628dde23fdf88e7f56323124401b2f4497aa454075",
+      "bytes": 4323
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\shadow_git_tool.rs",
+      "sha256": "56f3dc2a4bf2198bd563a295ddb60caeba7cd212ea4b77f49762a47767ef0b47",
+      "bytes": 2830
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\shell.rs",
+      "sha256": "ab938d5071913dd2afcf581d4b46dfd91083e153236e5c9a21e99b5c839cb3a5",
+      "bytes": 8605
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\skill_tool.rs",
+      "sha256": "d766c41aff4c107ec351c9c6acdec63eb3487ff9cba10fd22b08069b3692cae7",
+      "bytes": 17814
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\subagent.rs",
+      "sha256": "208f25d71d10fc2070cc5f6f611044e59887c491067f1679a178bb71a12f9a77",
+      "bytes": 7904
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\synthesize_tool.rs",
+      "sha256": "e5a2dd610c63e27015c6660f33ddc5145673764717706b2c6e958665f35bc9c2",
+      "bytes": 7917
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\task_progress.rs",
+      "sha256": "095fde735258815af50b7f64849a609da6967fd2700553dbf48d914ff17fcb50",
+      "bytes": 1599
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\todo.rs",
+      "sha256": "428f8780ac1f697b589bf4d9d1302c635b11f39a31b85ccf2a2e785f8fc06d15",
+      "bytes": 5376
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\tool_result.rs",
+      "sha256": "0964815d11d222815313e7e254f7a80bad701ae23d46b30050d4d43de74f58a7",
+      "bytes": 2810
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\verify_task.rs",
+      "sha256": "cc413887ffe93f1e0939c39f2c12cba95c5ea477141d8a2f38b7ed097187247a",
+      "bytes": 5258
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tools\\web.rs",
+      "sha256": "aa77a2cffe35ec58aaf859e72ab981907238c260e6e7f97160cc50df2d01b67c",
+      "bytes": 4572
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\topology_graph.rs",
+      "sha256": "fd1ebb4af5e346686086e268b136b3c26ed960d671deb188dd6ee5deb4753a7f",
+      "bytes": 4340
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\worker.rs",
+      "sha256": "e0759745451177e3286317ca783d64906381dfce89d774b5008a9b3892fae520",
+      "bytes": 22538
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\claude_cli.rs",
+      "sha256": "d14f6c81158fe6aed70f59a5221b052cb7a8d2c7708f952230853ee26d5f5e9a",
+      "bytes": 9526
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\cli_auth\\flow.rs",
+      "sha256": "392a16e543f9f009eed467e659585a003a85d2706fc2c16a92c914c0dc67c46d",
+      "bytes": 28529
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\cli_auth\\mod.rs",
+      "sha256": "9efcd185dd0b917d0e46f3a1fe020898d7e95438c627d2cb06b9e989b01343fe",
+      "bytes": 461
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\cli_auth\\runtime.rs",
+      "sha256": "c691810e743e6e41a73522a0549fe04e86ab3d7b3543c6364c4a38bf70d81782",
+      "bytes": 4456
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\cli_auth\\server.rs",
+      "sha256": "35cd2c1afb8e3118056b5251fc77c137f08cb53fc5a85d20741128afffed7ee8",
+      "bytes": 9566
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\cli_auth\\ui.rs",
+      "sha256": "3695bdc9ae4958af030c5ad30dd2d457a38dbcf02de9a13c509fb6955fea941b",
+      "bytes": 11669
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\cost_calculator.rs",
+      "sha256": "22bf4218f3949c9a069ad102c20c3df1b3b26710b095789ef0ff0fb3e93c8126",
+      "bytes": 2996
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\destructive_ops.rs",
+      "sha256": "77d65e1a3e03f18a76dc10e39532d495b0f7b93d405bd70c299e0432f8bd8817",
+      "bytes": 1950
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\file_service.rs",
+      "sha256": "c35d0637fee1b4d52c45705d3c7c45f7cadfafffa633b1cb632cd992c6d126bd",
+      "bytes": 4282
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\i18n.rs",
+      "sha256": "3f8ea06846d20e34eaf7fbcceacf57984b13cfa0c05e60d09c15f7650f761d7b",
+      "bytes": 1064
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\indexer_paths.rs",
+      "sha256": "58b9639153668ebe1fbe5e20ec0b205e2cb692e93e386c286e49a3f8dbcdb486",
+      "bytes": 9709
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\keyring_auth.rs",
+      "sha256": "10f861aaada7c35010c02862eaa664f1bf0912aaab725837c5953dbe43d06f54",
+      "bytes": 6751
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\language_lesson.rs",
+      "sha256": "23e914b681a32c4b36a6b97cab14f1bd73d1459750ef052feea90cffff69254d",
+      "bytes": 8487
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\language_rules.rs",
+      "sha256": "01175200f49159beda53c6be21f1e6665732527985c90a36721a24b6e3fb225f",
+      "bytes": 17516
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\mod.rs",
+      "sha256": "68fa9d5860837f4dc1c03bcd4d1b12893f5cfae47a096d4469f10e246d8ff740",
+      "bytes": 645
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\openclaw_adapter.rs",
+      "sha256": "8f3ff858b1d00f5db62629ad8d5180a08699ae7501a5105094605b695dc3390a",
+      "bytes": 586
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\pipeline_filter.rs",
+      "sha256": "616c5387fe0fb4e232525d74d4694b6a78a9d2adebd948efb676d7d985b62046",
+      "bytes": 8830
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\progress.rs",
+      "sha256": "8d12a67170f6572be55fa76fbc978723ac0819a12b215f2b9e66929d3f3eba63",
+      "bytes": 2641
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\project_context.rs",
+      "sha256": "84b335d70534a49a6b002c8042fb42b9f36522a7aceaec675fde39d8c21da673",
+      "bytes": 809
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\provider_presets.rs",
+      "sha256": "71fe2928083a756f9e1bb868541c09341aa7c3fe6c97e848814e7cf21dbf011c",
+      "bytes": 23841
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\subscription.rs",
+      "sha256": "c66828525c1b242b2120fea7ccd0ac3710811a4b35dba2d91c991fdbd2d1af78",
+      "bytes": 18059
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\supermemory_store.rs",
+      "sha256": "b6bde0913326bd30b1cdb2573187bb68254b371b57b85c7bafbc8cc98927182a",
+      "bytes": 19227
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\usage_tracker.rs",
+      "sha256": "3e00bcd124bc056234f6adc04756743457b6bd14fb7cbac943897f0d747370c4",
+      "bytes": 15682
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\builtin\\common.rs",
+      "sha256": "e12671cf88a18f527bf8bbc5bfb0168f9bbd623351a58e2370bf07e6159c7cf4",
+      "bytes": 1049
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\builtin\\mod.rs",
+      "sha256": "fa16a3a2c9ecbb84dc50181c80c3e4b1390f5f3f6cec7febbc21be0646c3accf",
+      "bytes": 510
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\builtin\\ocr.rs",
+      "sha256": "0a5dd026356eb4b6ca687e173bf6ed55d4ee8b6b5173237166a7e57d74ce5afe",
+      "bytes": 13465
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\builtin\\screenshot.rs",
+      "sha256": "67045aae879bd20431b330b353bd9f6295bbd3cf0a3f2a627476d78567d4dd64",
+      "bytes": 15276
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\builtin\\tests.rs",
+      "sha256": "e303a0472c660026eb919663aaf7657f2cff23ff4cb4939a2a4db2021b638dd8",
+      "bytes": 243
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\builtin\\translation.rs",
+      "sha256": "f62c5d1cc3fb96f81d225f83d6de2ae452f9e4131b73bb04226b4cbc8c0cfc82",
+      "bytes": 10582
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\actions.rs",
+      "sha256": "99a6da768699009381a7a2b3dfb4c2767f3bf332b97ed20fdafa35b50d2c59ee",
+      "bytes": 20646
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\analysis.rs",
+      "sha256": "d1e43955640a8cc7f272a64a14102beb4bcb71847648eb4327191a95713b8347",
+      "bytes": 5729
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\draw.rs",
+      "sha256": "4625d6b0fcdd61bae9b29c7595488640f36fcce54cd1e2a9d421145b89558282",
+      "bytes": 20266
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\mod.rs",
+      "sha256": "de2a5ad743a95ba9332aab6fea4bdbfd5fc6fdb707f6fbbc0de0f5d5e4774475",
+      "bytes": 148
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\pixels.rs",
+      "sha256": "0fd3e334910edcc7706a9f2e8c92b7b348a5f2e905c2e2d7b9251cbe6d9ef4ad",
+      "bytes": 4164
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\recording.rs",
+      "sha256": "42e5b2b032bc99f276a24dca25f19e61a62dc7c87fa8372718fff1f4ed8883cf",
+      "bytes": 2486
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\text_selection.rs",
+      "sha256": "e6ddd6284fae2beda0355f3f7eafbd868a238364195e39f1bd29d052ff31cfc3",
+      "bytes": 3179
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\toolbar.rs",
+      "sha256": "832018376122dcc7289f5b49bcffcd0186673089bf74c2e072fcaab66e614b45",
+      "bytes": 20144
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\cropper\\types.rs",
+      "sha256": "e973949977af8b2adb969145d03acc07f5b9d5bb05c49ef0c79cee7f8ad17fcc",
+      "bytes": 6786
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\external.rs",
+      "sha256": "d0f2645e9382bea134530079f33852faae4387451eca8216630d0fc305e75837",
+      "bytes": 12778
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\ffmpeg_engine.rs",
+      "sha256": "9e51dc8f8787157cc11cee52cda96fa450e9c082385e9156e3b4b5325ff2e8fb",
+      "bytes": 16351
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\mod.rs",
+      "sha256": "dace83b548d41ec5aaabe8ba76b4dff313f48bb39e387f964f5ad3aa0d91266a",
+      "bytes": 27378
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\native_cropper.rs",
+      "sha256": "2e52103167178065e5e9ceb85883ec681f4608089ff8884d319949e3c3d504b0",
+      "bytes": 38782
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\pin_window.rs",
+      "sha256": "92bdea2f360434352b7d82c5b1af74b138b28c84160140c2bdb78d1798676e31",
+      "bytes": 7781
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\record_manager.rs",
+      "sha256": "91d90ceb5242b7e230683325c358690b670c3cec31969bba4452b40670d26dbf",
+      "bytes": 16967
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\settings.rs",
+      "sha256": "e2ffa169ac154a4260a8545d8332debb0bfcdd195fcd0ce43f1184fa7716e6a6",
+      "bytes": 2224
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\tts.rs",
+      "sha256": "e11b6b18015bf394b289ed29091c20c1755d781ba8a9179637d802b592eefa7f",
+      "bytes": 1670
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\visual_pipeline\\types.rs",
+      "sha256": "868a57fbbbfdcf5015784ca4184a1ae28a36d41c5fd97a3d71d6a9ea6be2d37e",
+      "bytes": 9586
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\workspace_capability.rs",
+      "sha256": "5d65a5ccec70c15de64b7d87b628176cea6dbe30a9d96b1433c83b7cf7d49aa5",
+      "bytes": 3075
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\workspace_guard.rs",
+      "sha256": "af4c700f7b303c9c823354523c59bbf10ebb2333ee9f1cd0cab936a9a717f33e",
+      "bytes": 1494
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\shared_kernel\\crypto.rs",
+      "sha256": "be812131e1075e53031491bf4ce0b840e07e5e40199fbaf9519239956bdf9f84",
+      "bytes": 2482
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\shared_kernel\\mod.rs",
+      "sha256": "8cdcea340e433479f4c168f4a44a021b1a29de43e66c0eede1c5eec51e55587c",
+      "bytes": 164
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\shared_kernel\\text.rs",
+      "sha256": "78323bb9707f65fce24fee2b174b8bbebc741d829518a8fb35adaef45d1f17c5",
+      "bytes": 1613
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\target\\debug\\hub.exe",
+      "sha256": "46b7859aba61deed36a6623ae11c7f271f4714a8fee22e8c4e943027249dc5e1",
+      "bytes": 140056576
+    }
+  ],
+  "source_head": "590f3633f75604da4e4082b333f1aebb226cd321",
+  "source_diff_sha256": "36e81628a8770113488aa0307022f64b5d34f5450cd9b3f4cdab1df2f04caad2",
+  "target": "D:\\太极\\动漫共和国概念版",
+  "model": "gemini-3.8-flash-high",
+  "known_target_reuse": "existing protocol/probe Skill; not an unseen-task certification"
+}

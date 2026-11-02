@@ -1,0 +1,13 @@
+{
+  "task_id": "4139605f-7eaa-4b6e-8dd8-0689f03ba63f",
+  "classification": "corrected",
+  "request": {
+    "action": "steer",
+    "response": "补充教导：两次 replace_in_file 都因嵌套 JSON/JS 转义匹配失败，请改变方法，不再反复匹配序列化长行。用工作区内脚本先解析 rule.json，对解码后的 detail_find_rule 做精确修改，再序列化回文件；或者修改实际生成器后重生成，但避免多层引号。复杂脚本通过 write_to_file 落盘后执行，不再用长 node -e。改完马上 verify_delivery；本次仍记为带反馈纠错，不算独立成功。"
+  },
+  "http_status": 200,
+  "response": {
+    "success": true,
+    "message": "Interaction delivered."
+  }
+}

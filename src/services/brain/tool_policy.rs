@@ -166,7 +166,7 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "manage_task" => ToolRisk::WorkspaceMutation,
         "run_command" if is_read_only_command(arguments) => ToolRisk::ReadOnly,
         "run_command" if is_safe_sandbox_command(arguments) => ToolRisk::WorkspaceMutation,
-        "requirement_engine" | "run_command" | "verify_task_tool" | "manage_process" | "invoke_subagent" | "intervene_worker"
+        "verify_delivery" | "requirement_engine" | "run_command" | "verify_task_tool" | "manage_process" | "invoke_subagent" | "intervene_worker"
         | "reload_plugins" | "request_reload" | "skill_tool" | "native_harness" => {
             ToolRisk::ProcessControl
         }

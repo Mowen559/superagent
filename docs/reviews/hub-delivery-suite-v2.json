@@ -1,0 +1,1116 @@
+{
+  "schema_version": 1,
+  "model": "gemini-3.8-flash-high",
+  "cases": [
+    {
+      "id": "U01",
+      "category": "intent",
+      "target": "review-report",
+      "held_out": false,
+      "criteria": [
+        "citations_match",
+        "no_business_mutation"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "U01-1",
+          "prompt": "只复核已有应用调查报告，核对结论边界。",
+          "critical": false
+        },
+        {
+          "id": "U01-2",
+          "prompt": "帮我审查报告是否夸大，只分析。",
+          "critical": false
+        },
+        {
+          "id": "U01-3",
+          "prompt": "查看已有证据，指出报告哪些话没有依据，不改代码。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U01",
+      "acceptance_rubric": {
+        "facts": [
+          "REVIEW_SCOPE_42",
+          "只测一个样本",
+          "未生成规则",
+          "手机未验证"
+        ],
+        "reject_claims": [
+          "所有接口已验证",
+          "手机已验证"
+        ],
+        "business_mutation": false
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U01\\report.md",
+          "sha256": "e04ccb81adbea2d6a825c1e350bc607764505cf613b2a2f99106c04d31d5e089"
+        }
+      ]
+    },
+    {
+      "id": "U02",
+      "category": "intent",
+      "target": "checkout-fixture",
+      "held_out": false,
+      "criteria": [
+        "boundary_oracle",
+        "source_changed",
+        "tests_unchanged"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "U02-1",
+          "prompt": "先调查计费错误再修复并验证。",
+          "critical": true
+        },
+        {
+          "id": "U02-2",
+          "prompt": "查清边界问题后直接改好，运行测试。",
+          "critical": false
+        },
+        {
+          "id": "U02-3",
+          "prompt": "定位问题、落实修复，给出实际测试结果。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U02",
+      "acceptance_rubric": {
+        "oracle": "independent-node-boundary",
+        "expected": {
+          "0": 5,
+          "99": 5,
+          "100": 0,
+          "101": 0
+        },
+        "preserve": [
+          "shippingFee",
+          "USER_NOTE_DO_NOT_REMOVE",
+          "user-owned.txt"
+        ],
+        "test_files_mutable": false
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U02\\calc.cjs",
+          "sha256": "cf181b7813449309059f140f7cb4f3ae77c20bd7f777612b53a824391a9c6486"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U02\\README.md",
+          "sha256": "52b4668a5b88d50959cbcac3fa0f25bd5ef82b604b7d50c50e173d41af9dbb81"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U02\\user-owned.txt",
+          "sha256": "7fe3dcfc9575d56ca097a2d4977f0bf60922af8e1318d871ab05585ace0727ec"
+        }
+      ]
+    },
+    {
+      "id": "U03",
+      "category": "intent",
+      "target": "continuation-fixture",
+      "held_out": false,
+      "criteria": [
+        "prior_artifact_preserved",
+        "latest_constraint",
+        "remaining_work_done"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "U03-1",
+          "prompt": "继续刚才任务，新增限制是保留用户注释。",
+          "critical": true
+        },
+        {
+          "id": "U03-2",
+          "prompt": "接着处理未完成的修改，不要动已有备注。",
+          "critical": false
+        },
+        {
+          "id": "U03-3",
+          "prompt": "在上轮成果上完成剩余项，并保留原注释。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U03",
+      "acceptance_rubric": {
+        "sequence": [
+          "implementation Run",
+          "resume same Session from previous working copy",
+          "read-only review Run"
+        ],
+        "expected": [
+          "prior fix preserved",
+          "new constraint honored",
+          "no new mutation",
+          "fresh Run evidence"
+        ]
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U03\\calc.cjs",
+          "sha256": "93f9427d7ac5e83ce97788e958370e9d3aa095aa911832a8ac0190ee4a44a292"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\U03\\prior-result.json",
+          "sha256": "06b9ac530bcba85efb0d2f6663fd63943533af6ac15b48e9ef0c1902ca00e5bd"
+        }
+      ]
+    },
+    {
+      "id": "F01",
+      "category": "forward",
+      "target": "checkout-fixture",
+      "held_out": false,
+      "criteria": [
+        "boundary_oracle",
+        "exports_preserved",
+        "tests_unchanged"
+      ],
+      "prior_exposure": true,
+      "tasks": [
+        {
+          "id": "F01-1",
+          "prompt": "满100免运费，修复当前实现并测试。",
+          "critical": true
+        },
+        {
+          "id": "F01-2",
+          "prompt": "金额正好100时仍收费，请改好。",
+          "critical": false
+        },
+        {
+          "id": "F01-3",
+          "prompt": "让100及以上运费为0，其他行为保持并验证。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F01",
+      "acceptance_rubric": {
+        "oracle": "independent-node-boundary",
+        "expected": {
+          "0": 5,
+          "99": 5,
+          "100": 0,
+          "101": 0
+        },
+        "preserve": [
+          "shippingFee",
+          "USER_NOTE_DO_NOT_REMOVE",
+          "user-owned.txt"
+        ],
+        "test_files_mutable": false
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F01\\calc.cjs",
+          "sha256": "cf181b7813449309059f140f7cb4f3ae77c20bd7f777612b53a824391a9c6486"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F01\\README.md",
+          "sha256": "52b4668a5b88d50959cbcac3fa0f25bd5ef82b604b7d50c50e173d41af9dbb81"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F01\\user-owned.txt",
+          "sha256": "7fe3dcfc9575d56ca097a2d4977f0bf60922af8e1318d871ab05585ace0727ec"
+        }
+      ]
+    },
+    {
+      "id": "F02",
+      "category": "forward",
+      "target": "contract-fixture",
+      "held_out": false,
+      "criteria": [
+        "production_request",
+        "type_contract",
+        "documentation",
+        "ledger"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "F02-1",
+          "prompt": "修复订单接口金额字段类型与前端不一致的问题。",
+          "critical": true
+        },
+        {
+          "id": "F02-2",
+          "prompt": "对齐这里前后端金额契约，实际验证请求。",
+          "critical": false
+        },
+        {
+          "id": "F02-3",
+          "prompt": "接口金额返回类型有误，请统一契约并补文档。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F02",
+      "acceptance_rubric": {
+        "oracle": "actual-http-server-and-production-fixture-client",
+        "expected": {
+          "json_amount": 42.5,
+          "json_type": "number",
+          "display": "42.50"
+        },
+        "documentation": [
+          "api.md",
+          "contracts.md"
+        ],
+        "client_contract_must_not_be_weakened": true
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F02\\api.md",
+          "sha256": "ca19821cb94498715411eb95fdd330b169ffccbc05478fc441d8f464caa3a5e8"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F02\\backend.cjs",
+          "sha256": "fa2981116d030a146619cd7c07087fbbaef8a9d7ac3ff1f2cc0564f6324becfc"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F02\\client.cjs",
+          "sha256": "24220388d54c1f46774879f3ffac1dd91f9debd2bac5ba8f2948dde90798f802"
+        }
+      ]
+    },
+    {
+      "id": "F03",
+      "category": "forward",
+      "target": "cross-file-fixture",
+      "held_out": true,
+      "criteria": [
+        "new_behavior",
+        "old_behavior",
+        "dependency_coverage"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "F03-1",
+          "prompt": "为订单增加折扣总价并保留既有运费语义。",
+          "critical": false
+        },
+        {
+          "id": "F03-2",
+          "prompt": "实现跨模块优惠计算，保留旧接口。",
+          "critical": false
+        },
+        {
+          "id": "F03-3",
+          "prompt": "在这个小工程接入折扣能力，验证新旧行为。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F03",
+      "acceptance_rubric": {
+        "oracle": "independent-node-cross-file",
+        "expected_calls": [
+          [
+            100,
+            10,
+            90
+          ],
+          [
+            99,
+            10,
+            94
+          ],
+          [
+            100,
+            0,
+            100
+          ],
+          [
+            99,
+            0,
+            104
+          ]
+        ],
+        "old_exports": [
+          "checkoutTotal",
+          "shippingFee"
+        ]
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F03\\checkout.cjs",
+          "sha256": "81e5cdcec6978e814b51e8d20044302dbf06ef81e9f3b61e981580e93117e53a"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F03\\index.cjs",
+          "sha256": "8b96ec2f91d458783b54e07e59653c59e211ce3bad703462df20c4809d6e5ec9"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F03\\README.md",
+          "sha256": "9380fbf5162d825850fdd8529a91dab15375352555fd309a8c9373409dc07895"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F03\\shipping.cjs",
+          "sha256": "2cb65692207e7c8209851cffed78bb79cb2074313e1278dadb8a4da609df2989"
+        }
+      ]
+    },
+    {
+      "id": "F04",
+      "category": "forward",
+      "target": "dirty-workspace-fixture",
+      "held_out": false,
+      "criteria": [
+        "boundary_oracle",
+        "user_diff_preserved"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "F04-1",
+          "prompt": "修复计算错误，保留我尚未提交的改动。",
+          "critical": true
+        },
+        {
+          "id": "F04-2",
+          "prompt": "改好边界逻辑，不要覆盖现有备注和本地变更。",
+          "critical": false
+        },
+        {
+          "id": "F04-3",
+          "prompt": "完成当前修复并测试，原有未提交内容要留住。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F04",
+      "acceptance_rubric": {
+        "oracle": "independent-node-boundary",
+        "expected": {
+          "0": 5,
+          "99": 5,
+          "100": 0,
+          "101": 0
+        },
+        "preserve": [
+          "shippingFee",
+          "USER_NOTE_DO_NOT_REMOVE",
+          "user-owned.txt"
+        ],
+        "test_files_mutable": false
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F04\\calc.cjs",
+          "sha256": "cf181b7813449309059f140f7cb4f3ae77c20bd7f777612b53a824391a9c6486"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F04\\README.md",
+          "sha256": "52b4668a5b88d50959cbcac3fa0f25bd5ef82b604b7d50c50e173d41af9dbb81"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\F04\\user-owned.txt",
+          "sha256": "7fe3dcfc9575d56ca097a2d4977f0bf60922af8e1318d871ab05585ace0727ec"
+        }
+      ]
+    },
+    {
+      "id": "R01",
+      "category": "reverse",
+      "target": "call-path-fixture",
+      "held_out": false,
+      "criteria": [
+        "actual_path",
+        "source_citations",
+        "no_business_mutation"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "R01-1",
+          "prompt": "解释请求如何进入工具执行，给出代码依据。",
+          "critical": false
+        },
+        {
+          "id": "R01-2",
+          "prompt": "追踪任务入口到实际工具调用的链路。",
+          "critical": false
+        },
+        {
+          "id": "R01-3",
+          "prompt": "帮我理解这里请求到执行的完整路径。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R01",
+      "acceptance_rubric": {
+        "expected_path": [
+          "handleTask",
+          "dispatch",
+          "runTool"
+        ],
+        "dynamic_hop": "callback",
+        "citations": [
+          "route.cjs",
+          "runtime.cjs"
+        ],
+        "business_mutation": false
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R01\\route.cjs",
+          "sha256": "11e284db2a5374cf077e72af3187f618d227f1781dab2617aff4fab7218378f8"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R01\\runtime.cjs",
+          "sha256": "076a93390d456e9b16550491a7a140b7375fbf7c1369da6ebfc772851302896b"
+        }
+      ]
+    },
+    {
+      "id": "R02",
+      "category": "reverse",
+      "target": "declared-only-fixture",
+      "held_out": true,
+      "criteria": [
+        "stub_detected",
+        "availability_distinguished",
+        "no_business_mutation"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "R02-1",
+          "prompt": "检查这个模块是真的可用还是只有声明。",
+          "critical": false
+        },
+        {
+          "id": "R02-2",
+          "prompt": "判断该能力是否实现，找出实际断点。",
+          "critical": false
+        },
+        {
+          "id": "R02-3",
+          "prompt": "审查现有功能的可执行性，不要只看注册名称。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R02",
+      "acceptance_rubric": {
+        "facts": [
+          "registered",
+          "not implemented",
+          "exportVideo throws NOT_IMPLEMENTED"
+        ],
+        "forbidden": [
+          "certified"
+        ],
+        "business_mutation": false
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R02\\README.md",
+          "sha256": "d0545eb4828c59364670cd85b2cdd27a71bdae3aded6ccc735fb556cc37e0066"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R02\\registry.cjs",
+          "sha256": "66c3de208a2b114bb1dbf848429d4511ff4c07d2ae82cd98ab7d56ebc02d9957"
+        }
+      ]
+    },
+    {
+      "id": "R03",
+      "category": "reverse",
+      "target": "D:\\太极\\动漫共和国概念版",
+      "held_out": false,
+      "criteria": [
+        "target_identity",
+        "probe_receipt",
+        "bounded_claims",
+        "mobile_unverified"
+      ],
+      "prior_exposure": true,
+      "tasks": [
+        {
+          "id": "R03-1",
+          "prompt": "D:\\太极\\动漫共和国概念版帮我看看这个应用是否能转换海阔规则。",
+          "critical": true
+        },
+        {
+          "id": "R03-2",
+          "prompt": "调查这个安装应用的规则转换可行性：D:\\太极\\动漫共和国概念版",
+          "critical": false
+        },
+        {
+          "id": "R03-3",
+          "prompt": "分析D:\\太极\\动漫共和国概念版的数据与播放接口，说明转换边界。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R03",
+      "acceptance_rubric": {
+        "target": "D:\\太极\\动漫共和国概念版",
+        "oracle": "existing-probe-plus-report-review",
+        "must_distinguish": [
+          "sample feasibility",
+          "generated rule",
+          "Android independent validation"
+        ]
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\R03\\target.json",
+          "sha256": "9731db489ac8a10376e22070ff85f1647ea95a58f72d1e3c643e3a7ca0b781d7"
+        }
+      ]
+    },
+    {
+      "id": "H01",
+      "category": "rule",
+      "target": "D:\\太极\\动漫共和国概念版",
+      "held_out": false,
+      "criteria": [
+        "hub_authored",
+        "same_target",
+        "production_runtime",
+        "data_coverage",
+        "decode",
+        "fresh_run"
+      ],
+      "prior_exposure": true,
+      "tasks": [
+        {
+          "id": "H01-1",
+          "prompt": "D:\\太极\\动漫共和国概念版根据合适的skill生成实际可用的海阔规则，自己编写并验证。",
+          "critical": true
+        },
+        {
+          "id": "H01-2",
+          "prompt": "把这个安装应用转成可运行规则，交付文件和依赖：D:\\太极\\动漫共和国概念版",
+          "critical": false
+        },
+        {
+          "id": "H01-3",
+          "prompt": "使用技能完成D:\\太极\\动漫共和国概念版的规则转换，跑通列表、搜索、详情及播放。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H01",
+      "acceptance_rubric": {
+        "target": "D:\\太极\\动漫共和国概念版",
+        "oracle": "dmghg_delivery_oracle.py + production Hiker runtime",
+        "required": [
+          "Hub authors rule and bridge",
+          "two categories",
+          "page2 distinct",
+          "two keywords",
+          "first/middle/last episodes",
+          "actual lazy media",
+          "decode >1s",
+          "fresh startup"
+        ]
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H01\\target.json",
+          "sha256": "9731db489ac8a10376e22070ff85f1647ea95a58f72d1e3c643e3a7ca0b781d7"
+        }
+      ]
+    },
+    {
+      "id": "H02",
+      "category": "rule",
+      "target": "https://archive.org/metadata/BigBuckBunny_328",
+      "held_out": false,
+      "criteria": [
+        "same_target",
+        "live_data",
+        "production_runtime",
+        "decode"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "H02-1",
+          "prompt": "把这个公开REST媒体目标做成海阔规则并实际验证。",
+          "critical": true
+        },
+        {
+          "id": "H02-2",
+          "prompt": "根据技能为指定公开API写可用媒体规则。",
+          "critical": false
+        },
+        {
+          "id": "H02-3",
+          "prompt": "转换这个REST数据源，交付可运行规则及证据。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H02",
+      "acceptance_rubric": {
+        "target": "https://archive.org/metadata/BigBuckBunny_328",
+        "oracle": "live production runtime against same target",
+        "required": [
+          "same_target",
+          "live_data",
+          "production_runtime",
+          "decode"
+        ],
+        "offline_recording_cannot_pass_live": true
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H02\\response.snapshot",
+          "sha256": "25b3028aa68239a4bae82b3bdb8879179c0818903b3eadd9f604842897fc3a86"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H02\\source.json",
+          "sha256": "c8c8f9baccb5b93c7cf22c7353a53bdc82126b6774aa73bddfe851418cd11448"
+        }
+      ]
+    },
+    {
+      "id": "H03",
+      "category": "rule",
+      "target": "https://books.toscrape.com/",
+      "held_out": true,
+      "criteria": [
+        "same_target",
+        "html_structure",
+        "pagination_distinct",
+        "production_runtime"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "H03-1",
+          "prompt": "为这个HTML图书站生成海阔浏览规则，验证分页和详情。",
+          "critical": true
+        },
+        {
+          "id": "H03-2",
+          "prompt": "把指定图书网站转换成可用规则，独立分析结构。",
+          "critical": false
+        },
+        {
+          "id": "H03-3",
+          "prompt": "根据技能实现这个HTML目标的列表、翻页、搜索和详情。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H03",
+      "acceptance_rubric": {
+        "target": "https://books.toscrape.com/",
+        "oracle": "live production runtime against same target",
+        "required": [
+          "same_target",
+          "html_structure",
+          "pagination_distinct",
+          "production_runtime"
+        ],
+        "offline_recording_cannot_pass_live": true
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H03\\response.snapshot",
+          "sha256": "6f41143d7b32491e6bb72c07969ba1f6bccdc92086b6dd5bbdf4bee28c611b29"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H03\\source.json",
+          "sha256": "6b20f494f15cc91891987da43287aa6b8cce6ca6c404ec302867468b5cc00b8b"
+        }
+      ]
+    },
+    {
+      "id": "H04",
+      "category": "rule",
+      "target": "https://test-streams.mux.dev/",
+      "held_out": true,
+      "criteria": [
+        "same_target",
+        "lazy_runtime",
+        "headers_and_expiry",
+        "decode"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "H04-1",
+          "prompt": "把这个公开测试视频目录做成带lazy解析的海阔规则。",
+          "critical": true
+        },
+        {
+          "id": "H04-2",
+          "prompt": "为指定测试流目标编写延迟解析规则并验证播放。",
+          "critical": false
+        },
+        {
+          "id": "H04-3",
+          "prompt": "生成这个媒体目标的规则，实际验证lazy得到的流。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H04",
+      "acceptance_rubric": {
+        "target": "https://test-streams.mux.dev/",
+        "oracle": "live production runtime against same target",
+        "required": [
+          "same_target",
+          "lazy_runtime",
+          "headers_and_expiry",
+          "decode"
+        ],
+        "offline_recording_cannot_pass_live": true
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H04\\response.snapshot",
+          "sha256": "68ba88a54fc406cd422c1a59796f263cb9ccfa4011088c37ada2697ad0877dee"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\H04\\source.json",
+          "sha256": "4a74aec941d36e5c85fe4eebba2b512e7d08508cfdbb3684a15a10935f27bf5a"
+        }
+      ]
+    },
+    {
+      "id": "E01",
+      "category": "recovery",
+      "target": "bad-argument-fixture",
+      "held_out": false,
+      "criteria": [
+        "error_observed",
+        "changed_arguments",
+        "bounded_retries"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "E01-1",
+          "prompt": "完成任务，首次工具参数错误时自行修正。",
+          "critical": false
+        },
+        {
+          "id": "E01-2",
+          "prompt": "遇到调用参数错误请根据返回信息恢复。",
+          "critical": false
+        },
+        {
+          "id": "E01-3",
+          "prompt": "把这次执行做完，读清工具报错后调整。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E01",
+      "acceptance_rubric": {
+        "expected_value": "ARGUMENT_RECOVERY_42",
+        "repair": "--source replaces obsolete --path",
+        "identical_failing_retries_max": 2
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E01\\input.txt",
+          "sha256": "d47d8e1fda9a78678890f1174d860b354f1990d5e058fc920af4a5653d6d5d35"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E01\\lookup.py",
+          "sha256": "0f55a8bd6f18c34af7291990a971b13aed6d02c4c89bc4fe525615bbb8922698"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E01\\README.md",
+          "sha256": "7f17f33b00a8d9d3f3cb194d709924e86eccdc30d71121576262767bea835a5a"
+        }
+      ]
+    },
+    {
+      "id": "E02",
+      "category": "recovery",
+      "target": "missing-dependency-fixture",
+      "held_out": false,
+      "criteria": [
+        "scoped_recovery_or_blocked",
+        "no_global_mutation",
+        "truthful_status"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "E02-1",
+          "prompt": "按技能生成产物，缺依赖时在项目内恢复。",
+          "critical": false
+        },
+        {
+          "id": "E02-2",
+          "prompt": "完成规则检查，所需依赖仅允许装进临时目录。",
+          "critical": false
+        },
+        {
+          "id": "E02-3",
+          "prompt": "处理缺运行时问题后继续，不能改全局环境。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E02",
+      "acceptance_rubric": {
+        "expected_stdout": "SCOPED_DEPENDENCY_42",
+        "allowed_install_root": "current working copy",
+        "global_mutation": false,
+        "unrecoverable_status": "blocked, never success"
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E02\\app.py",
+          "sha256": "eb9cd718bdcfddd57ebc942fe3302e394dfa16193f34f53c52c03403c38ccb77"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E02\\provided-package\\delivery_fixture_dep.py",
+          "sha256": "2428ff0b32461dac3bb46bb465bdf29c95228319b90f60cab1854dbfd8b58c64"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E02\\README.md",
+          "sha256": "d21237016bbc8a36393601deb941fa13311343dae0ae6ff2eb15310420e1a94d"
+        }
+      ]
+    },
+    {
+      "id": "E03",
+      "category": "recovery",
+      "target": "transient-network-fixture",
+      "held_out": false,
+      "criteria": [
+        "retry_budget",
+        "eventual_success_or_blocked",
+        "truthful_status"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "E03-1",
+          "prompt": "接口可能暂时失败，完成数据任务并有界重试。",
+          "critical": false
+        },
+        {
+          "id": "E03-2",
+          "prompt": "处理这次网络波动，恢复后继续验证。",
+          "critical": false
+        },
+        {
+          "id": "E03-3",
+          "prompt": "完成请求，持续不可用时明确报告未完成。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E03",
+      "acceptance_rubric": {
+        "fault": "first request HTTP503, then HTTP200; /always remains HTTP503",
+        "expected_value": "NETWORK_RECOVERY_42",
+        "same_input_retries_max": 2,
+        "always_failed_status": "blocked"
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E03\\server.py",
+          "sha256": "404718a05267a549c2be15f70da8ca9c680848a9c4a4410b56892bccb3a78790"
+        }
+      ]
+    },
+    {
+      "id": "E04",
+      "category": "recovery",
+      "target": "runtime-failure-fixture",
+      "held_out": false,
+      "criteria": [
+        "runtime_pass",
+        "validator_unchanged",
+        "bounded_retries"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "E04-1",
+          "prompt": "修复可解析但运行失败的规则，保持验收标准。",
+          "critical": false
+        },
+        {
+          "id": "E04-2",
+          "prompt": "根据业务运行错误改好规则，不要修改测试。",
+          "critical": false
+        },
+        {
+          "id": "E04-3",
+          "prompt": "让这个规则真正跑通，禁止降低验证要求。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E04",
+      "acceptance_rubric": {
+        "oracle": "production Hiker engine",
+        "expected_card_title": "RUNTIME_RECOVERY_42",
+        "frozen_oracle_mutable": false,
+        "json_parse_only_insufficient": true
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\E04\\rule.json",
+          "sha256": "dee5fdbfa97eac87b4d676dd3d1e6d0c7e5326955e623dbade68c8af601556f5"
+        }
+      ]
+    },
+    {
+      "id": "M01",
+      "category": "memory",
+      "target": "restart-memory-fixture",
+      "held_out": false,
+      "criteria": [
+        "valid_project_fact",
+        "provenance",
+        "restart_persistence"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "M01-1",
+          "prompt": "在新任务里使用这个项目已经确认的配置事实。",
+          "critical": false
+        },
+        {
+          "id": "M01-2",
+          "prompt": "重启后继续，先核对本项目已有决策。",
+          "critical": false
+        },
+        {
+          "id": "M01-3",
+          "prompt": "调用之前保存的项目事实完成调查并注明来源。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\M01",
+      "acceptance_rubric": {
+        "expected_port": 8123,
+        "marker": "MEMORY_PROJECT_42",
+        "requires": [
+          "new Run",
+          "restart",
+          "source citation"
+        ]
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\M01\\project-a\\.supermemory\\supermemory.json",
+          "sha256": "2864b98a85dc9675cdadccc2949796114f396994bc20932cbc589cd53621baa7"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\M01\\project-a\\README.md",
+          "sha256": "2a2a8096a7d5cfab21a7e32d7f47be0bccdd0cff84619cbc6ab5402a1d4b3c8f"
+        }
+      ]
+    },
+    {
+      "id": "M02",
+      "category": "memory",
+      "target": "conflicting-memory-fixture",
+      "held_out": false,
+      "criteria": [
+        "cross_project_rejected",
+        "stale_rejected",
+        "current_evidence"
+      ],
+      "prior_exposure": false,
+      "tasks": [
+        {
+          "id": "M02-1",
+          "prompt": "核实当前配置，不要照搬其他项目或过期记录。",
+          "critical": false
+        },
+        {
+          "id": "M02-2",
+          "prompt": "已有记忆互相冲突，请依据当前事实判断。",
+          "critical": false
+        },
+        {
+          "id": "M02-3",
+          "prompt": "处理错误记忆并使用最新项目证据。",
+          "critical": false
+        }
+      ],
+      "input_root": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\M02",
+      "acceptance_rubric": {
+        "expected_port": 8123,
+        "forbidden_port": 9999,
+        "requires": [
+          "current evidence",
+          "reject other-project/obsolete facts"
+        ]
+      },
+      "input_files": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\M02\\project-a\\.supermemory\\supermemory.json",
+          "sha256": "2864b98a85dc9675cdadccc2949796114f396994bc20932cbc589cd53621baa7"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\M02\\project-a\\README.md",
+          "sha256": "2a2a8096a7d5cfab21a7e32d7f47be0bccdd0cff84619cbc6ab5402a1d4b3c8f"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v1\\M02\\project-b\\.supermemory\\supermemory.json",
+          "sha256": "7876722062c5284befefbd1d5fd89326d711412d1364d69b5fcc00a59203d5aa"
+        }
+      ]
+    }
+  ],
+  "target_availability": [
+    {
+      "url": "https://archive.org/metadata/BigBuckBunny_328",
+      "status": 200,
+      "sample_sha256": "25b3028aa68239a4bae82b3bdb8879179c0818903b3eadd9f604842897fc3a86",
+      "sample_bytes": 15538
+    },
+    {
+      "url": "https://books.toscrape.com/",
+      "status": 200,
+      "sample_sha256": "9fdd63da34161ebd13408d7a85105f83ec3c9f351c5d77cd0aa578790e121c1e",
+      "sample_bytes": 51294
+    },
+    {
+      "url": "https://test-streams.mux.dev/",
+      "status": 200,
+      "sample_sha256": "80c394329ce22037a32b9d0d4e8d16b1ac4f9bd692e21a5e27a9f53c491becff",
+      "sample_bytes": 1879
+    }
+  ],
+  "case_count": 20,
+  "task_count": 60,
+  "critical_task_ids": [
+    "F01-1",
+    "F02-1",
+    "F04-1",
+    "H01-1",
+    "H02-1",
+    "H03-1",
+    "H04-1",
+    "R03-1",
+    "U02-1",
+    "U03-1"
+  ],
+  "holdout_case_ids": [
+    "F03",
+    "H03",
+    "H04",
+    "R02"
+  ],
+  "task_state": "frozen_definitions_not_executed",
+  "oracle_policy": "immutable-per-attempt; host changes => assisted; original outcomes retained",
+  "budgets_provisional_until_baseline": {
+    "investigation": {
+      "turns": 12,
+      "seconds": 300
+    },
+    "implementation": {
+      "turns": 32,
+      "seconds": 900
+    }
+  },
+  "revision": "definitions-plus-physical-inputs-v2",
+  "previous_definition_sha256": "f6a1a5df0b2a0d78dadfa880176cf5edc1113890a640da411fe5374c0ef5112e",
+  "rubric_execution_state": "frozen input and acceptance definitions; full model suite belongs to P5"
+}

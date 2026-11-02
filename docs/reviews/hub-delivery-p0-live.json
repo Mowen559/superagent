@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "c510b80b4121fc6b42d356aa8d6efd2b3c55b4ee223aec0545a2ccfb45cddbd3"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39137",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "U01-baseline",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\review",
+      "request": {
+        "agent": "superagent",
+        "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\review",
+        "prompt": "只做复核：读取 report.md，核实标记并说明哪些能力尚未验证，不修改任何业务文件。",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300
+      },
+      "events": [
+        {
+          "kind": "error",
+          "content": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"anthropic\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":2059,\"outcome\":\"transient\"}]"
+        },
+        {
+          "kind": "error",
+          "content": "\u001b[35m[ThinkingIntensity] 🧠 Reasoning effort set to 'high'\u001b[0m\u001b[33m[WorkMode] 🔧 Superagent worker starting in 'guarded' mode\u001b[0m\u001b[36;1m[Sandbox Escape] 🚀 Auto-ascended from sandbox 'C:\\Users\\刘本录\\.superagent\\runs\\9229dee0-0bf8-4ae4-8e16-849ed2db3875\\workspace' to real project root 'C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\review'\u001b[0m\u001b[32;1m[Skill Scout] 🎯 Successfully matched and loaded Skill 'skill-installer' (score: 3.0)\u001b[0m\u001b[32;1m[Skill Scout] 🎯 Successfully matched and loaded Skill 'gitnexus-cli' (score: 1.5)\u001b[0m[Run Prelude] capability route: [WorkspaceInspection]\u001b[34m[Dual-Brain] Orchestrating turn with Slow Brain...\u001b[0m[ModelAttempt] attempt 1 failed as Transient; retrying in 250ms[ModelAttempt] attempt 2 failed as Transient; retrying in 1000ms"
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "first_attempt",
+      "task_id": "9229dee0-0bf8-4ae4-8e16-849ed2db3875",
+      "duration_ms": 7792,
+      "tool_calls": 0,
+      "model_turns": 0,
+      "usage_events": [],
+      "token_usage": null,
+      "oracle_passed": true,
+      "passed": false
+    },
+    {
+      "id": "F01-baseline",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\checkout",
+      "request": {
+        "agent": "superagent",
+        "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\checkout",
+        "prompt": "金额正好100时仍收费，请改好并执行独立测试：node --test \"C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\acceptance.test.cjs\"。不要修改测试。",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300
+      },
+      "events": [
+        {
+          "kind": "error",
+          "content": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"anthropic\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":2059,\"outcome\":\"transient\"}]"
+        },
+        {
+          "kind": "error",
+          "content": "\u001b[35m[ThinkingIntensity] 🧠 Reasoning effort set to 'high'\u001b[0m\u001b[33m[WorkMode] 🔧 Superagent worker starting in 'guarded' mode\u001b[0m\u001b[36;1m[Sandbox Escape] 🚀 Auto-ascended from sandbox 'C:\\Users\\刘本录\\.superagent\\runs\\32644d54-4340-4d16-a0ba-607091b6a030\\workspace' to real project root 'C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\checkout'\u001b[0m\u001b[32;1m[Skill Scout] 🎯 Successfully matched and loaded Skill 'local-app-inspector' (score: 6.0)\u001b[0m\u001b[32;1m[Skill Scout] 🎯 Successfully matched and loaded Skill 'find-skills' (score: 3.0)\u001b[0m[Run Prelude] capability route: [WorkspaceInspection]\u001b[34m[Dual-Brain] Orchestrating turn with Slow Brain...\u001b[0m[ModelAttempt] attempt 1 failed as Transient; retrying in 250ms[ModelAttempt] attempt 2 failed as Transient; retrying in 1000ms"
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "first_attempt",
+      "task_id": "32644d54-4340-4d16-a0ba-607091b6a030",
+      "duration_ms": 7733,
+      "tool_calls": 0,
+      "model_turns": 0,
+      "usage_events": [],
+      "token_usage": null,
+      "oracle": {
+        "exit_code": 1,
+        "stdout": "TAP version 13\n# Subtest: boundaries\nnot ok 1 - boundaries\n  ---\n  duration_ms: 2.4612\n  type: 'test'\n  location: 'C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-delivery-p0-0k1XMv\\\\acceptance.test.cjs:1:168'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    \n    5 !== 0\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 0\n  actual: 5\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv\\acceptance.test.cjs:1:243)\n    Test.runInAsyncScope (node:async_hooks:214:14)\n    Test.run (node:internal/test_runner/test:1047:25)\n    Test.start (node:internal/test_runner/test:944:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 133.0066\n",
+        "stderr": ""
+      },
+      "oracle_passed": false,
+      "passed": false
+    }
+  ],
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "stage": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p0-0k1XMv",
+  "frozen_definitions_sha256": "3bb3f64fc1a3b27a217cd5942015316079afec85f1f2d76c6f30642ae817697c",
+  "all_passed": false
+}

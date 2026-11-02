@@ -1,0 +1,43 @@
+{
+  "passed": false,
+  "source": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-abfec97d7920434f90915475d80b77ed\\data\\runs\\d479a294-f5e1-4043-9447-d6bd6c7665ac\\workspace",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-6alxyzit\\新目录交付",
+  "target": "D:\\太极\\动漫共和国概念版",
+  "validator_sha256": "f7d1ba487398f0bfbc0b7a096d926807a444c0f2dc1be0a7bd2ea2f977af2278",
+  "checks": [],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "cdb1b18038cb21c8812a0e845d593fd2e4221ca47184bdb7d457cc400387ef14"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "31c05826fb6ee8ac28989b344a1848f11f479cac1a1043d822aa85555874774a"
+    },
+    {
+      "name": "README.md",
+      "sha256": "6591636f2acaace17128b854868144caeed1e983732c4b4443e72ee0281d0f7e"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "socketserver",
+    "sys",
+    "tempfile",
+    "threading",
+    "time",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "domain_oracle": {
+    "passed": false,
+    "checks": [],
+    "error": "action: Unexpected token ';'\n\nfalse !== true\n"
+  },
+  "error": "AssertionError: cold directory domain verification failed"
+}

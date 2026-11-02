@@ -1,0 +1,16 @@
+{
+  "passed": false,
+  "required_runs": 3,
+  "attempts": [
+    {
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-independent-v15-part1.json",
+      "task_id": "d479a294-f5e1-4043-9447-d6bd6c7665ac",
+      "passed": false,
+      "status": "failed"
+    }
+  ],
+  "state": "failed",
+  "frozen": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v15.json",
+  "manual_authorship_review": "pending",
+  "error": "AssertionError: independent generation failed; no result relabelled"
+}

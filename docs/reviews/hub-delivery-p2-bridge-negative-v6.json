@@ -1,0 +1,38 @@
+{
+  "passed": false,
+  "source": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-j4pg54gj\\新目录交付",
+  "target": "D:/太极/动漫共和国概念版",
+  "validator_sha256": "b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d",
+  "checks": [
+    "four_concurrent_reads_with_partial_client"
+  ],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "f55e234caa8a54998cb5185479bd3cb45e586e7c146b0d4df70bc87364a43174"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+    },
+    {
+      "name": "README.md",
+      "sha256": "74513db6df0fcee3264f6700184cab8f9f018cc76d343971dcb0f549879bcdd2"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "sys",
+    "tempfile",
+    "threading",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "error": "AssertionError: partial HTTP request has no server-side timeout within 8 seconds"
+}

@@ -33,6 +33,9 @@ pub struct JsonState {
     /// Set to "failed"/"timeout"/... by the mapper to force a terminal state.
     pub forced_status: Option<String>,
     pub forced_error: String,
+    /// Only adapters with an explicit final marker set this. Descendants may
+    /// otherwise keep the stdout pipe open after the worker has finished.
+    pub terminal_received: bool,
     pub usage: HashMap<String, TokenUsage>,
 }
 
@@ -99,6 +102,10 @@ pub async fn run(
     let mut child = cmd
         .spawn()
         .map_err(|e| BackendError::Launch(format!("{}: {e}", spec.command)))?;
+    let process_tree = match super::proc::RunProcessTree::attach(&child) {
+        Ok(tree) => tree,
+        Err(error) => { let _ = child.kill().await; return Err(BackendError::Launch(format!("cannot contain worker process tree: {error}"))); }
+    };
 
     if let (Some(mut rx), Some(mut stdin)) = (control_rx, child.stdin.take()) {
         tokio::spawn(async move {
@@ -183,6 +190,7 @@ pub async fn run(
                         for m in map_event(&event, &mut state) {
                             let _ = msg_tx.send(m).await;
                         }
+                        if state.terminal_received { break; }
                     } else if let Some(map_raw) = &map_raw {
                         for m in map_raw(line, &mut state) {
                             let _ = msg_tx.send(m).await;
@@ -199,11 +207,13 @@ pub async fn run(
                         res = tokio::time::timeout(dur, scan) => {
                             if res.is_err() {
                                 timed_out = true;
+                                process_tree.terminate();
                                 let _ = child.kill().await;
                             }
                         }
                         _ = cancel_fut => {
                             cancelled = true;
+                            process_tree.terminate();
                             let _ = child.kill().await;
                         }
                     }
@@ -213,6 +223,7 @@ pub async fn run(
                         _ = scan => {}
                         _ = cancel_fut => {
                             cancelled = true;
+                            process_tree.terminate();
                             let _ = child.kill().await;
                         }
                     }
@@ -220,6 +231,10 @@ pub async fn run(
             }
         }
 
+        if state.terminal_received {
+            process_tree.terminate();
+            let _ = child.kill().await;
+        }
         let status = child.wait().await;
         let duration_ms = started.elapsed().as_millis() as i64;
         let tail = stderr_tail.lock().await.trim().to_string();
@@ -285,6 +300,36 @@ fn finalize(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn actual_driver_cancel_timeout_and_exit_reap_descendants() {
+        use windows_sys::Win32::{Foundation::{CloseHandle, WAIT_OBJECT_0}, System::Threading::{OpenProcess, SYNCHRONIZATION_SYNCHRONIZE, WaitForSingleObject}};
+        let python = std::process::Command::new("python").args(["-X", "utf8", "-c", "import sys;print(sys.executable)"]).output().unwrap();
+        let python = String::from_utf8(python.stdout).unwrap().trim().to_string();
+        for mode in ["cancel", "timeout", "normal", "terminal-marker"] {
+            let inherited = if mode == "terminal-marker" { "None" } else { "subprocess.DEVNULL" };
+            let ending = if mode == "normal" { "" } else if mode == "terminal-marker" { "print(json.dumps({'done':True}),flush=True)\ntime.sleep(30)" } else { "time.sleep(30)" };
+            let script = format!("import subprocess,sys,time,json\ntime.sleep(0.2)\np=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],stdin=subprocess.DEVNULL,stdout={inherited},stderr=subprocess.DEVNULL)\nprint(json.dumps({{'pid':p.pid}}),flush=True)\n{ending}");
+            let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+            let mut session = run(JsonSpec { command: python.clone(), args: vec!["-u".into(), "-c".into(), script],
+                map_event: Box::new(|value, state| {
+                    if value["done"] == true { state.terminal_received = true; state.forced_status = Some("completed".into()); vec![] }
+                    else { vec![AgentMessage::Text { content: value["pid"].to_string() }] }
+                }), map_raw: None },
+                ExecOptions { timeout: Some(std::time::Duration::from_secs(1)), ..Default::default() }, cancel_rx, None).await.unwrap();
+            let pid: u32 = match session.messages.recv().await.unwrap() { AgentMessage::Text { content } => content.parse().unwrap(), _ => panic!("missing process fixture event") };
+            let descendant = unsafe { OpenProcess(SYNCHRONIZATION_SYNCHRONIZE, 0, pid) };
+            if mode == "cancel" { cancel_tx.send(true).unwrap(); }
+            let outcome = tokio::time::timeout(std::time::Duration::from_secs(3), session.result).await.unwrap().unwrap();
+            assert_eq!(outcome.status, if mode == "cancel" { "cancelled" } else if mode == "timeout" { "timeout" } else { "completed" }, "{mode}");
+            if !descendant.is_null() {
+                let exited = unsafe { WaitForSingleObject(descendant, 200) };
+                unsafe { CloseHandle(descendant); }
+                assert_eq!(exited, WAIT_OBJECT_0, "{mode}: driver left a descendant alive");
+            } else { assert!(matches!(mode, "normal" | "terminal-marker"), "fixture descendant was never observable: {mode}"); }
+        }
+    }
 
     // Exercises the shared state/finalize with a copilot-shaped mapper inline,
     // proving the driver contract without spawning a process.

@@ -1,0 +1,564 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39233",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "H01-independent-2",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-1l7rl6vn\\project-2",
+      "request": {
+        "agent": "superagent",
+        "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-1l7rl6vn\\project-2",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 1500,
+        "prompt": "D:\\太极\\动漫共和国概念版 根据合适的skill生成实际可用的海阔规则，亲自编写必要的本地适配并验证，不能只做调查。交付 rule.json、bridge.py、README.md，包含依赖、启动及导入方法。完全不使用桌面，不启动GUI，不改安装目录、不读取原账号，不发布或推送设备。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 19387,
+          "completion_tokens": 990,
+          "duration_ms": 15108,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9387,
+          "prompt_tokens": 19387,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "plan_task",
+          "input": {
+            "delivery": {
+              "scope": "implementation",
+              "version": "1",
+              "target": "D:\\\\太极\\\\动漫共和国概念版",
+              "artifacts": [
+                {
+                  "id": "rule",
+                  "required": true,
+                  "validator": "dmghg-production-runtime",
+                  "path": "rule.json"
+                },
+                {
+                  "required": true,
+                  "path": "bridge.py",
+                  "validator": "dmghg-bridge-contract",
+                  "id": "bridge"
+                },
+                {
+                  "id": "readme",
+                  "path": "README.md",
+                  "validator": null,
+                  "required": true
+                }
+              ]
+            },
+            "open_questions": [],
+            "constraints": [
+              "完全不使用桌面，不启动GUI，不修改安装目录，不读取原应用账号/会话",
+              "不发布或推送设备，不向外广播，仅本地交付",
+              "桥接服务仅监听 127.0.0.1，严禁任意外部host；生产网络层端口使用 18000/18001/18002 许可端口（默认18002），支持--port参数覆盖",
+              "遵守HTTP超时规范：服务端读取不完整请求时限设为5秒（小于8秒硬上限），单客户端慢请求不阻塞其他客户端，原生调用有线程锁保护",
+              "规则支持动态基址 MY_PARAMS.bridgeBase（默认 [REDACTED_URL]",
+              "规则符合双端同构规范与铁律（无裸DOM，剧名保护，无英文逗号选择器，标准@lazyRule，正确headers）",
+              "必须产出 rule.json、bridge.py、README.md，并通过 verify_delivery 校验"
+            ],
+            "interpretation": "为本地应用 'D:\\太极\\动漫共和国概念版' 亲自编写并验证海阔规则与本地Python桥接服务，产出 rule.json, bridge.py, README.md，完全无GUI、不改原目录、不读账号，并通过宿主 verify_delivery 物理验证。",
+            "steps": [
+              {
+                "evidence_kind": "observation",
+                "goal": "阅读技能参考规范与探针实现，确认桥接协议与规则契约",
+                "acceptance": "查阅 pc-native-rule-contract.md 与 dmghg_probe.py，核实数据协议、C ABI 调用方式与返回格式",
+                "id": "step_inspect_contract",
+                "depends_on": []
+              },
+              {
+                "evidence_kind": "observation",
+                "id": "step_probe_target",
+                "acceptance": "运行一次探针核对目标路径可用性与核心协议抽样，获取真实频道、列表、搜索、详情及播放直链格式",
+                "goal": "核对目标安装目录与原生接口通信可用性",
+                "depends_on": [
+                  "step_inspect_contract"
+                ]
+              },
+              {
+                "acceptance": "编写内聚完整、无工作区外部源码依赖的 bridge.py，仅监听 127.0.0.1，实现 /ping, /channels, /call 以及业务路由，设置读取超时与并发锁，且支持--port和--app-dir参数",
+                "id": "step_write_bridge",
+                "goal": "编写生产级本地桥接服务 bridge.py",
+                "depends_on": [
+                  "step_probe_target"
+                ],
+                "evidence_kind": "mutation"
+              },
+              {
+                "id": "step_write_rule",
+                "goal": "编写海阔规则 rule.json",
+                "depends_on": [
+                  "step_probe_target"
+                ],
+                "acceptance": "编写符合 PC 生产运行时契约的 rule.json，支持动态 bridgeBase，包含频道列表、分页、搜索、详情（剧名保护）、@lazyRule（媒体直链与原始headers）",
+                "evidence_kind": "mutation"
+              },
+              {
+                "acceptance": "编写清晰详尽的 README.md，包含依赖说明、启动命令、导入方法与平台限制说明",
+                "goal": "编写用户交付与说明文档 README.md",
+                "evidence_kind": "mutation",
+                "depends_on": [],
+                "id": "step_write_readme"
+              },
+              {
+                "acceptance": "调用 verify_delivery 运行宿主验证器（dmghg-bridge-contract 与 dmghg-production-runtime），全部校验通过并获得收据",
+                "id": "step_verify_delivery",
+                "evidence_kind": "verification",
+                "depends_on": [
+                  "step_write_bridge",
+                  "step_write_rule",
+                  "step_write_readme"
+                ],
+                "goal": "执行宿主验证器并闭环修复直至通过"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "plan_task",
+          "output": "{\"error\":\"invalid type: string \\\"1\\\", expected u32\",\"kind\":\"execution_failed\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12376,
+          "completion_tokens": 46,
+          "duration_ms": 11898,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2376,
+          "prompt_tokens": 12376,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "skill_tool",
+          "input": {
+            "resource_path": "references/pc-native-rule-contract.md",
+            "action": "read",
+            "skill_name": "local-app-inspector"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "skill_tool",
+          "output": "{\"skill_name\":\"local-app-inspector\",\"path\":\"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references\\\\pc-native-rule-contract.md\",\"skill_path\":\"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md\",\"resource_root\":\"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\",\"content\":\"# PC生产规则契约：无需重新寻找运行库\\n\\n本页依据项目的`deepcloud-ui/native/runtime/hk-engine.js`中runRule/customContext与`hiker-rule-filters.js`中filterState/expandRuleUrl整理。它描述执行接口，不提供最终业务规则或HTTP桥接实现。\\n\\n## 入口与数据流\\n\\n| 阶段 | 规则字段 | 实际输入 | 输出 |\\n|---|---|---|---|\\n| 首页 | url、find_rule | MY_URL、MY_PAGE、MY_PARAMS | setResult(卡片数组) |\\n| 搜索 | search_url、searchFind | MY_URL、MY_KEYWORD/KEYWORD、MY_PAGE | setResult(卡片数组) |\\n| 详情 | detail_find_rule | MY_URL为点击的详情地址，MY_ITEM为原卡片 | setResult(详情和选集卡片数组) |\\n| 播放 | 选集url中的@lazyRule=脚本 | input为该标记前的地址，MY_PARAMS保持参数 | 实际播放URL及必要请求头 |\\n\\n这些脚本使用js:入口；lazy支持.js:表达式。不要把只有一个变量名的字符串当成脚本执行结果。卡片常用title、url、pic_url、desc、col_type；媒体列表可用movie_3，选集可用text_3。\\n\\n## 分类与分页\\n\\n- class_name/class_url分别用`&`分隔名称和对应值，运行库可自动生成分类按钮。类别值来自原接口，不能用数组序号代替原ID。\\n- url中的fyclass、fypage在执行前按本次分类与页码展开。分类来自MY_PARAMS.class或MY_PARAMS.fyclass，缺省才取class_url第一项。\\n- **MY_CATE不是该PC运行库保证注入的变量**。不要依赖它维持分类；可使用展开后的MY_URL，或上述MY_PARAMS字段。\\n- 若url没有分类占位符而class_url仅为数字，单纯切换分类不会替你构造新的请求URL。首页脚本必须实际消费选中的分类。\\n- PC本地桥接基址由MY_PARAMS.bridgeBase提供，缺省可用声明的本地端口。替换基址时保留MY_URL已经展开的路径与查询，不能重新用默认频道覆盖本次channel/page。\\n- 普通首页和搜索页码都可用MY_PAGE；搜索还注入MY_SEARCH_PAGE。search_url中的`**`展开为编码后的关键词。\\n- 本地API统一支持page=1，无需特殊首页后缀。不要追加普通`[[REDACTED_URL] API规则。\\n- 首页/搜索/详情优先使用MY_URL；这些入口的input可能为空。lazy的input才是选集@lazyRule标记前的实际地址。\\n- 桥接返回error或JSON字段形状不符时主动报出有界错误，不能用空items掩盖HTTP失败或参数问题。\\n\\n## 详情、选集和lazy\\n\\n- 列表/搜索卡片的url应含该项目真实详情ID；详情脚本从当前地址取得ID并请求原目标桥接。\\n- DMGHG的parts每项有play、play_zh及part字符串数组。保留原选集字符串，生成的播放请求要同时传id、part、play，桥接调用video.play时resolve=true。\\n- 将lazy函数源码与参数分别序列化，避免在JSON、JS和Shell间叠加手工转义。复杂生成脚本先用write_to_file落盘再执行。\\n- 必须检查详情实际返回的选集url中的lazy脚本；外层JSON合法不代表多次求值后仍合法。尤其是字符串中的正则反斜杠可能被提前消费，令最终lazy出现意外注释。以函数toString及JSON.stringify保留边界，最后执行真实lazy确认。\\n- video.play返回的headers为空就保持为空，不能强加Referer或User-Agent=PC。不得把一次取得的签名地址硬编码进规则，也不要把这些地址打印进日志。\\n\\n## 交付与验证顺序\\n\\n1. 已知探针只核对原生协议和数据。先完成三个要求的交付文件，桥接只依赖标准库和已声明的安装资源。\\n2. 调用verify_delivery检查全部产物；该工具执行宿主固定验证器，不需要你定位、阅读或重写测试器。缺文件不是测试器缺依赖。\\n3. 验证返回具体错误后只修正相关产物，再验证。若建立了plan_task，使用真实收据完成对应进度；最后留出轮次交付结论。\\n4. README区分功能映射与实际验收：独立裁判抽查两分类、两个关键词第一页、默认列表两页、详情前中后选集名称及首集解码。不要将这些样本写成所有频道/所有分页/所有剧集均已测试。\\n\\n本流程只认证无界面的PC运行库及Windows本地依赖。Android实机、前端窗口、发布与设备推送各自需要另外的证据或授权。\\n\",\"resource_guidance\":\"## 已定位的技能资源\\n- SKILL.md: `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md`\\n- 资源根目录: `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector`\\n文中相对路径基于此目录，不基于任务工作区。以下命令路径以磁盘检查为准；列出脚本不代表脚本已通过业务验收。\\n- `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py`\\n- references: `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references`\\n\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 4924,
+          "completion_tokens": 78,
+          "duration_ms": 21242,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.4924,
+          "prompt_tokens": 4924,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "end_line": 120,
+            "AbsolutePath": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\local-app-inspector\\scripts\\dmghg_probe.py",
+            "start_line": 1
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"error\":\"Security Error: Path 'C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py' is outside the workspace root\",\"kind\":\"execution_failed\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 22332,
+          "completion_tokens": 44,
+          "duration_ms": 20679,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2332,
+          "prompt_tokens": 22332,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "skill_tool",
+          "input": {
+            "resource_path": "scripts/dmghg_probe.py",
+            "skill_name": "local-app-inspector",
+            "action": "read"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "skill_tool",
+          "output": "{\"skill_name\":\"local-app-inspector\",\"path\":\"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py\",\"skill_path\":\"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md\",\"resource_root\":\"C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\",\"content\":\"\\\"\\\"\\\"Inspect the user's installed DMGHG bridge without launching any desktop UI.\\n\\nThe bridge is loaded only from --app-dir. Its state is isolated in a new temporary\\ndirectory; no account/session database or persistent model settings are read.\\n\\\"\\\"\\\"\\nimport argparse\\nimport ctypes\\nimport hashlib\\nimport json\\nimport os\\nimport re\\nfrom pathlib import Path\\nimport sys\\nimport tempfile\\nimport threading\\nimport time\\nfrom urllib.parse import urlsplit, urljoin\\nfrom urllib.request import Request, urlopen\\n\\n\\nclass Bridge:\\n    READ_COMMANDS = {\\n        \\\"app.ping\\\", \\\"catalog.get_channels\\\", \\\"catalog.get_banners\\\",\\n        \\\"catalog.get_video_list\\\", \\\"catalog.search_video\\\", \\\"catalog.get_video_key\\\",\\n        \\\"catalog.get_video_detail\\\", \\\"catalog.get_channel_detail\\\", \\\"video.play\\\",\\n    }\\n\\n    def __init__(self, app_dir):\\n        if os.name != \\\"nt\\\":\\n            raise RuntimeError(\\\"The installed bridge requires Windows x64 Python\\\")\\n        self.app_dir = Path(app_dir).resolve(strict=True)\\n        self.dll_path = self.app_dir / \\\"electron_bridge.dll\\\"\\n        if not self.dll_path.is_file():\\n            raise RuntimeError(\\\"electron_bridge.dll is missing from the selected application\\\")\\n        self.state_root = Path(tempfile.mkdtemp(prefix=\\\"dmghg-headless-\\\"))\\n        os.environ[\\\"DMGHG_TEST_DATA_ROOT\\\"] = str(self.state_root)\\n        os.environ[\\\"RUST_LOG\\\"] = \\\"error\\\"\\n        self.dll = ctypes.CDLL(str(self.dll_path))\\n        self.dll.dmghg_service_new.argtypes = [ctypes.c_char_p, ctypes.c_char_p]\\n        self.dll.dmghg_service_new.restype = ctypes.c_void_p\\n        self.dll.dmghg_service_handle_command_json.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\\n        self.dll.dmghg_service_handle_command_json.restype = ctypes.c_void_p\\n        self.dll.dmghg_string_free.argtypes = [ctypes.c_void_p]\\n        self.dll.dmghg_service_free.argtypes = [ctypes.c_void_p]\\n        self.lock = threading.RLock()\\n        self.version = installed_version(self.app_dir / \\\"dmghg.exe\\\")\\n        self.handle = self.dll.dmghg_service_new(b\\\"dmghg-flutter\\\", self.version.encode(\\\"ascii\\\"))\\n        if not self.handle:\\n            raise RuntimeError(\\\"The installed bridge could not initialize\\\")\\n\\n    def call(self, command, payload=None):\\n        if command not in self.READ_COMMANDS:\\n            raise ValueError(\\\"Command is outside the inspection allowlist\\\")\\n        request = {\\\"request_id\\\": \\\"headless-inspection\\\", \\\"protocol_version\\\": 1,\\n                   \\\"command\\\": command, \\\"payload\\\": payload or {}}\\n        with self.lock:\\n            previous = Path.cwd()\\n            try:\\n                # The installed Lua resolver loads resources/lua relative to Cwd.\\n                os.chdir(self.app_dir)\\n                ptr = self.dll.dmghg_service_handle_command_json(\\n                    self.handle, json.dumps(request, ensure_ascii=False).encode(\\\"utf-8\\\"))\\n                if not ptr:\\n                    raise RuntimeError(\\\"Bridge returned a null response\\\")\\n                try:\\n                    response = json.loads(ctypes.string_at(ptr).decode(\\\"utf-8\\\"))\\n                finally:\\n                    self.dll.dmghg_string_free(ptr)\\n            finally:\\n                os.chdir(previous)\\n        if response.get(\\\"ok\\\") is not True:\\n            error = response.get(\\\"error\\\", {})\\n            raise RuntimeError(f\\\"{error.get('code')}: {error.get('message')}\\\")\\n        return response.get(\\\"data\\\")\\n\\n    def close(self):\\n        if self.handle:\\n            self.dll.dmghg_service_free(self.handle)\\n            self.handle = None\\n\\n\\ndef installed_version(exe):\\n    \\\"\\\"\\\"Read PE version metadata; the resolver rejects unsupported client versions.\\\"\\\"\\\"\\n    version = ctypes.windll.version\\n    size = version.GetFileVersionInfoSizeW(str(exe), None)\\n    if not size:\\n        raise RuntimeError(\\\"Cannot read the installed application's version metadata\\\")\\n    buffer = ctypes.create_string_buffer(size)\\n    if not version.GetFileVersionInfoW(str(exe), 0, size, buffer):\\n        raise RuntimeError(\\\"Cannot read application version info\\\")\\n    info = ctypes.c_void_p()\\n    length = ctypes.c_uint()\\n    if not version.VerQueryValueW(buffer, \\\"\\\\\\\\\\\", ctypes.byref(info), ctypes.byref(length)):\\n        raise RuntimeError(\\\"Application version structure is missing\\\")\\n    fields = ctypes.cast(info, ctypes.POINTER(ctypes.c_uint32))\\n    if fields[0] != 0xFEEF04BD or length.value < 52:\\n        raise RuntimeError(\\\"Application version structure is invalid\\\")\\n    return f\\\"{fields[2] >> 16}.{fields[2] & 65535}.{fields[3] >> 16}\\\"\\n\\n\\ndef inspect(bridge, keyword):\\n    channels = bridge.call(\\\"catalog.get_channels\\\")\\n    listing = bridge.call(\\\"catalog.get_video_list\\\", {\\\"page\\\": 1})\\n    search = bridge.call(\\\"catalog.search_video\\\", {\\\"key\\\": keyword, \\\"page\\\": \\\"1\\\"})\\n    videos = listing.get(\\\"items\\\", [])\\n    if not channels or not videos or not search.get(\\\"items\\\"):\\n        raise RuntimeError(\\\"Empty channel/list/search response; cannot certify a rule\\\")\\n    selected = search[\\\"items\\\"][0]\\n    detail = bridge.call(\\\"catalog.get_video_detail\\\", {\\\"id\\\": str(selected[\\\"id\\\"])})\\n    groups = detail.get(\\\"parts\\\", [])\\n    episodes = sum(len(group.get(\\\"part\\\", [])) for group in groups)\\n    if not episodes:\\n        raise RuntimeError(\\\"No real episodes in the detail response\\\")\\n    group = next(g for g in groups if g.get(\\\"part\\\"))\\n    payload = {\\\"id\\\": str(selected[\\\"id\\\"]), \\\"part\\\": group[\\\"part\\\"][0], \\\"play\\\": group[\\\"play\\\"], \\\"resolve\\\": True}\\n    play = bridge.call(\\\"video.play\\\", payload)\\n    variant = play[\\\"list\\\"][play[\\\"default\\\"]]\\n    media = media_probe(variant[\\\"url\\\"], variant.get(\\\"headers\\\"))\\n    return {\\n        \\\"application\\\": str(bridge.app_dir),\\n        \\\"dll_sha256\\\": hashlib.sha256(bridge.dll_path.read_bytes()).hexdigest(),\\n        \\\"no_desktop\\\": True, \\\"installed_version\\\": bridge.version,\\n        \\\"isolated_state_root\\\": str(bridge.state_root),\\n        \\\"channels\\\": len(channels), \\\"list_items\\\": len(videos),\\n        \\\"search_keyword\\\": keyword, \\\"search_items\\\": len(search[\\\"items\\\"]),\\n        \\\"detail_id\\\": selected[\\\"id\\\"], \\\"detail_title\\\": detail.get(\\\"name\\\"),\\n        \\\"episode_count\\\": episodes, \\\"play_variants\\\": len(play[\\\"list\\\"]),\\n        \\\"media\\\": media, \\\"mobile_standalone_verified\\\": False,\\n        \\\"dependency\\\": \\\"Windows installed electron_bridge.dll and resources/lua\\\",\\n    }, play\\n\\n\\ndef media_probe(url, headers=None, depth=0):\\n    \\\"\\\"\\\"Check actual bytes, never equate a play URL string with successful media.\\\"\\\"\\\"\\n    request = Request(url, headers={**(headers or {}), \\\"Range\\\": \\\"bytes=0-2047\\\"})\\n    with urlopen(request, timeout=20) as response:\\n        chunk = response.read(2048)\\n        report = {\\\"host\\\": urlsplit(response.url).hostname, \\\"status\\\": response.status,\\n                \\\"content_type\\\": response.headers.get(\\\"Content-Type\\\"), \\\"bytes_read\\\": len(chunk),\\n                \\\"hls_manifest\\\": chunk.lstrip().startswith(b\\\"#EXTM3U\\\")}\\n        if report[\\\"hls_manifest\\\"] and depth < 2:\\n            text = chunk.decode(\\\"utf-8\\\", \\\"replace\\\")\\n            uris = [line.strip() for line in text.splitlines() if line.strip() and not line.startswith(\\\"#\\\")]\\n            if uris:\\n                report[\\\"first_child\\\"] = media_probe(urljoin(response.url, uris[0]), headers, depth + 1)\\n        return report\\n\\n\\ndef classify_decoder_warning(text):\\n    \\\"\\\"\\\"Return categories, excluding URLs before classifying warnings.\\\"\\\"\\\"\\n    text = re.sub(r'https?://\\\\S+', '[URL]', text.lower())\\n    codes = set()\\n    for status in ['403', '404']:\\n        if re.search(r'(?:http(?: error)?|server returned|status(?: code)?)\\\\D{0,12}' + status + r'\\\\b', text):\\n            codes.add('http_' + status)\\n    for pattern, code in [(r'\\\\b(?:tls|ssl)\\\\b|gnutls|schannel', 'tls_error'),\\n        (r'timed out|timeout', 'network_timeout'), (r'failed to resolve|name resolution', 'resolution_error'),\\n        (r'failed to open', 'open_failed'), (r'connection refused', 'connection_refused')]:\\n        if re.search(pattern, text):\\n            codes.add(code)\\n    return codes\\n\\n\\ndef decode_probe(bridge, variant, progress_seconds=0.2, deadline_seconds=16, diagnostics=False):\\n    \\\"\\\"\\\"Use the installed libmpv decoder with null audio/video outputs; no window.\\\"\\\"\\\"\\n    dll_dir = os.add_dll_directory(str(bridge.app_dir))\\n    mpv = ctypes.CDLL(str(bridge.app_dir / \\\"libmpv-2.dll\\\"))\\n    mpv.mpv_create.restype = ctypes.c_void_p\\n    mpv.mpv_set_option_string.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p]\\n    mpv.mpv_initialize.argtypes = [ctypes.c_void_p]\\n    mpv.mpv_command.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_char_p)]\\n    mpv.mpv_get_property_string.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\\n    mpv.mpv_get_property_string.restype = ctypes.c_void_p\\n    mpv.mpv_free.argtypes = [ctypes.c_void_p]\\n    mpv.mpv_wait_event.argtypes = [ctypes.c_void_p, ctypes.c_double]\\n    mpv.mpv_wait_event.restype = ctypes.c_void_p\\n    mpv.mpv_terminate_destroy.argtypes = [ctypes.c_void_p]\\n    if diagnostics:\\n        class Event(ctypes.Structure):\\n            _fields_ = [('event_id', ctypes.c_int), ('error', ctypes.c_int),\\n                        ('reply_userdata', ctypes.c_uint64), ('data', ctypes.c_void_p)]\\n        class LogMessage(ctypes.Structure):\\n            _fields_ = [('prefix', ctypes.c_char_p), ('level', ctypes.c_char_p),\\n                        ('text', ctypes.c_char_p), ('log_level', ctypes.c_int)]\\n        mpv.mpv_request_log_messages.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\\n    handle = mpv.mpv_create()\\n    if not handle:\\n        raise RuntimeError(\\\"The installed media decoder could not initialize\\\")\\n    try:\\n        if diagnostics:\\n            mpv.mpv_request_log_messages(handle, b'warn')\\n        for key, value in {\\\"vo\\\": \\\"null\\\", \\\"ao\\\": \\\"null\\\", \\\"terminal\\\": \\\"no\\\", \\\"load-scripts\\\": \\\"no\\\",\\n                           \\\"network-timeout\\\": \\\"12\\\", \\\"cache-secs\\\": \\\"2\\\", \\\"demuxer-max-bytes\\\": \\\"4M\\\"}.items():\\n            if mpv.mpv_set_option_string(handle, key.encode(), value.encode()) < 0:\\n                raise RuntimeError(f\\\"Cannot set headless decoder option {key}\\\")\\n        headers = \\\",\\\".join(f\\\"{k}: {v}\\\" for k, v in (variant.get(\\\"headers\\\") or {}).items())\\n        if headers:\\n            mpv.mpv_set_option_string(handle, b\\\"http-header-fields\\\", headers.encode())\\n        if mpv.mpv_initialize(handle) < 0:\\n            raise RuntimeError(\\\"The installed decoder initialization failed\\\")\\n        args = (ctypes.c_char_p * 4)(b\\\"loadfile\\\", variant[\\\"url\\\"].encode(), b\\\"replace\\\", None)\\n        if mpv.mpv_command(handle, args) < 0:\\n            raise RuntimeError(\\\"The installed decoder rejected the media request\\\")\\n        deadline = time.monotonic() + deadline_seconds\\n        facts = {}\\n        diagnostic_codes = set()\\n        while time.monotonic() < deadline:\\n            event_ptr = mpv.mpv_wait_event(handle, 0.1)\\n            if diagnostics and event_ptr:\\n                event = ctypes.cast(event_ptr, ctypes.POINTER(Event)).contents\\n                if event.event_id == 2 and event.data:\\n                    message = ctypes.cast(event.data, ctypes.POINTER(LogMessage)).contents\\n                    text = (message.text or b'').decode('utf-8', 'replace').lower()\\n                    # Emit categories only; raw messages may contain signed URLs.\\n                    diagnostic_codes.update(classify_decoder_warning(text))\\n                elif event.event_id == 7 and event.data:\\n                    ended = ctypes.cast(event.data, ctypes.POINTER(ctypes.c_int * 2)).contents\\n                    facts['end_file_reason'] = ended[0]\\n                    facts['end_file_error'] = ended[1]\\n            for key in [\\\"audio-codec-name\\\", \\\"video-params/w\\\", \\\"video-params/h\\\", \\\"time-pos\\\"]:\\n                ptr = mpv.mpv_get_property_string(handle, key.encode())\\n                if ptr:\\n                    try:\\n                        facts[key] = ctypes.string_at(ptr).decode(\\\"utf-8\\\", \\\"replace\\\")\\n                    finally:\\n                        mpv.mpv_free(ptr)\\n            if facts.get(\\\"video-params/w\\\") and float(facts.get(\\\"time-pos\\\", \\\"0\\\")) > progress_seconds:\\n                break\\n        facts[\\\"decoded_video\\\"] = bool(facts.get(\\\"video-params/w\\\")) and float(facts.get(\\\"time-pos\\\", \\\"0\\\")) > progress_seconds\\n        facts[\\\"outputs\\\"] = {\\\"audio\\\": \\\"null\\\", \\\"video\\\": \\\"null\\\"}\\n        if diagnostics:\\n            facts['diagnostic_codes'] = sorted(diagnostic_codes)\\n        return facts\\n    finally:\\n        mpv.mpv_terminate_destroy(handle)\\n        dll_dir.close()\\n\\n\\ndef main():\\n    parser = argparse.ArgumentParser(description=__doc__)\\n    parser.add_argument(\\\"--app-dir\\\", required=True)\\n    parser.add_argument(\\\"--keyword\\\", default=\\\"仙逆\\\")\\n    parser.add_argument(\\\"--output\\\", required=True)\\n    parser.add_argument(\\\"--show-play-schema\\\", action=\\\"store_true\\\")\\n    parser.add_argument(\\\"--decode\\\", action=\\\"store_true\\\", help=\\\"Verify actual video decoding with no window/audio output\\\")\\n    args = parser.parse_args()\\n    bridge = Bridge(args.app_dir)\\n    try:\\n        report, play = inspect(bridge, args.keyword)\\n        if args.decode:\\n            report[\\\"decoder\\\"] = decode_probe(bridge, play[\\\"list\\\"][play[\\\"default\\\"]])\\n        if args.show_play_schema:\\n            # Show keys/types and bounded non-URL metadata only; never dump signed links.\\n            print(json.dumps({k: type(v).__name__ for k, v in play.items()}, ensure_ascii=False))\\n        output = Path(args.output)\\n        output.parent.mkdir(parents=True, exist_ok=True)\\n        output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\\\"utf-8\\\")\\n        print(json.dumps(report, ensure_ascii=False))\\n        if args.decode and not report[\\\"decoder\\\"][\\\"decoded_video\\\"]:\\n            raise RuntimeError(\\\"Media bytes exist but headless decoding was not verified\\\")\\n    finally:\\n        bridge.close()\\n\\n\\nif __name__ == \\\"__main__\\\":\\n    sys.stdout.reconfigure(encoding=\\\"utf-8\\\")\\n    main()\\n\",\"resource_guidance\":\"## 已定位的技能资源\\n- SKILL.md: `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md`\\n- 资源根目录: `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector`\\n文中相对路径基于此目录，不基于任务工作区。以下命令路径以磁盘检查为准；列出脚本不代表脚本已通过业务验收。\\n- `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py`\\n- references: `C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references`\\n\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 9847,
+          "completion_tokens": 109,
+          "duration_ms": 17747,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9847,
+          "prompt_tokens": 9847,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python \"C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\local-app-inspector\\scripts\\dmghg_probe.py\" --app-dir \"D:\\太极\\动漫共和国概念版\" --keyword \"仙逆\" --output \"scratch/dmghg-evidence.json\" --decode --show-play-schema"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"{\\\"default\\\": \\\"int\\\", \\\"list\\\": \\\"list\\\"}\\r\\n{\\\"application\\\": \\\"D:\\\\\\\\太极\\\\\\\\动漫共和国概念版\\\", \\\"dll_sha256\\\": \\\"ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42\\\", \\\"no_desktop\\\": true, \\\"installed_version\\\": \\\"1.4.4\\\", \\\"isolated_state_root\\\": \\\"C:\\\\\\\\Users\\\\\\\\刘本录\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\dmghg-headless-9_mn4pml\\\", \\\"channels\\\": 8, \\\"list_items\\\": 10, \\\"search_keyword\\\": \\\"仙逆\\\", \\\"search_items\\\": 3, \\\"detail_id\\\": 181655, \\\"detail_title\\\": \\\"仙逆\\\", \\\"episode_count\\\": 165, \\\"play_variants\\\": 1, \\\"media\\\": {\\\"host\\\": \\\"sns-music.xhscdn.com\\\", \\\"status\\\": 206, \\\"content_type\\\": \\\"application/octet-stream\\\", \\\"bytes_read\\\": 2048, \\\"hls_manifest\\\": false}, \\\"mobile_standalone_verified\\\": false, \\\"dependency\\\": \\\"Windows installed electron_bridge.dll and resources/lua\\\", \\\"decoder\\\": {\\\"audio-codec-name\\\": \\\"aac\\\", \\\"video-params/w\\\": \\\"1920\\\", \\\"video-params/h\\\": \\\"816\\\", \\\"time-pos\\\": \\\"0.242000\\\", \\\"decoded_video\\\": true, \\\"outputs\\\": {\\\"audio\\\": \\\"null\\\", \\\"video\\\": \\\"null\\\"}}}\\r\\n\",\"stderr\":\"\",\"duration_ms\":10334,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":928,\"totalCompressedBytes\":928,\"totalOriginalTokens\":232,\"totalCompressedTokens\":232,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":1}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10461,
+          "completion_tokens": 326,
+          "duration_ms": 15710,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0461,
+          "prompt_tokens": 10461,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"\nimport sys, json\nfrom pathlib import Path\nsys.path.insert(0, r'C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\local-app-inspector\\scripts')\nfrom dmghg_probe import Bridge\n\nb = Bridge(r'D:\\太极\\动漫共和国概念版')\ntry:\n    channels = b.call('catalog.get_channels')\n    print('CHANNELS:', json.dumps(channels, ensure_ascii=False))\n    list1 = b.call('catalog.get_video_list', {'channel': channels[0]['id'], 'page': 1})\n    print('LIST1_KEYS:', list(list1.keys()))\n    print('FIRST_ITEM:', json.dumps(list1.get('items', [])[0] if list1.get('items') else {}, ensure_ascii=False))\n    detail = b.call('catalog.get_video_detail', {'id': str(list1['items'][0]['id'])})\n    print('DETAIL_KEYS:', list(detail.keys()))\n    print('PARTS_SAMPLE:', json.dumps(detail.get('parts', [])[0] if detail.get('parts') else {}, ensure_ascii=False))\nfinally:\n    b.close()\n\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"CHANNELS: [{\\\"areas\\\": [\\\"日本\\\"], \\\"id\\\": 20, \\\"name\\\": \\\"日漫\\\", \\\"oid\\\": 1, \\\"pid\\\": 0, \\\"types\\\": [\\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"大陆\\\"], \\\"id\\\": 21, \\\"name\\\": \\\"国漫\\\", \\\"oid\\\": 2, \\\"pid\\\": 0, \\\"types\\\": [\\\"玄幻\\\", \\\"奇幻\\\", \\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"日本\\\", \\\"中国\\\", \\\"美国\\\"], \\\"id\\\": 22, \\\"name\\\": \\\"剧场\\\", \\\"oid\\\": 3, \\\"pid\\\": 0, \\\"types\\\": [\\\"玄幻\\\", \\\"奇幻\\\", \\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"\\\"], \\\"id\\\": 23, \\\"name\\\": \\\"美漫\\\", \\\"oid\\\": 4, \\\"pid\\\": 0, \\\"types\\\": [\\\"玄幻\\\", \\\"奇幻\\\", \\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"中国\\\", \\\"日本\\\"], \\\"id\\\": 25, \\\"name\\\": \\\"特摄\\\", \\\"oid\\\": 5, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"大陆\\\", \\\"日本\\\", \\\"美国\\\"], \\\"id\\\": 32, \\\"name\\\": \\\"少儿\\\", \\\"oid\\\": 6, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"中国\\\"], \\\"id\\\": 26, \\\"name\\\": \\\"动态漫\\\", \\\"oid\\\": 30, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"\\\"], \\\"id\\\": 27, \\\"name\\\": \\\"猜你想看\\\", \\\"oid\\\": 100, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}]\\r\\nLIST1_KEYS: ['items', 'total']\\r\\nFIRST_ITEM: {\\\"actor\\\": \\\"\\\", \\\"area\\\": \\\"日本\\\", \\\"cid\\\": 20, \\\"content\\\": \\\"「恋爱与选举与巧克力」是由sprite于09年发行的成人向恋爱AVG，之后便推出了两个版本的漫画作品。 　　本作故事主要讲述了主人公大岛裕树与青梅竹马住吉千里以及从以前起就是好友的同班同学木场美冬就读于以拥有超过五千名学生而自豪的工业学园「私立高藤学园」，同时他们还是以吃点心作为活动内容的社团食品研究部(通称：食研)的成员。次期自治学生会长的强力候选人东云皐月誓言要整顿杂乱且无实绩的社团活动，而其中食研更是首当其冲被指名要将其废部。为了避免面临危机的食研被废部，部员们想方设法开始行动起来了……\\\", \\\"continu\\\": \\\"13全\\\", \\\"director\\\": \\\"喜多幡徹\\\", \\\"down\\\": 0, \\\"ename\\\": \\\"lianaiyuxuanjuyuqiaokeli\\\", \\\"id\\\": 180167, \\\"ischarge\\\": 0, \\\"isend\\\": 0, \\\"name\\\": \\\"恋爱与选举与巧克力\\\", \\\"pic\\\": \\\"http://p4-ad.adukwai.com/[REDACTED_REMOTE_URL]\", \\\"total\\\": 12, \\\"type\\\": \\\"后宫,校园,游戏改,恋爱,日常,搞笑\\\", \\\"up\\\": 0, \\\"updated_at\\\": \\\"2026-11-03T00:45:24+08:00\\\", \\\"year\\\": \\\"2012\\\"}\\r\\nDETAIL_KEYS: ['actor', 'area', 'auto_play', 'charges', 'cid', 'comment_total', 'content', 'continu', 'created_at', 'created_by', 'danmu_count', 'director', 'down', 'ename', 'end_at', 'fid', 'gold', 'hits', 'id', 'is_sync_charge', 'ischarge', 'iscollect', 'isend', 'keywords', 'letter', 'name', 'parts', 'pic', 'source', 'stars', 'status', 'title', 'total', 'type', 'up', 'updated_at', 'updated_by', 'weight', 'year']\\r\\nPARTS_SAMPLE: {\\\"oid\\\": 0, \\\"part\\\": [\\\"第01集\\\", \\\"第02集\\\", \\\"第03集\\\", \\\"第04集\\\", \\\"第05集\\\", \\\"第06集\\\", \\\"第07集\\\", \\\"第08集\\\", \\\"第09集\\\", \\\"第10集\\\", \\\"第11集\\\", \\\"第12集\\\"], \\\"play\\\": \\\"newup-jp\\\", \\\"play_zh\\\": \\\"日语\\\"}\\r\\n\",\"stderr\":\"\",\"duration_ms\":2332,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":7998,\"totalCompressedBytes\":7998,\"totalOriginalTokens\":1999,\"totalCompressedTokens\":1999,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":2}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 7,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 14231,
+          "completion_tokens": 59,
+          "duration_ms": 18912,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_7.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.4231,
+          "prompt_tokens": 14231,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "dir \"C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\local-app-inspector\\references\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"\\r\\n\\r\\n    目录: C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references\\r\\n\\r\\n\\r\\nMode                 LastWriteTime         Length Name                                                                 \\r\\n----                 -------------         ------ ----                                                                 \\r\\n-a----         2026/11/3      0:21           4490 pc-native-rule-contract.md                                           \\r\\n\\r\\n\\r\\n\",\"stderr\":\"\",\"duration_ms\":2076,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":8501,\"totalCompressedBytes\":8501,\"totalOriginalTokens\":2124,\"totalCompressedTokens\":2124,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":3}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 8,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 14552,
+          "completion_tokens": 289,
+          "duration_ms": 31056,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_8.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.4552,
+          "prompt_tokens": 14552,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"\nimport sys, json\nsys.path.insert(0, r'C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\local-app-inspector\\scripts')\nfrom dmghg_probe import Bridge\n\nb = Bridge(r'D:\\太极\\动漫共和国概念版')\ntry:\n    detail = b.call('catalog.get_video_detail', {'id': '181655'})\n    group = detail['parts'][0]\n    payload = {'id': '181655', 'part': group['part'][0], 'play': group['play'], 'resolve': True}\n    play = b.call('video.play', payload)\n    print('PLAY_KEYS:', list(play.keys()))\n    default_idx = play.get('default', 0)\n    variant = play['list'][default_idx]\n    print('VARIANT_KEYS:', list(variant.keys()))\n    print('HEADERS:', variant.get('headers'))\n    print('URL_PREFIX:', variant.get('url')[:30])\nfinally:\n    b.close()\n\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"PLAY_KEYS: ['default', 'list']\\r\\nVARIANT_KEYS: ['completeness', 'headers', 'name', 'play', 'resolution', 'total_duration', 'type', 'url', 'vip']\\r\\nHEADERS: {}\\r\\nURL_PREFIX: https://sns-music.xhscdn.com/[REDACTED_REMOTE_URL]\",\"stderr\":\"\",\"duration_ms\":2530,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":8703,\"totalCompressedBytes\":8703,\"totalOriginalTokens\":2174,\"totalCompressedTokens\":2174,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":4}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 9,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 15042,
+          "completion_tokens": 170,
+          "duration_ms": 23517,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_9.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.5042001,
+          "prompt_tokens": 15042,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"\nimport urllib.request, json\n# 测试 channels 返回格式\nsys_path = r'C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\local-app-inspector\\scripts'\nimport sys; sys.path.insert(0, sys_path)\nfrom dmghg_probe import Bridge\nb = Bridge(r'D:\\太极\\动漫共和国概念版')\ntry:\n    print('ping:', b.call('app.ping'))\n    print('channels len:', len(b.call('catalog.get_channels')))\nfinally:\n    b.close()\n\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"ping: {'app_name': 'dmghg-flutter', 'app_version': '1.4.4', 'echo': {}, 'gateway_base_url': 'http://bkbfdm.cenmo.fun/[REDACTED_REMOTE_URL]', 'pong': True, 'storage_root': 'C:\\\\\\\\Users\\\\\\\\刘本录\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\dmghg-headless-jyhe0ytu\\\\\\\\dmghg-flutter'}\\r\\nchannels len: 8\\r\\n\",\"stderr\":\"\",\"duration_ms\":2604,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":8956,\"totalCompressedBytes\":8956,\"totalOriginalTokens\":2237,\"totalCompressedTokens\":2237,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":5}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 10,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 15442,
+          "completion_tokens": 207,
+          "duration_ms": 46848,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_10.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.5442,
+          "prompt_tokens": 15442,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"\nimport sys\nsys.path.insert(0, r'C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\local-app-inspector\\scripts')\nfrom dmghg_probe import Bridge\n\nb = Bridge(r'D:\\太极\\动漫共和国概念版')\ntry:\n    print('BANNERS:', b.call('catalog.get_banners'))\n    print('SEARCH 仙逆:', len(b.call('catalog.search_video', {'key': '仙逆', 'page': '1'})['items']))\n    print('SEARCH 斗罗:', len(b.call('catalog.search_video', {'key': '斗罗', 'page': '1'})['items']))\nfinally:\n    b.close()\n\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"BANNERS: [{'content': '2015年2月～2026年5月まで「週刊少年ジャンプ」「ジャンプGIGA」（集英社）にて連載され、\\\\n全世界シリーズ累計発行部数は2,450万部を突破。\\\\n世界中を魅了し続ける『ブラッククローバー』。\\\\nTVアニメは87の国と地域で視聴数1位を獲得。\\\\n映画『ブラッククローバー 魔法帝の剣』はNetflix週間グローバルTOP10で第2位の快挙を成し遂げた。\\\\n――そして2026年、新たな伝説が幕をあける。\\\\nかつてない暴威が、クローバー王国に渾沌をもたらした。\\\\n上位悪魔の力を宿す、「漆黒の三極性（ダークトライアド）」の襲来。\\\\n魔法騎士団長すら抗えず連れ去られ、最後の希望は崩れ堕ちた。\\\\n絶望的な戦況、だがそれでもなお立ち上がり続ける者がいる。\\\\n魔法がすべての世界で、魔法の理の外にいる唯一の存在――アスタ。\\\\n仲間を取り戻し、ライバルとの約束を果たす為にすべてを懸ける！\\\\n限界を超えろ。諦めるな。――それが、運命に抗う者の魔法。\\\\n王道のその先を往く“限界突破魔法バトル”が開幕！\\\\n「オマエを斃(たお)して、生きる」', 'continu': '5#周六23:00更', 'gold': 10, 'id': 138, 'img': 'https://pica.zhimg.com/[REDACTED_REMOTE_URL]', 'oid': 0, 'pid': 0, 'thumbnail': 'https://p1.meituan.net/[REDACTED_REMOTE_URL]', 'vid': 196581, 'vname': '黑色五叶草 第二季'}, {'content': 'スマートフォン向けゲームアプリ「Fate/Grand Order」を初めて劇場版アニメ化し、人気エピソード「第六特異点」を基に描いた「劇場版 Fate/Grand Order 神聖円卓領域キャメロット」の後編。西暦1273年のエルサレム。3つの勢力が対峙するこの地にたどり着いた遍歴の騎士ベディヴィエールとカルデア一行は、白亜の城を築き民を殺戮する獅子王と“円卓の騎士”を倒すため、“山の民”と手を結ぶ。壮絶な死闘を終えた彼らは、強大な力を持つ“太陽王オジマンディアス”に同盟を提案。しかしオジマンディアスは獅子王の計画を明かし、自らの民を守るため同盟を拒否する。獅子王の真意を知ったベディヴィエールたちは、その目的を阻止するべく、聖都キャメロットへの進撃を開始する。', 'continu': '简中 1080P', 'gold': 10, 'id': 137, 'img': 'https://picx.zhimg.com/[REDACTED_REMOTE_URL]', 'oid': 1, 'pid': 0, 'thumbnail': 'http://p4-ad.adukwai.com/[REDACTED_REMOTE_URL]', 'vid': 180904, 'vname': '剧场版 Fate/Grand Order 神圣圆桌领域卡美洛 后篇 Paladin; Agateram'}, {'content': '毎朝一番に会いたい人がいる——\\\\n中高一貫のスポーツ強豪校・栄明高校男子バドミントン部の猪股大喜は、\\\\n毎日、朝練で顔を合わせる女子バスケットボール部のエースで一つ上の先輩、鹿野千夏に恋をする。\\\\nある日、千夏が親の海外転勤に伴い、猪股家に居候することになり、二人の距離は朝練仲間から一変。\\\\n部活に恋に勉強に、大喜にとって忘れられない、新しい季節がはじまる――', 'continu': '4#停更一次#周日16:00更', 'gold': 10, 'id': 139, 'img': 'https://pic1.zhimg.com/[REDACTED_REMOTE_URL]', 'oid': 1, 'pid': 0, 'thumbnail': 'https://p0.meituan.net/[REDACTED_REMOTE_URL]', 'vid': 196582, 'vname': '青之箱 第二季'}, {'content': '「俺は、この異世界で本気だす！」\\\\n34歳・童貞・無職の引きこもりニート男。\\\\n両親の葬儀の日に家を追い出された瞬間、トラックに轢かれ命を落としてしまう。\\\\n目覚めると、なんと剣と魔法の異世界で赤ん坊に生まれ変わっていた！\\\\nゴミクズのように生きてきた男は、少年・ルーデウスとして異世界で本気をだして生きていく事を誓うー！\\\\nルーデウスを待ち受けるのは、ロリっ子魔術師、エルフ耳のボクっ子幼馴染、凶暴ツンデレお嬢様、\\\\nそのほかの様々な人間との出会い。そして過酷な冒険と戦い。\\\\n新しい人生が動き出す！\\\\n「人生やり直し」ファンタジー、開幕！', 'continu': '14全', 'gold': 9.5, 'id': 130, 'img': 'https://p0.meituan.net/[REDACTED_REMOTE_URL]', 'oid': 2, 'pid': 0, 'thumbnail': 'https://p0.meituan.net/[REDACTED_REMOTE_URL]', 'vid': 196332, 'vname': '无职转生 第三季 ～到了异世界就拿出真本事～'}]\\r\\nSEARCH 仙逆: 3\\r\\nSEARCH 斗罗: 7\\r\\n\",\"stderr\":\"\",\"duration_ms\":4739,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":13820,\"totalCompressedBytes\":13820,\"totalOriginalTokens\":3453,\"totalCompressedTokens\":3453,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":6}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 11,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 17381,
+          "completion_tokens": 3930,
+          "duration_ms": 161968,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_11.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7380999,
+          "prompt_tokens": 17381,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "CodeContent": "\"\"\"DMGHG Local Bridge Service\n\nThis bridge service loads electron_bridge.dll from the installed DMGHG application,\nexposing a local-only loopback HTTP interface for HikerView PC runtime.\nNo desktop GUI is launched, no application directories are modified, and no user\naccount or session databases are read.\n\"\"\"\n\nimport argparse\nimport ctypes\nimport hashlib\nimport json\nimport os\nfrom pathlib import Path\nimport re\nimport socket\nfrom socketserver import ThreadingMixIn\nfrom http.server import HTTPServer, BaseHTTPRequestHandler\nimport sys\nimport tempfile\nimport threading\nimport time\nfrom urllib.parse import parse_qs, urlparse\n\n\ndef installed_version(exe_path):\n    \"\"\"Read PE version metadata; the resolver rejects unsupported client versions.\"\"\"\n    version = ctypes.windll.version\n    size = version.GetFileVersionInfoSizeW(str(exe_path), None)\n    if not size:\n        raise RuntimeError(\"Cannot read the installed application's version metadata\")\n    buffer = ctypes.create_string_buffer(size)\n    if not version.GetFileVersionInfoW(str(exe_path), 0, size, buffer):\n        raise RuntimeError(\"Cannot read application version info\")\n    info = ctypes.c_void_p()\n    length = ctypes.c_uint()\n    if not version.VerQueryValueW(buffer, \"\\\\\", ctypes.byref(info), ctypes.byref(length)):\n        raise RuntimeError(\"Application version structure is missing\")\n    fields = ctypes.cast(info, ctypes.POINTER(ctypes.c_uint32))\n    if fields[0] != 0xFEEF04BD or length.value < 52:\n        raise RuntimeError(\"Application version structure is invalid\")\n    return f\"{fields[2] >> 16}.{fields[2] & 65535}.{fields[3] >> 16}\"\n\n\nclass Bridge:\n    \"\"\"Headless C-ABI bridge wrapper for DMGHG's electron_bridge.dll.\"\"\"\n\n    READ_COMMANDS = {\n        \"app.ping\",\n        \"catalog.get_channels\",\n        \"catalog.get_banners\",\n        \"catalog.get_video_list\",\n        \"catalog.search_video\",\n        \"catalog.get_video_key\",\n        \"catalog.get_video_detail\",\n        \"catalog.get_channel_detail\",\n        \"video.play\",\n    }\n\n    def __init__(self, app_dir):\n        if os.name != \"nt\":\n            raise RuntimeError(\"The installed bridge requires Windows x64 Python\")\n        self.app_dir = Path(app_dir).resolve(strict=True)\n        self.dll_path = self.app_dir / \"electron_bridge.dll\"\n        if not self.dll_path.is_file():\n            raise RuntimeError(f\"electron_bridge.dll is missing from {self.app_dir}\")\n        self.state_root = Path(tempfile.mkdtemp(prefix=\"dmghg-headless-\"))\n        os.environ[\"DMGHG_TEST_DATA_ROOT\"] = str(self.state_root)\n        os.environ[\"RUST_LOG\"] = \"error\"\n        self.dll = ctypes.CDLL(str(self.dll_path))\n        self.dll.dmghg_service_new.argtypes = [ctypes.c_char_p, ctypes.c_char_p]\n        self.dll.dmghg_service_new.restype = ctypes.c_void_p\n        self.dll.dmghg_service_handle_command_json.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\n        self.dll.dmghg_service_handle_command_json.restype = ctypes.c_void_p\n        self.dll.dmghg_string_free.argtypes = [ctypes.c_void_p]\n        self.dll.dmghg_service_free.argtypes = [ctypes.c_void_p]\n        self.lock = threading.RLock()\n        self.version = installed_version(self.app_dir / \"dmghg.exe\")\n        self.handle = self.dll.dmghg_service_new(b\"dmghg-flutter\", self.version.encode(\"ascii\"))\n        if not self.handle:\n            raise RuntimeError(\"The installed bridge could not initialize\")\n\n    def call(self, command, payload=None):\n        if command not in self.READ_COMMANDS:\n            raise PermissionError(f\"Command '{command}' is not in the read-only inspection allowlist\")\n        request = {\n            \"request_id\": \"headless-rpc\",\n            \"protocol_version\": 1,\n            \"command\": command,\n            \"payload\": payload or {},\n        }\n        with self.lock:\n            previous = Path.cwd()\n            try:\n                # The installed Lua resolver loads resources/lua relative to Cwd.\n                os.chdir(self.app_dir)\n                ptr = self.dll.dmghg_service_handle_command_json(\n                    self.handle, json.dumps(request, ensure_ascii=False).encode(\"utf-8\")\n                )\n                if not ptr:\n                    raise RuntimeError(\"Bridge returned a null response pointer\")\n                try:\n                    response = json.loads(ctypes.string_at(ptr).decode(\"utf-8\"))\n                finally:\n                    self.dll.dmghg_string_free(ptr)\n            finally:\n                os.chdir(previous)\n        if response.get(\"ok\") is not True:\n            error = response.get(\"error\", {})\n            raise RuntimeError(f\"{error.get('code')}: {error.get('message')}\")\n        return response.get(\"data\")\n\n    def close(self):\n        with self.lock:\n            if self.handle:\n                self.dll.dmghg_service_free(self.handle)\n                self.handle = None\n\n\nclass ThreadingHTTPServer(ThreadingMixIn, HTTPServer):\n    daemon_threads = True\n    allow_reuse_address = True\n\n\nclass DMGHGHandler(BaseHTTPRequestHandler):\n    server_version = \"DMGHGBridge/1.0\"\n    protocol_version = \"HTTP/1.1\"\n\n    def setup(self):\n        super().setup()\n        # Enforce server-side read timeout of 5.0 seconds (well within the 8s ceiling)\n        self.connection.settimeout(5.0)\n\n    def handle_one_request(self):\n        try:\n            return super().handle_one_request()\n        except socket.timeout:\n            self.send_error(408, \"Request Timeout\")\n            self.close_connection = True\n        except (ConnectionResetError, BrokenPipeError):\n            self.close_connection = True\n\n    def _send_json(self, status_code, data_obj):\n        body = json.dumps(data_obj, ensure_ascii=False).encode(\"utf-8\")\n        self.send_response(status_code)\n        self.send_header(\"Content-Type\", \"application/json; charset=utf-8\")\n        self.send_header(\"Content-Length\", str(len(body)))\n        self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n        self.send_header(\"Access-Control-Allow-Methods\", \"GET, POST, OPTIONS\")\n        self.send_header(\"Access-Control-Allow-Headers\", \"Content-Type\")\n        self.send_header(\"Connection\", \"close\")\n        self.end_headers()\n        self.wfile.write(body)\n\n    def do_OPTIONS(self):\n        self.send_response(204)\n        self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n        self.send_header(\"Access-Control-Allow-Methods\", \"GET, POST, OPTIONS\")\n        self.send_header(\"Access-Control-Allow-Headers\", \"Content-Type\")\n        self.send_header(\"Connection\", \"close\")\n        self.end_headers()\n\n    def do_GET(self):\n        parsed = urlparse(self.path)\n        path = parsed.path\n        query = parse_qs(parsed.query)\n\n        try:\n            if path == \"/ping\":\n                data = self.server.bridge.call(\"app.ping\")\n                resp = {\n                    \"ok\": True,\n                    \"data\": data,\n                    \"pong\": True,\n                    \"app_name\": data.get(\"app_name\") if isinstance(data, dict) else \"dmghg-flutter\",\n                    \"app_version\": data.get(\"app_version\") if isinstance(data, dict) else \"1.4.4\",\n                }\n                self._send_json(200, resp)\n\n            elif path == \"/channels\":\n                channels = self.server.bridge.call(\"catalog.get_channels\")\n                self._send_json(200, {\"ok\": True, \"data\": channels, \"items\": channels})\n\n            elif path == \"/video_list\":\n                ch_val = query.get(\"channel\", [None])[0]\n                channel_id = int(ch_val) if ch_val is not None else 20\n                pg_val = query.get(\"page\", [\"1\"])[0]\n                page_num = int(pg_val) if pg_val.isdigit() else 1\n                payload = {\"channel\": channel_id, \"page\": page_num}\n                data = self.server.bridge.call(\"catalog.get_video_list\", payload)\n                self._send_json(200, {\"ok\": True, \"data\": data, \"items\": data.get(\"items\", [])})\n\n            elif path == \"/search\":\n                key_val = query.get(\"key\", [\"\"])[0]\n                pg_val = query.get(\"page\", [\"1\"])[0]\n                payload = {\"key\": key_val, \"page\": str(pg_val)}\n                data = self.server.bridge.call(\"catalog.search_video\", payload)\n                self._send_json(200, {\"ok\": True, \"data\": data, \"items\": data.get(\"items\", [])})\n\n            elif path == \"/detail\":\n                id_val = query.get(\"id\", [\"\"])[0]\n                payload = {\"id\": str(id_val)}\n                data = self.server.bridge.call(\"catalog.get_video_detail\", payload)\n                self._send_json(200, {\"ok\": True, \"data\": data})\n\n            elif path == \"/play\":\n                id_val = query.get(\"id\", [\"\"])[0]\n                part_val = query.get(\"part\", [\"\"])[0]\n                play_val = query.get(\"play\", [\"\"])[0]\n                payload = {\n                    \"id\": str(id_val),\n                    \"part\": str(part_val),\n                    \"play\": str(play_val),\n                    \"resolve\": True,\n                }\n                data = self.server.bridge.call(\"video.play\", payload)\n                self._send_json(200, {\"ok\": True, \"data\": data})\n\n            else:\n                self._send_json(404, {\"ok\": False, \"error\": {\"code\": \"NOT_FOUND\", \"message\": f\"Path '{path}' not found\"}})\n\n        except PermissionError as pe:\n            self._send_json(403, {\"ok\": False, \"error\": {\"code\": \"FORBIDDEN\", \"message\": str(pe)}})\n        except Exception as exc:\n            self._send_json(500, {\"ok\": False, \"error\": {\"code\": \"BRIDGE_ERROR\", \"message\": str(exc)}})\n\n    def do_POST(self):\n        parsed = urlparse(self.path)\n        path = parsed.path\n\n        try:\n            content_length = int(self.headers.get(\"Content-Length\", 0))\n            if content_length > 10 * 1024 * 1024:\n                self._send_json(413, {\"ok\": False, \"error\": {\"code\": \"PAYLOAD_TOO_LARGE\", \"message\": \"Payload exceeds 10MB\"}})\n                return\n\n            body_bytes = self.rfile.read(content_length) if content_length > 0 else b\"{}\"\n            try:\n                body = json.loads(body_bytes.decode(\"utf-8\")) if body_bytes else {}\n            except Exception:\n                self._send_json(400, {\"ok\": False, \"error\": {\"code\": \"INVALID_JSON\", \"message\": \"Body is not valid JSON\"}})\n                return\n\n            if path == \"/call\":\n                command = body.get(\"command\")\n                payload = body.get(\"payload\", {})\n                if not command:\n                    self._send_json(400, {\"ok\": False, \"error\": {\"code\": \"MISSING_COMMAND\", \"message\": \"'command' field is required\"}})\n                    return\n                if command not in self.server.bridge.READ_COMMANDS:\n                    self._send_json(403, {\"ok\": False, \"error\": {\"code\": \"FORBIDDEN\", \"message\": f\"Command '{command}' is outside the inspection allowlist\"}})\n                    return\n                data = self.server.bridge.call(command, payload)\n                self._send_json(200, {\"ok\": True, \"data\": data})\n\n            elif path == \"/play\":\n                id_val = body.get(\"id\")\n                part_val = body.get(\"part\")\n                play_val = body.get(\"play\")\n                payload = {\n                    \"id\": str(id_val),\n                    \"part\": str(part_val),\n                    \"play\": str(play_val),\n                    \"resolve\": True,\n                }\n                data = self.server.bridge.call(\"video.play\", payload)\n                self._send_json(200, {\"ok\": True, \"data\": data})\n\n            else:\n                self._send_json(404, {\"ok\": False, \"error\": {\"code\": \"NOT_FOUND\", \"message\": f\"Path '{path}' not found\"}})\n\n        except PermissionError as pe:\n            self._send_json(403, {\"ok\": False, \"error\": {\"code\": \"FORBIDDEN\", \"message\": str(pe)}})\n        except Exception as exc:\n            self._send_json(500, {\"ok\": False, \"error\": {\"code\": \"BRIDGE_ERROR\", \"message\": str(exc)}})\n\n    def log_message(self, format, *args):\n        # Silence standard request logging to stdout to keep logs clean\n        pass\n\n\ndef run_server(app_dir, port=18002, host=\"127.0.0.1\"):\n    if host not in (\"127.0.0.1\", \"localhost\"):\n        sys.stderr.write(f\"Security error: Refusing to bind non-loopback host '{host}'. Only 127.0.0.1 is permitted.\\n\")\n        sys.exit(1)\n\n    bridge = Bridge(app_dir)\n    server_address = (\"127.0.0.1\", port)\n    httpd = ThreadingHTTPServer(server_address, DMGHGHandler)\n    httpd.bridge = bridge\n\n    try:\n        httpd.serve_forever()\n    except KeyboardInterrupt:\n        pass\n    finally:\n        httpd.server_close()\n        bridge.close()\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=\"DMGHG Native Bridge HTTP Service\")\n    parser.add_argument(\"--app-dir\", default=r\"D:\\太极\\动漫共和国概念版\", help=\"Installed DMGHG directory\")\n    parser.add_argument(\"--port\", type=int, default=18002, help=\"Loopback port to bind (default: 18002)\")\n    parser.add_argument(\"--host\", default=\"127.0.0.1\", help=\"Loopback host to bind (must be 127.0.0.1)\")\n    args = parser.parse_args()\n\n    run_server(args.app_dir, args.port, args.host)\n\n\nif __name__ == \"__main__\":\n    main()\n",
+            "TargetFile": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-a4b53beb9430425d8079f5d4877711f9\\data\\runs\\282b7d1b-671f-4d00-8393-b03c8bf4fd70\\workspace\\bridge.py"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-independent-a4b53beb9430425d8079f5d4877711f9\\\\data\\\\runs\\\\282b7d1b-671f-4d00-8393-b03c8bf4fd70\\\\workspace\\\\bridge.py\",\"diagnostics\":[]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 12,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 21425,
+          "completion_tokens": 60,
+          "duration_ms": 25598,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_12.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.1425,
+          "prompt_tokens": 21425,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "dir \"C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\deepcloud-rule-engineer\\templates\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"\\r\\n\\r\\n    目录: C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-t6_129mq\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\r\\n\\r\\n\\r\\nMode                 LastWriteTime         Length Name                                                                 \\r\\n----                 -------------         ------ ----                                                                 \\r\\n-a----         2026/11/3      0:21           3345 comic-manga.template.json                                            \\r\\n-a----         2026/11/3      0:21           3478 json-api.template.json                                               \\r\\n-a----         2026/11/3      0:21           5017 maccms-vod.template.json                                             \\r\\n-a----         2026/11/3      0:21           6481 multi-tier-cascade.template.json                                     \\r\\n-a----         2026/11/3      0:21           3175 short-drama.template.json                                            \\r\\n-a----         2026/11/3      0:21           3602 standard-rule.template.json                                          \\r\\n-a----         2026/11/3      0:21           9002 tencent-video.rule.json                                              \\r\\n-a----         2026/11/3      0:21          11723 xiaohongshu.rule.json                                                \\r\\n\\r\\n\\r\\n\",\"stderr\":\"\",\"duration_ms\":2008,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":15173,\"totalCompressedBytes\":15173,\"totalOriginalTokens\":3791,\"totalCompressedTokens\":3791,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":7}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 13,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 22008,
+          "completion_tokens": 157,
+          "duration_ms": 31805,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_13.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2008,
+          "prompt_tokens": 22008,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"\nimport json\nwith open(r'C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-frozen-source-t6_129mq\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\json-api.template.json', 'r', encoding='utf-8') as f:\n    d = json.load(f)\nprint(list(d.keys()))\nfor k in ['title', 'author', 'version', 'url', 'class_name', 'class_url', 'search_url']:\n    print(k, ':', d.get(k))\n\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"['title', 'author', 'version', 'url', 'col_type', 'class_name', 'class_url', 'find_rule', 'search_url', 'search_rule', 'detail_col_type', 'detail_find_rule', 'lazy']\\r\\ntitle : 纯 JSON API 极速模板 (App/小程序/H5接口双端同构规则)\\r\\nauthor : DeepCloud Rule Engineer\\r\\nversion : 1\\r\\nurl : https://api.example.com/[REDACTED_REMOTE_URL] : 推荐&热榜&最新&完结\\r\\nclass_url : recommend&hot&latest&completed\\r\\nsearch_url : https://api.example.com/[REDACTED_REMOTE_URL]\",\"stderr\":\"\",\"duration_ms\":1806,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":15685,\"totalCompressedBytes\":15685,\"totalOriginalTokens\":3919,\"totalCompressedTokens\":3919,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":8}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 14,
+          "session_id": "run_989564094cd24154bfd30feaed381abd",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 22488,
+          "completion_tokens": 231,
+          "duration_ms": 29121,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_989564094cd24154bfd30feaed381abd\\turn_14.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2488,
+          "prompt_tokens": 22488,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"\nimport urllib.request, json\n# 测试启动 bridge.py 跑在 18002 端口，发送 ping 请求\nimport subprocess, time\n\np = subprocess.Popen(['python', 'bridge.py', '--port', '18002', '--app-dir', r'D:\\太极\\动漫共和国概念版'])\ntry:\n    time.sleep(2)\n    req = urllib.request.urlopen('http://127.0.0.1:18002/ping', timeout=5)\n    print('PING_RESP:', req.read().decode())\n    req2 = urllib.request.urlopen('http://127.0.0.1:18002/channels', timeout=5)\n    print('CHANNELS_LEN:', len(json.loads(req2.read().decode())['items']))\nfinally:\n    p.terminate()\n    p.wait()\n\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"PING_RESP: {\\\"ok\\\": true, \\\"data\\\": {\\\"app_name\\\": \\\"dmghg-flutter\\\", \\\"app_version\\\": \\\"1.4.4\\\", \\\"echo\\\": {}, \\\"gateway_base_url\\\": \\\"http://bkbfdm.cenmo.fun/[REDACTED_REMOTE_URL]\", \\\"pong\\\": true, \\\"storage_root\\\": \\\"C:\\\\\\\\Users\\\\\\\\刘本录\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\dmghg-headless-bgi3bmej\\\\\\\\dmghg-flutter\\\"}, \\\"pong\\\": true, \\\"app_name\\\": \\\"dmghg-flutter\\\", \\\"app_version\\\": \\\"1.4.4\\\"}\\r\\nCHANNELS_LEN: 8\\r\\n\",\"stderr\":\"\",\"duration_ms\":4206,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":16032,\"totalCompressedBytes\":16032,\"totalOriginalTokens\":4005,\"totalCompressedTokens\":4005,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":9}}}"
+        }
+      ],
+      "status": "submitted",
+      "classification": "first_attempt",
+      "prior_exposure": true,
+      "task_id": "282b7d1b-671f-4d00-8393-b03c8bf4fd70"
+    }
+  ],
+  "runtime": {
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "pid": 23872,
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v20-profile.json",
+    "app_data_root": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-a4b53beb9430425d8079f5d4877711f9\\data",
+    "evolution_initial_exists": false,
+    "binarySha256": "262E7EED1225CEFD5077E8C3D64A15E97DDF59D5A6C7B459EC6351E705D739CB",
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "port": 39233,
+    "stage": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-a4b53beb9430425d8079f5d4877711f9",
+    "model_turn_budget": 40,
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-independent-v20-2-service.json",
+    "verified_binary_sha256": "262e7eed1225cefd5077e8c3d64a15e97ddf59d5a6c7b459ec6351e705d739cb"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "fcf13371f820e7d5e96897ac019c5d435a9a96e2675475f1899642994ae8d62a",
+  "frozen_definitions_sha256": "074e7cf4f073a27ae8ddab232831197954253ab9ba7471927a2cd2f350d90751",
+  "planned_task_ids": [
+    "H01-independent-1",
+    "H01-independent-2",
+    "H01-independent-3"
+  ],
+  "selected_task_ids": [
+    "H01-independent-2"
+  ]
+}

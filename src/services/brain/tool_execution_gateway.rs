@@ -62,7 +62,7 @@ impl ToolExecutionReceipt {
 pub struct ToolExecutionGateway {
     registry: ToolRegistry,
     max_result_chars: usize,
-    result_store: ToolResultStore,
+    result_store: Arc<Mutex<ToolResultStore>>,
     policy: ToolPolicy,
     approval_store: ToolApprovalStore,
     loop_guard: Mutex<ToolLoopGuard>,
@@ -304,7 +304,7 @@ impl ToolExecutionGateway {
         Self {
             registry,
             max_result_chars: DEFAULT_MAX_RESULT_CHARS,
-            result_store: ToolResultStore::default_location(),
+            result_store: Arc::new(Mutex::new(ToolResultStore::default_location())),
             policy: ToolPolicy::from_env(),
             approval_store: ToolApprovalStore::default_location(),
             loop_guard: Mutex::new(ToolLoopGuard::default()),
@@ -314,12 +314,18 @@ impl ToolExecutionGateway {
     }
 
     pub fn begin_run(&self) {
+        *self.result_store.lock().unwrap_or_else(|e| e.into_inner()) =
+            ToolResultStore::run_location();
         self.workspace_revision.store(0, Ordering::Relaxed);
         self.observation_revision.store(0, Ordering::Relaxed);
         self.loop_guard
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .reset();
+    }
+
+    pub fn result_store(&self) -> Arc<Mutex<ToolResultStore>> {
+        self.result_store.clone()
     }
 
     #[cfg(test)]
@@ -331,7 +337,7 @@ impl ToolExecutionGateway {
         Self {
             registry,
             max_result_chars,
-            result_store,
+            result_store: Arc::new(Mutex::new(result_store)),
             policy: ToolPolicy::new(ToolPolicyMode::Audit),
             approval_store: ToolApprovalStore::default_location(),
             loop_guard: Mutex::new(ToolLoopGuard::default()),
@@ -345,7 +351,7 @@ impl ToolExecutionGateway {
         Self {
             registry,
             max_result_chars: DEFAULT_MAX_RESULT_CHARS,
-            result_store: ToolResultStore::default_location(),
+            result_store: Arc::new(Mutex::new(ToolResultStore::default_location())),
             policy,
             approval_store: ToolApprovalStore::default_location(),
             loop_guard: Mutex::new(ToolLoopGuard::default()),
@@ -363,7 +369,7 @@ impl ToolExecutionGateway {
         Self {
             registry,
             max_result_chars: DEFAULT_MAX_RESULT_CHARS,
-            result_store: ToolResultStore::default_location(),
+            result_store: Arc::new(Mutex::new(ToolResultStore::default_location())),
             policy,
             approval_store,
             loop_guard: Mutex::new(ToolLoopGuard::default()),
@@ -561,8 +567,11 @@ impl ToolExecutionGateway {
         request: ToolExecutionRequest,
         status: ToolExecutionStatus,
         started: Instant,
-        result: Value,
+        mut result: Value,
     ) -> ToolExecutionReceipt {
+        // Adapters carry raw streams only to this boundary, never to the model.
+        let original_streams = result.as_object_mut()
+            .and_then(|object| object.remove("__hub_original_streams"));
         // Ok(Value) means the adapter returned a result, not that its command
         // passed. Normalize execution facts before compression or cognition.
         let status = if status == ToolExecutionStatus::Succeeded
@@ -584,7 +593,8 @@ impl ToolExecutionGateway {
         };
         let verification = status == ToolExecutionStatus::Succeeded
             && result.get("exit_code").and_then(Value::as_i64) == Some(0)
-            && is_verification_request(&request.name, &request.arguments);
+            && (is_verification_request(&request.name, &request.arguments)
+                || (request.name == "verify_delivery" && result.get("domain_verified").and_then(Value::as_bool) == Some(true)));
         let risk = classify_tool_risk(&request.name, &request.arguments);
         let content_may_have_changed = matches!(status, ToolExecutionStatus::Succeeded | ToolExecutionStatus::Failed | ToolExecutionStatus::Panicked)
             && matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive)
@@ -602,29 +612,35 @@ impl ToolExecutionGateway {
             self.workspace_revision.fetch_add(1, Ordering::Relaxed);
         }
 
-        let serialized_original = serde_json::to_string(&result).unwrap_or_default();
+        let mut original = result.clone();
+        if let (Some(streams), Some(object)) = (original_streams.as_ref().and_then(Value::as_object), original.as_object_mut()) {
+            for key in ["stdout", "stderr"] {
+                if let Some(value) = streams.get(key).filter(|value| value.is_string()) {
+                    object.insert(key.to_string(), value.clone());
+                }
+            }
+        }
+        let serialized_original = serde_json::to_string(&original).unwrap_or_default();
         let original_result_chars = serialized_original.chars().count();
-        let needs_truncation = original_result_chars > self.max_result_chars;
+        let needs_truncation = serde_json::to_string(&result).unwrap_or_default().chars().count() > self.max_result_chars;
+        let adapter_compressed = original != result;
         let mut stored_result_reference = None;
+        let mut recovery_error = None;
+        if needs_truncation || adapter_compressed {
+            match self.result_store.lock().unwrap_or_else(|e| e.into_inner()).persist(&serialized_original) {
+                Ok(stored) => stored_result_reference = Some(stored.reference),
+                Err(error) => recovery_error = Some(error),
+            }
+        }
 
         let (final_result, truncated) = if needs_truncation {
-            let stored = self.result_store.persist(&serialized_original).ok();
-            stored_result_reference = stored.as_ref().map(|item| item.reference.clone());
 
-            let (mut compressed, was_truncated) =
+            let (compressed, was_truncated) =
                 crate::services::brain::context_interceptor::intelligent_compress(
                     &request,
                     result,
                     self.max_result_chars,
                 );
-            if was_truncated {
-                if let Some(obj) = compressed.as_object_mut() {
-                    obj.insert(
-                        "full_result_reference".to_string(),
-                        json!(stored_result_reference),
-                    );
-                }
-            }
             (compressed, was_truncated)
         } else {
             (result, false)
@@ -632,6 +648,12 @@ impl ToolExecutionGateway {
 
         let mut enriched_result = final_result;
         if let Some(obj) = enriched_result.as_object_mut() {
+            if let Some(reference) = &stored_result_reference {
+                obj.insert("full_result_reference".into(), json!(reference));
+            }
+            if let Some(error) = recovery_error {
+                obj.insert("full_result_recovery_error".into(), json!(error));
+            }
             let has_issue = status == ToolExecutionStatus::Failed
                 || obj.get("exit_code").and_then(Value::as_i64).unwrap_or(0) != 0
                 || obj.contains_key("error");
@@ -669,7 +691,7 @@ impl ToolExecutionGateway {
             duration_ms: started.elapsed().as_millis() as u64,
             result: enriched_result,
             original_result_chars,
-            truncated,
+            truncated: truncated || adapter_compressed,
             stored_result_reference,
             risk,
             verification,
@@ -796,6 +818,61 @@ fn is_quality_script_command(command: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn shell_rtk_original_is_recoverable_even_below_gateway_limit() {
+        use crate::services::brain::capabilities::shell::{LocalShellProvider, ShellService};
+        use crate::services::brain::tools::tool_result::ReadToolResultTool;
+        let dir = tempfile::tempdir().unwrap();
+        let source = (0..220).map(|i| if i == 110 {
+            "function importantSignature(value, rule, params) {}".to_string()
+        } else { format!("ordinary source line {i}") }).collect::<Vec<_>>().join("\n");
+        std::fs::write(dir.path().join("source.txt"), &source).unwrap();
+        let command = if cfg!(windows) { "Get-Content source.txt" } else { "cat source.txt" };
+        let raw = LocalShellProvider.execute(command, &dir.path().to_string_lossy(), false, 10).unwrap();
+        assert!(raw.get("__hub_original_streams").is_some(), "RTK must actually compress this reproduction");
+        assert!(!raw["stdout"].as_str().unwrap().contains("importantSignature"));
+        let registry: ToolRegistry = Arc::new(Mutex::new(HashMap::new()));
+        registry.lock().unwrap().insert("run_command".into(), Arc::new(ReturnedTool {name:"run_command",result:raw}));
+        let gateway = ToolExecutionGateway::with_max_result_chars(registry, 16_000, ToolResultStore::new(dir.path().join("run-a")));
+        let receipt = gateway.execute(ToolExecutionRequest {call_id:"rtk".into(),name:"run_command".into(),arguments:json!({"CommandLine":command})});
+        assert_eq!(receipt.status, ToolExecutionStatus::Succeeded);
+        assert!(receipt.truncated);
+        assert!(receipt.result.get("__hub_original_streams").is_none());
+        let reference = receipt.stored_result_reference.unwrap();
+        assert_eq!(receipt.result["full_result_reference"], reference);
+        let reader = ReadToolResultTool::from_shared(gateway.result_store());
+        let restored = reader.execute(json!({"reference":reference,"max_chars":16000})).unwrap();
+        let original: Value = serde_json::from_str(restored["content"].as_str().unwrap()).unwrap();
+        assert!(original["stdout"].as_str().unwrap().contains("importantSignature(value, rule, params)"));
+        assert_eq!(original["exit_code"],0);
+        *gateway.result_store.lock().unwrap() = ToolResultStore::new(dir.path().join("run-b"));
+        assert!(reader.execute(json!({"reference":reference})).is_err());
+    }
+
+    #[test]
+    fn large_result_reader_uses_gateway_store_and_rejects_previous_runs() {
+        use crate::services::brain::tools::tool_result::ReadToolResultTool;
+        let dir = tempfile::tempdir().unwrap();
+        let registry: ToolRegistry = Arc::new(Mutex::new(HashMap::new()));
+        registry.lock().unwrap().insert("view_file".into(), Arc::new(ReturnedTool {
+            name: "view_file", result: json!({"content": format!("{}TAIL_DIAGNOSTIC", "x".repeat(40_000))}),
+        }));
+        let gateway = ToolExecutionGateway::with_max_result_chars(registry, 1000, ToolResultStore::new(dir.path().join("run-a")));
+        let reader = ReadToolResultTool::from_shared(gateway.result_store());
+        let invoke = |id: &str| gateway.execute(ToolExecutionRequest {
+            call_id: id.into(), name: "view_file".into(), arguments: json!({"path":"log.txt"}),
+        });
+        let first = invoke("first");
+        let reference = first.stored_result_reference.unwrap();
+        let tail = reader.execute(json!({"reference":reference,"offset":39_900})).unwrap();
+        assert!(tail["content"].as_str().unwrap().contains("TAIL_DIAGNOSTIC"));
+        *gateway.result_store.lock().unwrap() = ToolResultStore::new(dir.path().join("run-b"));
+        let second = invoke("second");
+        assert_ne!(second.stored_result_reference.as_ref().unwrap(), &reference);
+        assert!(reader.execute(json!({"reference":reference})).is_err());
+        assert!(reader.execute(json!({"reference":second.stored_result_reference.unwrap()})).is_ok());
+    }
+
     #[test]
     fn skill_validation_scripts_produce_quality_receipts_without_accepting_generators() {
         for command in [r#"node "C:\技能 资源\scripts\validate-rule.cjs" scratch/rule.json"#,
@@ -1198,6 +1275,36 @@ mod tests {
             CompletionDecision::Accept
         );
         assert!(runtime.evolution_report(true).plan_closed);
+    }
+
+    #[test]
+    fn trusted_delivery_verification_supplies_investigation_evidence() {
+        for (result, should_accept) in [
+            (json!({"status":"success","exit_code":0,"domain_verified":true}), true),
+            (json!({"status":"success","exit_code":0,"domain_verified":false}), false),
+            (json!({"status":"failed","exit_code":1,"domain_verified":false}), false),
+        ] {
+            let gateway = intelligence_gateway();
+            gateway.registry.lock().unwrap().insert("verify_delivery".into(),
+                Arc::new(ReturnedTool { name: "verify_delivery", result }));
+            let mut runtime = CognitiveRuntime::with_mode(
+                "只做复核：验收已有交付物，根据受信任验证报告准确说明范围，不修改代码",
+                ReasoningMode::Adaptive);
+            let receipt = observe(&gateway, &mut runtime, "verify_delivery", json!({}));
+            assert_eq!(receipt.verification, should_accept);
+            let decision = runtime.review_completion(
+                "已取得受信任验证器的实际文件、目标来源和业务运行检查收据。结论仅限本次样本及记录平台，移动端仍未验证，未修改任何业务源码，也未发布或推送设备。");
+            assert_eq!(matches!(decision, CompletionDecision::Accept), should_accept,
+                "decision: {decision:?}");
+            if should_accept {
+                let mut generation = CognitiveRuntime::with_mode(
+                    "根据skill生成海阔规则并验证播放", ReasoningMode::Adaptive);
+                generation.observe_receipt(&receipt);
+                assert!(!matches!(generation.review_completion(
+                    "验证器返回了通过收据，但尚未编写本次任务要求生成的规则文件，不能将已有文件的检查视为新规则已经写入。"),
+                    CompletionDecision::Accept), "verification must not replace actual generation");
+            }
+        }
     }
 
     #[test]

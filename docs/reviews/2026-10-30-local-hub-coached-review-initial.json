@@ -1,0 +1,12 @@
+{
+  "model": "gemini-3.8-flash-high",
+  "task_id": "a774bb0a-fd13-42ad-a75f-723facf018b7",
+  "status": "failed",
+  "scope": "Explicit corrective coaching; not an unprompted capability score",
+  "final_text": "",
+  "tools": [
+    "find_by_name",
+    "view_file",
+    "update_task_progress"
+  ]
+}

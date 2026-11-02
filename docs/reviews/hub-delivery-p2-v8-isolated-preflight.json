@@ -1,0 +1,29 @@
+{
+  "frozen_sha256": "c3b3e34bf2d9a7e1eff351dccf76b074fa7a3c5ba23f08735c14b1ebd0e2403e",
+  "certifier_sha256": "0d0d1d984c04d15ff08b6ef10be0f043d09b75f4e30d5cbd61d75b4846d424ad",
+  "launcher_sha256": "b88b951c82107d24ed25360ad66a6a9dca2d52d7c8558063ba90b0fd4b0fc05b",
+  "budget": {
+    "model_turns": 48,
+    "timeout_seconds": 1500
+  },
+  "projects": [
+    {
+      "id": "H01-independent-1",
+      "path": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-jkz4p92e\\project-1",
+      "empty": true,
+      "resumed": false
+    },
+    {
+      "id": "H01-independent-2",
+      "path": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-jkz4p92e\\project-2",
+      "empty": true,
+      "resumed": false
+    },
+    {
+      "id": "H01-independent-3",
+      "path": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-jkz4p92e\\project-3",
+      "empty": true,
+      "resumed": false
+    }
+  ]
+}

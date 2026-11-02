@@ -1,0 +1,8 @@
+{
+  "scope": "Real SDK and production LocalGateway class in a headless Node process, forwarding to running Hub",
+  "unauthorized_status": 403,
+  "sdk_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "passed": true
+}

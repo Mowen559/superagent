@@ -15,7 +15,7 @@ flowchart TD
     ClickCard -- "普通详情页" --> Detail["3. 二级详情页 (detail_find_rule)"]
     ClickCard -- "带有 @rule= 级联" --> Cascade["4. 三级级联子页 (@rule=)"]
     ClickCard -- "带有 @lazyRule=" --> Lazy["5. 惰性播放求值 (@lazyRule=)"]
-    GlobalSearch["2. 全局搜索页 (search_rule)"] --> ClickCard
+    GlobalSearch["2. 全局搜索页 (searchFind)"] --> ClickCard
 ```
 
 ### 1. 一级页面 (Home / Channel Page)
@@ -30,7 +30,7 @@ flowchart TD
 - **返回契约**：必须调用 `setResult(d)`，其中 `d` 为包含卡片对象的数组。
 
 ### 2. 搜索页面 (Search Page)
-- **对应规则字段**：`search_url` + `search_rule`
+- **对应规则字段**：`search_url` + `searchFind`
 - **触发场景**：用户在全局搜索栏输入关键词后按回车提交。
 - **上下文注入变量**：
   - `MY_URL`（String）：已将 `**` 替换为经过 URL 编码的关键字地址。

@@ -70,7 +70,10 @@ impl RunPreludeRuntime {
 
     pub fn prepare(&self, objective: &str) -> RunPrelude {
         let mut routes = route_objective(objective);
-        let project_store = SupermemoryStore::new(&self.config, Some(&self.project_path));
+        let knowledge_root = crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
+            std::path::Path::new(&self.project_path), &[]);
+        let knowledge_path = knowledge_root.to_string_lossy();
+        let project_store = SupermemoryStore::new(&self.config, Some(&knowledge_path));
         let memory_result = project_store.search_scored_result(objective, 5, None, None);
         let memory_warning = memory_result.as_ref().err().cloned();
         let memories = memory_result.unwrap_or_default().into_iter().map(|hit| hit.record).collect::<Vec<_>>();
@@ -81,7 +84,7 @@ impl RunPreludeRuntime {
         let graph_nodes = if routes.contains(&CapabilityRoute::ArchitectureGraph) {
             let db_path = self
                 .config
-                .codebase_memory_db_path(Some(&self.project_path));
+                .codebase_memory_db_path(Some(&knowledge_path));
             graph_service::search_nodes(&db_path.to_string_lossy(), &graph_query(objective), 8)
                 .unwrap_or_default()
         } else {
@@ -127,7 +130,7 @@ impl RunPreludeRuntime {
         }
 
         // 2. 注入历史任务自省蒸馏出的工程经验准则 (Distilled Engineering Rules)
-        let store = SupermemoryStore::new(&self.config, Some(&self.project_path));
+        let store = SupermemoryStore::new(&self.config, Some(&knowledge_path));
         let distilled_rules = store
             .search_scored_result(objective, 3, None, Some("reflexion"))
             .unwrap_or_default();

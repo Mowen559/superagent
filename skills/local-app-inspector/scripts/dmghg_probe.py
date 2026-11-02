@@ -8,6 +8,7 @@ import ctypes
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import tempfile
@@ -145,7 +146,22 @@ def media_probe(url, headers=None, depth=0):
         return report
 
 
-def decode_probe(bridge, variant):
+def classify_decoder_warning(text):
+    """Return categories, excluding URLs before classifying warnings."""
+    text = re.sub(r'https?://\S+', '[URL]', text.lower())
+    codes = set()
+    for status in ['403', '404']:
+        if re.search(r'(?:http(?: error)?|server returned|status(?: code)?)\D{0,12}' + status + r'\b', text):
+            codes.add('http_' + status)
+    for pattern, code in [(r'\b(?:tls|ssl)\b|gnutls|schannel', 'tls_error'),
+        (r'timed out|timeout', 'network_timeout'), (r'failed to resolve|name resolution', 'resolution_error'),
+        (r'failed to open', 'open_failed'), (r'connection refused', 'connection_refused')]:
+        if re.search(pattern, text):
+            codes.add(code)
+    return codes
+
+
+def decode_probe(bridge, variant, progress_seconds=0.2, deadline_seconds=16, diagnostics=False):
     """Use the installed libmpv decoder with null audio/video outputs; no window."""
     dll_dir = os.add_dll_directory(str(bridge.app_dir))
     mpv = ctypes.CDLL(str(bridge.app_dir / "libmpv-2.dll"))
@@ -159,10 +175,20 @@ def decode_probe(bridge, variant):
     mpv.mpv_wait_event.argtypes = [ctypes.c_void_p, ctypes.c_double]
     mpv.mpv_wait_event.restype = ctypes.c_void_p
     mpv.mpv_terminate_destroy.argtypes = [ctypes.c_void_p]
+    if diagnostics:
+        class Event(ctypes.Structure):
+            _fields_ = [('event_id', ctypes.c_int), ('error', ctypes.c_int),
+                        ('reply_userdata', ctypes.c_uint64), ('data', ctypes.c_void_p)]
+        class LogMessage(ctypes.Structure):
+            _fields_ = [('prefix', ctypes.c_char_p), ('level', ctypes.c_char_p),
+                        ('text', ctypes.c_char_p), ('log_level', ctypes.c_int)]
+        mpv.mpv_request_log_messages.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     handle = mpv.mpv_create()
     if not handle:
         raise RuntimeError("The installed media decoder could not initialize")
     try:
+        if diagnostics:
+            mpv.mpv_request_log_messages(handle, b'warn')
         for key, value in {"vo": "null", "ao": "null", "terminal": "no", "load-scripts": "no",
                            "network-timeout": "12", "cache-secs": "2", "demuxer-max-bytes": "4M"}.items():
             if mpv.mpv_set_option_string(handle, key.encode(), value.encode()) < 0:
@@ -175,10 +201,22 @@ def decode_probe(bridge, variant):
         args = (ctypes.c_char_p * 4)(b"loadfile", variant["url"].encode(), b"replace", None)
         if mpv.mpv_command(handle, args) < 0:
             raise RuntimeError("The installed decoder rejected the media request")
-        deadline = time.monotonic() + 16
+        deadline = time.monotonic() + deadline_seconds
         facts = {}
+        diagnostic_codes = set()
         while time.monotonic() < deadline:
-            mpv.mpv_wait_event(handle, 0.1)
+            event_ptr = mpv.mpv_wait_event(handle, 0.1)
+            if diagnostics and event_ptr:
+                event = ctypes.cast(event_ptr, ctypes.POINTER(Event)).contents
+                if event.event_id == 2 and event.data:
+                    message = ctypes.cast(event.data, ctypes.POINTER(LogMessage)).contents
+                    text = (message.text or b'').decode('utf-8', 'replace').lower()
+                    # Emit categories only; raw messages may contain signed URLs.
+                    diagnostic_codes.update(classify_decoder_warning(text))
+                elif event.event_id == 7 and event.data:
+                    ended = ctypes.cast(event.data, ctypes.POINTER(ctypes.c_int * 2)).contents
+                    facts['end_file_reason'] = ended[0]
+                    facts['end_file_error'] = ended[1]
             for key in ["audio-codec-name", "video-params/w", "video-params/h", "time-pos"]:
                 ptr = mpv.mpv_get_property_string(handle, key.encode())
                 if ptr:
@@ -186,10 +224,12 @@ def decode_probe(bridge, variant):
                         facts[key] = ctypes.string_at(ptr).decode("utf-8", "replace")
                     finally:
                         mpv.mpv_free(ptr)
-            if facts.get("video-params/w") and float(facts.get("time-pos", "0")) > 0.2:
+            if facts.get("video-params/w") and float(facts.get("time-pos", "0")) > progress_seconds:
                 break
-        facts["decoded_video"] = bool(facts.get("video-params/w")) and float(facts.get("time-pos", "0")) > 0.2
+        facts["decoded_video"] = bool(facts.get("video-params/w")) and float(facts.get("time-pos", "0")) > progress_seconds
         facts["outputs"] = {"audio": "null", "video": "null"}
+        if diagnostics:
+            facts['diagnostic_codes'] = sorted(diagnostic_codes)
         return facts
     finally:
         mpv.mpv_terminate_destroy(handle)

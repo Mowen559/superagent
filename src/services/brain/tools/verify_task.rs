@@ -92,17 +92,17 @@ impl ToolExecutor for VerifyTaskTool {
 
         let full_output = format!("{}\n{}", stdout, stderr);
 
-        if is_success {
-            Ok(json!({
+        let mut result = if is_success {
+            json!({
                 "status": "passed",
                 "exit_code": 0,
                 "command": command,
                 "summary": "Verification succeeded! All tests/checks passed without errors.",
                 "output_tail": full_output.lines().rev().take(15).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")
-            }))
+            })
         } else {
             let failures = Self::extract_failure_highlights(&full_output);
-            Ok(json!({
+            json!({
                 "status": "failed",
                 "exit_code": exit_code,
                 "command": command,
@@ -110,8 +110,11 @@ impl ToolExecutor for VerifyTaskTool {
                 "failures": failures,
                 "suggested_action": "Verification failed! Do NOT claim task completion. Diagnose the reported failures, inspect the failing files, formulate a fix, and re-run verify_task_tool.",
                 "output_tail": full_output.lines().rev().take(20).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")
-            }))
-        }
+            })
+        };
+        result["__hub_original_streams"] = output_val.get("__hub_original_streams").cloned()
+            .unwrap_or_else(|| json!({"stdout":stdout,"stderr":stderr}));
+        Ok(result)
     }
 }
 

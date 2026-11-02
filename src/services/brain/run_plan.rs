@@ -199,7 +199,9 @@ impl RunPlan {
         match self.kind {
             TaskKind::Conversational => {}
             TaskKind::Investigative => {
-                if matches!(risk, ToolRisk::ReadOnly | ToolRisk::Network) {
+                // A canonical successful check observes real state as well.
+                // Tool risk describes authority, not whether evidence exists.
+                if verification || matches!(risk, ToolRisk::ReadOnly | ToolRisk::Network) {
                     self.complete_and_advance("inspect", Some("synthesize"));
                 }
             }

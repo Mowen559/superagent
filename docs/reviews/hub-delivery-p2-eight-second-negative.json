@@ -1,0 +1,61 @@
+{
+  "passed": false,
+  "source": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-546a00f95e3b4b78884726996a155eff\\data\\runs\\98433cf5-f342-4f46-a37f-9b9e3c3d07ff\\workspace",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-__uxmwed\\新目录交付",
+  "target": "D:\\太极\\动漫共和国概念版",
+  "validator_sha256": "f7d1ba487398f0bfbc0b7a096d926807a444c0f2dc1be0a7bd2ea2f977af2278",
+  "checks": [
+    "default_and_cli_overrides_cannot_bind_non_loopback",
+    "four_concurrent_reads_with_partial_client"
+  ],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "31f8964ebc3f4791f5afa9d79e03b64ed8f62b6e07ef189458af1c7c9b0d25bd"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "aed7c51cfbb7d00d14fb8c920cc06214fcf46c9e16f2facaf0f9b83956cb22c3"
+    },
+    {
+      "name": "README.md",
+      "sha256": "3571690960cae83c35970543ee61ac7d587da8089524cb7159f3ba90f9bba527"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "socketserver",
+    "sys",
+    "tempfile",
+    "threading",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "host_checks": [
+    {
+      "passed": true,
+      "actual_network_bind": false,
+      "override": null,
+      "attempted_host": "127.0.0.1",
+      "reason": "loopback binding observed"
+    },
+    {
+      "passed": true,
+      "actual_network_bind": false,
+      "override": "0.0.0.0",
+      "reason": "explicit loopback guard"
+    },
+    {
+      "passed": true,
+      "actual_network_bind": false,
+      "override": "192.0.2.1",
+      "reason": "explicit loopback guard"
+    }
+  ],
+  "error": "AssertionError: partial HTTP request has no server-side timeout within 8 seconds"
+}

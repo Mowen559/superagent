@@ -1,0 +1,26 @@
+{
+  "artifacts": {
+    "README.md": "c08501e500d2d90660a5c76723c95948bcdb4fc318a6fe458ba302e38020af53",
+    "rule.json": "6190a9caf6c1132a4d74557b3cf522c1be1ec80cc6a4f97ec51007c4e02eb043",
+    "bridge.py": "8eb29c85621fac6ece7eeaa5104e96947f3a3d020d774c60ec4966ffb2a0c212"
+  },
+  "review_basis": [
+    "Reviewed all three delivered files and tool-use provenance: only frozen Skill resources, native probe and this Run workspace; no prior business artifact import",
+    "Actual production categories use MY_PARAMS.class via hikerFilter; rule consumes class/fyclass and MY_PAGE. The suspected MY_URL-only category path is not this rule normal PC filter entry",
+    "All four rule stages use dynamic bridgeBase; cold original rule default 18002 executed at 18001 without modifying source",
+    "Native read allowlist, temp state, PE version, call lock, five-second socket timeout, loopback host guard and approved ports reviewed",
+    "README identifies real sampled channels and keywords, PC dependencies and explicit Android limit; no all-episodes verification claim"
+  ],
+  "evidence": [
+    "hub-delivery-p2-independent-v20-part1.json",
+    "hub-delivery-p2-independent-v20-package1.json"
+  ],
+  "classification": "first_attempt",
+  "scope": "Windows PC headless production runtime and installed native dependencies; Android/frontend window unverified",
+  "host_business_edits": false,
+  "limitations": [
+    "HTTP server is sequential with bounded socket timeout, not a measured parallel throughput implementation; four clients and partial request completed within the existing eight-second acceptance bound"
+  ],
+  "task_id": "84de916d-d8c2-472b-a567-31275784a121",
+  "passed": true
+}

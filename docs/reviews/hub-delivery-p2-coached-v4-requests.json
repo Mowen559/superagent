@@ -1,0 +1,51 @@
+[
+  {
+    "id": "H01-coached-repair",
+    "oracle": "dmghg",
+    "classification": "corrected",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\.superagent\\runs\\4bbaba4c-037b-4575-824c-d530a3c85793\\workspace",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "继续修复上轮你编写的规则，保留现有 bridge.py、rule.json、README.md 并做最小修正。上一轮耗尽32轮，不算成功交付。\n\n宿主验证器的本地端口及错误回传已经修正。原产物重新经过生产运行库，分类、列表、搜索及详情已能执行，但 lazy action 报 Unexpected end of input。重点检查 detail_find_rule 动态拼接 lazyRuleCode 时的转义，不要吞掉真实异常。\n\n生产 Hiker 只允许本地引擎18000/18001/18002，默认端口请改为18002并同步README。不要重新调查DLL或编写新探针，直接依据已有代码和 verify_delivery 的具体错误修复。完整通过后再完成。\n\n全程无GUI，不读取原账号，不改安装目录，不发布。保留原目标，禁止改成其他网站。\n",
+      "resumeSessionId": "run_751bc6a24e414474b6bcf527092360a8"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v4-inputs.json",
+      "--inputs-sha256",
+      "e273fa5f4c708df58f49d73132ef8417b99f973d2128b63dea9f4b25a2c80a68"
+    ],
+    "based_on_task": "4bbaba4c-037b-4575-824c-d530a3c85793",
+    "previous_receipt_sha256": "7ba9577255a1bb6b9135ceb297b9ecb779447ccb0907042ab795c5be7ad3bb49",
+    "feedback_sha256": "0038fa2640f45761500a4cb42be7573919797cc6823372020542439d193a0ed0",
+    "artifacts_before": [
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\4bbaba4c-037b-4575-824c-d530a3c85793\\workspace\\bridge.py",
+        "sha256": "d7a6853693a357072cf6bae0d3a36b31d0bbb5f3989b914fc4fcbc9c43e68388"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\4bbaba4c-037b-4575-824c-d530a3c85793\\workspace\\README.md",
+        "sha256": "fc67cb3f9f4e27f9a234d2156e46e975f8a5431b19aa3cefc14526523639bf94"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\4bbaba4c-037b-4575-824c-d530a3c85793\\workspace\\rule.json",
+        "sha256": "79b0c8aed8d77ba5bdfce19d74e4fb8a47c2d1683856fe54b9042a9fcca50840"
+      }
+    ]
+  }
+]

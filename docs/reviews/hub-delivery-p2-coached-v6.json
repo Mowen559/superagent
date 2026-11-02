@@ -1,0 +1,592 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39149",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "H01-coached-repair",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-coached-copy-shu851ik\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-coached-copy-shu851ik\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 900,
+        "prompt": "继续验收并交付动漫共和国规则。目录中只有你之前写出的三个文件的原样副本；没有宿主补写业务内容。\n\n上一轮你已给 bridge.py 加上5秒服务端读取超时、1MB请求体限制，并更新README。规则的生产运行库及真实解码仍然通过。上一任务被宿主取消，是因为新增桥接验证器的中文stdout编码不符合UTF-8，属于验证基础设施问题，不是你的业务代码失败。编码现已修复并重新冻结条件。\n\n请直接调用 verify_delivery 检查所有产物；若已通过就简要交付，不重复调查、重写、搭建模拟服务或证明Python标准库。只有验证器返回新的具体业务错误时才做必要修改。保持原目标、默认18002端口、只读RPC白名单和Android独立运行未验证边界。全程无GUI、不读原账号、不改安装目录、不发布。仍属于带反馈纠错，不计入三次独立生成。\n"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 19051,
+          "completion_tokens": 26,
+          "duration_ms": 5758,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9051001,
+          "prompt_tokens": 19051,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "rule",
+              "bridge",
+              "readme"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"artifacts\":[{\"id\":\"rule\",\"path\":\"rule.json\",\"required\":true,\"validator\":\"dmghg-production-runtime\"},{\"id\":\"bridge\",\"path\":\"bridge.py\",\"required\":true,\"validator\":\"dmghg-bridge-contract\"},{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"rule\":{\"id\":\"rule\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\rule.json\",\"sha256\":\"8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81\",\"bytes\":8914,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:49:28.980469900+00:00\",\"validator\":\"dmghg-production-runtime\",\"verifier_sha256\":\"b0bca326978694725c5230bbd24e991ce1861858310c3193ad174ccdc2ad5d83\",\"domain_verified\":true,\"checks\":[\"pagination_distinct_and_matches_upstream\",\"category:20\",\"category:21\",\"search:仙逆\",\"search:斗破\",\"detail_title_and_first_middle_last_episodes\",\"lazy_production_runtime\",\"actual_media_bytes\",\"null_output_decode_over_one_second\",\"inputs_unchanged\"]},\"readme\":{\"id\":\"readme\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\README.md\",\"sha256\":\"8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac\",\"bytes\":5412,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:49:56.495487400+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]},\"bridge\":{\"id\":\"bridge\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\bridge.py\",\"sha256\":\"9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07\",\"bytes\":12058,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:49:46.957575200+00:00\",\"validator\":\"dmghg-bridge-contract\",\"verifier_sha256\":\"b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d\",\"domain_verified\":true,\"checks\":[\"four_concurrent_reads_with_partial_client\",\"incomplete_request_server_timeout_under_eight_seconds\",\"unknown_route_bad_json_unknown_rpc_account_rpc_rejected\",\"process_tree_shutdown_releases_port\",\"missing_install_fails_without_gui\",\"source_and_copy_hashes_unchanged\"]}},\"errors\":{},\"completion_gap\":null}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 20350,
+          "completion_tokens": 1266,
+          "duration_ms": 19941,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.035,
+          "prompt_tokens": 20350,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "thinking",
+          "content": "【系统自检反思】: Completion review required: The Run plan is incomplete at: Gather authoritative evidence. Complete it with tool evidence; verification requires a successful quality check after the latest change.. The preceding answer is a draft, not verified completion."
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 23046,
+          "completion_tokens": 18,
+          "duration_ms": 3621,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.3046,
+          "prompt_tokens": 23046,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "update_task_progress",
+          "input": {
+            "action": "status"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "update_task_progress",
+          "output": "{\"has_plan\":false,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"artifacts\":[{\"id\":\"rule\",\"path\":\"rule.json\",\"required\":true,\"validator\":\"dmghg-production-runtime\"},{\"id\":\"bridge\",\"path\":\"bridge.py\",\"required\":true,\"validator\":\"dmghg-bridge-contract\"},{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"rule\":{\"id\":\"rule\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\rule.json\",\"sha256\":\"8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81\",\"bytes\":8914,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:49:28.980469900+00:00\",\"validator\":\"dmghg-production-runtime\",\"verifier_sha256\":\"b0bca326978694725c5230bbd24e991ce1861858310c3193ad174ccdc2ad5d83\",\"domain_verified\":true,\"checks\":[\"pagination_distinct_and_matches_upstream\",\"category:20\",\"category:21\",\"search:仙逆\",\"search:斗破\",\"detail_title_and_first_middle_last_episodes\",\"lazy_production_runtime\",\"actual_media_bytes\",\"null_output_decode_over_one_second\",\"inputs_unchanged\"]},\"readme\":{\"id\":\"readme\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\README.md\",\"sha256\":\"8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac\",\"bytes\":5412,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:49:56.495487400+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]},\"bridge\":{\"id\":\"bridge\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\bridge.py\",\"sha256\":\"9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07\",\"bytes\":12058,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:49:46.957575200+00:00\",\"validator\":\"dmghg-bridge-contract\",\"verifier_sha256\":\"b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d\",\"domain_verified\":true,\"checks\":[\"four_concurrent_reads_with_partial_client\",\"incomplete_request_server_timeout_under_eight_seconds\",\"unknown_route_bad_json_unknown_rpc_account_rpc_rejected\",\"process_tree_shutdown_releases_port\",\"missing_install_fails_without_gui\",\"source_and_copy_hashes_unchanged\"]}},\"errors\":{},\"completion_gap\":null},\"plan_revision\":0,\"steps\":[],\"questions\":[],\"recent_evidence\":[{\"id\":\"call_15243\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":0}]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 24478,
+          "completion_tokens": 363,
+          "duration_ms": 5488,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.4478,
+          "prompt_tokens": 24478,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "plan_task",
+          "input": {
+            "delivery": {
+              "artifacts": [
+                {
+                  "path": "rule.json",
+                  "id": "rule",
+                  "required": true,
+                  "validator": "dmghg-production-runtime"
+                },
+                {
+                  "validator": "dmghg-bridge-contract",
+                  "required": true,
+                  "id": "bridge",
+                  "path": "bridge.py"
+                },
+                {
+                  "validator": "",
+                  "id": "readme",
+                  "path": "README.md",
+                  "required": true
+                }
+              ],
+              "scope": "implementation",
+              "target": "D:\\\\太极\\\\动漫共和国概念版",
+              "version": "1"
+            },
+            "steps": [
+              {
+                "acceptance": "通过 verify_delivery 获得 rule、bridge 和 readme 的物理校验收据且全部通过",
+                "id": "verify-deliverables",
+                "evidence_kind": "verification",
+                "depends_on": [],
+                "goal": "执行宿主注册的业务验证器进行全量产物合规性校验"
+              }
+            ],
+            "success_criteria": [
+              "verify_delivery 返回 status 为 success，errors 为空，且三个产物全部验证通过",
+              "清晰交付产物哈希、运行方式及边界说明"
+            ],
+            "constraints": [
+              "无GUI操作，不读原账号，不改安装目录，不发布口令或推送到局域网设备",
+              "仅在本地交付 rule.json, bridge.py, README.md 三个产物",
+              "端口默认 18002，仅允许只读 RPC 白名单，Android 独立运行未验证"
+            ],
+            "interpretation": "对已落盘的 rule.json、bridge.py、README.md 进行宿主业务验证器 verify_delivery 检查，完成交付闭环并清晰汇报验证收据。",
+            "open_questions": []
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "plan_task",
+          "output": "{\"error\":\"invalid type: string \\\"1\\\", expected u32\",\"kind\":\"execution_failed\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 24958,
+          "completion_tokens": 208,
+          "duration_ms": 19225,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.4958,
+          "prompt_tokens": 24958,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "plan_task",
+          "input": {
+            "open_questions": [],
+            "constraints": [
+              "无GUI操作，不读原账号，不改安装目录，不发布口令或推送到局域网设备",
+              "仅在本地交付 rule.json, bridge.py, README.md 三个产物",
+              "端口默认 18002，仅允许只读 RPC 白名单，Android 独立运行未验证"
+            ],
+            "interpretation": "完成动漫共和国规则、本地桥接与说明文档的验收与交付",
+            "steps": [
+              {
+                "acceptance": "调用 verify_delivery 检查全部产物并获得成功收据",
+                "goal": "通过宿主业务验证器完成全量交付物合规性验收",
+                "id": "verify-deliverables",
+                "depends_on": [],
+                "evidence_kind": "verification"
+              }
+            ],
+            "success_criteria": [
+              "verify_delivery 返回 status: success 且 errors 为空",
+              "产物哈希与使用说明清晰交付"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "plan_task",
+          "output": "{\"status\":\"planned\",\"task_contract\":{\"interpretation\":\"完成动漫共和国规则、本地桥接与说明文档的验收与交付\",\"success_criteria\":[\"verify_delivery 返回 status: success 且 errors 为空\",\"产物哈希与使用说明清晰交付\"],\"constraints\":[\"无GUI操作，不读原账号，不改安装目录，不发布口令或推送到局域网设备\",\"仅在本地交付 rule.json, bridge.py, README.md 三个产物\",\"端口默认 18002，仅允许只读 RPC 白名单，Android 独立运行未验证\"],\"steps\":[{\"id\":\"verify-deliverables\",\"goal\":\"通过宿主业务验证器完成全量交付物合规性验收\",\"acceptance\":\"调用 verify_delivery 检查全部产物并获得成功收据\",\"depends_on\":[],\"evidence_kind\":\"verification\"}],\"open_questions\":[]}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 27021,
+          "completion_tokens": 26,
+          "duration_ms": 2796,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.7021,
+          "prompt_tokens": 27021,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "rule",
+              "bridge",
+              "readme"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"artifacts\":[{\"id\":\"rule\",\"path\":\"rule.json\",\"required\":true,\"validator\":\"dmghg-production-runtime\"},{\"id\":\"bridge\",\"path\":\"bridge.py\",\"required\":true,\"validator\":\"dmghg-bridge-contract\"},{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"rule\":{\"id\":\"rule\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\rule.json\",\"sha256\":\"8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81\",\"bytes\":8914,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:50:47.870739500+00:00\",\"validator\":\"dmghg-production-runtime\",\"verifier_sha256\":\"b0bca326978694725c5230bbd24e991ce1861858310c3193ad174ccdc2ad5d83\",\"domain_verified\":true,\"checks\":[\"pagination_distinct_and_matches_upstream\",\"category:20\",\"category:21\",\"search:仙逆\",\"search:斗破\",\"detail_title_and_first_middle_last_episodes\",\"lazy_production_runtime\",\"actual_media_bytes\",\"null_output_decode_over_one_second\",\"inputs_unchanged\"]},\"readme\":{\"id\":\"readme\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\README.md\",\"sha256\":\"8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac\",\"bytes\":5412,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:13.071608+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]},\"bridge\":{\"id\":\"bridge\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\bridge.py\",\"sha256\":\"9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07\",\"bytes\":12058,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:04.016095200+00:00\",\"validator\":\"dmghg-bridge-contract\",\"verifier_sha256\":\"b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d\",\"domain_verified\":true,\"checks\":[\"four_concurrent_reads_with_partial_client\",\"incomplete_request_server_timeout_under_eight_seconds\",\"unknown_route_bad_json_unknown_rpc_account_rpc_rejected\",\"process_tree_shutdown_releases_port\",\"missing_install_fails_without_gui\",\"source_and_copy_hashes_unchanged\"]}},\"errors\":{},\"completion_gap\":null}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 7,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 28394,
+          "completion_tokens": 18,
+          "duration_ms": 4602,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_7.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.8394,
+          "prompt_tokens": 28394,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "update_task_progress",
+          "input": {
+            "action": "status"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "update_task_progress",
+          "output": "{\"has_plan\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"artifacts\":[{\"id\":\"rule\",\"path\":\"rule.json\",\"required\":true,\"validator\":\"dmghg-production-runtime\"},{\"id\":\"bridge\",\"path\":\"bridge.py\",\"required\":true,\"validator\":\"dmghg-bridge-contract\"},{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"rule\":{\"id\":\"rule\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\rule.json\",\"sha256\":\"8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81\",\"bytes\":8914,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:50:47.870739500+00:00\",\"validator\":\"dmghg-production-runtime\",\"verifier_sha256\":\"b0bca326978694725c5230bbd24e991ce1861858310c3193ad174ccdc2ad5d83\",\"domain_verified\":true,\"checks\":[\"pagination_distinct_and_matches_upstream\",\"category:20\",\"category:21\",\"search:仙逆\",\"search:斗破\",\"detail_title_and_first_middle_last_episodes\",\"lazy_production_runtime\",\"actual_media_bytes\",\"null_output_decode_over_one_second\",\"inputs_unchanged\"]},\"readme\":{\"id\":\"readme\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\README.md\",\"sha256\":\"8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac\",\"bytes\":5412,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:13.071608+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]},\"bridge\":{\"id\":\"bridge\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\bridge.py\",\"sha256\":\"9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07\",\"bytes\":12058,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:04.016095200+00:00\",\"validator\":\"dmghg-bridge-contract\",\"verifier_sha256\":\"b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d\",\"domain_verified\":true,\"checks\":[\"four_concurrent_reads_with_partial_client\",\"incomplete_request_server_timeout_under_eight_seconds\",\"unknown_route_bad_json_unknown_rpc_account_rpc_rejected\",\"process_tree_shutdown_releases_port\",\"missing_install_fails_without_gui\",\"source_and_copy_hashes_unchanged\"]}},\"errors\":{},\"completion_gap\":null},\"plan_revision\":1,\"steps\":[{\"id\":\"verify-deliverables\",\"complete\":false,\"receipt_ids\":null}],\"questions\":[],\"recent_evidence\":[{\"id\":\"call_21202\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":0},{\"id\":\"call_15243\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":0}]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 8,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 29864,
+          "completion_tokens": 18,
+          "duration_ms": 9826,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_8.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.9864001,
+          "prompt_tokens": 29864,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "update_task_progress",
+          "input": {
+            "action": "status"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "update_task_progress",
+          "output": "{\"has_plan\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"artifacts\":[{\"id\":\"rule\",\"path\":\"rule.json\",\"required\":true,\"validator\":\"dmghg-production-runtime\"},{\"id\":\"bridge\",\"path\":\"bridge.py\",\"required\":true,\"validator\":\"dmghg-bridge-contract\"},{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"rule\":{\"id\":\"rule\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\rule.json\",\"sha256\":\"8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81\",\"bytes\":8914,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:50:47.870739500+00:00\",\"validator\":\"dmghg-production-runtime\",\"verifier_sha256\":\"b0bca326978694725c5230bbd24e991ce1861858310c3193ad174ccdc2ad5d83\",\"domain_verified\":true,\"checks\":[\"pagination_distinct_and_matches_upstream\",\"category:20\",\"category:21\",\"search:仙逆\",\"search:斗破\",\"detail_title_and_first_middle_last_episodes\",\"lazy_production_runtime\",\"actual_media_bytes\",\"null_output_decode_over_one_second\",\"inputs_unchanged\"]},\"readme\":{\"id\":\"readme\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\README.md\",\"sha256\":\"8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac\",\"bytes\":5412,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:13.071608+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]},\"bridge\":{\"id\":\"bridge\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\bridge.py\",\"sha256\":\"9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07\",\"bytes\":12058,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:04.016095200+00:00\",\"validator\":\"dmghg-bridge-contract\",\"verifier_sha256\":\"b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d\",\"domain_verified\":true,\"checks\":[\"four_concurrent_reads_with_partial_client\",\"incomplete_request_server_timeout_under_eight_seconds\",\"unknown_route_bad_json_unknown_rpc_account_rpc_rejected\",\"process_tree_shutdown_releases_port\",\"missing_install_fails_without_gui\",\"source_and_copy_hashes_unchanged\"]}},\"errors\":{},\"completion_gap\":null},\"plan_revision\":1,\"steps\":[{\"id\":\"verify-deliverables\",\"complete\":false,\"receipt_ids\":null}],\"questions\":[],\"recent_evidence\":[{\"id\":\"call_21202\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":0},{\"id\":\"call_15243\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":0}]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 9,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 31334,
+          "completion_tokens": 45,
+          "duration_ms": 7365,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_9.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 3.1334002,
+          "prompt_tokens": 31334,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "update_task_progress",
+          "input": {
+            "action": "complete_step",
+            "receipt_ids": [
+              "call_21202"
+            ],
+            "step_id": "verify-deliverables"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "update_task_progress",
+          "output": "{\"has_plan\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"artifacts\":[{\"id\":\"rule\",\"path\":\"rule.json\",\"required\":true,\"validator\":\"dmghg-production-runtime\"},{\"id\":\"bridge\",\"path\":\"bridge.py\",\"required\":true,\"validator\":\"dmghg-bridge-contract\"},{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"rule\":{\"id\":\"rule\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\rule.json\",\"sha256\":\"8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81\",\"bytes\":8914,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:50:47.870739500+00:00\",\"validator\":\"dmghg-production-runtime\",\"verifier_sha256\":\"b0bca326978694725c5230bbd24e991ce1861858310c3193ad174ccdc2ad5d83\",\"domain_verified\":true,\"checks\":[\"pagination_distinct_and_matches_upstream\",\"category:20\",\"category:21\",\"search:仙逆\",\"search:斗破\",\"detail_title_and_first_middle_last_episodes\",\"lazy_production_runtime\",\"actual_media_bytes\",\"null_output_decode_over_one_second\",\"inputs_unchanged\"]},\"readme\":{\"id\":\"readme\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\README.md\",\"sha256\":\"8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac\",\"bytes\":5412,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:13.071608+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]},\"bridge\":{\"id\":\"bridge\",\"session_id\":\"run_a28c9d19e79446299af8246b081a66ae\",\"run_id\":\"04c0aee7-541e-4d04-a8dd-36b8125ef3eb\",\"target\":\"D:\\\\太极\\\\动漫共和国概念版\",\"path\":\"\\\\\\\\?\\\\C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\\\workspace\\\\bridge.py\",\"sha256\":\"9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07\",\"bytes\":12058,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-02T01:51:04.016095200+00:00\",\"validator\":\"dmghg-bridge-contract\",\"verifier_sha256\":\"b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d\",\"domain_verified\":true,\"checks\":[\"four_concurrent_reads_with_partial_client\",\"incomplete_request_server_timeout_under_eight_seconds\",\"unknown_route_bad_json_unknown_rpc_account_rpc_rejected\",\"process_tree_shutdown_releases_port\",\"missing_install_fails_without_gui\",\"source_and_copy_hashes_unchanged\"]}},\"errors\":{},\"completion_gap\":null},\"plan_revision\":1,\"steps\":[{\"id\":\"verify-deliverables\",\"complete\":true,\"receipt_ids\":[\"call_21202\"]}],\"questions\":[],\"recent_evidence\":[{\"id\":\"call_21202\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":0},{\"id\":\"call_15243\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":0}]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 10,
+          "session_id": "run_a28c9d19e79446299af8246b081a66ae",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 32844,
+          "completion_tokens": 1311,
+          "duration_ms": 15773,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_a28c9d19e79446299af8246b081a66ae\\turn_10.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 3.2844,
+          "prompt_tokens": 32844,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "error",
+          "content": "Completion blocked: The Run plan is incomplete at: Gather authoritative evidence. Complete it with tool evidence; verification requires a successful quality check after the latest change."
+        },
+        {
+          "kind": "error",
+          "content": "Completion blocked: The Run plan is incomplete at: Gather authoritative evidence. Complete it with tool evidence; verification requires a successful quality check after the latest change."
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "corrected",
+      "prior_exposure": true,
+      "task_id": "ee4afe7c-e114-44cc-b03d-8b4072b2ed80",
+      "duration_ms": 148180,
+      "tool_calls": 8,
+      "model_turns": 10,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.9051001,
+          "prompt_tokens": 19051,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.035,
+          "prompt_tokens": 20350,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.3046,
+          "prompt_tokens": 23046,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.4478,
+          "prompt_tokens": 24478,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.4958,
+          "prompt_tokens": 24958,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.7021,
+          "prompt_tokens": 27021,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.8394,
+          "prompt_tokens": 28394,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.9864001,
+          "prompt_tokens": 29864,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 3.1334002,
+          "prompt_tokens": 31334,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 3.2844,
+          "prompt_tokens": 32844,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.9051001,
+          "prompt_tokens": 19051,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.035,
+          "prompt_tokens": 20350,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.3046,
+          "prompt_tokens": 23046,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.4478,
+          "prompt_tokens": 24478,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.4958,
+          "prompt_tokens": 24958,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.7021,
+          "prompt_tokens": 27021,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.8394,
+          "prompt_tokens": 28394,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.9864001,
+          "prompt_tokens": 29864,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 3.1334002,
+          "prompt_tokens": 31334,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 3.2844,
+          "prompt_tokens": 32844,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "D:\\太极\\动漫共和国概念版",
+        "checks": [
+          "pagination_distinct_and_matches_upstream",
+          "category:20",
+          "category:21",
+          "search:仙逆",
+          "search:斗破",
+          "detail_title_and_first_middle_last_episodes",
+          "lazy_production_runtime",
+          "actual_media_bytes",
+          "null_output_decode_over_one_second",
+          "inputs_unchanged"
+        ],
+        "observed": {
+          "home": 19,
+          "page2": 10,
+          "episodes": 165
+        },
+        "decoder": {
+          "audio-codec-name": "aac",
+          "video-params/w": "1920",
+          "video-params/h": "816",
+          "time-pos": "1.082000",
+          "decoded_video": true,
+          "outputs": {
+            "audio": "null",
+            "video": "null"
+          }
+        },
+        "mobile_standalone_verified": false,
+        "target_dll_sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+        "no_desktop": true,
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [
+        {
+          "path": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace\\rule.json",
+          "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+        },
+        {
+          "path": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace\\bridge.py",
+          "sha256": "9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07"
+        },
+        {
+          "path": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace\\README.md",
+          "sha256": "8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac"
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "runtime": {
+    "binarySha256": "19FED5BB5EE742E1775C2913104481FD09E878AABDBBB06797ACA3FF69C82F5C",
+    "pid": 27000,
+    "port": 39149,
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v6-profile.json",
+    "stage": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-delivery-p2v6-a54974b924ac44ecb3a89e7e599c1501",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v6-service.json",
+    "verified_binary_sha256": "19fed5bb5ee742e1775c2913104481fd09e878aabdbbb06797aca3ff69c82f5c"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "8abe7472bf178c4e4a3271d13301e73939e6692e456722126539b2676a279767",
+  "frozen_definitions_sha256": "af9a07950b1e468fa8002e43b325ddece16cb8e3c7f9ac886a6cd93729c9faf7",
+  "planned_task_ids": [
+    "H01-coached-repair"
+  ],
+  "selected_task_ids": [
+    "H01-coached-repair"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

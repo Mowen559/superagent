@@ -1,5 +1,6 @@
 pub mod capabilities;
 pub mod cognitive_runtime;
+pub mod delivery_evidence;
 pub mod compaction_runtime;
 pub mod context;
 pub mod context_budget;

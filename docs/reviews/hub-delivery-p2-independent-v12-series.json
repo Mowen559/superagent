@@ -1,0 +1,23 @@
+{
+  "passed": false,
+  "required_runs": 3,
+  "attempts": [
+    {
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-independent-v12-part1.json",
+      "task_id": "f50d2343-80f6-4c2a-a98d-5813fe379ab3",
+      "passed": true,
+      "status": "completed",
+      "package": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-independent-v12-package1.json"
+    },
+    {
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-independent-v12-part2.json",
+      "task_id": "f0df6b27-17d7-45ca-8237-02090d053b42",
+      "passed": false,
+      "status": "cancelled"
+    }
+  ],
+  "state": "failed",
+  "frozen": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v12.json",
+  "manual_authorship_review": "pending",
+  "error": "AssertionError: independent generation failed; no result relabelled"
+}

@@ -1,0 +1,21 @@
+{
+  "passed": false,
+  "required_runs": 3,
+  "known_target_prior_exposure": true,
+  "unseen_target_certified": false,
+  "certifier_sha256": "93383532fc2c77e026d53859d2e7706bad62f1aa879b6c0d1f102fae713a8239",
+  "frozen_sha256": "4ca820bd14f794a763d0db7c4c279902ae0920a6e3570a6e84de363b34d962e7",
+  "reports": [
+    {
+      "path": "docs/reviews/hub-delivery-p2-coached-v4-20261102.json",
+      "sha256": "54ccfa04884fb076767a74d335f9a0011b65f7728008cfe42bd411975dd85770"
+    }
+  ],
+  "packages": [
+    {
+      "path": "docs/reviews/hub-delivery-p2-package-v4-20261102.json",
+      "sha256": "279e4a6fd1eee220d3948665b206bb34853c07d81e8499b06636b729dfc74b3f"
+    }
+  ],
+  "error": "AssertionError: missing, duplicate or extra Run"
+}

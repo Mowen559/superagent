@@ -1,0 +1,8 @@
+{
+  "diagnostic_only": true,
+  "source_sha256": "31c05826fb6ee8ac28989b344a1848f11f479cac1a1043d822aa85555874774a",
+  "decoded_lazy_compiles": false,
+  "decoded_regex_became_comment": true,
+  "source_modified": false,
+  "parse_error": "Unexpected token '}'"
+}

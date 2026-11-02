@@ -1,0 +1,164 @@
+{
+  "passed": true,
+  "p0_baseline_sha256": "4649f89ce27296ac7974b8c2ec651ad3dd9509a71e381183181273dd925915f4",
+  "v8_inputs_sha256": "ed790e4c69fe757c215a061f18e94c2cdd6e88a2b1b7fd34ef91e6d71afc9e49",
+  "files": [
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\local-app-inspector\\SKILL.md",
+      "sha256": "5d29c4c478870b3cab4e8868d4d6c92a4c8a6cca0b9ac0c88a98f68eb13ca567",
+      "pinned_by": "v8",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\local-app-inspector\\scripts\\dmghg_probe.py",
+      "sha256": "4cc97eb38f9d0a3ff3662540f9ea0419d18d49e035911f161590f536e9f9439f",
+      "pinned_by": "v8",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\SKILL.md",
+      "sha256": "21e73991e764a04bb3accf75013e5ce5c475c35b34630240d02b10c3bdcb3413",
+      "pinned_by": "v8",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\anti-crawling-handbook.md",
+      "sha256": "1677a18ea7201cce6fd408900390b0b673d6c4ab837af711ac59d32252d7e46e",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\cms-archetypes.md",
+      "sha256": "59b1d352d1a56670cff89001196bafd076136d51249fcf1482989078fdc56e81",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\deep-reverse-engineering.md",
+      "sha256": "1654b7047a506e8f694c1491ce8fb01e3ec21d904e1ae64790c00278fdd809f0",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\hiker-api-lifecycle.md",
+      "sha256": "7d5c2ddc6930ba737ed38da21e5dc8eb2dba9d46e03f5ce432da4266d52e84c2",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\isomorphic-api.md",
+      "sha256": "7b65ea7bcf88ce2fa86f5a08c4c919dbaceac044953e55bfb06a56775c427d31",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\multi-tier-traversal.md",
+      "sha256": "4a304a30e8594eb92047c3d8f0f1507565368444e14a8a04d3704d00b0ff5b0c",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\prompt-playbook.md",
+      "sha256": "2e96deb1923a3bc1fa991f8c3f3c73c35e00937b7fa5392d17557677c521b560",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\references\\python-engine-synergy.md",
+      "sha256": "8ef8a58427b8ff43cf9a3a90eea1896615d13fc1f3e9c76b3a0b0368ea8c36b9",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\scripts\\export-command.cjs",
+      "sha256": "3f370cc246f37ec4211883a6880217cc6743111709a623d27445b57899a46709",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\scripts\\import-rule.cjs",
+      "sha256": "7cc962bb941e83e7294999cd83c00303bcca89700bb855415ae4ade50e9f4406",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\scripts\\patch-rule.cjs",
+      "sha256": "118e4bad7e7320e83b7a117b808696bd7f0559f7a18b6896ac4bf7ddd91e4a93",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\scripts\\quick-scaffold.cjs",
+      "sha256": "3eec1e0b6e1d2518ba3f21d17e1108e0c0b6df9043143d8ad4ab0d2d4a0ef911",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\scripts\\test-rule.cjs",
+      "sha256": "52175d63a242143cfe84fbd6139d4731622035868d45742d81b2ea2437821138",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\scripts\\update-xhs.cjs",
+      "sha256": "6cecf33e94e5ed0e3a93d1f728288bfa072e1f2df06c002771f7504716400706",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\scripts\\validate-rule.cjs",
+      "sha256": "9f2a56d3a3ecef53bc983315981b44247a9b5d0abe097cb9fc531fa63dfd4a9b",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\comic-manga.template.json",
+      "sha256": "caca3dda764d86ba8a29b630ebd39eb7c1a119b7b9f2c34155beeb0446dc827b",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\json-api.template.json",
+      "sha256": "5e47a148bc88e329ddab08fa45c2e4d8a1b8cb5747978cfbc17e7847afce2137",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\maccms-vod.template.json",
+      "sha256": "886efcf522a2fac5f1f3539d9067d413349bf8f48ee1da9b26b097464b558623",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\multi-tier-cascade.template.json",
+      "sha256": "8a45c0d8e485d33ca03b0de7c39ccdc65ec954e50f65cc0c28431c8af8e6713b",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\short-drama.template.json",
+      "sha256": "e5c715c908cbcbf88a3c23d6dfc805552bc8dacea5c41aad2b625df2706bbec8",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\standard-rule.template.json",
+      "sha256": "cadc6e9b0937779d21f7712f253d8e6e316412617d8f7dd37b7dced259ade522",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\tencent-video.rule.json",
+      "sha256": "6d04991ddb923df72da02ab994c7ae4b6f354bd28c719269da63733adb10fd5d",
+      "pinned_by": "P0",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\templates\\xiaohongshu.rule.json",
+      "sha256": "6607cecf3f2ec7227d5bc4d95d9dbcccfdd932d85a364997f6c5b4125ef2312a",
+      "pinned_by": "P0",
+      "unchanged": true
+    }
+  ],
+  "gaps": []
+}

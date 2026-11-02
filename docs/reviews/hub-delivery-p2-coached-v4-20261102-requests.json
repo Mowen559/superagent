@@ -1,0 +1,51 @@
+[
+  {
+    "id": "H01-coached-repair",
+    "oracle": "dmghg",
+    "classification": "corrected",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\.superagent\\runs\\e2d27ec5-24d7-4875-b07f-6be8b50b4e8d\\workspace",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "继续修复你上轮写出的三个交付物，保留目标与源码来源。上轮耗尽32轮，未调用 verify_delivery，仍是失败，不能把局部 VM 模拟当最终验证。\n\n最新独立复核：生成规则在生产引擎的分类、列表、两个搜索及详情均已走通，lazy 语法也修好了；失败现在位于 lazy 返回结果的真实媒体请求，HTTP 403。相同影片、线路和首集，原生 video.play 返回一个地址，headers 为空对象；按原生响应原样请求可取得 HTTP 206 和2048字节。你的 lazy 在没有 headers 时额外强加 Referer 和 User-Agent=PC，这与原生返回不一致。请依据实际证据修复空请求头分支，不猜造头，也不能换站或绕过鉴权。\n\n执行顺序：先调用 verify_delivery 取得当前真实错误；只修改必要产物，马上再调用 verify_delivery，按具体错误继续。不要重做 DLL 调查、另写探针、反复测试 node -e 转义或用自写 PASS 代替受信任验证。README 同步默认18002端口及Windows依赖，保留Android未验证边界。全程无GUI、不读原账号、不改安装目录、不外发。\n",
+      "resumeSessionId": "run_751bc6a24e414474b6bcf527092360a8"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v4-inputs.json",
+      "--inputs-sha256",
+      "e273fa5f4c708df58f49d73132ef8417b99f973d2128b63dea9f4b25a2c80a68"
+    ],
+    "based_on_task": "e2d27ec5-24d7-4875-b07f-6be8b50b4e8d",
+    "previous_receipt_sha256": "bc48432de535c167418b840bed0bb08c542987962b5424a31f4aac04e008bee7",
+    "feedback_sha256": "c4915d82f6328eba6ebc046ab07879e54e762c8af8b85f57b5b88f4849eb3668",
+    "artifacts_before": [
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\e2d27ec5-24d7-4875-b07f-6be8b50b4e8d\\workspace\\bridge.py",
+        "sha256": "d7a6853693a357072cf6bae0d3a36b31d0bbb5f3989b914fc4fcbc9c43e68388"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\e2d27ec5-24d7-4875-b07f-6be8b50b4e8d\\workspace\\README.md",
+        "sha256": "fc67cb3f9f4e27f9a234d2156e46e975f8a5431b19aa3cefc14526523639bf94"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\e2d27ec5-24d7-4875-b07f-6be8b50b4e8d\\workspace\\rule.json",
+        "sha256": "962261e91322b6b3d4447391814d0a1481777a3b1e09c4fa43be8ff7b0ba55b8"
+      }
+    ]
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "basis": "hub-delivery-p0-live-reconnected.json",
+  "baseline_investigation_ms": 25703,
+  "baseline_implementation_ms": 66883,
+  "model": "gemini-3.8-flash-high",
+  "investigation": {"max_primary_turns": 12, "total_deadline_seconds": 300},
+  "implementation": {"max_primary_turns": 32, "total_deadline_seconds": 900},
+  "nested_calls": "All nested tool/model time consumes the same HTTP task deadline; never reset deadline per step",
+  "token_accounting": "context-usage reports actual prompt context; billed completion/aggregate tokens remain unknown unless upstream provides usage",
+  "host_assistance": "Task-specific host code or corrective hints after start => assisted/corrected; preserve prior result",
+  "failure_policy": "Unknown or timed-out terminal state cannot pass the independent oracle",
+  "suite": "hub-delivery-suite-v1.json"
+}

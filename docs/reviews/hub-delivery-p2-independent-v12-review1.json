@@ -1,0 +1,19 @@
+{
+  "task_id": "f50d2343-80f6-4c2a-a98d-5813fe379ab3",
+  "passed": false,
+  "automatic_domain_passed": true,
+  "artifacts": {
+    "rule.json": "86b9fc655ac9592d83719a2cbdaebb5e9acd824c7407e9ab6a42ea72f7439aae",
+    "bridge.py": "07c7720a0bf6a261671cec9040f97ed0a16266af8d8b49ec103b4c999e01c3f9",
+    "README.md": "e6cc35ac871eaecdd4bc83afbea1b289a326f891e087982c3b4738920f83f383"
+  },
+  "reason": "bridge.py accepts arbitrary --host values; non-loopback bind attempted before external guard stopped it",
+  "actual_non_loopback_network_bind": false,
+  "source_modified_by_host": false,
+  "checks": [
+    "real production runtime and media passed",
+    "cold package passed under prior frozen checks",
+    "new explicit CLI override negative fails"
+  ],
+  "evidence": "hub-delivery-p2-v12-loopback-negative.json"
+}

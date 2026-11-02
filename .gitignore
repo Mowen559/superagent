@@ -77,3 +77,7 @@ ZCode/
 deepseek-harness/
 hermes-agent/
 openclaw/
+
+__pycache__/
+*.pyc
+/artifacts/

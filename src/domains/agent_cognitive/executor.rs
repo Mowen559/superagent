@@ -473,6 +473,10 @@ impl AgentLoop {
         }
     }
 
+    pub fn tool_result_store(&self) -> Arc<std::sync::Mutex<crate::services::brain::tool_result_store::ToolResultStore>> {
+        self.tool_gateway.result_store()
+    }
+
     pub fn register_tool(&mut self, tool: Box<dyn ToolExecutor>) {
         self.plugin_registry.register(tool);
     }
@@ -504,7 +508,7 @@ impl AgentLoop {
         let run_id = uuid::Uuid::new_v4().to_string();
         start_run(&mut self.events, run_id.clone())?;
         self.save_session();
-        let result = self.run_active(prompt, images).await;
+        let result = self.run_active(prompt, images, &run_id).await;
         match &result {
             Ok(_) => finish_run(&mut self.events, &run_id, RunOutcome::Completed, None)?,
             Err(error) => finish_run(
@@ -527,6 +531,7 @@ impl AgentLoop {
         &mut self,
         prompt: &str,
         initial_images: Vec<String>,
+        run_id: &str,
     ) -> Result<String, String> {
         // Clean legacy completed todo file if no tasks remain unfinished
         let todo_path = PathBuf::from(self.run_prelude_runtime.project_path()).join(".superagent_todo.md");
@@ -569,6 +574,10 @@ impl AgentLoop {
         }
         let mut circuit_breaker = CircuitBreakerGuard::default();
         let mut cognition = CognitiveRuntime::begin(prompt);
+        cognition.task_progress().lock().unwrap_or_else(|e| e.into_inner())
+            .configure_delivery(&self.runtime_config.project_root, self.session_ledger.session_id(), run_id)?;
+        self.plugin_registry.register(Box::new(crate::services::brain::delivery_evidence::VerifyDeliveryTool(cognition.task_progress())));
+        self.plugin_registry.register(Box::new(crate::services::brain::tools::plan_task::RunBoundPlanTaskTool(cognition.task_progress())));
         if let Ok(limit) = std::env::var("HUB_AGENT_MAX_MODEL_TURNS").unwrap_or_default().parse::<usize>() {
             cognition.limit_model_turns(limit);
         }
@@ -1050,7 +1059,8 @@ impl AgentLoop {
                                 name: item.func_name.clone(),
                                 arguments: item.args,
                             };
-                            let receipt = execute_with_timeout(self.tool_gateway.clone(), req, 60);
+                            let deadline = if req.name == "verify_delivery" { 180 } else { 60 };
+                            let receipt = execute_with_timeout(self.tool_gateway.clone(), req, deadline);
 
                             if awaits_user {
                                 self.transition_session(

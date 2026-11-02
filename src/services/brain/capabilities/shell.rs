@@ -109,7 +109,7 @@ impl ShellService for LocalShellProvider {
             } else {
                 cmd.to_string()
             };
-            format!("$ProgressPreference = 'SilentlyContinue'; {}", safe_cmd)
+            format!("$ProgressPreference = 'SilentlyContinue'; [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); $OutputEncoding = [Console]::OutputEncoding; {}", safe_cmd)
         } else {
             cmd.to_string()
         };
@@ -127,6 +127,9 @@ impl ShellService for LocalShellProvider {
             })
             .arg(&normalized_cmd);
         command.current_dir(cwd);
+        if cfg!(windows) {
+            command.env("PYTHONIOENCODING", "utf-8").env("PYTHONUTF8", "1");
+        }
         command.stdin(std::process::Stdio::piped());
         command.stdout(std::process::Stdio::piped());
         command.stderr(std::process::Stdio::piped());
@@ -223,7 +226,7 @@ impl ShellService for LocalShellProvider {
                         )
                     };
 
-                    return Ok(serde_json::json!({
+                    let mut result = serde_json::json!({
                         "status": "completed",
                         "exit_code": status.code(),
                         "stdout": stdout_res.content,
@@ -234,7 +237,13 @@ impl ShellService for LocalShellProvider {
                             "tokens_saved_est": stdout_res.original_tokens_est.saturating_sub(stdout_res.compressed_tokens_est),
                             "tracker_stats": crate::domains::token_compression::TokenSavingsTracker::global().get_stats()
                         }
-                    }));
+                    });
+                    if stdout_res.content != stdout_raw || stderr_res.content != stderr_raw {
+                        result["__hub_original_streams"] = serde_json::json!({
+                            "stdout": stdout_raw, "stderr": stderr_raw
+                        });
+                    }
+                    return Ok(result);
                 }
                 Ok(None) => {
                     let current_stdout = strip_ansi_escapes(&String::from_utf8_lossy(&stdout_bytes));
@@ -303,6 +312,15 @@ impl ShellService for LocalShellProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn python_and_powershell_preserve_chinese_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = LocalShellProvider.execute("python -c \"print('仙逆中文')\"", &dir.path().to_string_lossy(), false, 10).unwrap();
+        assert_eq!(result["exit_code"], 0);
+        assert!(result["stdout"].as_str().unwrap().contains("仙逆中文"), "{result}");
+    }
 
     #[test]
     fn test_strip_ansi_escapes() {

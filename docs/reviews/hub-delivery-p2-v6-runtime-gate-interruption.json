@@ -1,0 +1,6 @@
+{
+  "task_id": "56fb8f34-cdcd-4a5b-a165-10e0e10201ea",
+  "reason": "trusted verify_delivery evidence not accepted by Run authoritative-evidence plan",
+  "qualification_passed": false,
+  "cancelled_before_runtime_changes": true
+}

@@ -5,6 +5,20 @@ use serde_json::{Value, json};
 /// Pure planning capability: no I/O, model calls, or authority changes.
 pub struct PlanTaskTool;
 
+/// Checks the Run's existing delivery authority before a plan is acknowledged.
+pub struct RunBoundPlanTaskTool(pub crate::services::brain::task_progress::SharedTaskProgress);
+
+impl ToolExecutor for RunBoundPlanTaskTool {
+    fn name(&self) -> &'static str { PlanTaskTool.name() }
+    fn description(&self) -> &'static str { PlanTaskTool.description() }
+    fn parameters_schema(&self) -> Value { PlanTaskTool.parameters_schema() }
+    fn execute(&self, args: Value) -> Result<Value, String> {
+        let contract = TaskContract::from_value(args)?;
+        let contract = self.0.lock().unwrap_or_else(|e| e.into_inner()).normalize_plan_delivery(contract)?;
+        Ok(json!({"status":"planned","task_contract":contract}))
+    }
+}
+
 impl ToolExecutor for PlanTaskTool {
     fn name(&self) -> &'static str {
         "plan_task"

@@ -1,0 +1,13 @@
+{
+  "task_id": "0572c601-a95e-4710-9d91-bffeb7a6a777",
+  "passed": false,
+  "artifacts": {
+    "rule.json": "582318632594437dcd565c47aae7ad7e67822339151e921f04d14f93a7106346",
+    "bridge.py": "bc1161a2f9e81ec100327236fa7c17f5f2f5c324bc43c18847417a0c3bfa0bd0",
+    "README.md": "4a8513064893bba1c3fdd56597d3ead03f010c130e1c25739c7d67afb92c1fc8"
+  },
+  "reason": "首页find_rule用MY_URL覆盖动态bridgeBase，换许可端口后没有真实内容；与README动态端口支持声明不符",
+  "evidence": "hub-delivery-p2-v19-alternate-port-negative.json",
+  "host_business_edits": false,
+  "automatic_pass_retained": true
+}

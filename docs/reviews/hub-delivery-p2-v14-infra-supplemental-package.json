@@ -1,0 +1,45 @@
+{
+  "passed": false,
+  "source": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-2db7c5a44afc4d06ad5adecf9ce7b55f\\data\\runs\\68901ba9-92e6-45b3-9efd-73e23f072283\\workspace",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-1lxxfs1z\\新目录交付",
+  "target": "D:\\太极\\动漫共和国概念版",
+  "validator_sha256": "f7d1ba487398f0bfbc0b7a096d926807a444c0f2dc1be0a7bd2ea2f977af2278",
+  "checks": [],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "ce98134e69ce38c3ee6c24f02699871595cbceac549527fb929f26dbb6722951"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "42b825a446636db0305ca34238b4d4a672696360cdeb9347c6e04075cdc06eb3"
+    },
+    {
+      "name": "README.md",
+      "sha256": "65d2d9d6a23233594d54311053b8b5d04052f59ec7bccdbf49c00590dfb0bd5d"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "io",
+    "json",
+    "os",
+    "pathlib",
+    "shutil",
+    "socket",
+    "sys",
+    "tempfile",
+    "threading",
+    "time",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "domain_oracle": {
+    "passed": false,
+    "checks": [],
+    "error": "list index out of range"
+  },
+  "error": "AssertionError: cold directory domain verification failed"
+}

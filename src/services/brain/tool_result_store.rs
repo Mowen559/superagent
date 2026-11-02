@@ -29,6 +29,11 @@ pub struct ToolResultStore {
 }
 
 impl ToolResultStore {
+    /// Each Run has an independent namespace, even for equal output hashes.
+    pub fn run_location() -> Self {
+        Self::new(AppPaths::new().data_path(&["tool-results", &Uuid::new_v4().to_string()]))
+    }
+
     pub fn default_location() -> Self {
         Self::new(AppPaths::new().data_path(&["tool-results"]))
     }
@@ -48,7 +53,7 @@ impl ToolResultStore {
     pub fn persist(&self, content: &str) -> Result<StoredToolResult, String> {
         fs::create_dir_all(&self.root)
             .map_err(|error| format!("failed to create tool result store: {error}"))?;
-        let id = format!("{:016x}", xxh3_64(content.as_bytes()));
+        let id = format!("{:016x}", xxh3_64(format!("{}\0{}", self.root.display(), content).as_bytes()));
         let path = self.path_for_id(&id);
         if !path.exists() {
             let temporary = self.root.join(format!(".{}.tmp", Uuid::new_v4()));

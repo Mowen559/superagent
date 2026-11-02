@@ -1,0 +1,14 @@
+{
+  "pid": 34100,
+  "launcher_sha256": "2BE7489004D9F620090B02C38581F141CA984F5C814C8AC00BD499D413A9349B",
+  "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+  "port": 39167,
+  "stage": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-968468ae7ba84fc28ab6e48556022cd6",
+  "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+  "binarySha256": "86C649E5CD23AD993A6343EEEE2FAF7F78CF20CA56D4B040030EFF013EDEC93D",
+  "model_turn_budget": 40,
+  "evolution_initial_exists": false,
+  "evolution_baseline": "empty; private to this service and independent Run",
+  "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v12-profile.json",
+  "app_data_root": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-968468ae7ba84fc28ab6e48556022cd6\\data"
+}

@@ -1,0 +1,9 @@
+{
+  "source_report": "docs\\reviews\\hub-delivery-p2-independent-v10-part1.json",
+  "task_id": "73dcb326-a024-4b83-9568-d520f6c0a373",
+  "status": "failed",
+  "model_turns": 40,
+  "source_loss_reproduced": true,
+  "original_reference_available": false,
+  "signature_retained_in_receipt": false
+}

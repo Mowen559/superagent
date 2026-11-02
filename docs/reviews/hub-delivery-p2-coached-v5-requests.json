@@ -1,0 +1,52 @@
+[
+  {
+    "id": "H01-coached-repair",
+    "oracle": "dmghg",
+    "classification": "corrected",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-coached-copy-i19pdok6\\project",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "继续完善你已交付的动漫共和国规则。本次目录只有上轮你写出的 rule.json、bridge.py、README.md 的原样副本，内容哈希未改。使用全新会话避免旧草稿干扰，仍属于带反馈纠错，不能算独立首次成功。\n\n上轮分类、翻页、两个搜索、详情、lazy、真实媒体解码均已通过，复制到新中文目录后也通过；不需要重新调查DLL、编写探针、改规则或重新生成整个项目。\n\n本次唯一已复现的交付断点是：桥接接收一个声明100字节请求体但只发送1字节的客户端时，超过8秒仍不返回或关闭。此时另外4个并发只读请求正常，说明需要补的是服务端请求读取时限。请只为现有HTTP处理补上8秒以内的读取超时和合理的请求体大小上限，并同步README实际超时。保持只读RPC白名单、线程锁、127.0.0.1及默认18002，不增加账户/登录能力。\n\n受信任验证器现在分别验证 rule 和 bridge。尽快进行最小修改，然后 verify_delivery 检查所有项；根据具体错误修正。不要把客户端设置timeout或自写PASS当作服务端超时已实现。全程无GUI、不改安装目录、不读原账号、不外发。交付后简要列出实际验证范围及Android独立运行未验证。\n"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v5-inputs.json",
+      "--inputs-sha256",
+      "cb3ab9fa68c5a212d23c72cc469ffff396611a9dd1ad9ae2e6c76db4bb95323d"
+    ],
+    "based_on_task": "4139605f-7eaa-4b6e-8dd8-0689f03ba63f",
+    "previous_receipt_sha256": "54ccfa04884fb076767a74d335f9a0011b65f7728008cfe42bd411975dd85770",
+    "feedback_sha256": "0dd87b09ea21cd63015b36fe0898e943bfb317564f2e2e8e64bba62e190beee3",
+    "coached_copy_source": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace",
+    "copied_bytes_unchanged": true,
+    "artifacts_before": [
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace\\bridge.py",
+        "sha256": "f55e234caa8a54998cb5185479bd3cb45e586e7c146b0d4df70bc87364a43174"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace\\README.md",
+        "sha256": "74513db6df0fcee3264f6700184cab8f9f018cc76d343971dcb0f549879bcdd2"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace\\rule.json",
+        "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+      }
+    ]
+  }
+]

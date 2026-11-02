@@ -1,0 +1,2 @@
+import delivery_fixture_dep
+print(delivery_fixture_dep.value)

@@ -1,0 +1,7 @@
+{
+  "task_id": "608b673d-4b2d-4a1c-9ec0-cdd916c1b2db",
+  "classification": "infra_failed",
+  "error": "trusted bridge validator stdout was not UTF-8",
+  "cancellation_requested": true,
+  "does_not_count_as_independent_generation": true
+}

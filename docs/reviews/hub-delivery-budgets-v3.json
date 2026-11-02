@@ -1,0 +1,20 @@
+{
+  "version": 3,
+  "scope": "P2 known-target rule generation; frozen before v9 trials",
+  "model": "gemini-3.8-flash-high",
+  "rule_generation": {"model_turns": 40, "timeout_seconds": 1500},
+  "runtime_ceiling": 40,
+  "actual_budget_source": "worker first-turn snapshot Turn Budget",
+  "supersedes": "hub-delivery-budgets-v2.json",
+  "correction": {
+    "v8_declared_model_turns": 48,
+    "v8_observed_model_turns": 40,
+    "v8_task": "c29e9fb5-fa96-4df8-bc98-106d1ab7eeae",
+    "v8_status": "failed",
+    "reason": "limit_model_turns only tightens the existing 40-turn ceiling; launcher metadata had incorrectly advertised 48",
+    "v8_failure_preserved": true
+  },
+  "workflow_change": "Known native app uses compact PC execution contract and existing ABI probe, then writes three deliverables before validation; avoid package/temp/repository scans",
+  "unchanged_requirements": ["same target", "Hub authors business files", "production rule engine", "actual decoding", "cold package", "three independent successes"],
+  "non_rule_budgets": "unchanged v1"
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "H01-coached-repair",
+    "oracle": "dmghg",
+    "classification": "corrected",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-coached-copy-gzxp450_\\project",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "只修正README的两处验收措辞，然后完成交付。规则和桥接已经通过，不要重写它们或重新调查。本次仍是带反馈纠错。\n\n澄清上一条教导里混在一起的分页事实：生产验证器验证的是默认首页列表第1页和第2页，以及频道20、21各自的分类列表；两个关键词仙逆、斗破都只验了搜索第一页，未测试搜索第二页。README目前“双关键词搜索核对”写成了“第1页、第2页搜索结果”，请删除这个未经测试的搜索第二页结论；也不要暗示两个分类都分别验证了第二页。\n\n另外，“正确解析简介、导演”没有逐字段业务断言。已独立核对的是详情标题及前/中/后选集名称。可说明规则按接口返回映射其他字段，但这些字段未单独验收，不能写成均已验证正确。\n\n先读取README，做上述两处最小修正，不需要增加计划或编写新测试脚本。然后verify_delivery检查全部产物，简要按实际收据交付。保留原目标、依赖、超时、Android未验证和无GUI边界。不得更改受信任验证器、原安装目录或账号数据，也不发布。\n"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v7-inputs.json",
+      "--inputs-sha256",
+      "b60a763991b069b7d8a18a7e6e548c739e48fd0039844c3f6463065305ee3257"
+    ],
+    "based_on_task": "7275c6c4-7bcf-42ca-96d2-89f5c3de6506",
+    "previous_receipt_sha256": "b3b17739b8da45d509f7c5cd9c944a6ab3926e7905c40833538df7c89beace8f",
+    "feedback_sha256": "a25d20d073456ff19907b6436302e1c81599b000fb22f63616230cd5ab8f64f2",
+    "coached_copy_source": "C:\\Users\\刘本录\\.superagent\\runs\\7275c6c4-7bcf-42ca-96d2-89f5c3de6506\\workspace",
+    "copied_bytes_unchanged": true,
+    "artifacts_before": [
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\7275c6c4-7bcf-42ca-96d2-89f5c3de6506\\workspace\\bridge.py",
+        "sha256": "9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\7275c6c4-7bcf-42ca-96d2-89f5c3de6506\\workspace\\README.md",
+        "sha256": "31ad5dc7343c6f193a24c13d7d2e6c9b06a8985eb82768fd68f6eed545c15f36"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\7275c6c4-7bcf-42ca-96d2-89f5c3de6506\\workspace\\rule.json",
+        "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+      }
+    ]
+  }
+]

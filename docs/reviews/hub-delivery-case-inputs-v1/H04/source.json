@@ -1,0 +1,6 @@
+{
+  "url": "https://test-streams.mux.dev/",
+  "status": 200,
+  "raw_sha256": "80c394329ce22037a32b9d0d4e8d16b1ac4f9bd692e21a5e27a9f53c491becff",
+  "scope": "availability snapshot; live execution still required"
+}

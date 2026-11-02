@@ -1,0 +1,95 @@
+[
+  {
+    "id": "H01-independent-1",
+    "oracle": "dmghg",
+    "classification": "first_attempt",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-1guu71l8\\project-1",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "D:\\太极\\动漫共和国概念版 根据合适的skill生成实际可用的海阔规则，亲自编写必要的本地适配并验证，不能只做调查。交付 rule.json、bridge.py、README.md，包含依赖、启动及导入方法。完全不使用桌面，不启动GUI，不改安装目录、不读取原账号，不发布或推送设备。"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v7-inputs.json",
+      "--inputs-sha256",
+      "b60a763991b069b7d8a18a7e6e548c739e48fd0039844c3f6463065305ee3257"
+    ]
+  },
+  {
+    "id": "H01-independent-2",
+    "oracle": "dmghg",
+    "classification": "first_attempt",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-1guu71l8\\project-2",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "D:\\太极\\动漫共和国概念版 根据合适的skill生成实际可用的海阔规则，亲自编写必要的本地适配并验证，不能只做调查。交付 rule.json、bridge.py、README.md，包含依赖、启动及导入方法。完全不使用桌面，不启动GUI，不改安装目录、不读取原账号，不发布或推送设备。"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v7-inputs.json",
+      "--inputs-sha256",
+      "b60a763991b069b7d8a18a7e6e548c739e48fd0039844c3f6463065305ee3257"
+    ]
+  },
+  {
+    "id": "H01-independent-3",
+    "oracle": "dmghg",
+    "classification": "first_attempt",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-dmghg-delivery-1guu71l8\\project-3",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "D:\\太极\\动漫共和国概念版 根据合适的skill生成实际可用的海阔规则，亲自编写必要的本地适配并验证，不能只做调查。交付 rule.json、bridge.py、README.md，包含依赖、启动及导入方法。完全不使用桌面，不启动GUI，不改安装目录、不读取原账号，不发布或推送设备。"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v7-inputs.json",
+      "--inputs-sha256",
+      "b60a763991b069b7d8a18a7e6e548c739e48fd0039844c3f6463065305ee3257"
+    ]
+  }
+]

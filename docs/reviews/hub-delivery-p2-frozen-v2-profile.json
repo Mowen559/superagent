@@ -1,0 +1,49 @@
+{
+  "delivery": {
+    "version": 1,
+    "scope": "implementation",
+    "target": "D:\\太极\\动漫共和国概念版",
+    "artifacts": [
+      {
+        "id": "rule",
+        "path": "rule.json",
+        "required": true,
+        "validator": "dmghg-production-runtime"
+      },
+      {
+        "id": "bridge",
+        "path": "bridge.py",
+        "required": true
+      },
+      {
+        "id": "readme",
+        "path": "README.md",
+        "required": true
+      }
+    ]
+  },
+  "validators": [
+    {
+      "id": "dmghg-production-runtime",
+      "program": "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "program_sha256": "03168c01b7b7491423350e82c26fee71f35b43694d1319d3c668bda6903a0c38",
+      "script": "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "script_sha256": "3f1267f847fa4fc7b8d565baf3f35c85c73bf8a45bee1380c8c794fd8e4518df",
+      "args": [
+        "--workspace",
+        "{workspace}",
+        "--artifact",
+        "{artifact}",
+        "--target",
+        "D:\\太极\\动漫共和国概念版",
+        "--node",
+        "D:\\UC\\nvm\\v22.22.1\\node.exe",
+        "--inputs",
+        "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v2-inputs.json",
+        "--inputs-sha256",
+        "8d11f66f13021c3c79415f02bada4f688e0f5688d0957d4f4b382e8fbd965400"
+      ],
+      "timeout_seconds": 150
+    }
+  ]
+}

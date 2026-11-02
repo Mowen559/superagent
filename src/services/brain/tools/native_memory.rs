@@ -65,13 +65,25 @@ impl ToolExecutor for NativeMemoryTool {
         // 智能定位主工程 supermemory 路径 (沙箱逃逸自愈定位)
         let resolved_project_path = crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
             &self.workspace_root,
-            &[".supermemory"],
+            &[],
         );
 
         let app_paths = crate::config::app_paths::AppPaths::new();
         let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
-        let project_path_str = resolved_project_path.to_string_lossy().to_string();
+        // Reading origin knowledge is allowed; new memories belong to this workspace.
+        let memory_root = &self.workspace_root;
+        let project_path_str = memory_root.to_string_lossy().to_string();
         let store = SupermemoryStore::new(&config, Some(&project_path_str));
+        let origin = SupermemoryStore::new(&config, Some(&resolved_project_path.to_string_lossy()));
+        let search = |query: &str| {
+            let mut results = store.search(query, 5);
+            if resolved_project_path != self.workspace_root {
+                for record in origin.search(query, 5) {
+                    if !results.iter().any(|r| r.id == record.id) { results.push(record); }
+                }
+            }
+            results.truncate(5); results
+        };
 
         match action {
             "store" => {
@@ -115,7 +127,7 @@ impl ToolExecutor for NativeMemoryTool {
                     .get("key")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| "Missing required 'key' for action='retrieve'".to_string())?;
-                let results = store.search(key, 5);
+                let results = search(key);
                 let json_results: Vec<Value> = results
                     .into_iter()
                     .map(|r| {
@@ -136,7 +148,7 @@ impl ToolExecutor for NativeMemoryTool {
                     .or_else(|| args.get("key"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
-                let results = store.search(query, 5);
+                let results = search(query);
                 let json_results: Vec<Value> = results
                     .into_iter()
                     .map(|r| {
@@ -153,7 +165,12 @@ impl ToolExecutor for NativeMemoryTool {
                 Ok(json!({ "status": "success", "results": json_results }))
             }
             "list" => {
-                let data = store.load();
+                let mut data = store.load();
+                if resolved_project_path != self.workspace_root {
+                    for record in origin.load().memories {
+                        if !data.memories.iter().any(|r| r.id == record.id) { data.memories.push(record); }
+                    }
+                }
                 let recent: Vec<Value> = data
                     .memories
                     .iter()

@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "effective_scope": "P2 known-target rule generation; applies before the v8 independent trials",
+  "model": "gemini-3.8-flash-high",
+  "rule_generation": {"model_turns": 48, "timeout_seconds": 1500},
+  "existing_non_rule_budget_version": "hub-delivery-budgets-v1.json",
+  "evidence": {
+    "report": "hub-delivery-p2-independent-v7-part1.json",
+    "task_id": "16a137e1-603d-4574-8716-9c522dba583c",
+    "original_turns": 32,
+    "original_duration_ms": 872303,
+    "original_task_status": "failed",
+    "domain_oracle_passed": true,
+    "cause": "Last model turn completed trusted validation but no budget remained for progress acknowledgement and final delivery"
+  },
+  "limits": [
+    "Original failure is preserved and never reclassified as first-attempt success",
+    "New trials start with empty projects, new Sessions and private empty evolution stores",
+    "All business and cold-package acceptance requirements stay unchanged",
+    "No speed improvement or generalization is inferred from the increased budget"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "11f6e46f-b82f-4161-a0b4-84aeb0ba99fe",
+  "classification": "corrected",
+  "teacher": "Codex",
+  "action": "steer",
+  "status": 200,
+  "feedback_file": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-feedback-v20-steer.txt",
+  "feedback_sha256": "2a2126103a99126d8a1522bae81fc7c66b48dc8a868101016d3bb3598b5e34a0",
+  "response": "{\"success\":true,\"message\":\"Interaction delivered.\"}",
+  "sent_at_utc": "2026-11-02T16:37:48.444554+00:00",
+  "host_business_edits": false
+}

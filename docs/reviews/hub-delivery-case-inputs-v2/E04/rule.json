@@ -1,0 +1,1 @@
+{"title": "runtime failure fixture", "url": "hiker://empty", "find_rule": "js:throw new Error('replace this failure with setResult containing RUNTIME_RECOVERY_42');"}

@@ -1,0 +1,18 @@
+{
+  "task_id": "98433cf5-f342-4f46-a37f-9b9e3c3d07ff",
+  "expected_target": "D:\\太极\\动漫共和国概念版",
+  "declarations": [
+    {
+      "target": "D:\\\\太极\\\\动漫共和国概念版",
+      "same_existing_target": true,
+      "artifacts_semantically_equal": true
+    },
+    {
+      "target": "D:\\\\太极\\\\动漫共和国概念版",
+      "same_existing_target": true,
+      "artifacts_semantically_equal": true
+    }
+  ],
+  "oracle_passed": true,
+  "run_completed": false
+}

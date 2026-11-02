@@ -1,0 +1,1 @@
+{"passed": true, "actual_network_bind": false, "override": "0.0.0.0", "reason": "CLI override rejected before binding"}

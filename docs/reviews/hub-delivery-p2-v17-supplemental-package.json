@@ -1,0 +1,42 @@
+{
+  "passed": false,
+  "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-delivery\\p2-v17-d26b4b87",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-p781xgwr\\新目录交付",
+  "target": "D:\\太极\\动漫共和国概念版",
+  "validator_sha256": "f7d1ba487398f0bfbc0b7a096d926807a444c0f2dc1be0a7bd2ea2f977af2278",
+  "checks": [],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "e4b3d2de79fa93a40e1bc35dafac1a1593a890eeb5d47edb6a7a5812e61302f3"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "8bc27a92050dceb6f6fd29b4db45523235bce4add0b8177eaa7d784646544754"
+    },
+    {
+      "name": "README.md",
+      "sha256": "b744f0d6739f63e1e2735f64e425c7e97b1aafd5052f5d3aebca9dabcc2f32b3"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "socket",
+    "sys",
+    "tempfile",
+    "threading",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "domain_oracle": {
+    "passed": false,
+    "checks": [],
+    "error": "one second actual decoding not reached"
+  },
+  "error": "AssertionError: cold directory domain verification failed"
+}

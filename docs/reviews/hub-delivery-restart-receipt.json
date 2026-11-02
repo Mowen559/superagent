@@ -1,0 +1,9 @@
+{
+  "task_id": "05dda478-06b5-48ef-8ce7-576c982e20f9",
+  "state_loaded_by_new_candidate": "completed",
+  "completion_event_count": 1,
+  "event_shape": [
+    "taskId",
+    "events"
+  ]
+}

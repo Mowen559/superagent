@@ -1,0 +1,6 @@
+{
+  "url": "https://books.toscrape.com/",
+  "status": 200,
+  "raw_sha256": "9fdd63da34161ebd13408d7a85105f83ec3c9f351c5d77cd0aa578790e121c1e",
+  "scope": "availability snapshot; live execution still required"
+}

@@ -1,0 +1,28 @@
+{
+  "task_id": "11f6e46f-b82f-4161-a0b4-84aeb0ba99fe",
+  "classification": "corrected",
+  "passed": true,
+  "independent_generation_certified": false,
+  "host_business_edits": false,
+  "artifacts": {
+    "rule.json": "e3e844f7dfaec4bb076504df2971b06a8f8d76ea4a842048112341cb58285068",
+    "bridge.py": "bc1161a2f9e81ec100327236fa7c17f5f2f5c324bc43c18847417a0c3bfa0bd0",
+    "README.md": "28e9282ca53f1233c501b7386bccf06b4f346bdba56afcd6692a1ba9caca5881"
+  },
+  "supplemental_teaching_consumed": true,
+  "trace_sha256": "7489c2bc5af23e42d025358348312fa9961af52d55a59ed023d995100a496538",
+  "evidence": [
+    "hub-delivery-p2-coached-v20.json",
+    "hub-delivery-p2-coached-v20-package.json",
+    "hub-delivery-p2-coached-v20-steering.json"
+  ],
+  "scope": "Windows PC original native target, loopback only; Android and frontend window unverified",
+  "review_basis": [
+    "Hub edited the rule and README; bridge kept original self-contained standard-library implementation",
+    "Homepage reuses expanded query and replaces origin with bridgeBase",
+    "actual production runtime used 18001 while rule default is 18002",
+    "full cold-copy domain, decoder, concurrency, timeout, shutdown and failure checks passed",
+    "README separates original samples from formal verifier scope and mobile boundary"
+  ],
+  "documentation_note": "Formal literal query is 斗破; README refers to the series as 斗破苍穹. Exact replay inputs remain in the frozen receipts."
+}

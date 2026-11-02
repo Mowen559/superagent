@@ -1,0 +1,3 @@
+这是本轮纠错测试的补充教导，仍归类corrected。你的test_syntax.js报Play resolve result: undefined，不能独立证明生产lazy失败：new Function执行一个表达式而没有return时，其函数返回值本来就是undefined。不要为了自建模拟器的返回值约定改坏生产.js:表达式。
+
+请完成README的范围修订后，立即调用verify_delivery验证rule、bridge、readme，以真实生产运行库结果定位剩余问题；不再用123等微型模拟实验消耗轮次。宿主没有修改你的业务文件，也不会降低验证门槛。

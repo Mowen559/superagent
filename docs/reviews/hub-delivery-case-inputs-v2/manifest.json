@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "cases": {
+    "U01": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\U01\\report.md",
+        "sha256": "e04ccb81adbea2d6a825c1e350bc607764505cf613b2a2f99106c04d31d5e089"
+      }
+    ],
+    "U02": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\U02\\calc.cjs",
+        "sha256": "cf181b7813449309059f140f7cb4f3ae77c20bd7f777612b53a824391a9c6486"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\U02\\README.md",
+        "sha256": "52b4668a5b88d50959cbcac3fa0f25bd5ef82b604b7d50c50e173d41af9dbb81"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\U02\\user-owned.txt",
+        "sha256": "7fe3dcfc9575d56ca097a2d4977f0bf60922af8e1318d871ab05585ace0727ec"
+      }
+    ],
+    "U03": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\U03\\calc.cjs",
+        "sha256": "93f9427d7ac5e83ce97788e958370e9d3aa095aa911832a8ac0190ee4a44a292"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\U03\\prior-result.json",
+        "sha256": "06b9ac530bcba85efb0d2f6663fd63943533af6ac15b48e9ef0c1902ca00e5bd"
+      }
+    ],
+    "F01": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F01\\calc.cjs",
+        "sha256": "cf181b7813449309059f140f7cb4f3ae77c20bd7f777612b53a824391a9c6486"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F01\\README.md",
+        "sha256": "52b4668a5b88d50959cbcac3fa0f25bd5ef82b604b7d50c50e173d41af9dbb81"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F01\\user-owned.txt",
+        "sha256": "7fe3dcfc9575d56ca097a2d4977f0bf60922af8e1318d871ab05585ace0727ec"
+      }
+    ],
+    "F02": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F02\\api.md",
+        "sha256": "ca19821cb94498715411eb95fdd330b169ffccbc05478fc441d8f464caa3a5e8"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F02\\backend.cjs",
+        "sha256": "fa2981116d030a146619cd7c07087fbbaef8a9d7ac3ff1f2cc0564f6324becfc"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F02\\client.cjs",
+        "sha256": "24220388d54c1f46774879f3ffac1dd91f9debd2bac5ba8f2948dde90798f802"
+      }
+    ],
+    "F03": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F03\\checkout.cjs",
+        "sha256": "81e5cdcec6978e814b51e8d20044302dbf06ef81e9f3b61e981580e93117e53a"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F03\\index.cjs",
+        "sha256": "8b96ec2f91d458783b54e07e59653c59e211ce3bad703462df20c4809d6e5ec9"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F03\\README.md",
+        "sha256": "9380fbf5162d825850fdd8529a91dab15375352555fd309a8c9373409dc07895"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F03\\shipping.cjs",
+        "sha256": "2cb65692207e7c8209851cffed78bb79cb2074313e1278dadb8a4da609df2989"
+      }
+    ],
+    "F04": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F04\\calc.cjs",
+        "sha256": "cf181b7813449309059f140f7cb4f3ae77c20bd7f777612b53a824391a9c6486"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F04\\README.md",
+        "sha256": "52b4668a5b88d50959cbcac3fa0f25bd5ef82b604b7d50c50e173d41af9dbb81"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\F04\\user-owned.txt",
+        "sha256": "7fe3dcfc9575d56ca097a2d4977f0bf60922af8e1318d871ab05585ace0727ec"
+      }
+    ],
+    "R01": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\R01\\route.cjs",
+        "sha256": "11e284db2a5374cf077e72af3187f618d227f1781dab2617aff4fab7218378f8"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\R01\\runtime.cjs",
+        "sha256": "076a93390d456e9b16550491a7a140b7375fbf7c1369da6ebfc772851302896b"
+      }
+    ],
+    "R02": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\R02\\README.md",
+        "sha256": "d0545eb4828c59364670cd85b2cdd27a71bdae3aded6ccc735fb556cc37e0066"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\R02\\registry.cjs",
+        "sha256": "66c3de208a2b114bb1dbf848429d4511ff4c07d2ae82cd98ab7d56ebc02d9957"
+      }
+    ],
+    "R03": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\R03\\target.json",
+        "sha256": "9731db489ac8a10376e22070ff85f1647ea95a58f72d1e3c643e3a7ca0b781d7"
+      }
+    ],
+    "H01": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\H01\\target.json",
+        "sha256": "9731db489ac8a10376e22070ff85f1647ea95a58f72d1e3c643e3a7ca0b781d7"
+      }
+    ],
+    "H02": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\H02\\response.snapshot",
+        "sha256": "25b3028aa68239a4bae82b3bdb8879179c0818903b3eadd9f604842897fc3a86"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\H02\\source.json",
+        "sha256": "c8c8f9baccb5b93c7cf22c7353a53bdc82126b6774aa73bddfe851418cd11448"
+      }
+    ],
+    "H03": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\H03\\response.snapshot",
+        "sha256": "6f41143d7b32491e6bb72c07969ba1f6bccdc92086b6dd5bbdf4bee28c611b29"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\H03\\source.json",
+        "sha256": "6b20f494f15cc91891987da43287aa6b8cce6ca6c404ec302867468b5cc00b8b"
+      }
+    ],
+    "H04": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\H04\\response.snapshot",
+        "sha256": "68ba88a54fc406cd422c1a59796f263cb9ccfa4011088c37ada2697ad0877dee"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\H04\\source.json",
+        "sha256": "4a74aec941d36e5c85fe4eebba2b512e7d08508cfdbb3684a15a10935f27bf5a"
+      }
+    ],
+    "E01": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E01\\input.txt",
+        "sha256": "d47d8e1fda9a78678890f1174d860b354f1990d5e058fc920af4a5653d6d5d35"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E01\\lookup.py",
+        "sha256": "0f55a8bd6f18c34af7291990a971b13aed6d02c4c89bc4fe525615bbb8922698"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E01\\README.md",
+        "sha256": "7f17f33b00a8d9d3f3cb194d709924e86eccdc30d71121576262767bea835a5a"
+      }
+    ],
+    "E02": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E02\\app.py",
+        "sha256": "eb9cd718bdcfddd57ebc942fe3302e394dfa16193f34f53c52c03403c38ccb77"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E02\\provided-package\\delivery_fixture_dep.py",
+        "sha256": "2428ff0b32461dac3bb46bb465bdf29c95228319b90f60cab1854dbfd8b58c64"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E02\\README.md",
+        "sha256": "d21237016bbc8a36393601deb941fa13311343dae0ae6ff2eb15310420e1a94d"
+      }
+    ],
+    "E03": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E03\\server.py",
+        "sha256": "404718a05267a549c2be15f70da8ca9c680848a9c4a4410b56892bccb3a78790"
+      }
+    ],
+    "E04": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\E04\\rule.json",
+        "sha256": "dee5fdbfa97eac87b4d676dd3d1e6d0c7e5326955e623dbade68c8af601556f5"
+      }
+    ],
+    "M01": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\M01\\project-a\\.supermemory\\supermemory.json",
+        "sha256": "22a6fe74456bd2b593afe0bbde35adca06fff5605e2b2d028f1aa49a878e87e0"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\M01\\project-a\\README.md",
+        "sha256": "2a2a8096a7d5cfab21a7e32d7f47be0bccdd0cff84619cbc6ab5402a1d4b3c8f"
+      }
+    ],
+    "M02": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\M02\\project-a\\.supermemory\\supermemory.json",
+        "sha256": "22a6fe74456bd2b593afe0bbde35adca06fff5605e2b2d028f1aa49a878e87e0"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\M02\\project-a\\README.md",
+        "sha256": "2a2a8096a7d5cfab21a7e32d7f47be0bccdd0cff84619cbc6ab5402a1d4b3c8f"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-case-inputs-v2\\M02\\project-b\\.supermemory\\supermemory.json",
+        "sha256": "de4f8b97d0f6846bc324f5c379781fc61d6c21bd1cacce5da04121eeb9102c98"
+      }
+    ]
+  },
+  "case_count": 20,
+  "task_count": 60,
+  "holdout": [
+    "F03",
+    "R02",
+    "H03",
+    "H04"
+  ]
+}

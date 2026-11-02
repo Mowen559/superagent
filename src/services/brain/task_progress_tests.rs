@@ -5,6 +5,30 @@ use super::tool_execution_gateway::{ToolExecutionReceipt, ToolExecutionStatus};
 use super::tool_policy::ToolRisk;
 use serde_json::json;
 
+#[test]
+fn run_bound_planning_rejects_weakened_delivery_before_acknowledgement() {
+    use crate::domains::agent_cognitive::executor::ToolExecutor;
+    use crate::services::brain::tools::plan_task::RunBoundPlanTaskTool;
+    use std::sync::{Arc, Mutex};
+    let dir = tempfile::tempdir().unwrap();
+    let mut progress = TaskProgress::default();
+    progress.configure_delivery(dir.path(), "s", "r").unwrap();
+    let mut original = plan();
+    original.delivery = Some(serde_json::from_value(json!({"version":1,"scope":"implementation", "target":"target",
+        "artifacts":[{"id":"rule","path":"rule.json","required":true}]})).unwrap());
+    progress.apply_plan(original.clone());
+    progress.observe(&receipt("read-source", "view_file", ToolRisk::ReadOnly, false));
+    progress.update(ProgressUpdate::CompleteStep {step_id:"inspect".into(),receipt_ids:vec!["read-source".into()]}).unwrap();
+    let shared = Arc::new(Mutex::new(progress));
+    let before = shared.lock().unwrap().snapshot();
+    let tool = RunBoundPlanTaskTool(shared.clone());
+    let mut weakened = original.clone();
+    weakened.delivery.as_mut().unwrap().artifacts[0].required = false;
+    assert!(tool.execute(serde_json::to_value(weakened).unwrap()).unwrap_err().contains("required delivery artifacts"));
+    assert_eq!(shared.lock().unwrap().snapshot(), before, "rejection must retain existing plan and progress");
+    assert_eq!(tool.execute(serde_json::to_value(original).unwrap()).unwrap()["status"],"planned");
+}
+
 fn plan() -> TaskContract {
     TaskContract::from_value(json!({
         "interpretation": "Inspect, implement and verify the requested change",
@@ -31,6 +55,25 @@ fn receipt(id: &str, name: &str, risk: ToolRisk, verification: bool) -> ToolExec
         risk,
         verification,
     }
+}
+
+#[test]
+fn completed_plan_and_quality_receipt_do_not_replace_required_physical_delivery() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut progress = TaskProgress::default();
+    progress.configure_delivery(dir.path(), "session", "run").unwrap();
+    let contract = TaskContract::from_value(json!({"interpretation":"generate report","success_criteria":["real report"],
+        "steps":[{"id":"check","goal":"check","acceptance":"check ran","evidence_kind":"verification"}],
+        "delivery":{"version":1,"scope":"implementation","target":"original target","artifacts":[{"id":"report","path":"report.md"}]}})).unwrap();
+    progress.apply_plan(contract);
+    progress.observe(&receipt("quality", "run_command", ToolRisk::ProcessControl, true));
+    progress.update(ProgressUpdate::CompleteStep { step_id:"check".into(), receipt_ids:vec!["quality".into()] }).unwrap();
+    assert!(progress.completion_gap().unwrap().contains("verify_delivery"));
+    std::fs::write(dir.path().join("report.md"), "physical report").unwrap();
+    progress.verify_delivery(&[]).unwrap();
+    assert!(progress.completion_gap().is_none());
+    std::fs::write(dir.path().join("report.md"), "changed after validation").unwrap();
+    assert!(progress.completion_gap().unwrap().contains("stale"));
 }
 
 fn complete(

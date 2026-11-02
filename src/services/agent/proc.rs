@@ -14,6 +14,73 @@ use tokio::process::Command;
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
+/// Owns the worker and every descendant on Windows. Handles are not thread-affine.
+pub struct RunProcessTree {
+    #[cfg(windows)]
+    handle: usize,
+}
+
+impl RunProcessTree {
+    pub fn attach(child: &tokio::process::Child) -> Result<Self, String> {
+        #[cfg(windows)] unsafe {
+            use windows_sys::Win32::{Foundation::CloseHandle, System::JobObjects::*};
+            let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+            if job.is_null() { return Err(std::io::Error::last_os_error().to_string()); }
+            let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            let raw = child.raw_handle().ok_or("worker has no process handle")?;
+            if SetInformationJobObject(job, JobObjectExtendedLimitInformation,
+                &info as *const _ as *const _, std::mem::size_of_val(&info) as u32) == 0
+                || AssignProcessToJobObject(job, raw as _) == 0 {
+                let error = std::io::Error::last_os_error().to_string(); CloseHandle(job); return Err(error);
+            }
+            Ok(Self { handle: job as usize })
+        }
+        #[cfg(not(windows))] { let _ = child; Ok(Self {}) }
+    }
+
+    pub fn terminate(&self) {
+        #[cfg(windows)] unsafe {
+            windows_sys::Win32::System::JobObjects::TerminateJobObject(self.handle as _, 1);
+        }
+    }
+}
+
+impl Drop for RunProcessTree {
+    fn drop(&mut self) {
+        #[cfg(windows)] unsafe { windows_sys::Win32::Foundation::CloseHandle(self.handle as _); }
+    }
+}
+
+#[cfg(all(test, windows))]
+mod process_tree_tests {
+    use super::*;
+    use tokio::io::{AsyncBufReadExt, BufReader};
+
+    #[tokio::test]
+    async fn cancellation_reaps_worker_and_real_grandchild_within_contract() {
+        let script = "import subprocess,sys,time\ntime.sleep(0.3)\np=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'])\nprint(p.pid,flush=True)\ntime.sleep(30)";
+        let interpreter = std::process::Command::new("python").args(["-X", "utf8", "-c", "import sys;print(sys.executable)"]).output().unwrap();
+        let interpreter = String::from_utf8(interpreter.stdout).unwrap();
+        let mut command = agent_command(interpreter.trim());
+        command.args(["-u", "-c", script]).stdout(Stdio::piped()).stderr(Stdio::null());
+        let mut child = command.spawn().unwrap();
+        let tree = RunProcessTree::attach(&child).unwrap();
+        let mut output = BufReader::new(child.stdout.take().unwrap()).lines();
+        let pid: u32 = tokio::time::timeout(Duration::from_secs(5), output.next_line()).await.unwrap().unwrap().unwrap().parse().unwrap();
+        use windows_sys::Win32::{Foundation::{CloseHandle, WAIT_OBJECT_0}, System::Threading::{OpenProcess, SYNCHRONIZATION_SYNCHRONIZE, WaitForSingleObject}};
+        let descendant = unsafe { OpenProcess(SYNCHRONIZATION_SYNCHRONIZE, 0, pid) };
+        assert!(!descendant.is_null(), "fixture grandchild must exist before cancellation");
+        let started = std::time::Instant::now();
+        tree.terminate();
+        let exited = unsafe { WaitForSingleObject(descendant, 200) };
+        unsafe { CloseHandle(descendant); }
+        assert_eq!(exited, WAIT_OBJECT_0, "grandchild survived cancellation");
+        assert!(started.elapsed() < Duration::from_millis(200));
+        child.wait().await.unwrap();
+    }
+}
+
 /// Build a [`Command`] that resolves `name` through the shell on Windows (to
 /// handle `.cmd`/`.ps1` shims) and directly on Unix. On Windows the console
 /// window is suppressed.

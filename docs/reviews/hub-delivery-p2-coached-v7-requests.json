@@ -1,0 +1,52 @@
+[
+  {
+    "id": "H01-coached-repair",
+    "oracle": "dmghg",
+    "classification": "corrected",
+    "prior_exposure": true,
+    "request": {
+      "agent": "superagent",
+      "project": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-coached-copy-0yvc4sy5\\project",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 900,
+      "prompt": "继续完善并交付已有的三个动漫共和国规则文件。业务代码是你先前写出的原样副本；宿主没有补写规则或桥接。桥接读取超时、并发、故障输入、关闭及中文新目录运行已经通过。上次任务的调查证据门禁误拦截已由新Hub二进制修复，不要重做DLL调查、探针或Python原型。\n\n本次需要实际修正的是README的验收范围，必须与真实记录一致：\n1. 能枚举8个频道，但规则独立业务验收只抽查了频道20、21，不能称8个频道都完整验收。\n2. 两个搜索词仙逆、斗破及第一页、第二页经过核对；条目数会变，以本次验证输出为准。\n3. 详情的前/中/后选集名称与同次上游一致，但完整lazy、媒体请求和超过1秒解码只验证了首集。删除“首集、中集与末集均返回媒体分块”等超过证据的话，不能把卡片核对当作三集都解码。\n4. 已验证的是无界面的PC生产运行库，未做用户前端窗口和Android实机验证；保留Windows原生依赖、默认18002及手机独立运行未验证。\n\n先读取README并做最小修正，必要时用简短验收清单呈现以上事实。然后调用 verify_delivery 检查所有产物。若建立了plan_task，用真实收据调用 update_task_progress 完成对应步骤；不要只改Todo，也不要验证通过后又重置整份计划。验证成功后准确交付，避免多余自测。全程无GUI、不读原账号、不改安装目录、不发布。\n"
+    },
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json",
+      "--target",
+      "D:\\太极\\动漫共和国概念版",
+      "--node",
+      "D:\\UC\\nvm\\v22.22.1\\node.exe",
+      "--inputs",
+      "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v7-inputs.json",
+      "--inputs-sha256",
+      "b60a763991b069b7d8a18a7e6e548c739e48fd0039844c3f6463065305ee3257"
+    ],
+    "based_on_task": "ee4afe7c-e114-44cc-b03d-8b4072b2ed80",
+    "previous_receipt_sha256": "a493b1135134f7110e4afdf546c40e563a142ebe907f43657e726ce016c2f67d",
+    "feedback_sha256": "681ac19682e462ab90fb5ca8e54b335fa4a19a3fcc3903aba6defab0bbe94fdb",
+    "coached_copy_source": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace",
+    "copied_bytes_unchanged": true,
+    "artifacts_before": [
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace\\bridge.py",
+        "sha256": "9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace\\README.md",
+        "sha256": "8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac"
+      },
+      {
+        "path": "C:\\Users\\刘本录\\.superagent\\runs\\ee4afe7c-e114-44cc-b03d-8b4072b2ed80\\workspace\\rule.json",
+        "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+      }
+    ]
+  }
+]

@@ -104,25 +104,12 @@ pub async fn run_worker(
 "#
     );
 
-    // 定位工作区与宿主工程真实路径 (沙箱逃逸自愈定位)
+    // The execution root is authoritative. Origin is a read-only knowledge source.
     let cwd_path = project.map(std::path::PathBuf::from).unwrap_or_else(|| {
         std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
     });
-    let resolved_project_path = crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
-        &cwd_path,
-        &[".supermemory"],
-    );
-    let effective_root = if resolved_project_path.exists() && resolved_project_path != cwd_path {
-        eprintln!(
-            "\x1b[36;1m[Sandbox Escape] 🚀 Auto-ascended from sandbox '{}' to real project root '{}'\x1b[0m",
-            cwd_path.display(),
-            resolved_project_path.display()
-        );
-        resolved_project_path.clone()
-    } else {
-        cwd_path.clone()
-    };
-    let project_path_str = effective_root.to_string_lossy().to_string();
+    let (effective_root, resolved_project_path) = crate::infrastructure::fs_path::run_workspace_roots(&cwd_path);
+    let project_path_str = resolved_project_path.to_string_lossy().to_string();
 
     // 潜意识唤醒：从 SuperMemory 检索与当前 Prompt 最相关的项目规范与历史经验
     let app_paths = crate::config::app_paths::AppPaths::new();
@@ -232,7 +219,7 @@ pub async fn run_worker(
     agent.register_tool(Box::new(GrepSearchTool::new(effective_root.clone())));
     agent.register_tool(Box::new(ShadowGitTool));
     agent.register_tool(Box::new(WebFetchTool));
-    agent.register_tool(Box::new(NativeSearchGraphTool::new(effective_root.clone())));
+    agent.register_tool(Box::new(NativeSearchGraphTool::new(resolved_project_path.clone())));
     agent.register_tool(Box::new(ProjectIndexTool::new(effective_root.clone())));
     agent.register_tool(Box::new(NativeMemoryTool::new(effective_root.clone())));
     agent.register_tool(Box::new(ManageTaskTool::new(effective_root.clone())));
@@ -297,8 +284,7 @@ pub async fn run_worker(
     agent.register_tool(Box::new(InterveneWorkerTool::new(runtime.clone())));
     agent.register_tool(Box::new(CancelSubagentTool::new(runtime.clone())));
 
-    let result_store = crate::services::brain::tool_result_store::ToolResultStore::new(effective_root.clone());
-    agent.register_tool(Box::new(ReadToolResultTool::new(result_store)));
+    agent.register_tool(Box::new(ReadToolResultTool::from_shared(agent.tool_result_store())));
 
     // 启动后台 Stdin 异步消息循环，打通与 Hub 主进程的双向交互（支持 AskUser 回复与动态干预）
     let interaction_runtime = agent.interaction_runtime.clone();
@@ -341,28 +327,23 @@ pub async fn run_worker(
     stdin_handle.abort();
 
     // 自动触发会话轨迹经验自省与自愈提炼，持久化写入 SuperMemory
-    let persisted_count = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
-        &agent.events,
-        &runtime_config,
-        Some(&project_path_str),
-    );
+    let persisted_count = if run_res.is_ok() {
+        crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
+            &agent.events, &runtime_config, Some(&effective_root.to_string_lossy()))
+    } else { 0 };
     if persisted_count > 0 {
         eprintln!(
             "\x1b[32m[SuperMemory] 🧬 Distilled & persisted {} golden rules to {}\x1b[0m",
-            persisted_count, project_path_str
+            persisted_count, effective_root.display()
         );
     }
 
     // 自动技能结晶飞轮 (Auto-Skill Crystallization Flywheel)
-    if let Some(crystallized) = crate::domains::agent_cognitive::skill_crystallizer::AutoSkillCrystallizer::crystallize_from_trajectory(
-        prompt,
-        &agent.events,
-        &cwd_path,
-    ) {
-        eprintln!(
-            "\x1b[36;1m[Skill Crystallizer] 💎 Successfully crystallized new durable Skill '{}' at {}\x1b[0m",
-            crystallized.name, crystallized.path
-        );
+    if run_res.is_ok() {
+        if let Some(crystallized) = crate::domains::agent_cognitive::skill_crystallizer::AutoSkillCrystallizer::crystallize_from_trajectory(
+            prompt, &agent.events, &effective_root) {
+            eprintln!("[Skill Crystallizer] Stored completed-Run skill '{}' at {}", crystallized.name, crystallized.path);
+        }
     }
 
     let usage_val = agent.last_token_usage.as_ref().map(|u| {

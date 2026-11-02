@@ -1,0 +1,26 @@
+[
+  {
+    "no_profile": false,
+    "duration_ms": 2790,
+    "exit_code": 1,
+    "hash_correct": false
+  },
+  {
+    "no_profile": true,
+    "duration_ms": 2666,
+    "exit_code": 1,
+    "hash_correct": false
+  },
+  {
+    "no_profile": true,
+    "duration_ms": 2349,
+    "exit_code": 1,
+    "hash_correct": false
+  },
+  {
+    "no_profile": false,
+    "duration_ms": 2202,
+    "exit_code": 1,
+    "hash_correct": false
+  }
+]

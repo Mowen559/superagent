@@ -1,0 +1,13 @@
+{
+  "task_id": "68901ba9-92e6-45b3-9efd-73e23f072283",
+  "candidate": "262E7EED1225CEFD5077E8C3D64A15E97DDF59D5A6C7B459EC6351E705D739CB",
+  "plan_receipts": [
+    {
+      "status": null,
+      "error": "invalid type: string \"1\", expected u32",
+      "declared_target": "D:\\\\太极\\\\动漫共和国概念版",
+      "returned_target": null,
+      "returned_host_target": false
+    }
+  ]
+}

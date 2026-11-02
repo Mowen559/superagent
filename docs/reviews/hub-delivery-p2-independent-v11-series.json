@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "required_runs": 3,
+  "attempts": [],
+  "state": "failed",
+  "frozen": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-frozen-v11.json",
+  "manual_authorship_review": "pending",
+  "error": "CalledProcessError: Command '['powershell', '-NoProfile', '-File', 'C:\\\\Users\\\\刘本录\\\\AppData\\\\Local\\\\Temp\\\\hub-frozen-source-x33ay9zx\\\\super-agent\\\\scripts\\\\start_delivery_eval_service.ps1', '-Profile', 'D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\docs\\\\reviews\\\\hub-delivery-p2-frozen-v11-profile.json', '-IdentityOutput', 'D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\docs\\\\reviews\\\\hub-delivery-p2-independent-v11-1-service.json', '-Port', '39163', '-ModelTurnBudget', '40']' returned non-zero exit status 1."
+}

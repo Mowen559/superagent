@@ -1,0 +1,73 @@
+{
+  "passed": false,
+  "source": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-g_grm6mv\\新目录交付",
+  "validator_sha256": "f5cde3644daed854647171bef2cbffbe34e77f0cf1835c11bfc9595b36380882",
+  "checks": [
+    "only_three_delivered_files_cold_runtime_and_decode",
+    "four_concurrent_reads_with_partial_client"
+  ],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "f55e234caa8a54998cb5185479bd3cb45e586e7c146b0d4df70bc87364a43174"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+    },
+    {
+      "name": "README.md",
+      "sha256": "74513db6df0fcee3264f6700184cab8f9f018cc76d343971dcb0f549879bcdd2"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "sys",
+    "tempfile",
+    "threading",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "domain_oracle": {
+    "passed": true,
+    "target": "D:\\太极\\动漫共和国概念版",
+    "checks": [
+      "pagination_distinct_and_matches_upstream",
+      "category:20",
+      "category:21",
+      "search:仙逆",
+      "search:斗破",
+      "detail_title_and_first_middle_last_episodes",
+      "lazy_production_runtime",
+      "actual_media_bytes",
+      "null_output_decode_over_one_second",
+      "inputs_unchanged"
+    ],
+    "observed": {
+      "home": 19,
+      "page2": 10,
+      "episodes": 165
+    },
+    "decoder": {
+      "audio-codec-name": "aac",
+      "video-params/w": "1920",
+      "video-params/h": "816",
+      "time-pos": "1.082000",
+      "decoded_video": true,
+      "outputs": {
+        "audio": "null",
+        "video": "null"
+      }
+    },
+    "mobile_standalone_verified": false,
+    "target_dll_sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+    "no_desktop": true
+  },
+  "error": "AssertionError: partial HTTP request has no server-side timeout within 8 seconds"
+}

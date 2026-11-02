@@ -1,0 +1,713 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\concrt140.dll",
+      "sha256": "b2faf3b85b23c840b654e57d5497a0ad31acd02fb01856cad4725a1715d5f78e",
+      "bytes": 321696
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\dartjni.dll",
+      "sha256": "93e9ff077e4f1eb247056df9bb6bb4fcc65b58214ff38a2bf074fa95a635daf8",
+      "bytes": 68096
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\dmghg.exe",
+      "sha256": "fa77115b90ee70d7a348552ea2c9eb1bc0270b5732835272ccaf703417514f50",
+      "bytes": 210944
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\electron_bridge.dll",
+      "sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+      "bytes": 8902144
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\flutter_media_kit_probe.exe",
+      "sha256": "fa77115b90ee70d7a348552ea2c9eb1bc0270b5732835272ccaf703417514f50",
+      "bytes": 210944
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\flutter_windows.dll",
+      "sha256": "c0304beba5fe98477177e151c673adad98d0442f50efa25d03ff5f207cc21056",
+      "bytes": 20803584
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\libmpv-2.dll",
+      "sha256": "2d407f51493633346e71d4a3db010b3d00b43cde5a910faa9448837fc8ce90ed",
+      "bytes": 38445568
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\media_kit_libs_windows_video_plugin.dll",
+      "sha256": "dac3e652f6830cb243aecf0372333d22b1d6bcbaba12a8dfb3d053fc8bef29ff",
+      "bytes": 11776
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\media_kit_video_plugin.dll",
+      "sha256": "13bc30adf2cea74f6afb9cca49c1f2e3d54ebb6160b28ff1b15b29a38280ebf4",
+      "bytes": 221184
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140.dll",
+      "sha256": "def46aa6a8f72f27bafac0c43334419486a4d1dcdb6c479a8ef7034b3e1fa4cb",
+      "bytes": 553552
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_1.dll",
+      "sha256": "2dd670f874562fbdca5b022df1943d70a57ba91fde559280e3a1daebe4db2380",
+      "bytes": 35488
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_2.dll",
+      "sha256": "1d60da3ac2b06482912ca852fa7047436e6e474b4cfffa3bf77f4598cfbf454c",
+      "bytes": 278608
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_atomic_wait.dll",
+      "sha256": "e7963645e0d1db08e300614d4c5fa7194bd8173e9ab7a5558859e6b232ed3241",
+      "bytes": 48800
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\msvcp140_codecvt_ids.dll",
+      "sha256": "ae8d922b00cdd93e3ebecc37beb46c800f383ebdeb9f9e5b84e04a72428b6fb3",
+      "bytes": 31392
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\dkjson.lua",
+      "sha256": "cfe885bca49183e83302a3fa6ae4dae84bc86860f7fa6f8316539b10d2fa35e8",
+      "bytes": 23129
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\headers.lua",
+      "sha256": "825c6b30273d0c6319a834c64b79b1803ad59ac5d5a1a230ce75a35f89b27769",
+      "bytes": 3796
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\http.lua",
+      "sha256": "1759d0108a2317aada792f3a54e6c0ff129e1c43771f8adc977b3ef0e56302f8",
+      "bytes": 14972
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\ltn12.lua",
+      "sha256": "f54c41c2fef6c697da7c8536023d165d1dee53e6e47613bd31629f2d0ff61c19",
+      "bytes": 9219
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\mime.lua",
+      "sha256": "5d8a42f4c2b5094c7f1f8d670a9f54f8af9d26299f7fd57cc101799c635d6e9a",
+      "bytes": 2557
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\socket.lua",
+      "sha256": "a6bee7f5b7ae5e7d622c92b94e0a5e54a30f1d522303442e22c98b6a09279bfd",
+      "bytes": 4606
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\resources\\lua\\url.lua",
+      "sha256": "4b5298c20970a25d6d5ff49c794f07bf2a466f04ff31a640975372604e365f8b",
+      "bytes": 11999
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\screen_retriever_windows_plugin.dll",
+      "sha256": "b4ef19dbeac5506b5554148a25b32ea284359a2ab6e56a03932d44008a727eec",
+      "bytes": 120832
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\tray_manager_plugin.dll",
+      "sha256": "68ee337e2029f3a46076fbba46049b9c10b577f93fe81ee43d04dce650c09abd",
+      "bytes": 106496
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\Uninstall.exe",
+      "sha256": "7cc3643deaf2e2e7748d5fb84b4bba450d91eec3249bd88274f0d6c1f9981eed",
+      "bytes": 124485
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\url_launcher_windows_plugin.dll",
+      "sha256": "d02bbb9ee40a8f5e77bdb443ec2d8a5766c3c0ed934edbda35bbb256a79950b6",
+      "bytes": 98304
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\vcruntime140.dll",
+      "sha256": "184146852727a9db4eea06178716bec3cdbb1015c911f6b0f915b184ad7775b2",
+      "bytes": 123472
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\vcruntime140_1.dll",
+      "sha256": "e6bfb3662ab4b1969a73441dbe35c96d51441b6bff8cf1fe7430bd5b246ca605",
+      "bytes": 47264
+    },
+    {
+      "path": "D:\\太极\\动漫共和国概念版\\window_manager_plugin.dll",
+      "sha256": "81a0a290c20c548b55d2571765973b58a28f2f69bfcbc789f283739f873cfd93",
+      "bytes": 131072
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\aes.js",
+      "sha256": "ca3f3bd18c6f149707b73d60c50142c00a3d46f557739ba5fdef0bc3c482ea6b",
+      "bytes": 191049
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\beautify.js",
+      "sha256": "420d1ae08f7fb55f56e1da64b1dd772ea8e3dca02f3dd56b3065cae5f7af07ba",
+      "bytes": 118737
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\crypto-java.js",
+      "sha256": "13e972a7f78dd843f1e1c50943c79a21d0525a6de549caa82f7774fa9597632a",
+      "bytes": 18960
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcCall.js",
+      "sha256": "7ed4def74b450fe7cd0577ca36a819e8dff74c8e0f40381f625a55ebf334b34e",
+      "bytes": 15867
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcInvoke.js",
+      "sha256": "251650ef65d69012a9f22514771339a7ac5da514d33c59f8f1891e6de44bb85f",
+      "bytes": 5001
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcInvoke2.js",
+      "sha256": "8530badb12baefff91f5760ac08ed89fc8bb9ac584564192e8f37e8d24eba8ac",
+      "bytes": 3191
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcJiexi.js",
+      "sha256": "b63afd977cc81e35b3322b8b06dfeb648b2e68f34d4e24ba7267e2933abd81fc",
+      "bytes": 41425
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcParse.js",
+      "sha256": "8b873b114b809e040952f4c34846733d5e324cfe25b9f3c84a996b8b43b241e9",
+      "bytes": 51480
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcPublic.js",
+      "sha256": "c4acf19166f9d174db93510fa62a75008f5275551b80175b713fcde3b6b5a884",
+      "bytes": 19561
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\jiexi\\SrcSet.js",
+      "sha256": "49bd52e840f1b9b1481405a65bf14c4ea6de0b1637cba7e21e440a92077a1fa6",
+      "bytes": 17613
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\libs.js",
+      "sha256": "a6f2a98aa647c57a42abef0bed9f192a7bdc5532ad5d5899f1080244ad3c21e4",
+      "bytes": 1312
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\categories-header.js",
+      "sha256": "ad3fbfc79aa538c0926a947d410909f359cc8704ef5db768450ef6dfaa2ee417",
+      "bytes": 19817
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\globalmap.js",
+      "sha256": "1f3706832324ced503435f405f9438149435d681061ca8025d9855845665d7f0",
+      "bytes": 9831
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\gzip.js",
+      "sha256": "22b1f0853ecd5aa67ce3cea6c041893df8bcee95ad56f4c5f8fa06b04d14ae88",
+      "bytes": 1515
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\hikerPop.js",
+      "sha256": "4049831927eb16227d8e231dd4aa24d83119e2776357f6845e73807f2c62e921",
+      "bytes": 22624
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\plugins\\pinyin-match.js",
+      "sha256": "96c72cb0cd0f225e59b188dc37987028b01a34d88ae5f073642ef151ce315272",
+      "bytes": 28644
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\Readability.js",
+      "sha256": "91306fa2c3259313015a99dece43dd6b1129b254ba2b8058187245c8e097abc2",
+      "bytes": 92188
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcBookCase.js",
+      "sha256": "5ce0f184840d47cc9c6fd7add22f71e342623e54a4909fea7585509eb545a0c4",
+      "bytes": 26699
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJu.js",
+      "sha256": "643176bba21e4e0dc908d025819b08de8588f3ba5b66b76be8259e2e0058fac4",
+      "bytes": 117147
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuManage.js",
+      "sha256": "10394d4a7f1eb1ae469801478a9cddc4a29ac155dbc40e92bc3cb244fc73f7a6",
+      "bytes": 39688
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuMethod.js",
+      "sha256": "039d1be4fa9d21c74aa8a16fe18c0578530e690ed4faaeabc5744e143b0e7980",
+      "bytes": 82949
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuMethod2.js",
+      "sha256": "c6ba8ef569a55b5ae33bca151a2ee4a69e4fc82e89a6bed8104db3c5c082c056",
+      "bytes": 28587
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuPublic.js",
+      "sha256": "2d82112d107b877f54b81552012823bc21216ac1abed76bb49ca89372df4db29",
+      "bytes": 67712
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcJuSet.js",
+      "sha256": "252e0e9f3f4e713b04882575e96603d34bf801f6dbad68ea441806bfde00b7c3",
+      "bytes": 71252
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcLive.js",
+      "sha256": "8b3591d3db7d31b52d6d346b6f422a393998a2a2366e75236ab0fc6945e25e0d",
+      "bytes": 35997
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcParseS.js",
+      "sha256": "8b347c594c19bfd7621a97c1c914b51b4d59489d35c9e3610ebb08e5ca8c89ae",
+      "bytes": 3841
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcSimple.js",
+      "sha256": "ca3db4c7a8e08dcf983cda5e3eea45a3dac4eb5115d74aec1ec4571da3eef024",
+      "bytes": 14831
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\SrcTmplVersion.js",
+      "sha256": "8e4c45f7316989871ccf58c224f1d4780ef59da162b71a28f55ac2f93d313a1c",
+      "bytes": 18043
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\GetAppApi.js",
+      "sha256": "3722b1547dcdbbda7205529f0a7806e911c310ed8fde2aadbec2c1d4c86f452e",
+      "bytes": 739
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\parseCode.js",
+      "sha256": "650670706e1bf58ed32faa4fd73d46d9e5ab059ae3f5964bc9d036fbc20ded9d",
+      "bytes": 3767
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\pyDriver.js",
+      "sha256": "1789804bbc07a43be1ec3bab893cf6c651c830e69c66c65ff44f339f1eb948d7",
+      "bytes": 42344
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\assets\\template\\采集cms.js",
+      "sha256": "2ddc4e9fc26923eb1d9df27cdc3f9d7f971dbdbeb14cd2ce3a1b2952199b1cef",
+      "bytes": 449
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-action-router.test.js",
+      "sha256": "7e3ffc1533dca030e1c93ecc6c930e65485c4b40355bf1ac5cc999c30789555b",
+      "bytes": 5955
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-backup-compat.test.js",
+      "sha256": "c5b0f45bde5d363cd8c729602783fcdd4c9ebfda5ff995557920a0ac01ebf310",
+      "bytes": 1990
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-browser-fetcher.test.js",
+      "sha256": "bee47d5754953f39a1a962d0407517819b011862d48e9573f65024beaddc982f",
+      "bytes": 9110
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-comic-subrule-resolution.test.js",
+      "sha256": "c382a588ceefbc1ecf95af79140a71325845f7890f35f542b5134b1e6fcb52b1",
+      "bytes": 3301
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-dom-parser.test.js",
+      "sha256": "52b6c8ec677bf28a53a8d61f122ca4aa32c324ab00428603866c43a97a95d0f3",
+      "bytes": 3236
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-download-manager.test.js",
+      "sha256": "0884db3e5f86b883d0f85232c715bf3d201a50e9bb8876b2740ed13ee5454c3e",
+      "bytes": 8636
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-http-client.test.js",
+      "sha256": "0dce8b5ae42eedf5582dc698676a6892096adc1177e2eff7806bb88c95f7cef2",
+      "bytes": 15391
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-legacy-rule-parser.test.js",
+      "sha256": "2775c76ca6817ef6984be483f463e6bdab26144001fb8cbeffdee47869905050",
+      "bytes": 2182
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-page-alias-registry.test.js",
+      "sha256": "b8cb703a2ad2389755b2d4fa2c1ba1dbb6c6e19d06de26727d47949fd755ed4b",
+      "bytes": 5995
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-page-ej-and-meta-search.test.js",
+      "sha256": "46b2f66535ff03f37cb7c928d5074f95e7f795988ce10ee3f6e10dc71d219cb6",
+      "bytes": 8406
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-page-model.test.js",
+      "sha256": "2b424c01976d6635790cf60badaac4e592bd5906a71273904ab48fe834acbc1e",
+      "bytes": 14611
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-real-backup.fixture.js",
+      "sha256": "b88a7b09a022f58ac271151c6edfd6bbdd3b7d4a4de2ca04756cd820323f9b45",
+      "bytes": 6119
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-rule-catalog.test.js",
+      "sha256": "26c7178a1015b39a0d94df63d1feec2b19dca5f8d2c166243a87d263cc9b5ba9",
+      "bytes": 1773
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-rule-filters.test.js",
+      "sha256": "1f6f07bfedb7e936804563626a42faaba73b834430c23a3c07d74b8f89345235",
+      "bytes": 2568
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-rule-soft-delete.test.js",
+      "sha256": "1bd7436c4aea8f7a1b095de3c15aacdbf79904ef2469d32cc7817c2352223031",
+      "bytes": 7250
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-runtime.test.js",
+      "sha256": "1298d0696425218e1c3546efd018c4c59ce28c7732757099ddb368fadb42a1fb",
+      "bytes": 102976
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-security.test.js",
+      "sha256": "a5308662157dae3683b6506a27ca22d3bd1281fbd3bfc46b2e2d7254be86e211",
+      "bytes": 2357
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-sync-db.test.js",
+      "sha256": "582a937b37a56395d8188e8d114439aed74284b93aaa9053746758aab51bdb63",
+      "bytes": 2818
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-sync-model.test.js",
+      "sha256": "167dce86d32ae408886bacbeb7c24dab9f715f82b0660555a65c3b9411edef12",
+      "bytes": 2074
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\hiker-v881-builtins.test.js",
+      "sha256": "e4efb0914783a4bd817675433d05466604f49cc3dd4b090035ec659142069e52",
+      "bytes": 41902
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerAliProxy.js",
+      "sha256": "f5a541cd05d2d8d5a5329b6e5ca6fd419b4ac110566d55dff3f5322187949db5",
+      "bytes": 10090
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerDomParser.js",
+      "sha256": "fce3100338725381c48bc6146b3d3e60ab93267ecccc00d788e91166c7b646c7",
+      "bytes": 14975
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerEcosystemRegistry.js",
+      "sha256": "e3a1d5f8fbe9d471ec4c5a574589952f6712f5196ff30cfb523959d3c898a6ae",
+      "bytes": 5050
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerHttpClient.js",
+      "sha256": "c870834df22db008ea87fa257e93bae3f5870ee622df616e09eb9f1dbb4df27e",
+      "bytes": 26841
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerLegacyRuleParser.js",
+      "sha256": "453022559afff7e532074733fafc958e2f584fc6eb7ea90eb7bf0f25483ca705",
+      "bytes": 2860
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerModuleLoader.js",
+      "sha256": "17faad0d2301ffdc4bccdca1e824b554d1539a682420250178714b29c275227c",
+      "bytes": 47005
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerOfflineCache.js",
+      "sha256": "5a35400098692e9abe0c25441fcdda28657c7cb2ee9df3f82e1eb4401f0fccd0",
+      "bytes": 4581
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerPageAliasRegistry.js",
+      "sha256": "a7238606facc20d7d61ce524cf27ebfddc4c8eeae381300e3f28bca6b4b327ab",
+      "bytes": 8741
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerRuntime.js",
+      "sha256": "b959fc9e5d2a1fc96bc0eb6f313038456e7425c36fa77f718a7cffd9110a3e78",
+      "bytes": 62650
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerSandboxBuiltins.js",
+      "sha256": "c6bb51bfc9afb43dac754b98b8b6f617059fb6ee450af0e61f37516f713e63be",
+      "bytes": 28055
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerUrlDSL.js",
+      "sha256": "c9554e75d44935fea3bcc14f0efa107a5e4c3ed93316982d73a3d0c495ac4f3e",
+      "bytes": 8569
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HikerVirtualProtocolResolver.js",
+      "sha256": "ea012232918cb04d2bb25a259b1a600af514feb841e9a95def08d0adb9bffe0c",
+      "bytes": 7974
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\HostAdapter.js",
+      "sha256": "148e8c29620d328f18c5a2782eac62ee6557fd2bbb195f3697fde87ef5528002",
+      "bytes": 34909
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\index.js",
+      "sha256": "d70114f9ac7907cb6f34ede3232831d66b9ea9772330a3d9a3ead7fcac311adb",
+      "bytes": 1765
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\android-base64.js",
+      "sha256": "a0359597c8edbdef2bb2a656188fc53884d874d24a23e45c7b624279be0682a4",
+      "bytes": 2576
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\cache\\ScriptCachePool.js",
+      "sha256": "1bd6efc67a38f9f79bb12eeb2d6923fd389491434492ca751366d6f8f33cc1f7",
+      "bytes": 3018
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\crypto-util.js",
+      "sha256": "06dde7dbc582b9811f932a28efd7ef30a37a6abf8463eb925aa129c9bf7a0c0f",
+      "bytes": 18276
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\ecosystem-shims.js",
+      "sha256": "f086455ecf7ce18f980e131c76e2495deabe10df5f35446de789df4900ae9652",
+      "bytes": 2559
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\index.js",
+      "sha256": "bdb08d676ccc28d6108b30eeff58319d79c428c936912972fe244b0d659523eb",
+      "bytes": 29230
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\java-shims.js",
+      "sha256": "6d1054d08f2ad44719d074cfab017c9f05fb14821b75d85e35d7c9153a852944",
+      "bytes": 102649
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\plugins\\common-shims-plugin.js",
+      "sha256": "88519751fe1cd97f9dd3b08cb3bfae9042dd87ae6f8b531e40f890366f171bbb",
+      "bytes": 3970
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\plugins\\qingmu-plugin.js",
+      "sha256": "415fa6ace91b008f60da45d9b91859ff343e532f90997ba636246e4b217300bf",
+      "bytes": 19255
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\plugins\\virtual-modules-plugin.js",
+      "sha256": "994dfdc954ff473f1cecab48dce3e2dfa8ce44e9af5bae85c49251aafdc98058",
+      "bytes": 4018
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\registry\\ShimRegistry.js",
+      "sha256": "92228b61715c863a7c00a0faa6a49731b11c3f5d6ac98b150b2e867910459c7b",
+      "bytes": 7495
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\rule-helpers.js",
+      "sha256": "15231d3f942593a1bf3e34f4ef4c13b134e99a36603856ff3fe1a74d85f572c4",
+      "bytes": 27393
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\hiker-js-core\\shims\\src\\xpopup-shim.js",
+      "sha256": "3f02680c71fa873146f352b3cebcca8791139aa1cb9c274d641efea8f79eb4c7",
+      "bytes": 9831
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\asar-updater.js",
+      "sha256": "89c0014f052f5775fcba6310b1572e17af65ff608ae7ef9747a1984d12c2ac26",
+      "bytes": 16371
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\browser-store-injector.js",
+      "sha256": "a3896f984e69e53291492fb9a2da07bcb4c62d8b850e3f77d602a09993f696f2",
+      "bytes": 191
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\browser-tab-media-bridge.js",
+      "sha256": "a25723f6f1789fe47db11384cec365a06a97fc8dbbc0f956fb10c62f6a71f73d",
+      "bytes": 12206
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-popup-preload.js",
+      "sha256": "b9ea721972de8ff916ac65f364cb365516c3ea11a44b3be4552380b933eaee51",
+      "bytes": 72693
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-popup-window.js",
+      "sha256": "c52a8c751d3de63dc5afa5fe0ab77fa09c176ad9ce966a00849b2947b7fca1e0",
+      "bytes": 26686
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-side-panel-host.js",
+      "sha256": "f97fbd012969b61942a1febf3e5a70d77d8a245055d8c1e60050ea92068542d2",
+      "bytes": 6540
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\extension-sw-preload.js",
+      "sha256": "0e5dcfd11343ebb9d539c694302de73ebb859010ccec655de0b266870223b068",
+      "bytes": 3662
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hg-cenc-service.js",
+      "sha256": "96745c9e8a434f0dece065d7a8d8696b439fd073566397f62c4d68661e3708d2",
+      "bytes": 23208
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-browser-fetcher.js",
+      "sha256": "0b6943c09556f8c7618c7e5d977301827cbc2a6ff9367fbc8e6d388e0b43b956",
+      "bytes": 16944
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-browser-host.js",
+      "sha256": "bb57ee5217f4be323cdc1eccbb5af9be59a7817413c09f72217c5120e531c7ba",
+      "bytes": 554
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-browser-preload.js",
+      "sha256": "2802c15308f12d3da0a42d768621dcb681f365d705db9e81de7202e8c72d8bf8",
+      "bytes": 68383
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-bundle-manager.js",
+      "sha256": "8a5a789fd6f1b8a739d578c8100626cb9df9e2a3e1ebed7fcf5769646c842075",
+      "bytes": 18967
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-download-helpers.js",
+      "sha256": "61aac6c9f3a95738eeca35d9ad8890e496cfe7cf2aa4054016ed6f51ebc0150d",
+      "bytes": 13281
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-download-manager.js",
+      "sha256": "eba51d0da5c8eda9da4e764578d134eac3877df5315c38e95e553ae1ae726c1f",
+      "bytes": 606
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-rule-filters.js",
+      "sha256": "7b4ee554a1cad437e68cbd9bbbd780941588cc1f0ff0db553e6ba4f92e0ae72e",
+      "bytes": 6484
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-rule-parser.js",
+      "sha256": "6d05ac402aaf084022f66adf40b35f14a765bce9ecfc783bdd80c84e434d8eeb",
+      "bytes": 71764
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hiker-security.js",
+      "sha256": "f979d189cd4279a63e4e6f75e8d53829abd28f4fd75f5bab4424a41693a03763",
+      "bytes": 5963
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-db.js",
+      "sha256": "a8d5ee62899968a9e9af7d9753ede9a620081903cc04ccad2ee4ae4a560377f0",
+      "bytes": 18216
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-engine.js",
+      "sha256": "a68940c86673a2dc0249279d9de1883deeb70d020ebccf566e84893ebb8f8c11",
+      "bytes": 60979
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-fetch-worker.js",
+      "sha256": "a4c56b2957ce7eb86fb3099dd5a71a543aa061ad7f0d36c07428d4060948e256",
+      "bytes": 27068
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-sandbox-process-host.js",
+      "sha256": "74ab6544fc18ff11eb7fbe5e2461fbd629caf66ae01679a6a39fc8554164eb50",
+      "bytes": 4046
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-sandbox-process.js",
+      "sha256": "f7aaa7b8cb329fcb343222c1b42bec4401dfcaf9710188abb792f1b8f1e94994",
+      "bytes": 2853
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\hk-sandbox-worker.js",
+      "sha256": "5840b33a16dc9fbea8db36f9918d39c68a9a1d50d5c9b3d4507c40075e91039a",
+      "bytes": 146615
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\index.js",
+      "sha256": "74516ee6bec4e9ab9ecd8f44d865bd8c322a0505be311fc09c7d544dcd42f0a0",
+      "bytes": 354
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\installer-updater.js",
+      "sha256": "48887779783e61af3f25770104306b63be3c5980c0c0d15ce272415633451296",
+      "bytes": 11553
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\pc-python-hiker.js",
+      "sha256": "3d5b3f49ac8b1555594c6f142ccd155aa99cd4f729e5aba7c4d38bee3cf3ae4b",
+      "bytes": 7043
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\runtime\\vision-cropper-client.js",
+      "sha256": "510c68373afa9435a8d4296f499473ce954111512839ecaedcd6c7dd97975b15",
+      "bytes": 15771
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\scripts\\hub-delivery-replay.cjs",
+      "sha256": "427babbc7362a2a169d2b86f2d554d73dcd4244d2b27b9ecc4b62aec70d2b944",
+      "bytes": 10124
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\scripts\\hub-rule-runtime.cjs",
+      "sha256": "5a12c86d3e671862fa5106e22ebec4594d88b7cf582ffa8956f9ec9e04187b7f",
+      "bytes": 8075
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+      "sha256": "c510b80b4121fc6b42d356aa8d6efd2b3c55b4ee223aec0545a2ccfb45cddbd3",
+      "bytes": 15280
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "sha256": "3f1267f847fa4fc7b8d565baf3f35c85c73bf8a45bee1380c8c794fd8e4518df",
+      "bytes": 9078
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\scripts\\hub_delivery_evals.py",
+      "sha256": "7d085a3d95355168a5ec7b394e25056c36c1878e45440b0bb6d36806afb68f62",
+      "bytes": 15642
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\deepcloud-rule-engineer\\SKILL.md",
+      "sha256": "21e73991e764a04bb3accf75013e5ce5c475c35b34630240d02b10c3bdcb3413",
+      "bytes": 16044
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\local-app-inspector\\scripts\\dmghg_probe.py",
+      "sha256": "4cc97eb38f9d0a3ff3662540f9ea0419d18d49e035911f161590f536e9f9439f",
+      "bytes": 11379
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\skills\\local-app-inspector\\SKILL.md",
+      "sha256": "9cd0359f4fb491c3dcac0b742a5d8984aac90fe4d34dffe4ab95ab79da5ecd0f",
+      "bytes": 5452
+    }
+  ],
+  "target": "D:\\太极\\动漫共和国概念版",
+  "model": "gemini-3.8-flash-high",
+  "known_target_reuse": "existing protocol/probe Skill; not an unseen-task certification"
+}

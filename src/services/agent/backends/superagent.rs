@@ -92,7 +92,9 @@ impl AgentBackend for SuperAgentBackend {
                             }
                         } else if t == "error" || t == "failed" {
                             st.forced_status = Some("failed".to_string());
+                            st.terminal_received = true;
                             if let Some(c) = evt.get("content").and_then(|v| v.as_str()) {
+                                st.forced_error = c.to_string();
                                 out.push(AgentMessage::Error {
                                     content: c.to_string(),
                                 });
@@ -139,6 +141,7 @@ impl AgentBackend for SuperAgentBackend {
                         } else if t == "status" {
                             if let Some(s) = evt.get("status").and_then(|v| v.as_str()) {
                                 st.forced_status = Some(s.to_string());
+                                st.terminal_received = matches!(s, "completed" | "failed" | "cancelled" | "timeout");
                             }
                             if let Some(u) = evt.get("usage") {
                                 let p = u.get("prompt_tokens").and_then(|v| v.as_i64()).unwrap_or(0);

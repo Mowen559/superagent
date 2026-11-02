@@ -353,9 +353,9 @@ pub(crate) async fn run_agent(State(state): State<Arc<AppState>>, Json(body): Js
                     cwd_path = run_dir.to_string_lossy().to_string();
                 }
                 Err(error) => {
-                    tracing::warn!(
-                        "[run_agent] Failed to prepare isolated workspace ({error}), falling back to direct project: {project_bg}"
-                    );
+                    state_bg.task_manager.update_status(&task_bg, TaskStatus::Failed,
+                        Some(format!("Failed to prepare isolated workspace: {error}")));
+                    return;
                 }
             }
         }

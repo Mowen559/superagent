@@ -15,6 +15,35 @@ pub fn normalize_path(p: &Path) -> PathBuf {
     PathBuf::from(strip_unc_prefix(&s))
 }
 
+/// The origin baseline grants knowledge context, never a different execution root.
+pub fn run_workspace_roots(workspace: &Path) -> (PathBuf, PathBuf) {
+    let execution = canonicalize_clean(workspace);
+    let knowledge = resolve_origin_project_from_baseline(&execution, &[]);
+    (execution, knowledge)
+}
+
+#[cfg(test)]
+mod run_workspace_tests {
+    use super::*;
+    use crate::domains::agent_cognitive::executor::ToolExecutor;
+    #[test]
+    fn baseline_origin_remains_readable_but_file_writes_stay_isolated() {
+        let stage = tempfile::tempdir().unwrap();
+        let origin = stage.path().join("origin"); let workspace = stage.path().join("run/workspace");
+        std::fs::create_dir_all(origin.join(".supermemory")).unwrap(); std::fs::create_dir_all(&workspace).unwrap();
+        std::fs::write(origin.join("user.txt"), "user pending changes").unwrap();
+        std::fs::write(workspace.parent().unwrap().join("baseline.json"), serde_json::json!({"projectPath":origin}).to_string()).unwrap();
+        let (execution, knowledge) = run_workspace_roots(&workspace);
+        assert_eq!(knowledge, origin);
+        let tool = crate::services::brain::tools::fs::WriteFileTool::new(execution.clone());
+        tool.execute(serde_json::json!({"TargetFile":"result.txt","CodeContent":"isolated result"})).unwrap();
+        assert_eq!(std::fs::read_to_string(execution.join("result.txt")).unwrap(), "isolated result");
+        assert!(!origin.join("result.txt").exists());
+        assert_eq!(std::fs::read_to_string(origin.join("user.txt")).unwrap(), "user pending changes");
+        assert!(tool.execute(serde_json::json!({"TargetFile":origin.join("user.txt"),"CodeContent":"overwrite"})).is_err());
+    }
+}
+
 /// 当运行在隔离沙箱目录（`.../runs/<id>/workspace`）时，尝试通过父级 `baseline.json` 还原主工程根目录；
 /// 若当前目录已包含任意 `marker_dirs`（如 `.supermemory`, `skills`, `.agents`）或未找到 `baseline.json`，则返回原目录。
 pub fn resolve_origin_project_from_baseline(

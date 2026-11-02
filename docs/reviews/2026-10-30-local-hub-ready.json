@@ -1,0 +1,11 @@
+{
+  "service_pid": 32024,
+  "binary": "D:\\抖音\\deepcloud\\super-agent\\target\\debug\\hub.exe",
+  "binary_sha256": "f2c149687ab0b23c42dc42976d17d0d26ee9d03b04c5777b9c0523ad5bb27e97",
+  "endpoint": "http://127.0.0.1:3001",
+  "configured_default_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "no_desktop_automation": true,
+  "status": "running"
+}

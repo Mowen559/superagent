@@ -1,0 +1,15 @@
+{
+  "diagnostic_only": true,
+  "certification": false,
+  "oracle_sha256": "4b10504cd58917080db35bbb828f3cb1f9d355c11d05cb6779db095bc6527133",
+  "artifacts": {
+    "bridge.py": "bc1161a2f9e81ec100327236fa7c17f5f2f5c324bc43c18847417a0c3bfa0bd0",
+    "rule.json": "582318632594437dcd565c47aae7ad7e67822339151e921f04d14f93a7106346",
+    "README.md": "4a8513064893bba1c3fdd56597d3ead03f010c130e1c25739c7d67afb92c1fc8"
+  },
+  "observations": [],
+  "default_port_simulated_unavailable": true,
+  "oracle_passed_this_diagnostic": false,
+  "error": "home must contain real content",
+  "source_unchanged": true
+}

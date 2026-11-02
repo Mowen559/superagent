@@ -1,0 +1,41 @@
+{
+  "task_id": "4139605f-7eaa-4b6e-8dd8-0689f03ba63f",
+  "business_source_written_by_host": false,
+  "classification": "corrected",
+  "source_attempt": "hub-delivery-p2-coached-v4-20261102.json",
+  "artifact_records": [
+    {
+      "path": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace\\rule.json",
+      "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+    },
+    {
+      "path": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace\\bridge.py",
+      "sha256": "f55e234caa8a54998cb5185479bd3cb45e586e7c146b0d4df70bc87364a43174"
+    },
+    {
+      "path": "C:\\Users\\刘本录\\.superagent\\runs\\4139605f-7eaa-4b6e-8dd8-0689f03ba63f\\workspace\\README.md",
+      "sha256": "74513db6df0fcee3264f6700184cab8f9f018cc76d343971dcb0f549879bcdd2"
+    }
+  ],
+  "observed_tool_counts": {
+    "write_to_file": 4,
+    "replace_in_file": 3,
+    "run_command": 6,
+    "verify_delivery": 2
+  },
+  "status_events": [
+    "completed"
+  ],
+  "domain_checks": [
+    "pagination_distinct_and_matches_upstream",
+    "category:20",
+    "category:21",
+    "search:仙逆",
+    "search:斗破",
+    "detail_title_and_first_middle_last_episodes",
+    "lazy_production_runtime",
+    "actual_media_bytes",
+    "null_output_decode_over_one_second",
+    "inputs_unchanged"
+  ]
+}

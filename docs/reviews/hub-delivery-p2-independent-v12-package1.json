@@ -1,0 +1,81 @@
+{
+  "passed": true,
+  "source": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-independent-4796c8b8abcf4bb29f69ba382113472e\\data\\runs\\f50d2343-80f6-4c2a-a98d-5813fe379ab3\\workspace",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-xh00a4ky\\新目录交付",
+  "target": "D:\\太极\\动漫共和国概念版",
+  "validator_sha256": "b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d",
+  "checks": [
+    "only_three_delivered_files_cold_runtime_and_decode",
+    "four_concurrent_reads_with_partial_client",
+    "incomplete_request_server_timeout_under_eight_seconds",
+    "unknown_route_bad_json_unknown_rpc_account_rpc_rejected",
+    "process_tree_shutdown_releases_port",
+    "missing_install_fails_without_gui",
+    "source_and_copy_hashes_unchanged"
+  ],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "07c7720a0bf6a261671cec9040f97ed0a16266af8d8b49ec103b4c999e01c3f9"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "86b9fc655ac9592d83719a2cbdaebb5e9acd824c7407e9ab6a42ea72f7439aae"
+    },
+    {
+      "name": "README.md",
+      "sha256": "e6cc35ac871eaecdd4bc83afbea1b289a326f891e087982c3b4738920f83f383"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "sys",
+    "tempfile",
+    "threading",
+    "time",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "domain_oracle": {
+    "passed": true,
+    "target": "D:\\太极\\动漫共和国概念版",
+    "checks": [
+      "pagination_distinct_and_matches_upstream",
+      "category:20",
+      "category:21",
+      "search:仙逆",
+      "search:斗破",
+      "detail_title_and_first_middle_last_episodes",
+      "lazy_production_runtime",
+      "actual_media_bytes",
+      "null_output_decode_over_one_second",
+      "inputs_unchanged"
+    ],
+    "observed": {
+      "home": 19,
+      "page2": 10,
+      "episodes": 165
+    },
+    "decoder": {
+      "audio-codec-name": "aac",
+      "video-params/w": "1920",
+      "video-params/h": "816",
+      "time-pos": "1.082000",
+      "decoded_video": true,
+      "outputs": {
+        "audio": "null",
+        "video": "null"
+      }
+    },
+    "mobile_standalone_verified": false,
+    "target_dll_sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+    "no_desktop": true
+  },
+  "partial_request_closed_ms": 7627,
+  "shutdown_ms": 368
+}

@@ -99,7 +99,7 @@ impl CognitiveRuntime {
         ]
         .iter()
         .any(|marker| scope_prefix.starts_with(marker));
-        let investigation_only=["只做调查","只做分析","只分析","仅分析","只检查","只做逆向理解","investigation only","analysis only","read-only investigation"]
+        let investigation_only=["只做调查","只做分析","只做复核","只做审查","只分析","仅分析","只检查","只做逆向理解","investigation only","analysis only","read-only investigation"]
             .iter().any(|marker|scope_prefix.starts_with(marker));
         let proposal_needs_workspace = contains_any(
             &normalized,
@@ -636,11 +636,24 @@ fn contains_any(value: &str, needles: &[&str]) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn natural_delivery_scopes_and_new_turns_keep_their_execution_requirements() {
+        for (prompt, expected) in [
+            ("只做复核：核对已有报告，不修改业务文件", TaskKind::Investigative),
+            ("先调查计费故障，再修复代码并运行测试", TaskKind::Execution),
+            ("根据skill生成海阔规则并验证播放", TaskKind::Execution),
+            ("继续上轮未完成的修改，保留用户注释", TaskKind::Execution),
+        ] {
+            let runtime = CognitiveRuntime::with_mode(prompt, ReasoningMode::Adaptive);
+            assert_eq!(runtime.task_kind(), expected, "{prompt}");
+            assert!(!runtime.task_progress().lock().unwrap().has_plan(), "new Run must not reuse another plan");
+        }
+    }
     use super::*;
 
     #[test]
     fn explicit_read_only_investigation_never_requires_an_unrelated_mutation() {
-        for objective in ["只做调查：检查代码错误与调用链，不修改业务源码", "请只做分析：当前代码为什么失败", "analysis only: inspect the current code error"] {
+        for objective in ["只做调查：检查代码错误与调用链，不修改业务源码", "请只做分析：当前代码为什么失败", "只做复核：读取已有报告，不重新跑探针，不改安装目录", "只做审查：根据现有证据纠正报告", "analysis only: inspect the current code error"] {
             let mut runtime=CognitiveRuntime::with_mode(objective,ReasoningMode::Adaptive);
             assert_eq!(runtime.task_kind(),TaskKind::Investigative);
             assert!(runtime.intent.capability.suggested_mutation_tools.is_empty());

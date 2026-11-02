@@ -1,0 +1,70 @@
+{
+  "detail_id": "181655",
+  "records": [
+    {
+      "episode_index": 0,
+      "episode": "第01集",
+      "url_sha256": "d61ca06d8a71ccdc4436d958158f3eed1a2e1af01369e618a406c4fd1e94f6ff",
+      "response_keys": [
+        "default",
+        "list"
+      ],
+      "variant_keys": [
+        "completeness",
+        "headers",
+        "name",
+        "play",
+        "resolution",
+        "total_duration",
+        "type",
+        "url",
+        "vip"
+      ],
+      "variant_label": "1080P 高清"
+    },
+    {
+      "episode_index": 82,
+      "episode": "第83集",
+      "url_sha256": "5cbef7a12cac7f4d32c0accea2f954762016c709efc1c4b66967c412959f1a85",
+      "response_keys": [
+        "default",
+        "list"
+      ],
+      "variant_keys": [
+        "completeness",
+        "headers",
+        "name",
+        "play",
+        "resolution",
+        "total_duration",
+        "type",
+        "url",
+        "vip"
+      ],
+      "variant_label": "1080P 高清"
+    },
+    {
+      "episode_index": 164,
+      "episode": "第165集",
+      "url_sha256": "305e84bd76e70ae91531c9758e0b94e08fe2ca62a1984addad4524878fbf77c5",
+      "response_keys": [
+        "default",
+        "list"
+      ],
+      "variant_keys": [
+        "completeness",
+        "headers",
+        "name",
+        "play",
+        "resolution",
+        "total_duration",
+        "type",
+        "url",
+        "vip"
+      ],
+      "variant_label": "1080P 高清"
+    }
+  ],
+  "distinct_native_playback_results": true,
+  "does_not_claim_three_episodes_decoded": true
+}

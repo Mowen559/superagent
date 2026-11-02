@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "source": "C:\\Users\\刘本录\\.superagent\\runs\\608b673d-4b2d-4a1c-9ec0-cdd916c1b2db\\workspace",
+  "cold_directory": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\hub-package-cold-pmuv_eyp\\新目录交付",
+  "target": "D:/太极/动漫共和国概念版",
+  "validator_sha256": "b5fd3b33cc06aa0b4793d3ae6f774364bf5d68914e7736a9273fdc669f08b09d",
+  "checks": [
+    "four_concurrent_reads_with_partial_client",
+    "incomplete_request_server_timeout_under_eight_seconds",
+    "unknown_route_bad_json_unknown_rpc_account_rpc_rejected",
+    "process_tree_shutdown_releases_port",
+    "missing_install_fails_without_gui",
+    "source_and_copy_hashes_unchanged"
+  ],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "9a98b50d0748eb630cee3288a9b9939f4e6f7d03349cfc37eefe56a6dacd6f07"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "8e3941eb7af637c0b550e73fd8eeed19722d1351e32572a61f673021f4cc3f81"
+    },
+    {
+      "name": "README.md",
+      "sha256": "8dcb229d59179ac3a5888576b1a1f393d3f12b575829aa28b6374142002cfbac"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "socket",
+    "sys",
+    "tempfile",
+    "threading",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "partial_request_closed_ms": 3728,
+  "shutdown_ms": 174,
+  "subprocess_no_utf8_environment_override": true
+}

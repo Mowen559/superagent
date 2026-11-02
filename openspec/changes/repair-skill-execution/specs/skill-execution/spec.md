@@ -51,3 +51,7 @@
 #### Scenario: Shell based local application investigation
 - **WHEN** 模型通过已授权的前台命令读取目录和接口，实际 exit_code=0
 - **THEN** 进度列表提供真实 receipt ID，可按验收条件引用；后台启动和失败命令不能满足此要求
+
+#### Scenario: Explicit review without implementation
+- **WHEN** 用户限定只做复核或只做审查，并提供已有结果文件
+- **THEN** 运行时按调查任务核对证据，不要求无关写盘来满足结题门禁
