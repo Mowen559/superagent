@@ -1,5 +1,5 @@
 {
-  "passed": false,
+  "passed": true,
   "required_runs": 3,
   "attempts": [
     {
@@ -17,10 +17,18 @@
       "status": "completed",
       "package": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-package2.json",
       "manual_review": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-review2.json"
+    },
+    {
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-part3.json",
+      "task_id": "c7140417-fe5b-4f1d-a3cd-4899a521276b",
+      "passed": true,
+      "status": "completed",
+      "package": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-package3.json",
+      "manual_review": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-review3.json"
     }
   ],
-  "state": "running",
+  "state": "all_three_runs_and_manual_reviews_passed",
   "frozen": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-frozen.json",
-  "manual_authorship_review": "pending",
-  "manual_review_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-review2.json"
+  "manual_authorship_review": "passed",
+  "manual_review_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-review3.json"
 }

@@ -1,0 +1,157 @@
+{
+  "passed": true,
+  "required_runs": 3,
+  "known_target_prior_exposure": true,
+  "unseen_target_certified": false,
+  "certifier_sha256": "8284edab4f3cac9d764aaeb13f51657ef1f49b7bf19ae948b03ead160b3fedc0",
+  "frozen_sha256": "26704079b6bd5301e4db8902654b78eaf83c5eaa5462af02d5d46668258ed7be",
+  "reports": [
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-part1.json",
+      "sha256": "24298d81773e14425228ae4474a3c58ed37d5b5ab2bba675c8e7eff4456b4cc6"
+    },
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-part2.json",
+      "sha256": "763ae6a5b180c23b00ea966882f8cf3d2f5add074761d9a513a2ef4d7efba75c"
+    },
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-part3.json",
+      "sha256": "6914afae35d2de0907d05be8aa5a98362b26faf7cf84954514dbeb05bfb5a9a1"
+    }
+  ],
+  "packages": [
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-package1.json",
+      "sha256": "ac307c85fbfb11132cd888f2a4cb33030421293d1e4e12beebbafece311a7cee"
+    },
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-package2.json",
+      "sha256": "0412535a202c596b0f749799cd56a52909a850f14e0eefc658e337a3a524b238"
+    },
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-package3.json",
+      "sha256": "fa4ee39d039aa355d26523a941b016b2e6f784a1fafb4bcd5fa8111a94ba7a88"
+    }
+  ],
+  "manual_reviews": [
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-review1.json",
+      "sha256": "baca7b07730bc76406bc04a4bb51666c6389573a1340dea8b8dfe673cdb343e3"
+    },
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-review2.json",
+      "sha256": "1fb4c3024d91fb91007a052268594b87f4e9446ca21dc00a9c1fe53b570fb5f6"
+    },
+    {
+      "path": "docs/reviews/hub-delivery-p2-v21-independent-review3.json",
+      "sha256": "b1d2841cecc0beaed9b0cffda9ea10707dc7d927a61e19253c31b29fe1271827"
+    }
+  ],
+  "runs": [
+    {
+      "id": "H01-independent-1",
+      "task_id": "f7d16051-02a7-4188-8f35-81da928e2cfa",
+      "workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-aacb62a437554ac29e435df4703745f0\\data\\runs\\f7d16051-02a7-4188-8f35-81da928e2cfa\\workspace",
+      "artifacts": {
+        "rule.json": "eb5defe8379582a91e978d7da4fbb88d27489087c565f2668c4418b772303e46",
+        "bridge.py": "14182a3ce576c293f79ea103e898a4831f4b30e0c8c511839653362964bba0dd",
+        "README.md": "4df66abf302e3011515e5e22311032a9eea0f3923c959f3913a45d738d88c5a1"
+      },
+      "duration_ms": 529320,
+      "model_turns": 23,
+      "checks": [
+        "pagination_distinct_and_matches_upstream",
+        "category:20",
+        "category:21",
+        "search:仙逆",
+        "search:斗破",
+        "detail_title_and_first_middle_last_episodes",
+        "lazy_production_runtime",
+        "bridgeBase_overrides_declared_default_port",
+        "actual_media_bytes",
+        "null_output_decode_over_one_second",
+        "inputs_unchanged"
+      ],
+      "cold_checks": [
+        "only_three_delivered_files_cold_runtime_and_decode",
+        "default_and_cli_overrides_cannot_bind_non_loopback",
+        "four_concurrent_reads_with_partial_client",
+        "incomplete_request_server_timeout_under_eight_seconds",
+        "unknown_route_bad_json_unknown_rpc_account_rpc_rejected",
+        "process_tree_shutdown_releases_port",
+        "missing_install_fails_without_gui",
+        "source_and_copy_hashes_unchanged"
+      ]
+    },
+    {
+      "id": "H01-independent-2",
+      "task_id": "44f37099-d501-43e4-87f2-5c66f1b6a45a",
+      "workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-d7095ffc03304c94abc24b6b77519f4f\\data\\runs\\44f37099-d501-43e4-87f2-5c66f1b6a45a\\workspace",
+      "artifacts": {
+        "rule.json": "019c58bfe33ab34fe938ad30ce3d83c870d2093fd9d633ec974e295be3aec220",
+        "bridge.py": "b5653a7b0880a6274d4183733a5ef7348272b18fc60ada6f7cc79e06c82a41da",
+        "README.md": "2e7fc33274affee132644fbfc90703570bca74eeaf4831750f7d0ce418868b56"
+      },
+      "duration_ms": 775758,
+      "model_turns": 25,
+      "checks": [
+        "pagination_distinct_and_matches_upstream",
+        "category:20",
+        "category:21",
+        "search:仙逆",
+        "search:斗破",
+        "detail_title_and_first_middle_last_episodes",
+        "lazy_production_runtime",
+        "bridgeBase_overrides_declared_default_port",
+        "actual_media_bytes",
+        "null_output_decode_over_one_second",
+        "inputs_unchanged"
+      ],
+      "cold_checks": [
+        "only_three_delivered_files_cold_runtime_and_decode",
+        "default_and_cli_overrides_cannot_bind_non_loopback",
+        "four_concurrent_reads_with_partial_client",
+        "incomplete_request_server_timeout_under_eight_seconds",
+        "unknown_route_bad_json_unknown_rpc_account_rpc_rejected",
+        "process_tree_shutdown_releases_port",
+        "missing_install_fails_without_gui",
+        "source_and_copy_hashes_unchanged"
+      ]
+    },
+    {
+      "id": "H01-independent-3",
+      "task_id": "c7140417-fe5b-4f1d-a3cd-4899a521276b",
+      "workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\data\\runs\\c7140417-fe5b-4f1d-a3cd-4899a521276b\\workspace",
+      "artifacts": {
+        "rule.json": "f8bb339262a1ab7eee0262b5d9304b5725656eb8beb7f654c400c57e17dabd6d",
+        "bridge.py": "66df720edbe4d6824d3c5b1809dfecdc9bda31bff81689565014dfd50a1eeb49",
+        "README.md": "bdc7140741e12237df915455981c66d7ad1b92c79fea5a33a068eb16b768e5f7"
+      },
+      "duration_ms": 774399,
+      "model_turns": 22,
+      "checks": [
+        "pagination_distinct_and_matches_upstream",
+        "category:20",
+        "category:21",
+        "search:仙逆",
+        "search:斗破",
+        "detail_title_and_first_middle_last_episodes",
+        "lazy_production_runtime",
+        "bridgeBase_overrides_declared_default_port",
+        "actual_media_bytes",
+        "null_output_decode_over_one_second",
+        "inputs_unchanged"
+      ],
+      "cold_checks": [
+        "only_three_delivered_files_cold_runtime_and_decode",
+        "default_and_cli_overrides_cannot_bind_non_loopback",
+        "four_concurrent_reads_with_partial_client",
+        "incomplete_request_server_timeout_under_eight_seconds",
+        "unknown_route_bad_json_unknown_rpc_account_rpc_rejected",
+        "process_tree_shutdown_releases_port",
+        "missing_install_fails_without_gui",
+        "source_and_copy_hashes_unchanged"
+      ]
+    }
+  ]
+}

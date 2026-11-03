@@ -1,0 +1,24 @@
+{
+  "classification": "first_attempt",
+  "passed": true,
+  "evidence": [
+    "hub-delivery-p2-v21-independent-part3.json",
+    "hub-delivery-p2-v21-independent-package3.json"
+  ],
+  "scope": "Headless Windows PC production rule runtime with installed native dependencies; Android and frontend window unverified",
+  "artifacts": {
+    "README.md": "bdc7140741e12237df915455981c66d7ad1b92c79fea5a33a068eb16b768e5f7",
+    "rule.json": "f8bb339262a1ab7eee0262b5d9304b5725656eb8beb7f654c400c57e17dabd6d",
+    "bridge.py": "66df720edbe4d6824d3c5b1809dfecdc9bda31bff81689565014dfd50a1eeb49"
+  },
+  "task_id": "c7140417-fe5b-4f1d-a3cd-4899a521276b",
+  "trace_first_sha256": "97d068acd221937dd7bb4355c8351f897f7f31762a1065983e99864be0c62f16",
+  "host_business_edits": false,
+  "review_basis": [
+    "Reviewed final bridge source against initial and changed lines, every rule entrypoint and README; tool provenance reads frozen Skill references, native probe, generic JSON template, Python stdlib and own workspace only",
+    "Readonly native C ABI with actual PE version, temporary state, RLock and free lifecycle; threaded HTTP, five-second reads, fixed loopback host and approved-port guard reviewed",
+    "Rule rebases expanded home/search/detail URL and actual lazy input to dynamic bridgeBase, retaining native IDs, original episode strings and exact playback headers",
+    "Fixed formal and cold three-file tests pass at actual 18001 versus default 18002; genuine decode over one second, malformed/unknown/account calls, partial-client concurrency and shutdown verified",
+    "README states Windows dependencies, startup/import, actual sampled category/search/detail/media scope and explicit Android/mobile limitation; descriptions of all supported categories do not claim all-category testing"
+  ]
+}
