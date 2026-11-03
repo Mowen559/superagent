@@ -254,12 +254,234 @@
           "kind": "tool-result",
           "tool": "run_command",
           "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"rule.json 11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90 8006\\npublication.json 62cbab9ac24a98f324460d5c4e5e55f3809d5f28b326311711a430261872be41 295\\nshare-command.txt 2fe198e316d9ce03e412c53996b63351c9011771e84883c0450a6d218843fc45 35\\n\",\"stderr\":\"\",\"duration_ms\":2413,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":317,\"totalCompressedBytes\":317,\"totalOriginalTokens\":79,\"totalCompressedTokens\":79,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":3}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 9,
+          "session_id": "run_da89c2e31aa44fba88b1eca7a0dfeb9b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 23361,
+          "completion_tokens": 2057,
+          "duration_ms": 37440,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_da89c2e31aa44fba88b1eca7a0dfeb9b\\turn_9.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.3360999,
+          "prompt_tokens": 23361,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "TargetFile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\document\\hub-independent-5fe6fe5d73cb4a3b9f60272dca27dbfd\\data\\runs\\9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2\\workspace\\README.md",
+            "CodeContent": "# NASA官方视频库 - 海阔视界规则 (HikerView Rule)\n\n本项目为基于 NASA 官方开放影像接口（`https://images-api.nasa.gov/[REDACTED_REMOTE_URL] 4K / 1080P / 720P / 标清等）免嗅直接播放。\n\n---\n\n## 📦 交付产物清单与文件复核\n\n经全面复核，工作区内其余三个核心交付文件均保持原始发布状态未作修改：\n\n| 文件名 | 说明 | 文件校验 / 标识 | 状态 |\n|---|---|---|---|\n| `rule.json` | 海阔视界纯独立 JS 规则源码文件 | SHA-256: `11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90` | 原样保留（已复核） |\n| `publication.json` | 远程云端发布与回读校验记录 | 云 Code ID: `bb8hi5w5vjlecm3c` (Pasteme) | 原样保留（已复核） |\n| `share-command.txt` | 海阔视界一键导入短口令 | `云6oooole/xxxxxx/bb8hi5w5vjlecm3c` | 原样保留（已复核） |\n| `README.md` | 规则使用说明、验收范围与交付文档 | 当前文档 | 本次修订 |\n\n---\n\n## 🌐 独立 JS 规则的联网前提与依赖边界\n\n1. **纯独立 JS 规则特性**：\n   - 本规则为纯 JavaScript 规则，**无需任何本地 Python 引擎、无头浏览器、本地 HTTP 代理服务或第三方原生动态链接库 (DLL)**。\n   - 所有请求与数据解析均通过海阔视界内置的同构网络函数（如 `request`）与标准 JSON 引擎完成。\n2. **公网联网访问前提**：\n   - 规则本身并非离线数据包，执行时需要向 NASA 官方公开 API 实时发起网络通信：\n     - 数据接口：`https://images-api.nasa.gov/[REDACTED_REMOTE_URL] 与 `https://images-api.nasa.gov/[REDACTED_REMOTE_URL]\n     - 媒体/缩略图 CDN：`https://images-assets.nasa.gov/[REDACTED_REMOTE_URL]\n   - **网络连通性要求**：NASA 官方服务器与流媒体分发 CDN 均部署于境外。规则运行所在设备必须具备通畅访问 `nasa.gov` 域名的国际互联网连接能力；若网络受阻或存在 DNS 污染，可能导致封面图加载失败、列表超时或视频无法加载。\n\n---\n\n## 🚀 规则导入方式指引\n\n除了云剪切板口令外，建议优先使用手动导入方式进行加载配置：\n\n### 方式一：手动复制规则内容导入（推荐手动方式）\n1. 使用文本编辑器打开本目录下的 `rule.json` 文件；\n2. 全选并复制 `rule.json` 的全部 JSON 文本内容；\n3. 打开客户端（海阔视界或支持该规则语法的 PC 客户端），进入「规则管理」-> 点击右上角菜单或「+」-> 选择「从剪切板导入规则」或「手动粘贴规则内容」；\n4. 确认解析出的规则名称为“NASA官方视频库”，点击保存并启用。\n\n### 方式二：手动选择本地文件导入\n1. 将本目录下的 `rule.json` 文件保存至设备易于访问的本地路径；\n2. 打开客户端规则设置，在导入菜单中选择「本地文件导入」或「从文件加载」；\n3. 定位并选中 `rule.json` 文件，确认导入完成。\n\n### 方式三：云端短口令一键导入\n1. 复制 `share-command.txt` 中的导入口令：\n   ```text\n   云6oooole/xxxxxx/bb8hi5w5vjlecm3c\n   ```\n2. 打开客户端，若支持剪切板自动探测，将在前台弹出导入确认框；若未弹窗，可在规则管理中选择「网络导入/口令导入」并粘贴该口令。\n\n---\n\n## 🧭 功能与使用说明\n\n1. **分类浏览**：\n   - 预设类目包括：全部视频、火星探索（Mars）、国际空间站（ISS）、阿尔忒弥斯（Artemis）、地球观测（Earth）、深空韦伯（Webb）、行星探索（Planet）、航空前沿（Aeronautics）。\n2. **关键词检索**：\n   - 规则支持一级全局搜索。在搜索框中输入英文关键字（如 `apollo`, `black hole`, `moon`, `mars rover`）即可调取官方媒体库实时结果。\n3. **清晰度解析与播放**：\n   - 进入二级详情页后，规则会自动遍历该 NASA ID 下归档的所有 `.mp4` 资源，并智能归类为原画（Original）、超清（Large）、高清（Medium）、标清（Small）、移动端（Mobile）或预览（Preview）路线；\n   - 点击具体清晰度线路，触发 `@lazyRule` 闭包直接解析免嗅直链进行播放。\n\n---\n\n## ⚠️ 规格差异与画质说明（不保证全部视频都有 4K）\n\n- **归档源文件差异**：\n  NASA 官方开放媒体库的历史跨度极大，既包含近年拍摄的超高清 4K 原生记录影像，也包含早期阿波罗计划、历史航天飞机任务等早期数字化的珍贵历史资料。\n- **画质无普遍 4K 承诺**：\n  不同视频资源的可用分辨率完全取决于 NASA 官方资产库归档时实际上传的文件规格。\n  - 部分视频拥有原始 4K 规格（`~orig.mp4`）；\n  - 许多视频官方仅提供 1080P 或 720P；\n  - 部分历史老片仅有 480P 甚至更低规格的预览文件。\n  **规则会动态列出 NASA 实际提供的可用规格，不保证全部视频都具备 4K 画质**。\n\n---\n\n## 🔬 验收范围与平台兼容性说明\n\n### 1. PC 无界面代表样本验收范围（已验证）\n- **验收环境**：Node.js / V8 沙箱 PC Headless（无界面/无 GUI 渲染环境）。\n- **验收方式与样本范围**：\n  - 通过沙箱模拟海阔视界运行时（注入 `MY_URL`、`request`、`setResult` 等环境上下文）；\n  - 抽取代表性核心类目样本（`all`、`mars`、`artemis`）进行一级列表解析验收，验证卡片标题、封面图带防盗链参数、二级跳转 URL 构建均符合规范；\n  - 抽取代表性搜索词（如 `apollo`）进行全局搜索接口与卡片生成验收；\n  - 抽取代表性资源（如包含多画质规格的 Mars 影像与历史任务资产）进行二级详情解析验收，验证剧名保护首卡（`剧名：...`）、简介文本及分清晰度 MP4 真实直链提取均符合标准 `@lazyRule` 闭包规范。\n- **验收结论**：代表性样本的数据获取、字段映射、异常捕获及流媒体直链解析逻辑在 PC Headless 环境下测试通过。本验收属于抽样代表性验证，非对 NASA 数十万条历史全量数据的穷尽遍历。\n\n### 2. 未测平台与环境说明（实测边界）\n- **PC 图形界面未测**：\n  本次测试仅在 PC 命令行与 Headless 沙箱运行时中验证了数据与逻辑链路，**未在 PC 桌面端图形界面客户端（GUI 渲染窗口、内嵌播放器窗口）中进行端到端人工点击交互实测**。\n- **Android 原生移动端未测**：\n  **未在 Android 实体真机或 Android 原生海阔视界 App 中进行实测**。移动端平台的 WebView 渲染、不同机型解码器兼容性及原生排版样式未经真机确认。\n- **适配声明**：\n  未实测的平台与环境不承诺保证可用。使用 Android 设备或 PC 图形客户端的用户，请根据上述导入指引自行在实际设备上测试与验证。\n"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\document\\\\hub-independent-5fe6fe5d73cb4a3b9f60272dca27dbfd\\\\data\\\\runs\\\\9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2\\\\workspace\\\\README.md\",\"diagnostics\":[]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 10,
+          "session_id": "run_da89c2e31aa44fba88b1eca7a0dfeb9b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 25543,
+          "completion_tokens": 18,
+          "duration_ms": 4427,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_da89c2e31aa44fba88b1eca7a0dfeb9b\\turn_10.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.5543,
+          "prompt_tokens": 25543,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "output"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":false,\"completion_ready\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"2cf3bae4-2f06-4888-9964-48c5ce0ba028\",\"session_id\":\"run_da89c2e31aa44fba88b1eca7a0dfeb9b\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"recovery-fixture:document\",\"artifacts\":[{\"id\":\"output\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"output\":{\"id\":\"output\",\"session_id\":\"run_da89c2e31aa44fba88b1eca7a0dfeb9b\",\"run_id\":\"2cf3bae4-2f06-4888-9964-48c5ce0ba028\",\"target\":\"recovery-fixture:document\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\document\\\\hub-independent-5fe6fe5d73cb4a3b9f60272dca27dbfd\\\\data\\\\runs\\\\9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2\\\\workspace\\\\README.md\",\"sha256\":\"a03e06121fc8527c57a2d5d3dd6c5cf0084eb38b64af25bfedc7b18ed9798dd2\",\"bytes\":6965,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-03T17:13:43.214484600+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]}},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null}}"
+        },
+        {
+          "kind": "error",
+          "content": "cognitive turn budget exceeded: 10 model turns"
+        },
+        {
+          "kind": "error",
+          "content": "cognitive turn budget exceeded: 10 model turns"
+        },
+        {
+          "kind": "status",
+          "status": "failed"
         }
       ],
-      "status": "submitted",
+      "status": "failed",
       "classification": "known_case_documentation_replay",
       "prior_exposure": "Host-authored scaffold and acceptance contract; not held-out real-site autonomy. No feedback after launch.",
-      "task_id": "9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2"
+      "task_id": "9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2",
+      "duration_ms": 143729,
+      "tool_calls": 10,
+      "model_turns": 10,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.6651999,
+          "prompt_tokens": 16652,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6718,
+          "prompt_tokens": 16718,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8347001,
+          "prompt_tokens": 18347,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8802,
+          "prompt_tokens": 18802,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9089,
+          "prompt_tokens": 19089,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.231,
+          "prompt_tokens": 22310,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2786,
+          "prompt_tokens": 22786,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2942,
+          "prompt_tokens": 22942,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.3360999,
+          "prompt_tokens": 23361,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.5543,
+          "prompt_tokens": 25543,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.6651999,
+          "prompt_tokens": 16652,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6718,
+          "prompt_tokens": 16718,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8347001,
+          "prompt_tokens": 18347,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8802,
+          "prompt_tokens": 18802,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9089,
+          "prompt_tokens": 19089,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.231,
+          "prompt_tokens": 22310,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2786,
+          "prompt_tokens": 22786,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2942,
+          "prompt_tokens": 22942,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.3360999,
+          "prompt_tokens": 23361,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.5543,
+          "prompt_tokens": 25543,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\document\\hub-independent-5fe6fe5d73cb4a3b9f60272dca27dbfd\\data\\runs\\9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "recovery-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_files_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\document\\hub-independent-5fe6fe5d73cb4a3b9f60272dca27dbfd\\data\\runs\\9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2\\workspace\\rule.json",
+          "sha256": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\document\\hub-independent-5fe6fe5d73cb4a3b9f60272dca27dbfd\\data\\runs\\9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2\\workspace\\README.md",
+          "sha256": "a03e06121fc8527c57a2d5d3dd6c5cf0084eb38b64af25bfedc7b18ed9798dd2"
+        }
+      ],
+      "passed": false
     }
   ],
   "runtime": {
@@ -288,5 +510,7 @@
   ],
   "selected_task_ids": [
     "RECOVERY-document"
-  ]
+  ],
+  "selected_passed": false,
+  "all_passed": false
 }

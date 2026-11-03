@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39803",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "RECOVERY-arguments",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300,
+        "prompt": "请先按原样调用现有交付验收，依据具体错误修复request.json的请求字段，再复核交付。保留请求ID。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_d474e79b02d94b0eb18fb0e84842ae92",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11398,
+          "completion_tokens": 18,
+          "duration_ms": 5720,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_d474e79b02d94b0eb18fb0e84842ae92\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1398,
+          "prompt_tokens": 11398,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "output"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"error\":\"delivery 'output' needs verify_delivery: trusted verifier failed: exit Some(1); invalid_arguments: missing field operation=ping\\n+ actual - expected\\n\\n+ undefined\\n- 'ping'\\n\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"arguments\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":0,\"hint\":\"Correct the actual tool parameters or choose a registered tool before retrying. Do not repeat unchanged invalid input.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_d474e79b02d94b0eb18fb0e84842ae92",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11733,
+          "completion_tokens": 111,
+          "duration_ms": 3885,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_d474e79b02d94b0eb18fb0e84842ae92\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1733,
+          "prompt_tokens": 11733,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\data\\runs\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\workspace\\request.json"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: {\\\"operaton\\\":\\\"ping\\\",\\\"request_id\\\":\\\"keep-this-id\\\"}\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":51,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\arguments\\\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\\\data\\\\runs\\\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\\\workspace\\\\request.json\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"arguments\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":1,\"hint\":\"Correct the actual tool parameters or choose a registered tool before retrying. Do not repeat unchanged invalid input.\"}}"
+        }
+      ],
+      "status": "submitted",
+      "classification": "synthetic_recovery_fixture",
+      "prior_exposure": "Host-authored scaffold and acceptance contract; not held-out real-site autonomy. No feedback after launch.",
+      "task_id": "9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e"
+    }
+  ],
+  "runtime": {
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "model_turn_budget": 12,
+    "pid": 23296,
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\data",
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\profile.json",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "evolution_initial_exists": false,
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7",
+    "port": 39803,
+    "binarySha256": "FE0D8F78B8062252FF58D1A48C4CAAB6965065111B3A4B95693BCFBFE2227400",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\identity.json",
+    "verified_binary_sha256": "fe0d8f78b8062252ff58d1a48c4caab6965065111b3a4b95693bcfbfe2227400"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "ef8d5f5ef4856ca0c18569ba9f9dc3bf9a250c2f7d70c8b20081af1755ce6e73",
+  "frozen_definitions_sha256": "c4ba2e14e9871da7fa98b15a294339eee07ceef10c366ceff65d641ee7c332d9",
+  "planned_task_ids": [
+    "RECOVERY-arguments"
+  ],
+  "selected_task_ids": [
+    "RECOVERY-arguments"
+  ]
+}
