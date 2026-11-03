@@ -1,0 +1,405 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-03",
+  "classification": "known_case_artifact_and_managed_publication_chain_verified_with_supervision_first_attempt_generation_failed",
+  "implementation_checks_passed": true,
+  "new_candidate_end_to_end_certified": false,
+  "model": "gemini-3.8-flash-high",
+  "changes": [
+    "Optional host-managed delivery action, exposed to the model only when configured; fixed executor and current-Run source business receipt, target, path and SHA checks before execution.",
+    "At most one action attempt per Run, including failure or timeout; action executor cannot be invoked as an artifact verifier.",
+    "Explicit local artifact subset verification can succeed without certifying whole-task completion; model receives local business gaps before cloud publication guidance.",
+    "Known observed cloud endpoint and export CLI shell calls, including directly referenced workspace scripts, are refused before execution in managed profiles.",
+    "Generic publisher writes an attempt marker before its single create request and persists the successful public ID before readback; retries with an existing matching receipt are read-only and management credentials are discarded.",
+    "Production rule runtime preserves empty positional class URLs and complete HTTP resource paths containing spaces in both HTTP client and fetch worker.",
+    "Replacement oracle accepts production search fallback and annotated share commands, creates its private import directory and verifies category semantics and source identity. Old frozen attempts and oracles remain preserved.",
+    "Three rule-engineer Skill mirrors now describe local-first acceptance and managed publication; these are manually authored generic platform improvements, not automatically promoted learning.",
+    "Generic read requests for canonical files within the currently selected Skill root are routed to the existing skill_tool read action. Read aliases, line ranges and origin metadata are preserved. Ordinary files, writes, shadowed skills and escaping links keep their existing workspace boundary.",
+    "After an action attempt, foreground guidance now names missing required artifacts and requests full verification instead of suggesting publication again. A focused finalization profile fixes --reuse-only so it cannot create a cloud entry even if the old receipt disappears."
+  ],
+  "causal_correction_to_previous_nasa_review": {
+    "previous_review": "docs/reviews/hub-nasa-natural-final-review-v2.json",
+    "original_rule_unchanged_sha256": "e9c1e97ef2b1e75a6c9da6eb2ad65997f29037a4e7fa515b483dc5c0b8346e23",
+    "conclusion": "The prior category mismatch and missing playback were reproduced as host runtime compatibility faults. The original Hub rule passes the replacement production oracle after those runtime fixes without changing its business implementation. Prior worker failed/cancelled states, documentation overclaims and the unauthorized dummy cloud write are not excused or rewritten.",
+    "evidence": "artifacts/hub-natural-rule/nasa-v4-original-rule-native-fixed.log",
+    "checks": [
+      "production_private_import",
+      "official_home_and_distinct_page_two",
+      "two_semantically_matching_categories",
+      "moon_and_mars_search",
+      "selected_asset_detail_and_lazy",
+      "actual_media_bytes",
+      "windowless_decode_over_one_second"
+    ],
+    "media": {
+      "http_status": 206,
+      "bytes_read": 2048,
+      "width": 1920,
+      "height": 1080,
+      "audio_codec": "aac",
+      "time_pos_seconds": 1.034367
+    },
+    "certification_scope": "Original rule on repaired PC production runtime; no new autonomous candidate completion, Android or GUI certification."
+  },
+  "verification": {
+    "rust": {
+      "passed": 543,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "log": "artifacts/hub-natural-rule/managed-finish-rust-final-v1.log",
+      "filter": "Existing repository-scanning test domains::code_review::tests::test_review_current_project_workspace excluded after stalling; ignored tests remain ignored."
+    },
+    "candidate_build": {
+      "passed": true,
+      "log": "artifacts/hub-natural-rule/managed-finish-build-final-v1.log"
+    },
+    "publisher_and_oracle_node": {
+      "passed": 13,
+      "failed": 0,
+      "log": "artifacts/hub-natural-rule/managed-node-final-tests-v2.log",
+      "real_cloud_posts": 0,
+      "note": "Mock cloud transport and real production command parser for unit cases; actual managed upload/readback is evidenced separately by the real Hub repair and completed finalization."
+    },
+    "native_http_and_security": {
+      "passed": 31,
+      "failed": 0,
+      "log": "artifacts/hub-natural-rule/native-full-compat-regression.log"
+    },
+    "native_filters_and_url": {
+      "passed": 12,
+      "failed": 0,
+      "log": "artifacts/hub-natural-rule/native-compat-fix-tests.log"
+    },
+    "broader_ui_checks": {
+      "passed": 21,
+      "failed": 4,
+      "log": "artifacts/hub-natural-rule/native-filter-ui-contract-regression.log",
+      "failures": [
+        "Asset path resolves with duplicated deepcloud-ui segment under current cwd",
+        "TypeScript module loader cannot resolve src/store/app-store/types",
+        "Two expectations in unchanged filter-group-engine grouping tests fail"
+      ],
+      "note": "These checks are not all green; the unrelated UI grouping and style implementation was not changed."
+    },
+    "process_cleanup_followup": {
+      "isolated_passed": true,
+      "log": "artifacts/hub-natural-rule/process-cleanup-isolated.log",
+      "note": "Earlier overlapping runs caused a timeout-fixture PID event failure under load. The isolated rerun and final four-thread suite passed; old logs are retained."
+    },
+    "openspec_strict": {
+      "passed": true,
+      "change": "evolve-hub-autonomous-delivery",
+      "log": "artifacts/hub-natural-rule/managed-final-openspec-validation.json"
+    },
+    "skill_resource_routing": {
+      "status": "passed",
+      "initial_fixture_failure": "Three behavior cases passed. Fourth could not create a Windows junction fixture via cmd; no security assertion was removed. Fixture now uses native PowerShell junction creation.",
+      "initial_log": "artifacts/hub-natural-rule/skill-resource-routing-tests-v1.log",
+      "final_log": "artifacts/hub-natural-rule/skill-routing-rust-final-v2.log",
+      "cases": 4
+    },
+    "rust_before_resource_routing": {
+      "passed": 538,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "log": "artifacts/hub-natural-rule/managed-delivery-rust-final-v2.log",
+      "filter": "Existing repository-scanning test domains::code_review::tests::test_review_current_project_workspace excluded after stalling; ignored tests remain ignored."
+    }
+  },
+  "candidate_real_attempts": [
+    {
+      "label": "nasa-managed-v1",
+      "task_id": "1790a829-f496-4b43-86f0-b3c246e86c2b",
+      "status": "cancelled",
+      "classification": "infrastructure_abort",
+      "model_turns": 14,
+      "reason": "Registered action lacked prompt projection and was filtered from actual model tools_schema. Fixed and regression-tested before rebuilding.",
+      "evidence": "artifacts/hub-natural-rule/nasa-managed-v1/infra-abort.json",
+      "report": "docs/reviews/hub-nasa-managed-attempt-v1.json",
+      "tool_calls": 14,
+      "duration_ms": 249812,
+      "passed": false,
+      "oracle_passed": false
+    },
+    {
+      "label": "nasa-managed-v2",
+      "task_id": "fb9fac4a-d43c-472f-8ef7-4063587ff57f",
+      "status": "failed",
+      "classification": "model_upstream_unavailable_before_response",
+      "model_turns": 0,
+      "tool_calls": 0,
+      "duration_ms": 15692,
+      "reason": "Production provider exhausted three transient model-request attempts; follow-up TCP connection to 127.0.0.1:8045 failed.",
+      "report": "docs/reviews/hub-nasa-managed-attempt-v2.json",
+      "frozen_identity": "artifacts/hub-natural-rule/nasa-managed-v2/frozen.json",
+      "note": "No rule or cloud publication produced. The corrected model tool catalog has unit coverage but has not yet been observed in a successful real model trace.",
+      "passed": false,
+      "oracle_passed": false
+    },
+    {
+      "label": "nasa-managed-v3",
+      "task_id": "f471b4d2-ffb3-4cd1-8a2d-8863939705cb",
+      "status": "failed",
+      "classification": "known_target_candidate_regression",
+      "human_feedback": 0,
+      "report": "docs/reviews/hub-nasa-managed-attempt-v3.json",
+      "frozen_identity": "artifacts/hub-natural-rule/nasa-managed-v3/frozen.json",
+      "actual_model_tool_catalog": {
+        "tools": 32,
+        "perform_delivery_action": true,
+        "verify_delivery": true,
+        "receipt": "artifacts/hub-natural-rule/nasa-managed-v3/model-tool-projection.json"
+      },
+      "model_turns": 40,
+      "tool_calls": 40,
+      "duration_ms": 809634,
+      "passed": false,
+      "rule_sha256": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90",
+      "audit": "artifacts/hub-natural-rule/nasa-managed-v3/post-run-audit.json",
+      "post_run_runtime": "artifacts/hub-natural-rule/nasa-managed-v3/post-run-runtime.log",
+      "finding": "Only one rule write at turn 19; two verification calls, then repeated direct interface probes without source correction. No README, publication, share command, managed action or publication attempt marker. Post-run production request timed out at 3500 ms; this does not establish a pure pagination logic defect.",
+      "oracle_passed": false
+    },
+    {
+      "label": "nasa-managed-repair-v1",
+      "classification": "known_target_supervised_repair",
+      "status": "failed",
+      "budget": {
+        "model_turns": 24,
+        "seconds": 900,
+        "human_feedback": 1
+      },
+      "seed_rule_sha256": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90",
+      "host_business_code_authored": false,
+      "host_copied_previous_hub_rule": true,
+      "feedback": "Observed production 3500ms request timeout; direct endpoint probes do not replace rule-runtime acceptance. No target protocol or correction code supplied.",
+      "report": "docs/reviews/hub-nasa-managed-repair-v1.json",
+      "task_id": "b43bcfe4-c613-4f82-916d-2b8797a9ca4b",
+      "model_turns": 24,
+      "tool_calls": 24,
+      "duration_ms": 291814,
+      "passed": false,
+      "audit": "artifacts/hub-natural-rule/nasa-managed-repair-v1/post-run-audit.json",
+      "seed_rule_unchanged": true,
+      "budget_deviation": {
+        "configured": 24,
+        "planned_maximum": 20,
+        "used_for_certification": false,
+        "note": "Preserved actual 24-turn attempt. The preparer is corrected to 20 before any subsequent launch."
+      },
+      "finding": "No source edit, README or cloud action. A view_file request for the selected Skill test script hit the workspace boundary, then the model repeatedly read its own traces.",
+      "oracle_passed": false
+    },
+    {
+      "label": "nasa-managed-repair-v2",
+      "classification": "known_target_supervised_repair",
+      "status": "failed",
+      "candidate_sha256": "82a2c3b1ad79ef1e786cd15485e67b59cf42ebbbd94b61dae767ffd946ec3e0e",
+      "budget": {
+        "model_turns": 20,
+        "seconds": 900,
+        "human_feedback": 1
+      },
+      "seed_rule_sha256": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90",
+      "host_business_code_authored": false,
+      "host_copied_previous_hub_rule": true,
+      "feedback": "Same observed production request timeout as prior repair; no target protocol or correction code supplied.",
+      "report": "docs/reviews/hub-nasa-managed-repair-v2.json",
+      "task_id": "3f9df15f-e288-4114-9c33-103f409fd370",
+      "passed": false,
+      "model_turns": 20,
+      "tool_calls": 20,
+      "duration_ms": 431755,
+      "oracle_passed": true,
+      "audit": "artifacts/hub-natural-rule/nasa-managed-repair-v2/post-run-audit.json",
+      "local_runtime_and_media_passed": true,
+      "managed_action_turn": 4,
+      "actual_managed_action_count": 1,
+      "remote_command": "云6oooole/xxxxxx/bb8hi5w5vjlecm3c",
+      "missing_required_artifact": "README.md",
+      "new_rule_authored_in_this_run": false,
+      "observed_resource_routes": 1,
+      "causal_limit": "The unchanged rule passed when network conditions improved; do not attribute runtime success to resource routing.",
+      "evaluation_contamination": "At turn 20, after source verification and upload, a host-root grep exposed host preparer/profile source. This full attempt is not clean held-out evaluation."
+    },
+    {
+      "label": "nasa-managed-finish-v1",
+      "classification": "known_case_delivery_finalization",
+      "status": "completed",
+      "candidate_sha256": "3f2de98fe00437de1d05a0348c6fc098de97d40b031c844c3191c6e1666de3ca",
+      "budget": {
+        "model_turns": 12,
+        "seconds": 900,
+        "human_feedback": 1
+      },
+      "host_business_code_authored": false,
+      "seeds": "Three unchanged files from previous Hub Run: rule, public receipt and short command",
+      "cloud_policy": "reuse-only; new creation disabled by fixed host executor argv",
+      "report": "docs/reviews/hub-nasa-managed-finish-v1.json",
+      "task_id": "fee3e2b0-0e98-4dce-8049-57bf9363c44a",
+      "model_turns": 5,
+      "tool_calls": 6,
+      "duration_ms": 188663,
+      "passed": true,
+      "oracle_passed": true,
+      "audit": "artifacts/hub-natural-rule/nasa-managed-finish-v1/post-run-audit.json",
+      "completion_ready": true,
+      "domain_verified": true,
+      "protected_three_files_unchanged": true,
+      "managed_action_calls": 0,
+      "strict_scope": "Focused completion of an existing verified rule/publication. No fresh generation or upload. Initial README wording was corrected by the subsequent Hub documentation task."
+    },
+    {
+      "label": "nasa-doc-scope-review-v1",
+      "classification": "documentation_scope_correction",
+      "report": "docs/reviews/hub-nasa-doc-scope-review-v1.json",
+      "budget": {
+        "model_turns": 8,
+        "seconds": 300,
+        "human_feedback": 1
+      },
+      "host_business_code_authored": false,
+      "host_editorial_feedback": true,
+      "note": "Task exceeded its budget after writing revised documentation. Status remains failed. Independent hash/presence oracle and host semantic review accept the resulting document only; not a completed worker or new rule generation.",
+      "task_id": "7713be28-37fa-422d-ab9f-f8b9e982901e",
+      "status": "failed",
+      "model_turns": 8,
+      "tool_calls": 7,
+      "duration_ms": 112776,
+      "passed": false,
+      "oracle_passed": true,
+      "audit": "artifacts/hub-natural-rule/nasa-doc-scope-review-v1/post-run-audit.json"
+    }
+  ],
+  "remaining": [
+    "Fresh natural-request generation is still not reliable: the zero-feedback run exhausted 40 turns, and the first repair left source unchanged. Implement the remaining bounded recovery/intent progression work rather than claiming general autonomy.",
+    "The model repeatedly inspected its own traces instead of finishing required outputs. The eight-turn document correction also failed its worker budget despite producing an acceptable edit; preserve this evidence for recovery/completion work.",
+    "Host preparer/profile source was exposed by a late root grep in the real-publication run. Generic shell is not an OS isolation boundary, and this is not clean held-out certification.",
+    "Known NASA public-API rules do not establish unknown encrypted-app reverse engineering, Android or GUI success. Understand/SuperMemory benefits and automatic skill promotion remain separately unverified.",
+    "The built candidate has not replaced the installed Hub. There was no deployment, commit or archive."
+  ],
+  "host_uploaded_rule_in_this_fix_round": false,
+  "desktop_used": false,
+  "automatic_skill_promotion": false,
+  "evidence_hashes": [
+    {
+      "path": "artifacts/hub-natural-rule/managed-delivery-rust-final-v2.log",
+      "sha256": "ba5cea61453b45ce1e55ad458cb0797adf91b10ed1e20478cf322954ec259448"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/managed-delivery-build-final-v2.log",
+      "sha256": "85ef02794ed18c75ff833922356d339bb1928c49d2d3ecf956ef7007f788b85a"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/managed-node-final-tests.log",
+      "sha256": "73bb69d539c0cc9a1da8b757383630526e71274f02d28fc950ab20f15a0f64ce"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/native-full-compat-regression.log",
+      "sha256": "d924ecde3e796bd69d9604d7283847b3b59b39903c0456e115776cb378e48874"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/native-compat-fix-tests.log",
+      "sha256": "1426c8ff1dcacf9fd8901640a0e1ffc71f391329ddc5a55637f5e7513b4750f4"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/native-filter-ui-contract-regression.log",
+      "sha256": "d3137bd8d41a0bbd02f749b23f4e3f2dde4dee4c844fbb181fc17d662f073f5a"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/nasa-v4-original-rule-native-fixed.log",
+      "sha256": "9b55978bab44b017293c9618d2ae484f95b7c6b4fc341a80ef29fb94b722b24c"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/skill-routing-rust-final-v2.log",
+      "sha256": "38200de5eaa9f07bb88b14e337e93519f0f110a91b488be02b9b6d65f28d6a29"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/skill-routing-build-final-v2.log",
+      "sha256": "38bcb363dadeabcdf098a0b5508df2cd957ee3b5c2adc76b0e1c6eaf48ff3b3b"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/managed-finish-rust-final-v1.log",
+      "sha256": "e313188f0eadeb32ddacf3a8d0a3d44a83d981d44e8874b93c60f65f896fd952"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/managed-finish-build-final-v1.log",
+      "sha256": "182f50bb2820874a99236e72434dc843ba8acfb8ad2e43770c3849d0ef97e851"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/managed-node-final-tests-v2.log",
+      "sha256": "ccf79c7548309a529afc3f137970b99efed37e17dd3d2e2d6d4ce61bdf161f15"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/managed-final-openspec-validation.json",
+      "sha256": "d6577d59e94fdcdc68b0fed4fc3a532b5c26aa1e91fb66f21b9010b77fecf1a0"
+    }
+  ],
+  "supervised_repair_reuses_previous_hub_rule": true,
+  "last_updated_date": "2026-11-04",
+  "initial_candidate_sha256": "f98a4aa85986ba22d47527e7fd32be11b065bde7e7a1effcd8bb723825d58d0e",
+  "current_candidate": {
+    "sha256": "3f2de98fe00437de1d05a0348c6fc098de97d40b031c844c3191c6e1666de3ca",
+    "frozen_identity": "artifacts/hub-natural-rule/nasa-managed-finish-v1/frozen.json"
+  },
+  "openspec_progress": {
+    "complete": 38,
+    "total": 70,
+    "completed_bounded_tasks": [
+      "3.18 (known public-API artifact slice only)",
+      "4.8",
+      "4.9",
+      "4.10 (including post-action missing-file guidance)",
+      "4.11",
+      "4.12",
+      "4.13"
+    ],
+    "broader_tasks_still_pending": [
+      "4.1-4.7",
+      "P4-P7"
+    ]
+  },
+  "zero_feedback_fresh_generation_certified": false,
+  "known_case_artifact_delivery_verified": true,
+  "current_candidate_delivery_finalization_completed": true,
+  "new_candidate_end_to_end_caveat": "Fresh zero-feedback generation-to-completion is not certified. The verified artifact chain spans preserved failed generation/repair attempts, one real managed upload, a completed focused finalization and a failed-budget documentation edit accepted by independent artifact review.",
+  "publication_execution": {
+    "initiator": "Hub perform_delivery_action in task 3f9df15f-e288-4114-9c33-103f409fd370 turn 4",
+    "adapter_author": "Host-authored generic platform capability, not Hub-authored target publishing protocol",
+    "create_attempts_observed": 1,
+    "remote_command": "云6oooole/xxxxxx/bb8hi5w5vjlecm3c",
+    "source_sha256": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90",
+    "readback_and_import_passed": true,
+    "coordinator_direct_upload": false,
+    "subsequent_finalization_action_calls": 0
+  },
+  "delivery": {
+    "directory": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-delivery\\nasa-managed-delivery-v1",
+    "manifest": "artifacts/hub-delivery/nasa-managed-delivery-v1/manifest.json",
+    "source_and_cloud_evidence": "artifacts/hub-natural-rule/nasa-managed-finish-v1/post-run-audit.json",
+    "documentation_status": "failed",
+    "documentation_artifact_accepted_by": "Independent immutable-file oracle plus host semantic review; source authored/updated by Hub",
+    "documentation_review_checks": [
+      "No universal 4K promise",
+      "Representative-sample runtime verification is distinguished from all videos/bitrates",
+      "PC GUI and Android explicitly untested",
+      "Manual import labels checked against current UI source; automatic clipboard popup not promised",
+      "Network requirement and absence of Python/local bridge runtime dependency stated"
+    ],
+    "host_authored_rule_or_readme_bytes": false
+  },
+  "host_supplied_nasa_business_rule_to_initial_zero_feedback_candidate": false,
+  "supervised_followups_use_unchanged_prior_hub_artifacts": true,
+  "host_authored_nasa_business_code": false,
+  "evaluation_totals": {
+    "real_attempts": 7,
+    "model_turns_including_infrastructure_abort": 111,
+    "tool_calls": 111,
+    "duration_ms": 2100146,
+    "note": "All attempts retained. Includes the projection infra abort and zero-turn upstream failure; no conversion into a business success rate."
+  },
+  "runtime_cleanup": "artifacts/hub-natural-rule/managed-runtime-cleanup.json",
+  "installed_hub_replaced": false
+}

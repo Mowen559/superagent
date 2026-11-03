@@ -90,7 +90,15 @@ struct HostProfile {
     validators: Vec<VerifierProfile>,
     #[serde(default)]
     actions: Vec<DeliveryAction>,
+    #[serde(default)]
+    completion_policy: CompletionPolicy,
+    #[serde(default)]
+    allow_internal_diagnostics: bool,
 }
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all="snake_case")]
+enum CompletionPolicy { #[default] QualityChecks, PhysicalArtifacts }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -127,6 +135,8 @@ pub struct DeliveryEvidence {
     actions: HashMap<String, DeliveryAction>,
     attempted_actions: HashSet<String>,
     declaration_error: Option<String>,
+    completion_policy: CompletionPolicy,
+    allow_internal_diagnostics: bool,
 }
 
 pub fn file_sha256(path: &Path) -> Result<String, String> {
@@ -147,7 +157,8 @@ impl DeliveryEvidence {
         Ok(Self { root: fs::canonicalize(root).map_err(|e| e.to_string())?, session_id: session_id.into(), run_id: run_id.into(),
             contract: None, imposed: None, validators: HashMap::new(), profile_file: None,
             records: HashMap::new(), errors: HashMap::new(), declaration_error: None,
-            actions: HashMap::new(), attempted_actions: HashSet::new() })
+            actions: HashMap::new(), attempted_actions: HashSet::new(),
+            completion_policy:CompletionPolicy::default(), allow_internal_diagnostics:false })
     }
 
     pub fn load_profile(&mut self, path: &Path) -> Result<(), String> {
@@ -158,6 +169,10 @@ impl DeliveryEvidence {
         let profile_hash = file_sha256(&path)?;
         let profile: HostProfile = serde_json::from_slice(&fs::read(&path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
         profile.delivery.validate()?;
+        if profile.completion_policy==CompletionPolicy::PhysicalArtifacts &&
+            (!profile.delivery.artifacts.iter().any(|a|a.required) || profile.delivery.artifacts.iter().any(|a|a.validator.is_some()) || !profile.actions.is_empty()) {
+            return Err("physical_artifacts requires nonempty physical delivery without business validators or actions".into());
+        }
         let mut validators = HashMap::new();
         for verifier in profile.validators {
             self.check_verifier(&verifier)?;
@@ -180,7 +195,31 @@ impl DeliveryEvidence {
         self.imposed = Some(profile.delivery);
         self.validators = validators;
         self.profile_file = Some((path, profile_hash));
+        self.completion_policy=profile.completion_policy;
+        self.allow_internal_diagnostics=profile.allow_internal_diagnostics;
         Ok(())
+    }
+
+    pub fn host_physical_delivery_complete(&self)->bool {
+        self.profile_file.is_some() && self.completion_policy==CompletionPolicy::PhysicalArtifacts && self.completion_gap().is_none()
+    }
+
+    pub fn internal_trace_guard(&self,name:&str,args:&Value)->Option<String> {
+        if self.allow_internal_diagnostics {return None;}
+        let normalize=|s:&str|s.replace('\\',"/").trim_start_matches("//?/").to_ascii_lowercase();
+        let internal=format!("{}/.superagent/traces",normalize(&self.root.to_string_lossy()));
+        let direct=["AbsolutePath","path","file_path","DirectoryPath","SearchPath","SearchDirectory","directory","dir"];
+        let file_tool=matches!(name,"view_file"|"view_outline"|"list_dir"|"find_by_name"|"grep_search"|"write_to_file"|"replace_in_file");
+        let denied=file_tool && direct.iter().filter_map(|k|args.get(*k).and_then(Value::as_str)).any(|p|{
+            let path=Path::new(p);let full=if path.is_absolute(){path.to_path_buf()}else{self.root.join(path)};
+            let real=fs::canonicalize(&full).unwrap_or(full);let value=normalize(&real.to_string_lossy());
+            value==internal||value.starts_with(&(internal.clone()+"/"))
+        });
+        let shell=matches!(name,"run_command"|"verify_task_tool") && args.get("CommandLine").or_else(||args.get("command")).and_then(Value::as_str)
+            .is_some_and(|c|{let text=normalize(c);text.contains(&internal)||text.split([' ','\t','\n','\r','\'','"','(',')',';']).any(|s|{
+                let s=s.strip_prefix("./").unwrap_or(s);s==".superagent/traces"||s.starts_with(".superagent/traces/")
+            })});
+        (denied||shell).then(||"Internal live traces are not task evidence. Use read_tool_result for current-Run full outputs, inspect actual business files or read Skill resources; finish missing required artifacts instead of rereading internal prompts.".into())
     }
 
     fn check_verifier(&self, verifier: &VerifierProfile) -> Result<(), String> {
@@ -353,12 +392,23 @@ impl DeliveryEvidence {
     }
 
     pub fn action_guidance(&self)->String {
-        if self.actions.is_empty() {return String::new();}
+        if self.actions.is_empty() {
+            return if self.completion_policy==CompletionPolicy::PhysicalArtifacts {
+                "\n[Host physical-artifact acceptance]\nFinish the declared files and call verify_delivery for all required artifacts. Fresh physical receipts satisfy this host's document acceptance; they do not certify business behavior. No unrelated code test or internal trace investigation is required.\n".into()
+            } else {String::new()};
+        }
         let mut actions:Vec<_>=self.actions.values().collect();actions.sort_by_key(|a|&a.id);
+        let missing:Vec<_>=self.contract.as_ref().map(|c|c.artifacts.iter().filter(|i|i.required&&!self.root.join(&i.path).is_file())
+            .map(|i|format!("{} ({})",i.id,i.path)).collect()).unwrap_or_default();
         let rows:Vec<_>=actions.into_iter().map(|a|{
             let status=if let Some(error)=self.errors.get(&a.source) {format!("LOCAL BUSINESS FAILURE: {}",error.chars().take(500).collect::<String>())}
             else if self.contract.as_ref().and_then(|c|c.artifacts.iter().find(|i|i.id==a.source)).is_some_and(|i|!self.root.join(&i.path).is_file()) {"LOCAL SOURCE MISSING: gather only necessary facts and create the actual source artifact; do not repeat probes or planning".into()}
             else if self.records.get(&a.source).is_none_or(|r|!r.domain_verified || file_sha256(&r.path).ok().as_ref()!=Some(&r.sha256)) {"LOCAL SOURCE NEEDS VERIFICATION: call verify_delivery with the source ID; partial verification does not require cloud artifacts".into()}
+            else if self.attempted_actions.contains(&a.id) {
+                format!("ACTION ALREADY ATTEMPTED: never invoke it again or create another ID. Preserve real action outputs. {} Then call verify_delivery for ALL required artifacts; do not investigate internal traces or invent action outputs.",
+                    if missing.is_empty(){"Required files are present; verify the complete delivery.".into()}
+                    else{format!("FINISH MISSING REQUIRED ARTIFACTS: {}.",missing.join(", "))})
+            }
             else {"Local source verified; use the managed action once. Preserve any returned ID; no guessed update APIs or dummy POSTs".into()};
             format!("action_id={}; source={}; attempted={}; {}",a.id,a.source,self.attempted_actions.contains(&a.id),status)
         }).collect();

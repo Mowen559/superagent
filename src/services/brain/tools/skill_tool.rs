@@ -51,6 +51,20 @@ impl ToolExecutor for SkillTool {
         )
     }
 
+    fn read_only_resource_request(&self, path: &std::path::Path) -> Option<Value> {
+        if !path.is_absolute() { return None; }
+        let canonical = fs::canonicalize(path).ok()?;
+        if !canonical.is_file() { return None; }
+        for skill in CapabilityScout::discover_skills(&self.workspace_root) {
+            let Some(root) = std::path::Path::new(&skill.path).parent().and_then(|p|fs::canonicalize(p).ok()) else { continue; };
+            if let Ok(relative) = canonical.strip_prefix(&root) {
+                return Some(json!({"action":"read","skill_name":skill.name,
+                    "resource_path":relative.to_str()?.replace('\\',"/")}));
+            }
+        }
+        None
+    }
+
     fn parameters_schema(&self) -> Value {
         json!({
             "type": "object",
@@ -80,6 +94,8 @@ impl ToolExecutor for SkillTool {
                     "type": "string",
                     "description": "For read only: optional resource path relative to the selected skill root, e.g. references/api.md or scripts/validate-rule.cjs. Cannot escape that skill directory."
                 },
+                "start_line": {"type":"integer","minimum":1,"description":"Optional first resource line, inclusive (read only)."},
+                "end_line": {"type":"integer","minimum":1,"description":"Optional last resource line, inclusive (read only)."},
                 "category": {
                     "type": "string",
                     "description": "Optional category tag: 'workflow', 'architecture', 'troubleshooting', 'testing', or 'conventions'."
@@ -118,7 +134,20 @@ impl ToolExecutor for SkillTool {
                 };
                 let size = fs::metadata(&path).map_err(|e| e.to_string())?.len();
                 if size > 1_048_576 { return Err("Skill resource exceeds 1 MiB; read a smaller resource".into()); }
-                let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+                let mut content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+                if args.get("start_line").is_some() || args.get("end_line").is_some() {
+                    let line = |key: &str, default: usize| -> Result<usize,String> {
+                        match args.get(key) {
+                            None => Ok(default),
+                            Some(value) => value.as_u64().and_then(|v| usize::try_from(v).ok()).filter(|v| *v>0)
+                                .ok_or_else(|| format!("{key} must be a positive integer")),
+                        }
+                    };
+                    let start = line("start_line",1)?;
+                    let end = line("end_line",usize::MAX)?;
+                    if end < start { return Err("end_line must not precede start_line".into()); }
+                    content = content.split_inclusive('\n').skip(start-1).take(end-start+1).collect();
+                }
                 let resource_guide = skill.instructions.find("## 已定位的技能资源")
                     .map(|start| &skill.instructions[start..]).unwrap_or("");
                 Ok(json!({

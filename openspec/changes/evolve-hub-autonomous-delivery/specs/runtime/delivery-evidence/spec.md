@@ -6,6 +6,31 @@
 
 ## ADDED Requirements
 
+### Requirement: Recovery budgets survive unrelated successful observations
+系统 MUST 按当前Run、规范化调用指纹和工作区修订记录失败类别及预算；参数/缺依赖错误须改变输入或修复状态后再试，网络/业务/未知错误的原样执行最多两次。成功的无关观察不能重置预算，真实工作区变更或同一调用成功后可更新恢复状态。
+
+#### Scenario: Successful probes between identical failures
+- **WHEN** 相同验证输入失败两次，中间夹有成功的文件读取或接口探针且未修订工作区
+- **THEN** 第三次相同失败调用在执行前拒绝，返回分类及有界恢复指引
+
+### Requirement: Trusted physical acceptance is explicit and scoped
+系统 SHALL 仅按固定宿主profile显式physical_artifacts策略接受纯物理交付；缺文件、旧哈希、变更profile、业务validator或受控动作均不能借此绕过原门禁，模型声明不能启用该策略。
+
+#### Scenario: Documentation has fresh physical receipts
+- **WHEN** 宿主明确仅验收文档文件，当前Run写入并通过完整物理verify_delivery且显式子任务无缺口
+- **THEN** 默认代码质量检查不再阻止结题，domain_verified保持false
+
+#### Scenario: Physical acceptance attempts to bypass business verification
+- **WHEN** profile同时声明physical_artifacts与业务validator或受控动作
+- **THEN** 配置加载失败，原业务验收不降级
+
+### Requirement: Internal live traces are not business evidence
+系统 MUST 默认阻止模型用直接文件工具和已识别的显式shell路径读取当前Run内部trace，提供作用域正确的工具结果读取替代；只有受信任宿主显式诊断配置才可放开该路径，不宣称任意shell隔离。
+
+#### Scenario: Agent starts inspecting its own prompts
+- **WHEN** 模型调用文件读取、目录列举或显式shell命令访问当前Run的.superagent/traces
+- **THEN** 在执行前拒绝，保留普通业务文件和Skill资源读取能力
+
 ### Requirement: Delivery scope follows user intent
 系统 SHALL 明确每次任务的只读或实施范围、目标身份、必需成果、可选成果和验收条件，并在多轮变更时保持当前有效版本，不能通过无关写盘满足调查任务的结题条件。
 

@@ -34,6 +34,18 @@ delivery 包含 version=1、scope（read_only / implementation）、target 及 a
 
 ## 工作区及大结果
 
+2026-11-04恢复增量：固定宿主profile可选completion_policy（默认quality_checks；physical_artifacts仅接受非空必需物理产物、无业务validator且无actions），以及allow_internal_diagnostics（默认false）。物理验收只放行默认RunPlan/DoD步骤，保留显式子任务、当前Run/路径/哈希和profile指纹门禁，domain_verified及工具verification事实不被提升。
+
+网关按Run/规范化指纹/工作区修订记录失败类别。参数、缺依赖失败原样最多一次；网络、业务及未知失败原样最多两次，无关成功读取或探针不刷新额度。失败或恢复状态转换时附加recovery_state（固定类别、次数、建议和是否停滞；不保存命令正文/原始错误），无恢复状态的正常成功结果保持原结构。该字段由网关专有生成，工具自带同名提示会被移除。原样预算耗尽在执行前返回bounded_recovery_exhausted；修改参数或成功工作区写入允许新尝试，新Run清理状态。授权状态由原策略存储每次重查，待授权记录不会阻止后来正式获准的调用。
+
+当前Run的.superagent/traces默认不作为普通业务输入：直接路径和已识别的显式shell访问返回internal_trace_not_task_evidence，改用read_tool_result读取同Run原文及真实业务文件。固定宿主profile可显式授权内部诊断；该规则不构成任意shell或操作系统安全沙箱。
+
+通用云适配器支持宿主固定参数--reuse-only：只读复验现有匹配来源哈希的公开回执；即使回执文件缺失也直接拒绝，绝不进入创建分支。该参数由宿主profile固定，模型不能在受控动作中移除；用于成功发布后的文档收尾复验。
+
+2026-11-04发布后收尾指引：受控动作一经尝试，动态指导不再提示调用该动作；展示尚未存在的required产物ID及相对路径，要求保留既有公开ID、完成真实剩余文件并以verify_delivery全量复核。文件齐备也不等于业务验证齐备，必须继续通过原完成门禁。该提示不恢复动作额度、不允许伪造动作输出。
+
+2026-11-04技能资源读取路由：view_file及读别名的AbsolutePath若被当前注册skill_tool识别为所选技能根内的真实文件，网关转换为skill_tool({action:"read",skill_name,resource_path})并保留start_line/end_line（兼容StartLine/EndLine）。资源根及链接经真实路径检查，读取仍受SkillTool大小/边界限制。收据工具名为skill_tool，结果附resource_read_route说明原工具；不会执行脚本。普通文件、未选影子技能、逃逸链接和所有写入不转换，旧文件工具的工作区权限保持有效。
+
 origin 是只读知识来源，不能取代运行根。shell cwd、文件操作、清单及交付产物绑定隔离工作区；原项目记忆/图谱可通过只读来源检索。工具大结果写入和 read_tool_result 读取必须共用 Session/Run 作用域，跨 Run 旧引用无效。
 
 Shell 的 RTK 压缩和 verify_task_tool 的尾部摘要同样受原文可恢复契约约束，即使摘要低于 Gateway 长度上限，也须先保存未经摘要的 stdout/stderr，返回 full_result_reference；原文不直接注入模型上下文。内部原文传输字段由 Gateway 消费并移除。保存失败须明确返回恢复错误，不能显示一个可用的空引用。退出码、失败状态及现有摘要保持原语义。

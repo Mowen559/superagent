@@ -3,7 +3,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto'),assert=requ
 const label=process.argv[2]||'nasa-managed-v2';assert.match(label,/^[\w-]+$/);
 const root=path.resolve(__dirname,'..'),stage=path.join(root,'artifacts/hub-natural-rule',label),project=path.join(stage,'project');assert.ok(!fs.existsSync(stage));fs.mkdirSync(project,{recursive:true});
 const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex'),verifier=path.join(root,'scripts/verify_nasa_rule_v4.cjs'),publisher=path.join(root,'scripts/publish_verified_rule.cjs');
-const rust=['src/services/brain/delivery_evidence.rs','src/services/brain/task_progress.rs','src/services/brain/tool_execution_gateway.rs','src/services/brain/cognitive_runtime.rs','src/services/brain/tool_policy.rs','src/domains/agent_cognitive/executor.rs'].map(p=>path.join(root,p));
+const rust=['src/services/brain/delivery_evidence.rs','src/services/brain/task_progress.rs','src/services/brain/tool_execution_gateway.rs','src/services/brain/cognitive_runtime.rs','src/services/brain/tool_policy.rs','src/domains/agent_cognitive/executor.rs','src/services/brain/tools/skill_tool.rs'].map(p=>path.join(root,p));
 assert.ok(fs.statSync(path.join(root,'target/debug/hub.exe')).mtimeMs>=Math.max(...rust.map(p=>fs.statSync(p).mtimeMs)),'Build the current source before freezing a candidate');
 const config=path.join(stage,'oracle-config.json');fs.writeFileSync(config,JSON.stringify({stage,python:'C:/Users/刘本录/AppData/Local/Python/pythoncore-3.14-64/python.exe',decoder_dir:'D:/太极/动漫共和国概念版'},null,2));
 const entry=(id,script,args,timeout_seconds)=>({id,program:process.execPath,program_sha256:sha(process.execPath),script,script_sha256:sha(script),args,timeout_seconds});

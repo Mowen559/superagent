@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39703",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "NASA-managed-regression-nasa-managed-v2",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 1500,
+        "prompt": "请把 https://images.nasa.gov/ 做成海阔世界PC可直接使用的独立JS视频规则，支持分类浏览、翻页、搜索、详情和实际播放，不依赖Python或本机桥接服务。请自行使用已有Skill调查并实现，最后发布云剪切板短口令并附导入说明。允许本规则云发布，不扫描或推送设备。交付rule.json、README.md、share-command.txt和publication.json，后者用remote_command保存真实短口令。"
+      },
+      "events": [
+        {
+          "kind": "error",
+          "content": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"anthropic\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":2051,\"outcome\":\"transient\"}]"
+        },
+        {
+          "kind": "error",
+          "content": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"anthropic\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":2051,\"outcome\":\"transient\"}]"
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "known_target_candidate_regression",
+      "prior_exposure": "Known NASA case; generic platform/Skill fixes applied. Empty project and private Session; host provides no target protocol or rule implementation.",
+      "task_id": "fb9fac4a-d43c-472f-8ef7-4063587ff57f",
+      "duration_ms": 15692,
+      "tool_calls": 0,
+      "model_turns": 0,
+      "usage_events": [],
+      "token_usage": null,
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\hub-independent-5cb7c8ede01644b28a7c0ff3d763124f\\data\\runs\\fb9fac4a-d43c-472f-8ef7-4063587ff57f\\workspace",
+      "oracle": {
+        "passed": false,
+        "target": "https://images.nasa.gov/",
+        "error": "ENOENT: no such file or directory, open 'D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\hub-independent-5cb7c8ede01644b28a7c0ff3d763124f\\data\\runs\\fb9fac4a-d43c-472f-8ef7-4063587ff57f\\workspace\\rule.json'",
+        "partial": {
+          "checks": [],
+          "observed": {}
+        },
+        "exit_code": 1
+      },
+      "oracle_passed": false,
+      "artifacts": [],
+      "passed": false
+    }
+  ],
+  "runtime": {
+    "port": 39703,
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "model_turn_budget": 40,
+    "binarySha256": "F98A4AA85986BA22D47527E7FD32BE11B065BDE7E7A1EFFCD8BB723825D58D0E",
+    "pid": 5044,
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\hub-independent-5cb7c8ede01644b28a7c0ff3d763124f\\data",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\hub-independent-5cb7c8ede01644b28a7c0ff3d763124f",
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\profile.json",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "evolution_initial_exists": false,
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-managed-v2\\identity.json",
+    "verified_binary_sha256": "f98a4aa85986ba22d47527e7fd32be11b065bde7e7a1effcd8bb723825d58d0e"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "2bff7324def84e64ff445cb813ac01e8352f056dde29420f5a8e4288f88a2e8a",
+  "frozen_definitions_sha256": "e5249f8ae9c99b3c698d1ec4e6715fc29b78aa0b92c281170a00333585e37bf2",
+  "planned_task_ids": [
+    "NASA-managed-regression-nasa-managed-v2"
+  ],
+  "selected_task_ids": [
+    "NASA-managed-regression-nasa-managed-v2"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

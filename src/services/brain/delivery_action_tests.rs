@@ -42,6 +42,21 @@ fn action_executor_cannot_be_smuggled_into_verify_delivery() {
 }
 
 #[test]
+fn attempted_action_guidance_prioritizes_missing_required_files_without_retry() {
+    let (_dir,work,profile)=fixture();
+    let mut config:Value=serde_json::from_slice(&fs::read(&profile).unwrap()).unwrap();
+    config["delivery"]["artifacts"].as_array_mut().unwrap().push(json!({"id":"readme","path":"README.md","required":true}));
+    fs::write(&profile,serde_json::to_vec(&config).unwrap()).unwrap();
+    let mut state=DeliveryEvidence::new(&work,"s","r").unwrap();state.load_profile(&profile).unwrap();
+    fs::write(work.join("rule.json"),r#"{"canary":"expected"}"#).unwrap();state.verify(&["rule".into()]).unwrap();state.perform_action("publish").unwrap();
+    let guidance=state.action_guidance();assert!(guidance.contains("ACTION ALREADY ATTEMPTED"));assert!(guidance.contains("readme (README.md)"));
+    assert!(guidance.contains("publication.json"));assert!(guidance.contains("ALL required artifacts"));assert!(!guidance.contains("use the managed action once"));
+    fs::write(work.join("README.md"),"actual documentation").unwrap();fs::write(work.join("publication.json"),"{}").unwrap();
+    let ready=state.action_guidance();assert!(!ready.contains("FINISH MISSING"));assert!(ready.contains("verify the complete delivery"));assert!(state.completion_gap().is_some());
+    assert!(state.perform_action("publish").unwrap_err().contains("already attempted"));
+}
+
+#[test]
 fn changed_host_configuration_never_starts_action_or_retries() {
     let (_dir,work,profile)=fixture();let mut state=DeliveryEvidence::new(&work,"s","r").unwrap();state.load_profile(&profile).unwrap();
     fs::write(work.join("rule.json"),r#"{"canary":"expected"}"#).unwrap();state.verify(&["rule".into()]).unwrap();

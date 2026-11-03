@@ -1,4 +1,8 @@
 {
+  "supplemental_runtime_root_cause_review": {
+    "path": "docs/reviews/hub-managed-delivery-fix-review-v1.json",
+    "note": "Later causal isolation found host runtime bugs behind the category mismatch and missing playback recorded below. The untouched Hub rule passes production execution and real decoding on the repaired runtime. This historical report retains its original observed results and failed/cancelled worker states; see the supplemental review for attribution, fixes and fresh candidate attempts."
+  },
   "passed": false,
   "evaluation_completed": true,
   "classification": "new_public_api_target_not_certified_complete_with_host_oracle_faults",

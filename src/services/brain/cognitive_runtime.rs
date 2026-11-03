@@ -64,6 +64,7 @@ pub struct CognitiveRuntime {
     distilled_lessons: Vec<DistilledLesson>,
     task_progress: SharedTaskProgress,
     proposal_only: bool,
+    recovery_hint: Option<String>,
     pub socratic_payload: Option<crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryPayload>,
     pub verification_gate: VerificationGateGuard,
 }
@@ -203,6 +204,7 @@ impl CognitiveRuntime {
             distilled_lessons: Vec::new(),
             task_progress: std::sync::Arc::new(std::sync::Mutex::new(TaskProgress::default())),
             proposal_only,
+            recovery_hint:None,
             socratic_payload: crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryEngine::evaluate(objective, None),
             verification_gate: VerificationGateGuard::new(
                 if task_kind == TaskKind::Conversational {
@@ -231,6 +233,7 @@ impl CognitiveRuntime {
     pub fn invalidate_after_rollback(&mut self) {
         self.task_progress.lock().unwrap_or_else(|e| e.into_inner()).invalidate_after_rollback();
         self.plan.reset_evidence();
+        self.recovery_hint=None;
         self.verification_gate = VerificationGateGuard::new(self.verification_gate.policy, self.verification_gate.max_retries);
     }
 
@@ -427,6 +430,7 @@ impl CognitiveRuntime {
         );
         res.push_str(&format!("{}{}", phase_progression_block, pivot_mandate));
         res.push_str(&self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).delivery_guidance());
+        if let Some(hint)=&self.recovery_hint {res.push_str(&format!("\n[Evidence-based recovery]\n{hint}\n"));}
         res.push_str(&format!(
             "\n[Turn Budget]\nRemaining model turns including this request: {} of {}. Batch independent read-only calls when useful and reuse facts already supplied in workspace excerpts or prior results. Read further only to resolve a material gap; once the requested outcome is supported, advance to the plan, action or delivery. Record unresolved facts honestly instead of exhausting the budget browsing unrelated files. The deadline never relaxes verification or authorization requirements.\n",
             self.max_model_turns.saturating_sub(self.model_turns) + 1,
@@ -436,6 +440,9 @@ impl CognitiveRuntime {
     }
 
     pub fn observe_receipt(&mut self, receipt: &ToolExecutionReceipt) {
+        if let Some(state)=receipt.result.get("recovery_state") {
+            self.recovery_hint=state.get("hint").and_then(serde_json::Value::as_str).map(str::to_string);
+        }
         self.task_progress
             .lock()
             .unwrap_or_else(|e| e.into_inner())
@@ -525,6 +532,8 @@ impl CognitiveRuntime {
     }
 
     pub fn review_completion(&mut self, draft: &str) -> CompletionDecision {
+        let host_physical=self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).host_physical_delivery_complete();
+        if host_physical {self.plan.accept_host_physical_delivery();}
         self.plan.begin_completion();
         let normalized = draft.to_lowercase();
         let claims_written = [
@@ -574,7 +583,7 @@ impl CognitiveRuntime {
         }
 
         let is_conversational = self.task_kind == TaskKind::Conversational;
-        match self.verification_gate.evaluate_conclusion_attempt(is_conversational) {
+        match if host_physical {GateDecision::Passed} else {self.verification_gate.evaluate_conclusion_attempt(is_conversational)} {
             GateDecision::RejectAndSteer {
                 reason,
                 suggested_action,

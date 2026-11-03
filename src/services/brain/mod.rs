@@ -33,6 +33,7 @@ pub mod tool_approval_store;
 pub mod tool_call_identity;
 pub mod tool_execution_gateway;
 pub mod tool_loop_guard;
+pub mod tool_recovery;
 pub mod tool_pairing;
 pub mod tool_policy;
 pub mod tool_result_store;

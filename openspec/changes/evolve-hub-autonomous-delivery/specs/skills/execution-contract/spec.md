@@ -24,6 +24,17 @@
 - **WHEN** 技能资源相对路径或链接解析到允许根之外
 - **THEN** 系统拒绝该资源读取并保留明确错误，不通过路径改写绕过限制
 
+### Requirement: Generic reads can resolve selected skill resources
+系统 SHALL 将已注册skill_tool确认属于当前所选技能根的真实文件读取请求路由到只读skill_tool action=read，保留来源和行范围；不扩大普通文件工具权限，不转换写入或执行请求。旧工具不声明资源路由时行为不变。
+
+#### Scenario: View tool targets a selected skill script
+- **WHEN** 模型用view_file或其读别名请求所选技能根内的真实脚本
+- **THEN** 网关按技能目录解析并调用skill_tool读取，记录路由来源且不执行该脚本
+
+#### Scenario: Generic path or symlink escapes skill root
+- **WHEN** 请求为普通外部文件、未选择的影子技能资源或canonicalize后位于所选技能根之外的链接
+- **THEN** 网关不将其认定为可信技能资源，保留原文件权限检查及明确失败
+
 ### Requirement: Business verification is independent of generated output
 系统 MUST 区分技能自检与受信任的业务验收，后者验证冻结的用户目标、产物及真实运行结果；模型不得通过改写验收器、降低断言或更换目标取得通过。
 

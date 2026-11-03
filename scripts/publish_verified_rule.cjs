@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const sha=data=>crypto.createHash('sha256').update(data).digest('hex');
 const realPath=file=>fs.realpathSync.native(file);
 function canonical(file,workspace){const real=realPath(file);assert.ok(real.startsWith(realPath(workspace)+path.sep),'artifact outside workspace');return real}
-async function publish({workspace,artifact,expected,target},{fetcher=globalThis.fetch,parser}={}){
+async function publish({workspace,artifact,expected,target,reuseOnly=false},{fetcher=globalThis.fetch,parser}={}){
  workspace=realPath(workspace);artifact=canonical(artifact,workspace);
  const data=fs.readFileSync(artifact);assert.equal(sha(data),expected,'source changed before publication');
  const rule=JSON.parse(data.toString('utf8'));assert.ok(!Array.isArray(rule)&&rule.title&&rule.find_rule,'not a single rule');
@@ -21,6 +21,7 @@ async function publish({workspace,artifact,expected,target},{fetcher=globalThis.
   receipt=JSON.parse(fs.readFileSync(receiptFile,'utf8'));assert.equal(receipt.rule_sha256,expected,'existing publication belongs to another source; never create a replacement implicitly');
   assert.ok(/^云6oooole\/xxxxxx\/[A-Za-z0-9_-]+$/.test(receipt.remote_command),'existing receipt has no supported public ID');
  }else{
+  assert.ok(!reuseOnly,'existing publication required; creation disabled for this action');
   assert.ok(!fs.existsSync(attemptFile),'previous creation may have committed; preserve state, do not retry POST');
   fs.mkdirSync(path.dirname(attemptFile),{recursive:true});
   fs.writeFileSync(attemptFile,JSON.stringify({provider:'pasteme',source_sha256:expected,state:'creation_attempted',utc:new Date().toISOString()}),{flag:'wx'});
@@ -43,5 +44,5 @@ async function publish({workspace,artifact,expected,target},{fetcher=globalThis.
  return {passed:true,target,checks:['verified_source_hash','single_creation_attempt','production_cloud_readback','source_fields_equal'],remote_command:receipt.remote_command,source_sha256:expected};
 }
 module.exports={publish};
-if(require.main===module){const args=process.argv.slice(2),opt=k=>args[args.indexOf(k)+1];publish({workspace:opt('--workspace'),artifact:opt('--artifact'),expected:opt('--expected-sha256'),target:opt('--target')})
+if(require.main===module){const args=process.argv.slice(2),opt=k=>args[args.indexOf(k)+1];publish({workspace:opt('--workspace'),artifact:opt('--artifact'),expected:opt('--expected-sha256'),target:opt('--target'),reuseOnly:args.includes('--reuse-only')})
  .then(r=>console.log(JSON.stringify(r))).catch(e=>{console.log(JSON.stringify({passed:false,error:e.message}));process.exitCode=1})}

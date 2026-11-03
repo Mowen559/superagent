@@ -74,6 +74,12 @@ impl TaskProgress {
     pub fn delivery_guidance(&self)->String {
         self.delivery.as_ref().map(|d|d.action_guidance()).unwrap_or_default()
     }
+    pub fn host_physical_delivery_complete(&self)->bool {
+        self.delivery.as_ref().is_some_and(|d|d.host_physical_delivery_complete())
+    }
+    pub fn internal_trace_guard(&self,name:&str,args:&serde_json::Value)->Option<String> {
+        self.delivery.as_ref().and_then(|d|d.internal_trace_guard(name,args))
+    }
 
     pub fn apply_plan(&mut self, plan: TaskContract) {
         if let Some(delivery) = &mut self.delivery { delivery.declare(plan.delivery.as_ref()); }

@@ -71,6 +71,14 @@ impl RunPlan {
         plan
     }
 
+    /// Explicit host physical acceptance can close the default verification
+    /// stage; it does not create a quality-check receipt or bypass the action.
+    pub fn accept_host_physical_delivery(&mut self) {
+        if self.is_completed("inspect") && (!self.requires_action || self.is_completed("act")) {
+            self.complete_and_advance("verify",Some("respond"));
+        }
+    }
+
     pub fn observe_tool(
         &mut self,
         status: ToolExecutionStatus,

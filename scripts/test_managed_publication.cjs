@@ -12,6 +12,14 @@ function fixture(){
  return {options,state,deps:{fetcher,parser}};
 }
 test('source mismatch never creates pending state or sends a POST',async()=>{const f=fixture();f.options.expected='wrong';await assert.rejects(publish(f.options,f.deps),/source changed/);assert.equal(f.state.posts,0);assert.equal(fs.existsSync(path.join(f.options.workspace,'.superagent')),false)});
+
+test('reuse-only action cannot create even if the old receipt is missing',async()=>{
+ const f=fixture();await assert.rejects(publish({...f.options,reuseOnly:true},f.deps),/creation disabled/);assert.equal(f.state.posts,0);assert.equal(fs.existsSync(path.join(f.options.workspace,'.superagent')),false);
+});
+
+test('reuse-only action revalidates an existing ID without POST',async()=>{
+ const f=fixture();await publish(f.options,f.deps);const before=f.state.posts;assert.equal((await publish({...f.options,reuseOnly:true},f.deps)).passed,true);assert.equal(f.state.posts,before);
+});
 test('single fixed-provider POST, real local command parser, no management credential in receipts',async()=>{
  const f=fixture(),result=await publish(f.options,f.deps);assert.equal(result.passed,true);assert.equal(f.state.posts,1);
  for(const file of ['publication.json','share-command.txt','.superagent/cloud-publication-attempt.json'])assert.ok(!fs.readFileSync(path.join(f.options.workspace,file),'utf8').includes('DO_NOT_SAVE_MANAGEMENT_CANARY'));

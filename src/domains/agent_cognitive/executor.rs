@@ -88,6 +88,11 @@ pub trait ToolExecutor: Send + Sync {
     fn prompt_projection(&self) -> Option<String> {
         None
     }
+
+    /// Optional capability-owned read routing. Generic file tools gain no new roots.
+    fn read_only_resource_request(&self, _path: &std::path::Path) -> Option<Value> {
+        None
+    }
 }
 
 /// Helper function to classify tools as read-only (speculatively parallelizable)
