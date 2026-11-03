@@ -196,6 +196,64 @@
           "kind": "tool-result",
           "tool": "run_command",
           "output": "{\"status\":\"completed\",\"exit_code\":1,\"stdout\":\"\",\"stderr\":\"Get-FileHash : The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable pr\\r\\nogram. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\\r\\nAt line:1 char:1\\r\\n+ Get-FileHash rule.json -Algorithm SHA256 | Select-Object -ExpandPrope ...\\r\\n+ ~~~~~~~~~~~~\\r\\n    + CategoryInfo          : ObjectNotFound: (Get-FileHash:String) [], CommandNotFoundException\\r\\n    + FullyQualifiedErrorId : CommandNotFoundException\\r\\n \\r\\n\",\"duration_ms\":4099,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":0,\"totalCompressedBytes\":0,\"totalOriginalTokens\":0,\"totalCompressedTokens\":0,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":1}},\"recovery_state\":{\"active\":true,\"failure_class\":\"missing_dependency\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":0,\"hint\":\"Check the named dependency and available runtime. Restore it only within authorized scope or use an evidenced alternative; do not repeat the same missing-dependency command.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 7,
+          "session_id": "run_da89c2e31aa44fba88b1eca7a0dfeb9b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 22786,
+          "completion_tokens": 61,
+          "duration_ms": 7593,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_da89c2e31aa44fba88b1eca7a0dfeb9b\\turn_7.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2786,
+          "prompt_tokens": 22786,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node -e \"const fs=require('fs'), crypto=require('crypto'); console.log(crypto.createHash('sha256').update(fs.readFileSync('rule.json')).digest('hex'));\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90\\n\",\"stderr\":\"\",\"duration_ms\":2110,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":65,\"totalCompressedBytes\":65,\"totalOriginalTokens\":16,\"totalCompressedTokens\":16,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":2}},\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 8,
+          "session_id": "run_da89c2e31aa44fba88b1eca7a0dfeb9b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 22942,
+          "completion_tokens": 93,
+          "duration_ms": 28065,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_da89c2e31aa44fba88b1eca7a0dfeb9b\\turn_8.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.2942,
+          "prompt_tokens": 22942,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node -e \"const fs = require('fs'), crypto = require('crypto'); ['rule.json', 'publication.json', 'share-command.txt'].forEach(f => { const content = fs.readFileSync(f); console.log(f, crypto.createHash('sha256').update(content).digest('hex'), content.length); });\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"rule.json 11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90 8006\\npublication.json 62cbab9ac24a98f324460d5c4e5e55f3809d5f28b326311711a430261872be41 295\\nshare-command.txt 2fe198e316d9ce03e412c53996b63351c9011771e84883c0450a6d218843fc45 35\\n\",\"stderr\":\"\",\"duration_ms\":2413,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":317,\"totalCompressedBytes\":317,\"totalOriginalTokens\":79,\"totalCompressedTokens\":79,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":3}}}"
         }
       ],
       "status": "submitted",
