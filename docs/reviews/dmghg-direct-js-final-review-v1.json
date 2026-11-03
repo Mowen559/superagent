@@ -1,0 +1,76 @@
+{
+  "rule_sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+  "decoder": {
+    "audio-codec-name": "aac",
+    "video-params/w": "1920",
+    "video-params/h": "816",
+    "time-pos": "1.082000",
+    "decoded_video": true,
+    "outputs": {
+      "audio": "null",
+      "video": "null"
+    },
+    "diagnostic_codes": []
+  },
+  "android_verified": false,
+  "classification": "protocol_guided_corrected; worker failed at budget, final artifacts independently validated",
+  "json_imported": true,
+  "passed": true,
+  "files": {
+    "README.md": "098e40032116224704ab6fb08cce2b3fdd095b4190a5927c3662b875045d849c",
+    "dmghg.js": "412a30ec1b36419e6e9124b1a89054606e6e4954d6edaa8ff54ff9994b0b7e22",
+    "rule.json": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95"
+  },
+  "import_checks": [
+    {
+      "index": 0,
+      "title": "第01集",
+      "url_chars": 875,
+      "media_status": 206,
+      "media_bytes_observed": 2048,
+      "path_sha256": "a8a8f038e9ce3e04cfb4946cfc1a2b72fecd407af7000f44bde210aa08e6a083"
+    },
+    {
+      "index": 82,
+      "title": "第83集",
+      "url_chars": 875,
+      "media_status": 206,
+      "media_bytes_observed": 2048,
+      "path_sha256": "36002abb83e000ae72bb1e3707ac114a44df58f5b8f5bd64532fbf263a2cfff1"
+    },
+    {
+      "index": 164,
+      "title": "第165集",
+      "url_chars": 876,
+      "media_status": 206,
+      "media_bytes_observed": 2048,
+      "path_sha256": "17a5ffe8678f5ba89c45d1799ccb40f6b5e3cd70dd64b9267d3dbbae78c53040"
+    }
+  ],
+  "cold_files": [
+    "rule.json"
+  ],
+  "host_business_edits": false,
+  "gui_used": false,
+  "manual_review": [
+    "All original generated files copied byte-identically; host added human import guide only",
+    "Runtime code uses only packaged JS/CryptoJS/BigInt and normal Hiker request, no native modules or external files",
+    "One shared marker; 165 compact episode URLs 875-876 chars; original categories preserved",
+    "No fixed guide media literal, Node Buffer/native imports or installed paths in core",
+    "README distinguishes first-episode decode and name samples; additional imported checks cover three actual lazy/media requests"
+  ],
+  "production_checks": [
+    "pagination_distinct_and_matches_upstream",
+    "category:20",
+    "category:21",
+    "search:仙逆",
+    "search:斗破",
+    "detail_title_and_first_middle_last_episodes",
+    "lazy_production_runtime",
+    "no_local_bridge_or_install_paths",
+    "actual_media_bytes",
+    "null_output_decode_over_one_second"
+  ],
+  "artifact_certification": true,
+  "worker_status": "failed"
+}

@@ -1,0 +1,25 @@
+[
+  {
+    "id": "DMGHG-JS-protocol-guided-1",
+    "classification": "corrected",
+    "prior_exposure": "Protocol analysis and native public API reference supplied; not an independent first-attempt score",
+    "oracle": "rule",
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\verify_dmghg_direct_js.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json"
+    ],
+    "request": {
+      "agent": "superagent",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-origin-v2",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 1500,
+      "prompt": "请为D:\\太极\\动漫共和国概念版生成真正独立的JS海阔规则。已经还原远端协议，证据位于D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-origin-v2，先阅读PROTOCOL.md、protocol-constants.json及原Lua解析源码，再亲自编写rule.json、dmghg.js、README.md并通过verify_delivery实际验证。原始目录为只读证据；写入你的执行工作区。禁止Python/DLL/本地服务运行时依赖、替代站点或固定媒体地址。CryptoJS可在生成阶段复制内嵌，最终rule.json单独导入即可用。不要再做桥接、扫描整个仓库或重写原生探针；按已给真实协议直接实现并修复验收错误。"
+    }
+  }
+]

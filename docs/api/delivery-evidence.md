@@ -20,6 +20,10 @@ delivery 包含 version=1、scope（read_only / implementation）、target 及 a
 
 ## verify_delivery 工具
 
+增量实施（2026-11-03，实际通过范围见对应评测）：宿主profile可选actions数组，每项{id,source,executor}；source引用已声明且有业务validator的产物，executor引用validators中的固定程序/脚本。perform_delivery_action({action_id})不接受命令、URL、正文或模型指定源文件。执行前复核source当前Run业务收据、目标/路径/SHA及宿主/执行器指纹；每动作最多调用一次，超时/失败同样消耗额度。执行器argv新增{sha256}绑定来源哈希，最后行仍须passed/target/checks。动作结果不替代其他交付物的业务验证。未配置actions的旧profile行为不变。
+
+显式artifact_ids子集成功可返回status=success及completion_ready=false，记录本地通过事实；最终结题仍校验所有required。模型每轮优先收到本地失败/缺失/待验指引。启用actions时，对已知云端点/导出CLI的shell及工作区脚本调用在进程启动前拒绝；此检测不是任意shell的网络安全沙箱。合法发布由固定适配器读取已验证文件，最多一次create，保存公开ID后读回，失败不另建ID，不保存auth_code等管理凭据。
+
 输入：可选 artifact_ids；省略则检查所有声明产物。工具从实际文件生成绝对路径、SHA-256、字节数、Session/Run 和来源。需要 validator 的产物由宿主注册的固定程序及脚本执行；模型不能提交自己的验证命令或成功结果。
 
 验证器配置来自 HUB_DELIVERY_PROFILE_PATH，含固定目标、交付声明及验证器的绝对 program/script、各自 SHA-256、参数模板和时限。配置自身及程序/脚本哈希在使用时重新检查；配置/验证器不得位于模型执行工作区。参数以 argv 传递，不拼接 shell。验证失败、超时、目标不符、输出不合法或产物执行期间变化都不产生通过记录。
@@ -69,6 +73,8 @@ P2 v5 的受信任 profile 分别认证规则及桥接产物：规则走生产�
 
 规则Skill模板须与生产PC入口一致：统一分页URL不附加普通`[网址]`后缀；搜索使用searchFind；首页/搜索/详情使用MY_URL取得当前地址；选集以@lazyRule携带实际可执行脚本。模板遇到未解析的播放器配置应报错，不能返回原网页URL冒充媒体。模板本身仍需按目标选择器适配，不能由通用示例推断任意网站或Android已经通过。
 # 持久暂存与基础设施中断
+
+生产PC规则运行兼容性补充：class_name/class_url按位置对应，空的URL值可表示“全部”，不得独立过滤URL空项后错配名称。request的真实资源路径含普通空格时编码为%20，不能当作无关后缀截断；仅对明确粘连的空白+hiker://后缀保留原容错。原有私网/出网安全校验保持执行。此前NASA错位/详情无播放的测量保留，原因须按宿主兼容性问题另行归档。
 
 长时间独立验收的源码快照、服务、Run、冷包和轨迹应置于工作区内专用持久暂存根。编排进程仅在自身及子进程作用域覆盖 TEMP/TMP，不修改用户全局环境；各 Run 继续使用独立空目录和经验根，不复用旧业务实现。报告记录实际物理位置及哈希。若系统临时区文件在验收后消失，保留原自动结果并另记基础设施中断；没有完整文件及来源时不得补签人工通过或认证三连成功。新系列重新冻结，不能拼接旧系列成绩。
 

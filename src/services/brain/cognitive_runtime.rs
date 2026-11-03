@@ -426,6 +426,7 @@ impl CognitiveRuntime {
             understanding,
         );
         res.push_str(&format!("{}{}", phase_progression_block, pivot_mandate));
+        res.push_str(&self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).delivery_guidance());
         res.push_str(&format!(
             "\n[Turn Budget]\nRemaining model turns including this request: {} of {}. Batch independent read-only calls when useful and reuse facts already supplied in workspace excerpts or prior results. Read further only to resolve a material gap; once the requested outcome is supported, advance to the plan, action or delivery. Record unresolved facts honestly instead of exhausting the budget browsing unrelated files. The deadline never relaxes verification or authorization requirements.\n",
             self.max_model_turns.saturating_sub(self.model_turns) + 1,
@@ -476,7 +477,9 @@ impl CognitiveRuntime {
         if receipt.name == "ask_user" && receipt.status == ToolExecutionStatus::Succeeded {
             self.inquiry_tool_calls += 1;
         }
-        let evidence_risk = if receipt.is_process_observation() {
+        let evidence_risk = if receipt.name=="perform_delivery_action" && receipt.status==ToolExecutionStatus::Succeeded {
+            ToolRisk::WorkspaceMutation
+        } else if receipt.is_process_observation() {
             ToolRisk::ReadOnly
         } else { receipt.risk };
         self.observe_tool(receipt.status, evidence_risk, receipt.verification);

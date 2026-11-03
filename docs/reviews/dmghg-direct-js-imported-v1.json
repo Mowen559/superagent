@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "rule_sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+  "json_imported": true,
+  "shared_core_preserved": true,
+  "home_count": 19,
+  "episodes": 165,
+  "episode_checks": [
+    {
+      "index": 0,
+      "title": "第01集",
+      "url_chars": 875,
+      "media_status": 206,
+      "media_bytes_observed": 2048,
+      "path_sha256": "a8a8f038e9ce3e04cfb4946cfc1a2b72fecd407af7000f44bde210aa08e6a083"
+    },
+    {
+      "index": 82,
+      "title": "第83集",
+      "url_chars": 875,
+      "media_status": 206,
+      "media_bytes_observed": 2048,
+      "path_sha256": "36002abb83e000ae72bb1e3707ac114a44df58f5b8f5bd64532fbf263a2cfff1"
+    },
+    {
+      "index": 164,
+      "title": "第165集",
+      "url_chars": 876,
+      "media_status": 206,
+      "media_bytes_observed": 2048,
+      "path_sha256": "17a5ffe8678f5ba89c45d1799ccb40f6b5e3cd70dd64b9267d3dbbae78c53040"
+    }
+  ],
+  "independent_js_runtime": true,
+  "no_bridge_started": true,
+  "android_verified": false,
+  "gui_used": false
+}

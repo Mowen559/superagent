@@ -71,3 +71,55 @@
 #### Scenario: Truncated tool output
 - **WHEN** 工具输出截断并返回原文引用
 - **THEN** 同一任务能够按引用读回对应完整输出或分片，不能读到另一任务的内容
+
+### Requirement: Independent rule preserves the requested runtime dependencies
+系统 MUST 在用户要求应用逆向后生成独立JS规则时，优先还原实际远端接口及必要签名、解密与解析，不得将已存在的原生探针直接转化为最终规则的强制依赖。旧桥接验收不能作为独立规则完成证据。
+
+#### Scenario: Installed application exposes a native ABI
+- **WHEN** 用户要求无需Python桥接的独立规则且应用含可用DLL
+- **THEN** DLL仅可作为隔离调查和原目标对照材料，最终规则不依赖DLL、本地HTTP端口、原应用安装目录或常驻进程
+
+#### Scenario: Endpoint found but protocol unresolved
+- **WHEN** 已找到真实接口地址但签名或响应解密尚未还原
+- **THEN** 记录具体未解步骤，不能把地址清单、一次性媒体链接或替代站点规则判为完成
+
+### Requirement: Cloud publication requires remote roundtrip evidence
+系统 MUST 在用户授权的云发布任务中由Hub实际上传并记录短口令，使用生产口令解析和私有数据库导入回读内容，与冻结的原规则必要字段一致后方可认证。宿主监督与反馈必须披露，不把离线编码或上传接口返回ID当成完成证据。
+
+#### Scenario: Offline command presented as cloud share
+- **WHEN** 产物仅为长Base64口令、示例ID或没有远端可回读内容
+- **THEN** 云发布验证不通过，保留已有本地文件
+
+#### Scenario: Coached publication completes
+- **WHEN** Hub在监督者反馈后修复并完成上传与回读
+- **THEN** 记录带反馈完成及原失败，不能改为首次无人干预成功
+
+### Requirement: New target certification preserves assistance boundaries
+系统 MUST 对新目标自然需求测试固定初始提示、技能版本、候选版本、预算和独立业务验收；宿主不提供目标协议或业务实现，最多两次基于实际错误的简短纠错，所有尝试分类保留。
+
+#### Scenario: New public video target succeeds
+- **WHEN** Hub从新网址自行生成独立JS并完成分类、分页、搜索、详情、真实媒体及云回读验证
+- **THEN** 只认证该公开视频目标及实际测试平台，保存作者、原样哈希及反馈次数，不推导未知加密目标已可自主逆向
+
+#### Scenario: Host oracle implementation is inspected
+- **WHEN** Hub读取了包含目标协议的宿主验收器实现或宿主提供目标业务代码
+- **THEN** 显式记录污染，不将该尝试计为严格首次自主生成成功
+
+### Requirement: Managed actions require fresh business evidence
+系统 MUST 仅允许宿主预先注册的动作消费当前Run已通过业务验证、路径与哈希未变的来源产物；在调用执行器前消耗单次执行额度。模型不能替换正文或任意命令。
+
+#### Scenario: Source invalid or changed
+- **WHEN** 模型请求受控发布但来源未验、失败、已修改或验证器指纹变化
+- **THEN** 执行器不启动，模型收到本地修复与复验指引
+
+#### Scenario: Partial local verification before publication
+- **WHEN** 本地规则通过业务验证而云发布产物尚不存在
+- **THEN** 可回传该规则的有效验证收据，completion_ready仍为false；受控动作可用，完整结题仍被阻止
+
+#### Scenario: Raw clipboard probing in a managed Run
+- **WHEN** 启用受控动作的Run试图通过shell引用已知云剪贴板端点或导出CLI，包括已读取的本地脚本
+- **THEN** 网关拒绝进程执行并引导使用受控动作；此检测不被声明为操作系统网络隔离
+
+#### Scenario: Upload response precedes readback failure
+- **WHEN** 发布已返回ID但回读失败
+- **THEN** 保存该ID供只读复验，禁止再次创建发布副本，且不泄露管理凭据

@@ -577,6 +577,8 @@ impl AgentLoop {
         cognition.task_progress().lock().unwrap_or_else(|e| e.into_inner())
             .configure_delivery(&self.runtime_config.project_root, self.session_ledger.session_id(), run_id)?;
         self.plugin_registry.register(Box::new(crate::services::brain::delivery_evidence::VerifyDeliveryTool(cognition.task_progress())));
+        self.tool_gateway.bind_delivery_progress(&cognition.task_progress());
+        self.plugin_registry.register(Box::new(crate::services::brain::delivery_evidence::PerformDeliveryActionTool(cognition.task_progress())));
         self.plugin_registry.register(Box::new(crate::services::brain::tools::plan_task::RunBoundPlanTaskTool(cognition.task_progress())));
         if let Ok(limit) = std::env::var("HUB_AGENT_MAX_MODEL_TURNS").unwrap_or_default().parse::<usize>() {
             cognition.limit_model_turns(limit);

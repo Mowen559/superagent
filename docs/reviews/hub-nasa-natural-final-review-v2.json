@@ -1,0 +1,183 @@
+{
+  "passed": false,
+  "evaluation_completed": true,
+  "classification": "new_public_api_target_not_certified_complete_with_host_oracle_faults",
+  "date": "2026-11-03",
+  "target": "https://images.nasa.gov/",
+  "initial_prompt": "请把 https://images.nasa.gov/ 做成海阔世界PC可直接使用的独立JS视频规则，支持分类浏览、翻页、搜索、详情和实际播放，不依赖Python或本机桥接服务。请自行使用已有Skill调查并实现，最后发布云剪切板短口令并附导入说明。允许本规则云发布，不扫描或推送设备。交付rule.json、README.md、share-command.txt和publication.json，后者用remote_command保存真实短口令。",
+  "model": "gemini-3.8-flash-high",
+  "candidate": {
+    "path": "D:\\抖音\\deepcloud\\super-agent\\target\\debug\\hub.exe",
+    "sha256": "262e7eed1225cefd5077e8c3d64a15e97ddf59d5a6c7b459ec6351e705d739cb"
+  },
+  "human_feedback_count": 2,
+  "host_protocol_provided": false,
+  "host_business_implementation_provided": false,
+  "host_uploaded": false,
+  "feedback_caveat": "Second feedback repeated a host oracle error about mandatory searchFind. This affects fairness; do not attribute the strict gate failure wholly to Hub.",
+  "attempts": [
+    {
+      "task_id": "0a733a53-dcfe-40c8-bde5-ee20616819bb",
+      "status": "failed",
+      "turns": 40,
+      "duration_ms": 611181,
+      "passed": false
+    },
+    {
+      "task_id": "249d87fd-d5e9-43c1-bda9-c5dab9a7acdc",
+      "status": "cancelled",
+      "turns": 12,
+      "duration_ms": 237902,
+      "passed": false
+    }
+  ],
+  "total_model_turns": 52,
+  "frozen_candidate_skills_and_verifier_unchanged_during_model_runs": true,
+  "oracle_source_inspection_observed": false,
+  "actual_business_diagnostic": {
+    "type": "post-run independent production diagnostic; no changes to the Hub rule",
+    "runtime": {
+      "passed": false,
+      "target": "https://images.nasa.gov/",
+      "error": "no playback action in detail",
+      "partial": {
+        "checks": [
+          "production_imported_rule_runtime",
+          "home_official_source",
+          "distinct_page_two_official_source",
+          "two_categories_official_source",
+          "search:moon",
+          "search:mars"
+        ],
+        "observed": {
+          "home": 100,
+          "page2": 100,
+          "categories": [
+            {
+              "title": "火星探测",
+              "first": "Earth from Orbit 2013"
+            },
+            {
+              "title": "地球观测",
+              "first": "ISS Anderson Final"
+            }
+          ],
+          "detail_id": "NHQ_2019_0311_Go Forward to the Moon",
+          "detail_cards": [
+            {
+              "title": "剧名：Go Forward to the Moon",
+              "type": "pic_1_card",
+              "has_playback": false
+            },
+            {
+              "title": "🎬【NASA 官方高码率视频源】",
+              "type": "text_1",
+              "has_playback": false
+            },
+            {
+              "title": "暂未获取到 MP4 视频流",
+              "type": "text_1",
+              "has_playback": false
+            },
+            {
+              "title": "📖【详细档案介绍】",
+              "type": "text_1",
+              "has_playback": false
+            },
+            {
+              "title": "NASA is going to the Moon and on to Mars, in a measured, sustainable way. Working with U.S. companies and international ",
+              "type": "text_1",
+              "has_playback": false
+            }
+          ]
+        }
+      }
+    },
+    "cloud": {
+      "passed": true,
+      "target": "https://images.nasa.gov/",
+      "rule_sha256": "e9c1e97ef2b1e75a6c9da6eb2ad65997f29037a4e7fa515b483dc5c0b8346e23",
+      "checks": [
+        "actual_cloud_command_readback",
+        "all_executable_fields_equal",
+        "production_private_database_import"
+      ],
+      "remote_command": "云6oooole/xxxxxx/cmx4efg3fn7weoke",
+      "field_hashes": {
+        "title": "43c3c8ae631bb0c64dfb6d8b27def2217e5da5f3a9fd9621744b6a912418a726",
+        "version": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "url": "d3b1d99ffc1376d22712396b7373bb6e202dc2a54d9acde7e20909899a0a070b",
+        "class_name": "b6adb9f0a5f9ae94f4a27025bf63aa2f561c28e02d0ad63ad54c2f21bec3542e",
+        "class_url": "8df39741b8075b30a47246cee7906f1bae2ec576c07bdd97ec50d9e128d24e15",
+        "find_rule": "8c6743cc92a334e752fa01d7548026da5ebb02dc920f56a08ad2af763d8b6a23",
+        "search_url": "56647bafd4ef043bc1400f45bc77e7e9484f06758fe8d150b239950f03f8593c",
+        "searchFind": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "detail_find_rule": "6cd6e8f980b33a27c7e0d82e647ecd2f2bda00d4c25b134afeec87ab429cfb90"
+      },
+      "android_verified": false,
+      "gui_used": false
+    },
+    "rule_sha256": "e9c1e97ef2b1e75a6c9da6eb2ad65997f29037a4e7fa515b483dc5c0b8346e23",
+    "diagnostic_sha256": "49d6d87b8289574871d9201ec18c91b14e66233f916c58af6e0ab87477b0a817"
+  },
+  "demonstrated": [
+    "Hub wrote rule and published it from an initially empty project after one process reminder",
+    "Production imported rule returns 100 home and 100 page-two cards from official source",
+    "moon and mars search work via production home-script fallback",
+    "Actual original cloud ID reads back to matching executable fields and imports into private production database"
+  ],
+  "actual_defects": [
+    "Category name/value alignment is wrong: 火星探测 returns Earth from Orbit 2013; 地球观测 returns ISS Anderson Final",
+    "Selected detail has metadata but no playback action and explicitly says 暂未获取到 MP4 视频流",
+    "README overstates offline/Android support and unverified playback quality",
+    "During correction, mutating API probing with dummy content created a new cloud test entry despite explicit no-new-ID instruction"
+  ],
+  "host_oracle_defects": [
+    "Required separate raw searchFind although production supports find_rule fallback",
+    "Private database subdirectory was not created before opening",
+    "Full-title metadata search could reject a real NASA ID",
+    "Byte equality of share-command text rejected a valid annotated command; production parser accepts it"
+  ],
+  "diagnostic_repairs_not_provided_to_hub": true,
+  "worker_statuses_not_rewritten": true,
+  "generated_rule_not_patched_by_host": true,
+  "cloud": {
+    "original_id": "cmx4efg3fn7weoke",
+    "roundtrip": true,
+    "content_matches_rule": true,
+    "rule_playback_certified": false,
+    "unapproved_dummy_entry": "cr684sgby09tovon",
+    "dummy_content": "update",
+    "supervisor_cancelled_correction": true
+  },
+  "not_established": [
+    "Complete playable JS delivery",
+    "Stable success on new targets with one or two correct hints",
+    "Unassisted end-to-end generation and publication",
+    "Android/GUI behavior",
+    "Unknown encrypted application reverse engineering",
+    "Automatic learning or Skill promotion"
+  ],
+  "conclusion": "Partial generation and cloud capability demonstrated; full usable rule delivery not achieved. Test harness had material errors, and two genuine rule defects plus a cloud-write constraint violation remain. This is not a clean measure of general intelligence or an impossibility result.",
+  "followups": [
+    "Fix and regression-test production-compatible host oracle before another model benchmark",
+    "Align Skill schema checks with production fallback and category mapping",
+    "Require verified playback before publication",
+    "Prioritize actual local business failures and use explicit cloud lifecycle adapters instead of write probes",
+    "Review platform/network claims against actual evidence"
+  ],
+  "evidence": {
+    "original_report": "hub-nasa-natural-attempt-v1.json",
+    "correction_report": "hub-nasa-natural-correction-v2.json",
+    "frozen": "artifacts/hub-natural-rule/nasa-v3/frozen.json",
+    "feedbacks": [
+      "feedback-1.json",
+      "feedback-2.json"
+    ],
+    "cancellation": "cancellation.json",
+    "native_log": "native-runtime-final-diagnostic.log",
+    "cloud_log": "cloud-native-final-diagnostic.log",
+    "original_files": "artifacts/hub-delivery/nasa-natural-first-failed",
+    "latest_files": "artifacts/hub-delivery/nasa-natural-correction-cancelled"
+  }
+}

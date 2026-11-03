@@ -1,0 +1,12 @@
+{
+  "published": false,
+  "short_cloud_command": null,
+  "local_command_prepared": true,
+  "local_command_roundtrip_passed": true,
+  "command_utf8_bytes": 994836,
+  "command_sha256": "4c07976837479316c1d1f494a51e5eea84597e19dff3f200e0040699dacf7c7c",
+  "provider_runtime_availability": "not tested",
+  "publication_scope": "no external upload in this question-only review",
+  "exporter_has_upload_paths": true,
+  "exporter_has_cloud_readback_check": false
+}

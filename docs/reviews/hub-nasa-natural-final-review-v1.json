@@ -1,0 +1,104 @@
+{
+  "passed": false,
+  "evaluation_completed": true,
+  "classification": "new_public_api_target_failed_after_two_brief_feedbacks",
+  "target": "https://images.nasa.gov/",
+  "prompt": "请把 https://images.nasa.gov/ 做成海阔世界PC可直接使用的独立JS视频规则，支持分类浏览、翻页、搜索、详情和实际播放，不依赖Python或本机桥接服务。请自行使用已有Skill调查并实现，最后发布云剪切板短口令并附导入说明。允许本规则云发布，不扫描或推送设备。交付rule.json、README.md、share-command.txt和publication.json，后者用remote_command保存真实短口令。",
+  "host_protocol_provided": false,
+  "host_business_code_provided": false,
+  "host_upload_requests": 0,
+  "human_feedback_count": 2,
+  "frozen_inputs_unchanged": true,
+  "oracle_inspection_events": [],
+  "attempts": [
+    {
+      "task_id": "0a733a53-dcfe-40c8-bde5-ee20616819bb",
+      "status": "failed",
+      "model_turns": 40,
+      "tool_calls": 41,
+      "duration_ms": 611181,
+      "passed": false
+    },
+    {
+      "task_id": "249d87fd-d5e9-43c1-bda9-c5dab9a7acdc",
+      "status": "cancelled",
+      "model_turns": 12,
+      "tool_calls": 12,
+      "duration_ms": 237902,
+      "passed": false
+    }
+  ],
+  "total_model_turns": 52,
+  "findings": [
+    "Repeated investigation used 27 turns before process feedback; no rule file existed then",
+    "Generated search_rule instead of required production searchFind",
+    "Uploaded before production runtime passed",
+    "README asserted unverified Android/offline capabilities",
+    "Correction explored cloud write APIs with dummy content and created a new test entry despite explicit no-new-ID constraint",
+    "Correction cancelled by supervisor; missing searchFind remained after cancellation"
+  ],
+  "post_cancel_business_check": {
+    "passed": false,
+    "target": "https://images.nasa.gov/",
+    "error": "missing searchFind"
+  },
+  "publication": {
+    "original_rule_id": "cmx4efg3fn7weoke",
+    "certified": false,
+    "observed_unapproved_test_id": "cr684sgby09tovon",
+    "test_payload": "update",
+    "do_not_deliver_as_usable_rule": true
+  },
+  "verified": [
+    "Candidate and Skill identities frozen",
+    "Real SDK/model/tool execution",
+    "Production positive/broken-rule oracle preflight",
+    "Official-source infrastructure preflight media bytes and >1 second null-output decode"
+  ],
+  "unverified": [
+    "Generated rule category/pagination/search/detail/playback chain did not reach acceptance",
+    "Final cloud content is not certified equal to a usable rule",
+    "Android and GUI untested",
+    "Unknown encrypted application generalization",
+    "Automatic memory/Skill promotion"
+  ],
+  "artifact_certified": false,
+  "artifacts": {
+    "publication.json": {
+      "sha256": "4c5b82a280ea95670e3f54fcedc9387246b920a0625d8ed8c3606e82c5641fb6",
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-v3\\hub-independent-602fd48320c74e89a6167544204302a3\\data\\runs\\249d87fd-d5e9-43c1-bda9-c5dab9a7acdc\\workspace\\publication.json",
+      "host_content_edits": false
+    },
+    "README.md": {
+      "sha256": "cf9be3ee02b686c6b3796376e729d26d43b0791bc0110b2a70820ca58c8042b0",
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-v3\\hub-independent-602fd48320c74e89a6167544204302a3\\data\\runs\\249d87fd-d5e9-43c1-bda9-c5dab9a7acdc\\workspace\\README.md",
+      "host_content_edits": false
+    },
+    "rule.json": {
+      "sha256": "e9c1e97ef2b1e75a6c9da6eb2ad65997f29037a4e7fa515b483dc5c0b8346e23",
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-v3\\hub-independent-602fd48320c74e89a6167544204302a3\\data\\runs\\249d87fd-d5e9-43c1-bda9-c5dab9a7acdc\\workspace\\rule.json",
+      "host_content_edits": false
+    },
+    "share-command.txt": {
+      "sha256": "3acceada578d4eca730ec8a639da0d9733f057ef060adcc13f370f42532457b9",
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\nasa-v3\\hub-independent-602fd48320c74e89a6167544204302a3\\data\\runs\\249d87fd-d5e9-43c1-bda9-c5dab9a7acdc\\workspace\\share-command.txt",
+      "host_content_edits": false
+    }
+  },
+  "reports": [
+    "hub-nasa-natural-attempt-v1.json",
+    "hub-nasa-natural-correction-v2.json"
+  ],
+  "skills_modified_during_run": false,
+  "hub_core_modified_during_run": false,
+  "scope": "This negative result belongs to the frozen candidate on one new public API site. It is not a universal impossibility claim.",
+  "next_work": [
+    "Enforce production rule fields in Skill preflight",
+    "Require local business acceptance before cloud publication",
+    "Prioritize local contract failures over remote publication exploration",
+    "Provide explicit cloud lifecycle adapters; avoid guessed mutating probes",
+    "Suppress unsupported platform/offline claims in delivery review"
+  ],
+  "superseded_by": "hub-nasa-natural-final-review-v2.json",
+  "correction": "The strict searchFind failure was not sufficient to prove functional search failure. See v2 for production compatibility diagnostics and independent real defects. Original worker statuses retained."
+}

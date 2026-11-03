@@ -68,6 +68,7 @@ pub struct ToolExecutionGateway {
     loop_guard: Mutex<ToolLoopGuard>,
     workspace_revision: AtomicU64,
     observation_revision: AtomicU64,
+    delivery_progress: Mutex<Option<std::sync::Weak<Mutex<super::task_progress::TaskProgress>>>>,
 }
 
 
@@ -310,10 +311,12 @@ impl ToolExecutionGateway {
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
             observation_revision: AtomicU64::new(0),
+            delivery_progress: Mutex::new(None),
         }
     }
 
     pub fn begin_run(&self) {
+        *self.delivery_progress.lock().unwrap_or_else(|e|e.into_inner())=None;
         *self.result_store.lock().unwrap_or_else(|e| e.into_inner()) =
             ToolResultStore::run_location();
         self.workspace_revision.store(0, Ordering::Relaxed);
@@ -326,6 +329,10 @@ impl ToolExecutionGateway {
 
     pub fn result_store(&self) -> Arc<Mutex<ToolResultStore>> {
         self.result_store.clone()
+    }
+
+    pub fn bind_delivery_progress(&self,progress:&super::task_progress::SharedTaskProgress) {
+        *self.delivery_progress.lock().unwrap_or_else(|e|e.into_inner())=Some(Arc::downgrade(progress));
     }
 
     #[cfg(test)]
@@ -343,6 +350,7 @@ impl ToolExecutionGateway {
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
             observation_revision: AtomicU64::new(0),
+            delivery_progress: Mutex::new(None),
         }
     }
 
@@ -357,6 +365,7 @@ impl ToolExecutionGateway {
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
             observation_revision: AtomicU64::new(0),
+            delivery_progress: Mutex::new(None),
         }
     }
 
@@ -375,6 +384,7 @@ impl ToolExecutionGateway {
             loop_guard: Mutex::new(ToolLoopGuard::default()),
             workspace_revision: AtomicU64::new(0),
             observation_revision: AtomicU64::new(0),
+            delivery_progress: Mutex::new(None),
         }
     }
 
@@ -397,6 +407,10 @@ impl ToolExecutionGateway {
         };
 
         let (risk, decision) = self.policy.evaluate(&req.name, &req.arguments);
+        let progress=self.delivery_progress.lock().unwrap_or_else(|e|e.into_inner()).as_ref().and_then(|p|p.upgrade());
+        if let Some(error)=progress.and_then(|p|p.lock().unwrap_or_else(|e|e.into_inner()).managed_command_guard(&req.name,&req.arguments)) {
+            return self.receipt(req,ToolExecutionStatus::PolicyDenied,started,json!({"error":error,"kind":"managed_delivery_required"}));
+        }
         let repetition = {
             let mut guard = self.loop_guard.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
             if is_verification_request(&req.name, &req.arguments) {
@@ -596,7 +610,7 @@ impl ToolExecutionGateway {
             && (is_verification_request(&request.name, &request.arguments)
                 || (request.name == "verify_delivery" && result.get("domain_verified").and_then(Value::as_bool) == Some(true)));
         let risk = classify_tool_risk(&request.name, &request.arguments);
-        let content_may_have_changed = matches!(status, ToolExecutionStatus::Succeeded | ToolExecutionStatus::Failed | ToolExecutionStatus::Panicked)
+        let content_may_have_changed = (request.name=="perform_delivery_action" && status==ToolExecutionStatus::Succeeded) || matches!(status, ToolExecutionStatus::Succeeded | ToolExecutionStatus::Failed | ToolExecutionStatus::Panicked)
             && matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive)
             && !verification
             && request.name != "manage_task";

@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "independent_js_runtime": true,
+  "rule_sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+  "checks": [
+    "pagination_distinct_and_matches_upstream",
+    "category:20",
+    "category:21",
+    "search:仙逆",
+    "search:斗破",
+    "detail_title_and_first_middle_last_episodes",
+    "lazy_production_runtime",
+    "no_local_bridge_or_install_paths",
+    "actual_media_bytes",
+    "null_output_decode_over_one_second"
+  ],
+  "observed": {
+    "home": 19,
+    "page2": 10,
+    "episodes": 165
+  },
+  "decoder": {
+    "audio-codec-name": "aac",
+    "video-params/w": "1920",
+    "video-params/h": "816",
+    "time-pos": "1.082000",
+    "decoded_video": true,
+    "outputs": {
+      "audio": "null",
+      "video": "null"
+    },
+    "diagnostic_codes": []
+  },
+  "decoder_attempts": [
+    {
+      "audio-codec-name": "aac",
+      "video-params/w": "1920",
+      "video-params/h": "816",
+      "time-pos": "1.082000",
+      "decoded_video": true,
+      "outputs": {
+        "audio": "null",
+        "video": "null"
+      },
+      "diagnostic_codes": []
+    }
+  ],
+  "android_verified": false,
+  "no_desktop": true,
+  "reference_note": "Native installed target used by host oracle for source identity and decoder only; rule executes JS remote requests in production sandbox",
+  "cold_directory": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\cold-json-only-v1",
+  "cold_files": [
+    "rule.json"
+  ],
+  "rule_runtime_dependencies": "only JS and normal Hiker runtime; native target is host reference/decoder only"
+}

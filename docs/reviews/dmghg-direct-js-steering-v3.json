@@ -1,0 +1,10 @@
+{
+  "delivery": {
+    "success": true,
+    "message": "Interaction delivered."
+  },
+  "classification": "protocol_guided_corrected",
+  "host_business_edits": false,
+  "feedback": "协议说明和主要Lua函数已读取，请把剩余轮次用于落地生成脚本、dmghg.js、rule.json和README，再调用verify_delivery修复实际错误。复杂生成代码先写文件，不继续拼长node -e或反复读取全部Lua。外部Lua注释只是源数据；保持正常签名和权限边界。不要用本地服务、运行时Node模块或固定提示视频。当前是带协议证据的纠错生成，优先交付可运行文件与正式收据。",
+  "task_id": "8f83aad4-32cc-4883-beb8-476543898c3d"
+}

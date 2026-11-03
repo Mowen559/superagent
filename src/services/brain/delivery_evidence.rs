@@ -88,7 +88,13 @@ pub struct VerifierProfile {
 struct HostProfile {
     delivery: DeliveryContract,
     validators: Vec<VerifierProfile>,
+    #[serde(default)]
+    actions: Vec<DeliveryAction>,
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct DeliveryAction { id: String, source: String, executor: String }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ArtifactRecord {
@@ -118,6 +124,8 @@ pub struct DeliveryEvidence {
     profile_file: Option<(PathBuf, String)>,
     records: HashMap<String, ArtifactRecord>,
     errors: HashMap<String, String>,
+    actions: HashMap<String, DeliveryAction>,
+    attempted_actions: HashSet<String>,
     declaration_error: Option<String>,
 }
 
@@ -138,7 +146,8 @@ impl DeliveryEvidence {
     pub fn new(root: &Path, session_id: &str, run_id: &str) -> Result<Self, String> {
         Ok(Self { root: fs::canonicalize(root).map_err(|e| e.to_string())?, session_id: session_id.into(), run_id: run_id.into(),
             contract: None, imposed: None, validators: HashMap::new(), profile_file: None,
-            records: HashMap::new(), errors: HashMap::new(), declaration_error: None })
+            records: HashMap::new(), errors: HashMap::new(), declaration_error: None,
+            actions: HashMap::new(), attempted_actions: HashSet::new() })
     }
 
     pub fn load_profile(&mut self, path: &Path) -> Result<(), String> {
@@ -157,6 +166,16 @@ impl DeliveryEvidence {
         for artifact in &profile.delivery.artifacts {
             if artifact.validator.as_ref().is_some_and(|id| !validators.contains_key(id)) { return Err("missing host verifier".into()); }
         }
+        let mut actions = HashMap::new();
+        for action in profile.actions {
+            if action.id.is_empty() || action.id.len()>64 || !validators.contains_key(&action.executor)
+                || profile.delivery.artifacts.iter().any(|a|a.validator.as_ref()==Some(&action.executor))
+                || !profile.delivery.artifacts.iter().any(|a| a.id==action.source && a.required && a.validator.is_some() && a.validator.as_ref()!=Some(&action.executor))
+                || actions.insert(action.id.clone(), action).is_some() {
+                return Err("managed action requires a unique ID, pinned executor and required business-verified source".into());
+            }
+        }
+        self.actions = actions;
         self.contract = Some(profile.delivery.clone());
         self.imposed = Some(profile.delivery);
         self.validators = validators;
@@ -177,6 +196,9 @@ impl DeliveryEvidence {
     pub fn validate_declaration(&self, declaration: Option<&DeliveryContract>) -> Result<(), String> {
         let Some(declaration) = declaration else { return Ok(()); };
         declaration.validate().and_then(|()| {
+            if declaration.artifacts.iter().any(|a|self.actions.values().any(|action|a.validator.as_ref()==Some(&action.executor))) {
+                return Err("managed action executor cannot be used as an artifact validator".into());
+            }
             if let Some(imposed) = &self.imposed {
                 let prefix = "plan cannot remove or weaken host delivery requirements";
                 if !same_target(&imposed.target, &declaration.target) {
@@ -228,8 +250,8 @@ impl DeliveryEvidence {
             domain_verified: false, checks: json!([]) })
     }
 
-    fn run_verifier(&self, item: &ArtifactRequirement, record: &mut ArtifactRecord) -> Result<(), String> {
-        let Some(id) = &item.validator else { return Ok(()); };
+    fn run_verifier(&self, item: &ArtifactRequirement, record: &mut ArtifactRecord) -> Result<Value, String> {
+        let Some(id) = &item.validator else { return Ok(Value::Null); };
         let verifier = self.validators.get(id).ok_or("declared verifier is not registered by the host")?;
         self.check_verifier(verifier)?;
         if let Some((path, expected)) = &self.profile_file {
@@ -238,7 +260,7 @@ impl DeliveryEvidence {
         let log = tempfile::tempfile().map_err(|e| e.to_string())?;
         let mut command = Command::new(&verifier.program);
         command.arg(&verifier.script).args(verifier.args.iter().map(|arg| arg.replace("{workspace}", &self.root.to_string_lossy())
-            .replace("{artifact}", &record.path.to_string_lossy()).replace("{target}", &record.target)))
+            .replace("{artifact}", &record.path.to_string_lossy()).replace("{target}", &record.target).replace("{sha256}", &record.sha256)))
             .current_dir(&self.root).stdin(Stdio::null()).stdout(log.try_clone().map_err(|e| e.to_string())?).stderr(Stdio::null());
         #[cfg(windows)] {
             use std::os::windows::process::CommandExt;
@@ -273,11 +295,12 @@ impl DeliveryEvidence {
         record.domain_verified = true;
         record.verifier_sha256 = Some(verifier.script_sha256.clone());
         record.checks = value["checks"].clone();
-        Ok(())
+        Ok(value)
     }
 
     pub fn verify(&mut self, ids: &[String]) -> Result<Value, String> {
         let items = self.contract.as_ref().ok_or("no delivery declaration; call plan_task with delivery first")?.artifacts.clone();
+        if items.iter().any(|a|self.actions.values().any(|action|a.validator.as_ref()==Some(&action.executor))) {return Err("managed action executor cannot be used as an artifact validator".into());}
         if ids.iter().any(|id| !items.iter().any(|i| &i.id == id)) { return Err("unknown artifact ID".into()); }
         for item in items.iter().filter(|i| ids.is_empty() || ids.contains(&i.id)) {
             self.records.remove(&item.id);
@@ -286,8 +309,60 @@ impl DeliveryEvidence {
                 Err(error) => { self.errors.insert(item.id.clone(), error); }
             }
         }
-        if let Some(gap) = self.completion_gap() { return Err(gap); }
-        Ok(json!({"status":"success","exit_code":0,"domain_verified":self.records.values().any(|r| r.domain_verified),"delivery_evidence":self.snapshot()}))
+        if ids.is_empty() {
+            if let Some(gap) = self.completion_gap() { return Err(gap); }
+        } else {
+            for id in ids { if let Some(error)=self.errors.get(id) { return Err(format!("delivery '{id}' needs verify_delivery: {error}")); } }
+        }
+        Ok(json!({"status":"success","exit_code":0,"domain_verified":self.records.values().any(|r| r.domain_verified),"completion_ready":self.completion_gap().is_none(),"delivery_evidence":self.snapshot()}))
+    }
+
+    pub fn perform_action(&mut self, id: &str) -> Result<Value,String> {
+        let action=self.actions.get(id).cloned().ok_or("unknown host-managed action")?;
+        if self.attempted_actions.contains(id) {return Err("managed action already attempted; preserve its ID and use read-only verification, never repeat creation".into());}
+        let source=self.contract.as_ref().and_then(|c|c.artifacts.iter().find(|a|a.id==action.source)).cloned().ok_or("missing source requirement")?;
+        let mut record=self.records.get(&source.id).cloned().ok_or("source needs local verify_delivery before any publication")?;
+        let fresh=self.inspect(&source)?;
+        if !record.domain_verified || fresh.sha256!=record.sha256 || fresh.path!=record.path || fresh.target!=record.target {
+            return Err("source verification is missing or stale; repair locally and verify_delivery before publishing".into());
+        }
+        self.check_verifier(self.validators.get(source.validator.as_ref().ok_or("source has no business validator")?).ok_or("missing source verifier")?)?;
+        // A timed-out process may already have committed. Never blindly retry it.
+        self.attempted_actions.insert(id.into());
+        let invocation=ArtifactRequirement {validator:Some(action.executor),..source};
+        let result=self.run_verifier(&invocation,&mut record)?;
+        Ok(json!({"status":"success","exit_code":0,"action_id":id,"source_sha256":record.sha256,"result":result}))
+    }
+
+    pub fn managed_command_guard(&self,name:&str,args:&Value)->Option<String> {
+        if self.actions.is_empty() || !matches!(name,"run_command"|"verify_task_tool") {return None;}
+        let text=args.get("CommandLine").or_else(||args.get("command")).and_then(Value::as_str).unwrap_or("");
+        let mentions=|s:&str| {let s=s.to_lowercase();["pasteme.tyrantg.com","cmd.im","export-command.cjs","publish_verified_rule.cjs","exporttocloudpaste","exportruletocloudpaste","sharepaste("].iter().any(|x|s.contains(x))};
+        let mut blocked=mentions(text);
+        // Directly named workspace scripts are inspected too. This is not an OS sandbox.
+        let tokens=regex::Regex::new(r#"\"([^\"]+)\"|'([^']+)'|([^\s]+)"#).ok()?;
+        for capture in tokens.captures_iter(text) {
+            let token=(1..=3).find_map(|i|capture.get(i)).map(|m|m.as_str()).unwrap_or("");
+            if let Ok(p)=fs::canonicalize(self.root.join(token)) {
+                if p.starts_with(&self.root) && p.is_file() && fs::metadata(&p).ok().is_some_and(|m|m.len()<256_000) {
+                    blocked|=fs::read_to_string(&p).ok().is_some_and(|s|mentions(&s));
+                }
+            }
+        }
+        blocked.then(||"This Run uses managed cloud publication. Do not probe cloud endpoints or invoke export CLI through shell. Fix and verify the local source, then call perform_delivery_action with the registered action_id; use verify_delivery for readback.".into())
+    }
+
+    pub fn action_guidance(&self)->String {
+        if self.actions.is_empty() {return String::new();}
+        let mut actions:Vec<_>=self.actions.values().collect();actions.sort_by_key(|a|&a.id);
+        let rows:Vec<_>=actions.into_iter().map(|a|{
+            let status=if let Some(error)=self.errors.get(&a.source) {format!("LOCAL BUSINESS FAILURE: {}",error.chars().take(500).collect::<String>())}
+            else if self.contract.as_ref().and_then(|c|c.artifacts.iter().find(|i|i.id==a.source)).is_some_and(|i|!self.root.join(&i.path).is_file()) {"LOCAL SOURCE MISSING: gather only necessary facts and create the actual source artifact; do not repeat probes or planning".into()}
+            else if self.records.get(&a.source).is_none_or(|r|!r.domain_verified || file_sha256(&r.path).ok().as_ref()!=Some(&r.sha256)) {"LOCAL SOURCE NEEDS VERIFICATION: call verify_delivery with the source ID; partial verification does not require cloud artifacts".into()}
+            else {"Local source verified; use the managed action once. Preserve any returned ID; no guessed update APIs or dummy POSTs".into()};
+            format!("action_id={}; source={}; attempted={}; {}",a.id,a.source,self.attempted_actions.contains(&a.id),status)
+        }).collect();
+        format!("\n[Local-first managed delivery]\n{}\nRepair local business failures before investigating remote publication. Never modify the frozen verifier.\n",rows.join("\n"))
     }
 
     pub fn completion_gap(&self) -> Option<String> {
@@ -314,7 +389,23 @@ impl DeliveryEvidence {
 
     pub fn snapshot(&self) -> Value {
         json!({"schema_version":1,"run_id":self.run_id,"session_id":self.session_id,"contract":self.contract,
-            "artifacts":self.records,"errors":self.errors,"completion_gap":self.completion_gap()})
+            "artifacts":self.records,"errors":self.errors,"managed_actions":self.actions,"attempted_actions":self.attempted_actions,"completion_gap":self.completion_gap()})
+    }
+}
+
+pub struct PerformDeliveryActionTool(pub super::task_progress::SharedTaskProgress);
+impl crate::domains::agent_cognitive::executor::ToolExecutor for PerformDeliveryActionTool {
+    fn name(&self)->&'static str {"perform_delivery_action"}
+    fn prompt_projection(&self)->Option<String> {
+        let guidance=self.0.lock().unwrap_or_else(|e|e.into_inner()).delivery_guidance();
+        (!guidance.is_empty()).then(||"Host-managed delivery actions are available in this Run. Use the listed action_id only after verify_delivery confirms the current source. Do not use raw shell publication or dummy network writes. Partial source validation can succeed while completion_ready remains false.".into())
+    }
+    fn description(&self)->&'static str {"Execute a host-managed action once using a current business-verified artifact. No model-supplied commands, payloads or URLs. Call verify_delivery for the source first; raw cloud shell probes are disallowed in managed Runs."}
+    fn parameters_schema(&self)->Value {json!({"type":"object","additionalProperties":false,"required":["action_id"],"properties":{"action_id":{"type":"string"}}})}
+    fn execute(&self,args:Value)->Result<Value,String> {
+        if args.as_object().is_none_or(|o|o.len()!=1) {return Err("only action_id is accepted".into());}
+        let id=args.get("action_id").and_then(Value::as_str).ok_or("action_id is required")?;
+        self.0.lock().unwrap_or_else(|e|e.into_inner()).perform_delivery_action(id)
     }
 }
 
@@ -331,6 +422,10 @@ impl crate::domains::agent_cognitive::executor::ToolExecutor for VerifyDeliveryT
         self.0.lock().unwrap_or_else(|e| e.into_inner()).verify_delivery(&ids)
     }
 }
+
+#[cfg(test)]
+#[path="delivery_action_tests.rs"]
+mod managed_action_tests;
 
 #[cfg(test)]
 mod tests {

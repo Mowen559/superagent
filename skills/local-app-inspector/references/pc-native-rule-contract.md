@@ -1,5 +1,7 @@
 # PC生产规则契约：无需重新寻找运行库
 
+适用范围：用户已明确选择原生桥接依赖的PC方案。本页不能把独立JS任务改为本地服务；用户要求独立规则时，继续还原远端接口及必要签名/解密，最终不使用本机端口、DLL或Python。
+
 本页依据项目的`deepcloud-ui/native/runtime/hk-engine.js`中runRule/customContext与`hiker-rule-filters.js`中filterState/expandRuleUrl整理。它描述执行接口，不提供最终业务规则或HTTP桥接实现。
 
 ## 入口与数据流

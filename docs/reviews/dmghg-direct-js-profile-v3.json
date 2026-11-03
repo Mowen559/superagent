@@ -1,0 +1,41 @@
+{
+  "delivery": {
+    "version": 1,
+    "scope": "implementation",
+    "target": "D:\\太极\\动漫共和国概念版",
+    "artifacts": [
+      {
+        "id": "rule",
+        "path": "rule.json",
+        "required": true,
+        "validator": "dmghg-direct-js"
+      },
+      {
+        "id": "source",
+        "path": "dmghg.js",
+        "required": true
+      },
+      {
+        "id": "readme",
+        "path": "README.md",
+        "required": true
+      }
+    ]
+  },
+  "validators": [
+    {
+      "id": "dmghg-direct-js",
+      "program": "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "program_sha256": "03168c01b7b7491423350e82c26fee71f35b43694d1319d3c668bda6903a0c38",
+      "script": "D:\\抖音\\deepcloud\\super-agent\\scripts\\verify_dmghg_direct_js.py",
+      "script_sha256": "f0e159ab50f3849f27e1c32ad1523f59eab509c49be7538b57bc824aba088eae",
+      "args": [
+        "--workspace",
+        "{workspace}",
+        "--artifact",
+        "{artifact}"
+      ],
+      "timeout_seconds": 150
+    }
+  ]
+}

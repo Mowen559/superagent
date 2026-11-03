@@ -1,0 +1,93 @@
+[
+  {
+    "id": "DMGHG-JS-coached-output-repair-2",
+    "classification": "corrected",
+    "prior_exposure": true,
+    "oracle": "rule",
+    "oracle_command": [
+      "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "D:\\抖音\\deepcloud\\super-agent\\scripts\\verify_dmghg_direct_js.py",
+      "--workspace",
+      "{workspace}",
+      "--artifact",
+      "{workspace}/rule.json"
+    ],
+    "request": {
+      "agent": "superagent",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-repair-origin-v4",
+      "model": "gemini-3.8-flash-high",
+      "workMode": "guarded",
+      "thinkingLevel": "high",
+      "timeoutSeconds": 1500,
+      "prompt": "修复你自己的独立JS产物，三个文件已经按原SHA复制到当前项目。无需重读所有Lua、重新逆向或寻找旧规则。\n\n原任务8f83aad4在40轮failed，原始收据保留。正式裁判已通过分类、分页、两个搜索及详情标题，失败于incomplete episode list。补充生产诊断证实实际仅56集，原目标165集，每个lazyURL长234406字符，重复完整CryptoJS/core使输出超过宿主16MiB上限。\n\nPC生产入口注入MY_RULE=完整当前rulePackage对象（含标准find_rule、searchFind、detail_find_rule字段），MY_URL/MY_PAGE等同原说明。可把共用内嵌代码在find_rule中用明确结束标记分隔，lazy小脚本从MY_RULE标准字段提取该段并初始化，再用input调用实际播放API及解析。避免自定义未保证保留的字段，不读取外部JS文件或安装路径，不削减集数，不放大运行库输出配额。请自行完成紧凑lazy实现及生产验证。\n\n还有分类元数据错误：原目标实际为日漫20、国漫21、剧场22、美漫23、特摄25、少儿32、动态漫26、猜你想看27。当前build_all.js里的后六项写错，须按实际元数据纠正。\n\n核心dmghg.js已经去掉固定提示视频。维持该修复；不要恢复Lua内的固定地址分支。补充只读诊断用解密出的原始地址已获206，且不等于固定备用地址，但最终必须从实际规则lazy再取媒体及解码。不要打印或保存媒体签名链接。\n\nREADME写成已在PC/手机双端同构验证并声称前中后三集都实际lazy执行，超过证据。请改为PC生产库实际验收范围：分类20/21、默认列表两页、搜索仙逆/斗破第一页、详情标题及前中后集名、首集实际lazy与超过1秒解码；其他分类只核对枚举映射。Android实机、前端窗口未测。不要在验证未通过时写全链路成功。\n\n直接修改你写的生成脚本/规则/源文件和说明，三个产物仍为rule.json、dmghg.js、README.md。JSON单独导入就能运行，不需要运行dmghg.js。调用verify_delivery检验所有必需项，根据实际错误修复后完成。"
+    },
+    "based_on_task": "8f83aad4-32cc-4883-beb8-476543898c3d",
+    "copied_bytes_unchanged": true,
+    "copied_artifacts": [
+      {
+        "name": "build_all.js",
+        "sha256": "ae7dfc6d35e38f5950c15a6ea326b7bac09ae1ffd80b8533fc8433e216002262"
+      },
+      {
+        "name": "crypto-js.js",
+        "sha256": "ee02257ffbaf0a9b481c7039b0f3bb20c360c9674fe4be8b38ae709b2ea59bbe"
+      },
+      {
+        "name": "detail-direct-v1.json",
+        "sha256": "3ce0cd3b80bd672e1ae191dd77cb517b3ec2e9682371c6cc1285a13f9f3ec607"
+      },
+      {
+        "name": "dmghg.js",
+        "sha256": "412a30ec1b36419e6e9124b1a89054606e6e4954d6edaa8ff54ff9994b0b7e22"
+      },
+      {
+        "name": "generate_dmghg_js.js",
+        "sha256": "23864bd9a8f65f6250db8370a723e67359cbe28511c8310335b83f81f3c68884"
+      },
+      {
+        "name": "list-direct-v1.json",
+        "sha256": "8e89c963b76ec1457922aeb4b83343edf8ba8680c5fd120c3c793421ce314c23"
+      },
+      {
+        "name": "original-play-parser.lua",
+        "sha256": "a7591c8bcab3a41c89cafc224065c50e46151f27b25392a89e607dcf943fbda1"
+      },
+      {
+        "name": "protocol-constants.json",
+        "sha256": "fa70c6d618e529cdb8fdeb1d402a3534414bdf6167bbdb8cd04073ddf0f85847"
+      },
+      {
+        "name": "PROTOCOL.md",
+        "sha256": "ae11211038859475d0315625cdde63910cd7903e104cbdaef704b87d478d8b68"
+      },
+      {
+        "name": "README.md",
+        "sha256": "856460c18777ebf6aa61a3666317a99025ef2596b80cebb2e722637dc583cbb4"
+      },
+      {
+        "name": "rule.json",
+        "sha256": "2c4f1fc6505fdf09e15b70805df62157b9935a81645a39787d52134328f66653"
+      },
+      {
+        "name": "search-direct-v1.json",
+        "sha256": "63c2d2beaa25b5d6728073aa481404e5bba46537766dc3242081b6d90dc39668"
+      },
+      {
+        "name": "test_play.js",
+        "sha256": "16c3e0edac3e4df071596da9adc4a95a78f597ac5901391e86167afcf9863136"
+      },
+      {
+        "name": "test_protocol.js",
+        "sha256": "0a327e00cee13a58de5f2ce1e5ecb0b41498549aaa0fbfcafb276fa53e2e1a27"
+      },
+      {
+        "name": "test_pure_rsa.js",
+        "sha256": "5bb2715077d9d0c0c8a4bba2b7df7471cfdea479ffe3983d7754f4fe0839529c"
+      },
+      {
+        "name": "test_real_stream.js",
+        "sha256": "402d79b7fb6828c9146afd9a31a9debd7f8e23f6a571864303faffd3c6e3f22d"
+      }
+    ]
+  }
+]

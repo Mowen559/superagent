@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "classification": "supervised_existing_rule_cloud_publication_verified",
+  "remote_command": "云6oooole/xxxxxx/qdvjijbdhafvtgja",
+  "scope": "Publishing an existing verified standalone JS rule. Not autonomous end-to-end reverse engineering.",
+  "host_upload_requests": 0,
+  "host_publisher_implementation_supplied": false,
+  "observed_upload_attempts": 1,
+  "duplicate_publications_observed": 0,
+  "original_worker": {
+    "task_id": "38c36d5e-42d6-4e6b-8e86-6a936977552a",
+    "status": "failed",
+    "turns": 40,
+    "first_attempt_completed": false,
+    "upload_and_readback_before_host_feedback": true,
+    "host_failure": "v1 trusted verifier omitted required target output; changed only in separately frozen v2"
+  },
+  "recovery_worker": {
+    "task_id": "7387caf3-6f37-481f-b7aa-f9aaad8150a1",
+    "status": "completed",
+    "passed": true,
+    "classification": "host_harness_recovery_readback_only_with_documentation_feedback",
+    "new_upload": false
+  },
+  "documentation_followup": {
+    "task_id": "79dd90ff-2d21-4546-95a7-9e887504f09d",
+    "status": "completed",
+    "passed": true,
+    "classification": "coached_documentation_revision",
+    "new_upload": false,
+    "manual_review": "PC-only scope, network requirement and untested Android documented"
+  },
+  "skill_reads": [
+    {
+      "resource_path": "scripts/export-command.cjs",
+      "skill_name": "deepcloud-rule-engineer",
+      "action": "read"
+    },
+    {
+      "action": "read",
+      "resource_path": "scripts/import-rule.cjs",
+      "skill_name": "deepcloud-rule-engineer"
+    }
+  ],
+  "skills_status": "Repository production Skill scripts actually read. Experience reference manually updated; no heldout promotion or automatic learning certification.",
+  "checks": [
+    "remote_short_command_readback",
+    "production_cloud_command_parser",
+    "frozen_rule_fields_equal",
+    "actual_private_database_import"
+  ],
+  "field_hashes": {
+    "title": "810380410b6c0d8d5e3fa8e036c4f89893546980b99711d249b73eec7599501e",
+    "version": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+    "url": "df2477d198a9bf01503eee593cc8665f2feddab27a69d69d1ba0553663300fc7",
+    "class_name": "0f91edf0ecd079e26accf1855afa93efc10977ddb748a1ae94aae4fd5405c6ac",
+    "class_url": "c7047371b87864de6c285e4af4be1afd64d63f657221f8f77473387495e9f3b8",
+    "find_rule": "47be6733526ee38e1af97a2b1cee50e1fdb2cefd72d336bf3135d2a1784ff2d1",
+    "search_url": "02a05d9cd10072d076f35761f96daee314fffce70c601547853791bd50820e1b",
+    "searchFind": "3fbb7416d11093c5a605e7a4b521ed04d85c6ff287967c53c35adf2b40a03b54",
+    "detail_find_rule": "c216b18f80c3f6672a6b1cd85ca63d53434ca7b828c2f47e941b8bbf954a69f6"
+  },
+  "verifier_sha256": "f426d97c0b444fac1cf4409aff68042db0c2e4b4814f638a43199b20e52df2b9",
+  "provenance": {
+    "rule.json": {
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-cloud-publish\\hub-independent-fa7393945bbb4bcea05fb216d2c5cbc8\\data\\runs\\79dd90ff-2d21-4546-95a7-9e887504f09d\\workspace\\rule.json",
+      "sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+      "host_content_edits": false
+    },
+    "publication.json": {
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-cloud-publish\\hub-independent-fa7393945bbb4bcea05fb216d2c5cbc8\\data\\runs\\79dd90ff-2d21-4546-95a7-9e887504f09d\\workspace\\publication.json",
+      "sha256": "d86fe91e2bc69d8abe3d53127ffb5a660faa25603642fa697b32a682b3353ad2",
+      "host_content_edits": false
+    },
+    "share-command.txt": {
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-cloud-publish\\hub-independent-fa7393945bbb4bcea05fb216d2c5cbc8\\data\\runs\\79dd90ff-2d21-4546-95a7-9e887504f09d\\workspace\\share-command.txt",
+      "sha256": "ff3a262533db728e1007542eaa616b1e062923020d3c58e8d665098842fe4042",
+      "host_content_edits": false
+    },
+    "README.md": {
+      "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-cloud-publish\\hub-independent-fa7393945bbb4bcea05fb216d2c5cbc8\\data\\runs\\79dd90ff-2d21-4546-95a7-9e887504f09d\\workspace\\README.md",
+      "sha256": "95fc58808015ed37ee2f2fc326788b42408b1c317a4606422c4a6fddf8bf47a0",
+      "host_content_edits": false
+    }
+  },
+  "reports": [
+    "hub-cloud-publication-attempt-v1.json",
+    "hub-cloud-publication-recovery-v2.json",
+    "hub-cloud-documentation-followup-v3.json"
+  ],
+  "limitations": [
+    "Android adaptation/import/playback unverified",
+    "GUI not operated",
+    "Cloud retention not guaranteed",
+    "Installed user Hub binary not replaced",
+    "Read-only intent vs implementation plan and late feedback consumption remain unresolved"
+  ]
+}

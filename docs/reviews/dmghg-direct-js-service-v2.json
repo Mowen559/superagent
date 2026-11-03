@@ -1,0 +1,14 @@
+{
+  "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+  "evolution_baseline": "empty; private to this service and independent Run",
+  "binarySha256": "262E7EED1225CEFD5077E8C3D64A15E97DDF59D5A6C7B459EC6351E705D739CB",
+  "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-independent-97d0e21c8253411a81c30039c39be8fe\\data",
+  "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+  "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-independent-97d0e21c8253411a81c30039c39be8fe",
+  "port": 39401,
+  "pid": 35988,
+  "model_turn_budget": 40,
+  "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\dmghg-direct-js-profile-v2.json",
+  "evolution_initial_exists": false,
+  "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970"
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39401",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "DMGHG-JS-protocol-guided-1",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-origin-v2",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-origin-v2",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 1500,
+        "prompt": "请为D:\\太极\\动漫共和国概念版生成真正独立的JS海阔规则。已经还原远端协议，证据位于D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-origin-v2，先阅读PROTOCOL.md、protocol-constants.json及原Lua解析源码，再亲自编写rule.json、dmghg.js、README.md并通过verify_delivery实际验证。原始目录为只读证据；写入你的执行工作区。禁止Python/DLL/本地服务运行时依赖、替代站点或固定媒体地址。CryptoJS可在生成阶段复制内嵌，最终rule.json单独导入即可用。不要再做桥接、扫描整个仓库或重写原生探针；按已给真实协议直接实现并修复验收错误。"
+      },
+      "events": [
+        {
+          "kind": "error",
+          "content": "invalid verifier budget"
+        },
+        {
+          "kind": "error",
+          "content": "invalid verifier budget"
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "corrected",
+      "prior_exposure": "Protocol analysis and native public API reference supplied; not an independent first-attempt score",
+      "task_id": "46724697-2816-4e7c-9fa4-deea8f69215e",
+      "duration_ms": 951,
+      "tool_calls": 0,
+      "model_turns": 0,
+      "usage_events": [],
+      "token_usage": null,
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-independent-97d0e21c8253411a81c30039c39be8fe\\data\\runs\\46724697-2816-4e7c-9fa4-deea8f69215e\\workspace",
+      "passed": false
+    }
+  ],
+  "runtime": {
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "binarySha256": "262E7EED1225CEFD5077E8C3D64A15E97DDF59D5A6C7B459EC6351E705D739CB",
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-independent-97d0e21c8253411a81c30039c39be8fe\\data",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-direct-protocol\\hub-independent-97d0e21c8253411a81c30039c39be8fe",
+    "port": 39401,
+    "pid": 35988,
+    "model_turn_budget": 40,
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\dmghg-direct-js-profile-v2.json",
+    "evolution_initial_exists": false,
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\dmghg-direct-js-service-v2.json",
+    "verified_binary_sha256": "262e7eed1225cefd5077e8c3d64a15e97ddf59d5a6c7b459ec6351e705d739cb"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "c8e8165fc70ffc14490b42b175e45adab50aba2e5a145d6b7ab002343619bf8b",
+  "frozen_definitions_sha256": "3b9b9aa8008a3f3f957c9d97f4ea548c472c0b229c8585211923b85f783309ff",
+  "planned_task_ids": [
+    "DMGHG-JS-protocol-guided-1"
+  ],
+  "selected_task_ids": [
+    "DMGHG-JS-protocol-guided-1"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

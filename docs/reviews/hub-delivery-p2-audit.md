@@ -1,5 +1,7 @@
 # Hub P2 真实规则交付验收
 
+> 2026-11-03用户目标纠偏：以下v21成功仅为原生桥接切片，不能作为独立JS规则交付完成。后续已完成独立JS补充交付验收：仅JSON冷目录、实际JSON导入、三个代表集lazy/媒体和首集解码通过，见[独立JS最终收据](dmghg-direct-js-final-review-v1.json)及[调查与来源](dmghg-direct-js-investigation-20261103.md)。该产物由两次带反馈的Hub任务生成并修复；两次worker仍为预算failed，原状态保留，不声称Hub自主首次结题已通过。
+
 截至2026-11-02，P2尚未整体通过。已取得Hub自行编写和带反馈修复后的真实业务成功证据；桥接超时及三次独立生成仍须通过。模型为gemini-3.8-flash-high，沿生产SDK、真实HTTP/SSE及worker执行；全程未操作桌面。
 
 ## 尝试记录

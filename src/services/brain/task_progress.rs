@@ -48,9 +48,14 @@ pub struct TaskProgress {
 
 impl TaskProgress {
     pub fn configure_delivery(&mut self, root: &std::path::Path, session: &str, run: &str) -> Result<(), String> {
+        let profile=std::env::var_os("HUB_DELIVERY_PROFILE_PATH").map(std::path::PathBuf::from);
+        self.configure_delivery_profile(root,session,run,profile.as_deref())
+    }
+
+    pub fn configure_delivery_profile(&mut self,root:&std::path::Path,session:&str,run:&str,profile:Option<&std::path::Path>)->Result<(),String> {
         let mut delivery = super::delivery_evidence::DeliveryEvidence::new(root, session, run)?;
-        if let Some(path) = std::env::var_os("HUB_DELIVERY_PROFILE_PATH") {
-            delivery.load_profile(std::path::Path::new(&path))?;
+        if let Some(path) = profile {
+            delivery.load_profile(path)?;
         }
         self.delivery = Some(delivery);
         Ok(())
@@ -58,6 +63,16 @@ impl TaskProgress {
 
     pub fn verify_delivery(&mut self, ids: &[String]) -> Result<serde_json::Value, String> {
         self.delivery.as_mut().ok_or("delivery is not bound to a Run workspace")?.verify(ids)
+    }
+
+    pub fn perform_delivery_action(&mut self,id:&str)->Result<serde_json::Value,String> {
+        self.delivery.as_mut().ok_or("delivery is not bound to a Run workspace")?.perform_action(id)
+    }
+    pub fn managed_command_guard(&self,name:&str,args:&serde_json::Value)->Option<String> {
+        self.delivery.as_ref().and_then(|d|d.managed_command_guard(name,args))
+    }
+    pub fn delivery_guidance(&self)->String {
+        self.delivery.as_ref().map(|d|d.action_guidance()).unwrap_or_default()
     }
 
     pub fn apply_plan(&mut self, plan: TaskContract) {
@@ -135,6 +150,8 @@ impl TaskProgress {
                 return;
             }
             EvidenceKind::UserInput
+        } else if receipt.name == "perform_delivery_action" {
+            EvidenceKind::Mutation
         } else if matches!(
             receipt.risk,
             ToolRisk::WorkspaceMutation | ToolRisk::Destructive

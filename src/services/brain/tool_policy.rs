@@ -157,7 +157,7 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         "knowledge_corpus_tool" if corpus_operation(arguments) == "list" => ToolRisk::ReadOnly,
         "knowledge_corpus_tool" if corpus_operation(arguments) == "remove" => ToolRisk::Destructive,
         "knowledge_corpus_tool" => ToolRisk::WorkspaceMutation,
-        "web_fetch" | "headless_browser" | "mcp_client" | "harness_acp" | "hermes_workflow"
+        "perform_delivery_action" | "web_fetch" | "headless_browser" | "mcp_client" | "harness_acp" | "hermes_workflow"
         | "openclaw_rtk" => ToolRisk::Network,
         "write_to_file"
         | "replace_in_file"
