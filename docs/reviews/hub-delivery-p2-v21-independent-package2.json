@@ -1,0 +1,122 @@
+{
+  "passed": true,
+  "source": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-d7095ffc03304c94abc24b6b77519f4f\\data\\runs\\44f37099-d501-43e4-87f2-5c66f1b6a45a\\workspace",
+  "cold_directory": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-package-cold-h296dv3u\\新目录交付",
+  "target": "D:\\太极\\动漫共和国概念版",
+  "validator_sha256": "f7d1ba487398f0bfbc0b7a096d926807a444c0f2dc1be0a7bd2ea2f977af2278",
+  "checks": [
+    "only_three_delivered_files_cold_runtime_and_decode",
+    "default_and_cli_overrides_cannot_bind_non_loopback",
+    "four_concurrent_reads_with_partial_client",
+    "incomplete_request_server_timeout_under_eight_seconds",
+    "unknown_route_bad_json_unknown_rpc_account_rpc_rejected",
+    "process_tree_shutdown_releases_port",
+    "missing_install_fails_without_gui",
+    "source_and_copy_hashes_unchanged"
+  ],
+  "artifacts": [
+    {
+      "name": "bridge.py",
+      "sha256": "b5653a7b0880a6274d4183733a5ef7348272b18fc60ada6f7cc79e06c82a41da"
+    },
+    {
+      "name": "rule.json",
+      "sha256": "019c58bfe33ab34fe938ad30ce3d83c870d2093fd9d633ec974e295be3aec220"
+    },
+    {
+      "name": "README.md",
+      "sha256": "2e7fc33274affee132644fbfc90703570bca74eeaf4831750f7d0ce418868b56"
+    }
+  ],
+  "imports": [
+    "argparse",
+    "ctypes",
+    "http",
+    "json",
+    "os",
+    "pathlib",
+    "socket",
+    "socketserver",
+    "sys",
+    "tempfile",
+    "threading",
+    "urllib"
+  ],
+  "undeclared_nonstdlib_imports": [],
+  "domain_oracle": {
+    "passed": true,
+    "target": "D:\\太极\\动漫共和国概念版",
+    "checks": [
+      "pagination_distinct_and_matches_upstream",
+      "category:20",
+      "category:21",
+      "search:仙逆",
+      "search:斗破",
+      "detail_title_and_first_middle_last_episodes",
+      "lazy_production_runtime",
+      "bridgeBase_overrides_declared_default_port",
+      "actual_media_bytes",
+      "null_output_decode_over_one_second",
+      "inputs_unchanged"
+    ],
+    "observed": {
+      "home": 19,
+      "page2": 10,
+      "episodes": 165
+    },
+    "decoder": {
+      "audio-codec-name": "aac",
+      "video-params/w": "1920",
+      "video-params/h": "816",
+      "time-pos": "1.082000",
+      "decoded_video": true,
+      "outputs": {
+        "audio": "null",
+        "video": "null"
+      },
+      "diagnostic_codes": []
+    },
+    "decoder_attempts": [
+      {
+        "audio-codec-name": "aac",
+        "video-params/w": "1920",
+        "video-params/h": "816",
+        "time-pos": "1.082000",
+        "decoded_video": true,
+        "outputs": {
+          "audio": "null",
+          "video": "null"
+        },
+        "diagnostic_codes": []
+      }
+    ],
+    "mobile_standalone_verified": false,
+    "declared_default_port": 18002,
+    "bridge_port": 18001,
+    "target_dll_sha256": "ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42",
+    "no_desktop": true
+  },
+  "host_checks": [
+    {
+      "passed": true,
+      "actual_network_bind": false,
+      "override": null,
+      "attempted_host": "127.0.0.1",
+      "reason": "loopback binding observed"
+    },
+    {
+      "passed": true,
+      "actual_network_bind": false,
+      "override": "0.0.0.0",
+      "reason": "CLI override rejected before binding"
+    },
+    {
+      "passed": true,
+      "actual_network_bind": false,
+      "override": "192.0.2.1",
+      "reason": "CLI override rejected before binding"
+    }
+  ],
+  "partial_request_closed_ms": 5004,
+  "shutdown_ms": 226
+}

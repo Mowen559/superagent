@@ -1,0 +1,20 @@
+{
+  "required_runs": 3,
+  "classification": "infrastructure_interrupted",
+  "next_action": "New frozen series under workspace scoped TEMP/TMP; no previous Run source reused",
+  "first_report": "hub-delivery-p2-independent-v20-part1.json",
+  "series_sha256": "fe86d3ccdfe85f67f314c12ecbdb7e1f5adf4e73ef00c6e2651b7394b2af9846",
+  "observations": [
+    "Both independent Runs and both cold packages reported passed before file loss",
+    "Second Run delivered files were read for manual review, then all three files, cold copies, trace JSON and frozen manifest/executable were observed missing",
+    "Test service PID 23872 no longer exists; orchestration exec session 17067 unavailable",
+    "Directories remained but inspected data files were absent; deletion cause not established",
+    "No review2 approval created; original automatic reports and series state are not overwritten",
+    "First Run exact file copy remains under durable artifacts; second output folder is empty"
+  ],
+  "automatic_completed_runs": 2,
+  "certification": false,
+  "second_report": "hub-delivery-p2-independent-v20-part2.json",
+  "completed_full_manual_reviews": 1,
+  "second_report_sha256": "813b69abb7b624a6ea5113d11ff08fb34bebce635996baa2fd6072725178960e"
+}

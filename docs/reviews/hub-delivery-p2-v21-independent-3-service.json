@@ -1,0 +1,14 @@
+{
+  "evolution_initial_exists": false,
+  "model_turn_budget": 40,
+  "port": 39255,
+  "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+  "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\data",
+  "pid": 36128,
+  "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+  "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-frozen-profile.json",
+  "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7",
+  "binarySha256": "262E7EED1225CEFD5077E8C3D64A15E97DDF59D5A6C7B459EC6351E705D739CB",
+  "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+  "evolution_baseline": "empty; private to this service and independent Run"
+}

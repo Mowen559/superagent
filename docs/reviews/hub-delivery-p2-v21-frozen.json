@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-dmghg-delivery-duky9q_x",
+  "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-frozen-profile.json",
+  "profile_sha256": "f75ca7d679ad114153590c0ead8949f5c0ad0956474a20bb241a31da8f815510",
+  "inputs": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-frozen-inputs.json",
+  "inputs_sha256": "5f712b00ac790d084f0ab0e37d1d69de17710f713cf19b2008504cb7a086d415",
+  "requests": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-frozen-requests.json",
+  "requests_sha256": "3ae6d05623f8dcd158659f2a69d5c551b518bd8afc9eb0300d0b528718ef304f",
+  "model": "gemini-3.8-flash-high",
+  "budget": {
+    "model_turns": 40,
+    "timeout_seconds": 1500
+  },
+  "no_task_specific_host_implementation_after_start": true
+}

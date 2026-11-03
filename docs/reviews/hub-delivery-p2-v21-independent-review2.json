@@ -1,0 +1,24 @@
+{
+  "classification": "first_attempt",
+  "host_business_edits": false,
+  "evidence": [
+    "hub-delivery-p2-v21-independent-part2.json",
+    "hub-delivery-p2-v21-independent-package2.json"
+  ],
+  "task_id": "44f37099-d501-43e4-87f2-5c66f1b6a45a",
+  "artifacts": {
+    "README.md": "2e7fc33274affee132644fbfc90703570bca74eeaf4831750f7d0ce418868b56",
+    "rule.json": "019c58bfe33ab34fe938ad30ce3d83c870d2093fd9d633ec974e295be3aec220",
+    "bridge.py": "b5653a7b0880a6274d4183733a5ef7348272b18fc60ada6f7cc79e06c82a41da"
+  },
+  "scope": "Headless Windows PC production rule runtime with installed native dependencies; Android and frontend window unverified",
+  "trace_first_sha256": "1dc3d70396e994bc38dafccc8c2edb1712e1a2751b95c30f8381a00844ad9b12",
+  "passed": true,
+  "review_basis": [
+    "Reviewed all delivered bridge, rule entrypoints and README against actual tool-use and original probe/test scripts; reads limited to frozen Skills/generic JSON template and own workspace, no earlier Run code",
+    "Readonly native ABI wrapper, version metadata, independent state, locked resource/free lifecycle, fixed loopback binding, threaded HTTP and five-second socket timeout reviewed",
+    "Rule preserves expanded category/page/query while rebasing home/search/detail/lazy to MY_PARAMS.bridgeBase; playback retains native empty headers",
+    "Initial missing-file rejection was followed by real artifact generation and successful formal verification; independent outer and cold package both pass at 18001 versus declared 18002, with real decode over one second",
+    "README native samples channel21/page2 and 凡人 search supported by own test_params.py; production receipt supplies stricter greater-than-one-second decode beyond README original greater-than-0.2-second probe claim; Android and frontend GUI explicitly unverified"
+  ]
+}

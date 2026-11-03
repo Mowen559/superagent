@@ -1,0 +1,685 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39255",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "H01-independent-3",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-dmghg-delivery-duky9q_x\\project-3",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-dmghg-delivery-duky9q_x\\project-3",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 1500,
+        "prompt": "D:\\太极\\动漫共和国概念版 根据合适的skill生成实际可用的海阔规则，亲自编写必要的本地适配并验证，不能只做调查。交付 rule.json、bridge.py、README.md，包含依赖、启动及导入方法。完全不使用桌面，不启动GUI，不改安装目录、不读取原账号，不发布或推送设备。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 20177,
+          "completion_tokens": 874,
+          "duration_ms": 18309,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0177,
+          "prompt_tokens": 20177,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "plan_task",
+          "input": {
+            "constraints": [
+              "完全不使用桌面，不启动GUI，不改安装目录、不读取原账号，不发布或推送设备",
+              "严格遵循生产端口限制（18000、18001、18002），默认18002，支持--port，严禁绑定非127.0.0.1",
+              "规则中必须支持动态基址 MY_PARAMS.bridgeBase（支持首页、搜索、详情、lazy），默认回退到127.0.0.1:18002",
+              "bridge.py独立交付内聚实现，仅用标准库+原生DLL调用，包含GET /ping、GET /channels、POST /call及超时保护（服务端读取5秒超时）",
+              "选集lazy保留原生真实headers，headers为空时不强加Referer或UA"
+            ],
+            "open_questions": [],
+            "delivery": {
+              "target": "D:\\\\太极\\\\动漫共和国概念版",
+              "version": "1",
+              "artifacts": [
+                {
+                  "id": "rule",
+                  "required": true,
+                  "validator": "dmghg-production-runtime",
+                  "path": "rule.json"
+                },
+                {
+                  "required": true,
+                  "path": "bridge.py",
+                  "id": "bridge",
+                  "validator": "dmghg-bridge-contract"
+                },
+                {
+                  "id": "readme",
+                  "required": true,
+                  "path": "README.md",
+                  "validator": null
+                }
+              ],
+              "scope": "implementation"
+            },
+            "steps": [
+              {
+                "evidence_kind": "observation",
+                "acceptance": "查阅pc-native-rule-contract.md与探针源码，执行探针确认安装目录与DLL调用正常，获取真实协议数据样本",
+                "id": "step-1-probe-and-inspect",
+                "depends_on": [],
+                "goal": "调查目标应用环境与协议契约，核实原生C ABI接口与数据结构"
+              },
+              {
+                "id": "step-2-write-bridge",
+                "goal": "编写独立的本地桥接服务 bridge.py",
+                "acceptance": "bridge.py内聚实现原生DLL封装与HTTP只读服务（GET /ping、GET /channels、POST /call），包含并发锁、有界超时处理及地址白名单，支持--app-dir与--port",
+                "evidence_kind": "mutation",
+                "depends_on": [
+                  "step-1-probe-and-inspect"
+                ]
+              },
+              {
+                "id": "step-3-write-rule",
+                "evidence_kind": "mutation",
+                "goal": "编写海阔规则 rule.json",
+                "depends_on": [
+                  "step-2-write-bridge"
+                ],
+                "acceptance": "rule.json严格适配Hiker规范与PC生产运行时，动态获取MY_PARAMS.bridgeBase，实现一级分类、分页、搜索、详情剧名保护与选集@lazyRule，且选集语法及headers完全合规"
+              },
+              {
+                "evidence_kind": "mutation",
+                "goal": "编写交付文档 README.md",
+                "id": "step-4-write-readme",
+                "depends_on": [
+                  "step-3-write-rule"
+                ],
+                "acceptance": "README.md清晰阐述依赖环境、安装目录要求、启动命令、导入方式、只读安全边界与网络说明"
+              },
+              {
+                "id": "step-5-verify-delivery",
+                "acceptance": "调用verify_delivery，通过dmghg-bridge-contract和dmghg-production-runtime双验证器，且解码与媒体正常通过",
+                "depends_on": [
+                  "step-2-write-bridge",
+                  "step-3-write-rule",
+                  "step-4-write-readme"
+                ],
+                "evidence_kind": "verification",
+                "goal": "执行系统级验证 verify_delivery 确保交付物完全通过检验"
+              }
+            ],
+            "interpretation": "为目标应用“D:\\\\太极\\\\动漫共和国概念版”生成完整的海阔规则体系，包含独立内聚的本地桥接脚本bridge.py、海阔规则rule.json以及交付说明README.md，并通过宿主生产验证器dmghg-bridge-contract和dmghg-production-runtime的真实闭环验证。"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "plan_task",
+          "output": "{\"error\":\"invalid type: string \\\"1\\\", expected u32\",\"kind\":\"execution_failed\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13048,
+          "completion_tokens": 202,
+          "duration_ms": 14738,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3047999,
+          "prompt_tokens": 13048,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\super-agent\\skills\\local-app-inspector\\references\\pc-native-rule-contract.md"
+          }
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\super-agent\\skills\\local-app-inspector\\scripts\\dmghg_probe.py",
+            "end_line": 150,
+            "start_line": 1
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"error\":\"Security Error: Path 'D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references\\\\pc-native-rule-contract.md' is outside the workspace root\",\"kind\":\"execution_failed\"}"
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"error\":\"Security Error: Path 'D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py' is outside the workspace root\",\"kind\":\"execution_failed\"}"
+        },
+        {
+          "kind": "thinking",
+          "content": "【系统自检反思】: [SYSTEM REFLECTION INSTRUCTION]\nAttention SuperAgent: A execution stuck condition was detected!\n- Cause: Consecutive identical tool failure for 'view_file'\n- Recommendation: Tool 'view_file' failed 2 times with identical parameters. Halt current approach, re-analyze parameters or switch to alternative tools.\n\nPlease pause your current loop, perform self-reflection (Critic), re-evaluate your assumptions, and state your revised strategy before taking the next tool action."
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 3963,
+          "completion_tokens": 46,
+          "duration_ms": 6115,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.39630002,
+          "prompt_tokens": 3963,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "skill_tool",
+          "input": {
+            "resource_path": "references/pc-native-rule-contract.md",
+            "skill_name": "local-app-inspector",
+            "action": "read"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "skill_tool",
+          "output": "{\"skill_name\":\"local-app-inspector\",\"path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references\\\\pc-native-rule-contract.md\",\"skill_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md\",\"resource_root\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\",\"content\":\"# PC生产规则契约：无需重新寻找运行库\\n\\n本页依据项目的`deepcloud-ui/native/runtime/hk-engine.js`中runRule/customContext与`hiker-rule-filters.js`中filterState/expandRuleUrl整理。它描述执行接口，不提供最终业务规则或HTTP桥接实现。\\n\\n## 入口与数据流\\n\\n| 阶段 | 规则字段 | 实际输入 | 输出 |\\n|---|---|---|---|\\n| 首页 | url、find_rule | MY_URL、MY_PAGE、MY_PARAMS | setResult(卡片数组) |\\n| 搜索 | search_url、searchFind | MY_URL、MY_KEYWORD/KEYWORD、MY_PAGE | setResult(卡片数组) |\\n| 详情 | detail_find_rule | MY_URL为点击的详情地址，MY_ITEM为原卡片 | setResult(详情和选集卡片数组) |\\n| 播放 | 选集url中的@lazyRule=脚本 | input为该标记前的地址，MY_PARAMS保持参数 | 实际播放URL及必要请求头 |\\n\\n这些脚本使用js:入口；lazy支持.js:表达式。不要把只有一个变量名的字符串当成脚本执行结果。卡片常用title、url、pic_url、desc、col_type；媒体列表可用movie_3，选集可用text_3。\\n\\n## 分类与分页\\n\\n- class_name/class_url分别用`&`分隔名称和对应值，运行库可自动生成分类按钮。类别值来自原接口，不能用数组序号代替原ID。\\n- url中的fyclass、fypage在执行前按本次分类与页码展开。分类来自MY_PARAMS.class或MY_PARAMS.fyclass，缺省才取class_url第一项。\\n- **MY_CATE不是该PC运行库保证注入的变量**。不要依赖它维持分类；可使用展开后的MY_URL，或上述MY_PARAMS字段。\\n- 若url没有分类占位符而class_url仅为数字，单纯切换分类不会替你构造新的请求URL。首页脚本必须实际消费选中的分类。\\n- PC本地桥接基址由MY_PARAMS.bridgeBase提供，缺省可用声明的本地端口。替换基址时保留MY_URL已经展开的路径与查询，不能重新用默认频道覆盖本次channel/page。\\n- 普通首页和搜索页码都可用MY_PAGE；搜索还注入MY_SEARCH_PAGE。search_url中的`**`展开为编码后的关键词。\\n- 本地API统一支持page=1，无需特殊首页后缀。不要追加普通`[[REDACTED_URL] API规则。\\n- 首页/搜索/详情优先使用MY_URL；这些入口的input可能为空。lazy的input才是选集@lazyRule标记前的实际地址。\\n- 桥接返回error或JSON字段形状不符时主动报出有界错误，不能用空items掩盖HTTP失败或参数问题。\\n\\n## 详情、选集和lazy\\n\\n- 列表/搜索卡片的url应含该项目真实详情ID；详情脚本从当前地址取得ID并请求原目标桥接。\\n- DMGHG的parts每项有play、play_zh及part字符串数组。保留原选集字符串，生成的播放请求要同时传id、part、play，桥接调用video.play时resolve=true。\\n- 将lazy函数源码与参数分别序列化，避免在JSON、JS和Shell间叠加手工转义。复杂生成脚本先用write_to_file落盘再执行。\\n- 必须检查详情实际返回的选集url中的lazy脚本；外层JSON合法不代表多次求值后仍合法。尤其是字符串中的正则反斜杠可能被提前消费，令最终lazy出现意外注释。以函数toString及JSON.stringify保留边界，最后执行真实lazy确认。\\n- video.play返回的headers为空就保持为空，不能强加Referer或User-Agent=PC。不得把一次取得的签名地址硬编码进规则，也不要把这些地址打印进日志。\\n\\n## 交付与验证顺序\\n\\n1. 已知探针只核对原生协议和数据。先完成三个要求的交付文件，桥接只依赖标准库和已声明的安装资源。\\n2. 调用verify_delivery检查全部产物；该工具执行宿主固定验证器，不需要你定位、阅读或重写测试器。缺文件不是测试器缺依赖。\\n3. 验证返回具体错误后只修正相关产物，再验证。若建立了plan_task，使用真实收据完成对应进度；最后留出轮次交付结论。\\n4. README区分功能映射与实际验收：独立裁判抽查两分类、两个关键词第一页、默认列表两页、详情前中后选集名称及首集解码。不要将这些样本写成所有频道/所有分页/所有剧集均已测试。\\n\\n本流程只认证无界面的PC运行库及Windows本地依赖。Android实机、前端窗口、发布与设备推送各自需要另外的证据或授权。\\n\",\"resource_guidance\":\"## 已定位的技能资源\\n- SKILL.md: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md`\\n- 资源根目录: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector`\\n文中相对路径基于此目录，不基于任务工作区。以下命令路径以磁盘检查为准；列出脚本不代表脚本已通过业务验收。\\n- `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py`\\n- references: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references`\\n\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 23513,
+          "completion_tokens": 44,
+          "duration_ms": 6843,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.3513,
+          "prompt_tokens": 23513,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "skill_tool",
+          "input": {
+            "skill_name": "local-app-inspector",
+            "resource_path": "scripts/dmghg_probe.py",
+            "action": "read"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "skill_tool",
+          "output": "{\"skill_name\":\"local-app-inspector\",\"path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py\",\"skill_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md\",\"resource_root\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\",\"content\":\"\\\"\\\"\\\"Inspect the user's installed DMGHG bridge without launching any desktop UI.\\n\\nThe bridge is loaded only from --app-dir. Its state is isolated in a new temporary\\ndirectory; no account/session database or persistent model settings are read.\\n\\\"\\\"\\\"\\nimport argparse\\nimport ctypes\\nimport hashlib\\nimport json\\nimport os\\nimport re\\nfrom pathlib import Path\\nimport sys\\nimport tempfile\\nimport threading\\nimport time\\nfrom urllib.parse import urlsplit, urljoin\\nfrom urllib.request import Request, urlopen\\n\\n\\nclass Bridge:\\n    READ_COMMANDS = {\\n        \\\"app.ping\\\", \\\"catalog.get_channels\\\", \\\"catalog.get_banners\\\",\\n        \\\"catalog.get_video_list\\\", \\\"catalog.search_video\\\", \\\"catalog.get_video_key\\\",\\n        \\\"catalog.get_video_detail\\\", \\\"catalog.get_channel_detail\\\", \\\"video.play\\\",\\n    }\\n\\n    def __init__(self, app_dir):\\n        if os.name != \\\"nt\\\":\\n            raise RuntimeError(\\\"The installed bridge requires Windows x64 Python\\\")\\n        self.app_dir = Path(app_dir).resolve(strict=True)\\n        self.dll_path = self.app_dir / \\\"electron_bridge.dll\\\"\\n        if not self.dll_path.is_file():\\n            raise RuntimeError(\\\"electron_bridge.dll is missing from the selected application\\\")\\n        self.state_root = Path(tempfile.mkdtemp(prefix=\\\"dmghg-headless-\\\"))\\n        os.environ[\\\"DMGHG_TEST_DATA_ROOT\\\"] = str(self.state_root)\\n        os.environ[\\\"RUST_LOG\\\"] = \\\"error\\\"\\n        self.dll = ctypes.CDLL(str(self.dll_path))\\n        self.dll.dmghg_service_new.argtypes = [ctypes.c_char_p, ctypes.c_char_p]\\n        self.dll.dmghg_service_new.restype = ctypes.c_void_p\\n        self.dll.dmghg_service_handle_command_json.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\\n        self.dll.dmghg_service_handle_command_json.restype = ctypes.c_void_p\\n        self.dll.dmghg_string_free.argtypes = [ctypes.c_void_p]\\n        self.dll.dmghg_service_free.argtypes = [ctypes.c_void_p]\\n        self.lock = threading.RLock()\\n        self.version = installed_version(self.app_dir / \\\"dmghg.exe\\\")\\n        self.handle = self.dll.dmghg_service_new(b\\\"dmghg-flutter\\\", self.version.encode(\\\"ascii\\\"))\\n        if not self.handle:\\n            raise RuntimeError(\\\"The installed bridge could not initialize\\\")\\n\\n    def call(self, command, payload=None):\\n        if command not in self.READ_COMMANDS:\\n            raise ValueError(\\\"Command is outside the inspection allowlist\\\")\\n        request = {\\\"request_id\\\": \\\"headless-inspection\\\", \\\"protocol_version\\\": 1,\\n                   \\\"command\\\": command, \\\"payload\\\": payload or {}}\\n        with self.lock:\\n            previous = Path.cwd()\\n            try:\\n                # The installed Lua resolver loads resources/lua relative to Cwd.\\n                os.chdir(self.app_dir)\\n                ptr = self.dll.dmghg_service_handle_command_json(\\n                    self.handle, json.dumps(request, ensure_ascii=False).encode(\\\"utf-8\\\"))\\n                if not ptr:\\n                    raise RuntimeError(\\\"Bridge returned a null response\\\")\\n                try:\\n                    response = json.loads(ctypes.string_at(ptr).decode(\\\"utf-8\\\"))\\n                finally:\\n                    self.dll.dmghg_string_free(ptr)\\n            finally:\\n                os.chdir(previous)\\n        if response.get(\\\"ok\\\") is not True:\\n            error = response.get(\\\"error\\\", {})\\n            raise RuntimeError(f\\\"{error.get('code')}: {error.get('message')}\\\")\\n        return response.get(\\\"data\\\")\\n\\n    def close(self):\\n        if self.handle:\\n            self.dll.dmghg_service_free(self.handle)\\n            self.handle = None\\n\\n\\ndef installed_version(exe):\\n    \\\"\\\"\\\"Read PE version metadata; the resolver rejects unsupported client versions.\\\"\\\"\\\"\\n    version = ctypes.windll.version\\n    size = version.GetFileVersionInfoSizeW(str(exe), None)\\n    if not size:\\n        raise RuntimeError(\\\"Cannot read the installed application's version metadata\\\")\\n    buffer = ctypes.create_string_buffer(size)\\n    if not version.GetFileVersionInfoW(str(exe), 0, size, buffer):\\n        raise RuntimeError(\\\"Cannot read application version info\\\")\\n    info = ctypes.c_void_p()\\n    length = ctypes.c_uint()\\n    if not version.VerQueryValueW(buffer, \\\"\\\\\\\\\\\", ctypes.byref(info), ctypes.byref(length)):\\n        raise RuntimeError(\\\"Application version structure is missing\\\")\\n    fields = ctypes.cast(info, ctypes.POINTER(ctypes.c_uint32))\\n    if fields[0] != 0xFEEF04BD or length.value < 52:\\n        raise RuntimeError(\\\"Application version structure is invalid\\\")\\n    return f\\\"{fields[2] >> 16}.{fields[2] & 65535}.{fields[3] >> 16}\\\"\\n\\n\\ndef inspect(bridge, keyword):\\n    channels = bridge.call(\\\"catalog.get_channels\\\")\\n    listing = bridge.call(\\\"catalog.get_video_list\\\", {\\\"page\\\": 1})\\n    search = bridge.call(\\\"catalog.search_video\\\", {\\\"key\\\": keyword, \\\"page\\\": \\\"1\\\"})\\n    videos = listing.get(\\\"items\\\", [])\\n    if not channels or not videos or not search.get(\\\"items\\\"):\\n        raise RuntimeError(\\\"Empty channel/list/search response; cannot certify a rule\\\")\\n    selected = search[\\\"items\\\"][0]\\n    detail = bridge.call(\\\"catalog.get_video_detail\\\", {\\\"id\\\": str(selected[\\\"id\\\"])})\\n    groups = detail.get(\\\"parts\\\", [])\\n    episodes = sum(len(group.get(\\\"part\\\", [])) for group in groups)\\n    if not episodes:\\n        raise RuntimeError(\\\"No real episodes in the detail response\\\")\\n    group = next(g for g in groups if g.get(\\\"part\\\"))\\n    payload = {\\\"id\\\": str(selected[\\\"id\\\"]), \\\"part\\\": group[\\\"part\\\"][0], \\\"play\\\": group[\\\"play\\\"], \\\"resolve\\\": True}\\n    play = bridge.call(\\\"video.play\\\", payload)\\n    variant = play[\\\"list\\\"][play[\\\"default\\\"]]\\n    media = media_probe(variant[\\\"url\\\"], variant.get(\\\"headers\\\"))\\n    return {\\n        \\\"application\\\": str(bridge.app_dir),\\n        \\\"dll_sha256\\\": hashlib.sha256(bridge.dll_path.read_bytes()).hexdigest(),\\n        \\\"no_desktop\\\": True, \\\"installed_version\\\": bridge.version,\\n        \\\"isolated_state_root\\\": str(bridge.state_root),\\n        \\\"channels\\\": len(channels), \\\"list_items\\\": len(videos),\\n        \\\"search_keyword\\\": keyword, \\\"search_items\\\": len(search[\\\"items\\\"]),\\n        \\\"detail_id\\\": selected[\\\"id\\\"], \\\"detail_title\\\": detail.get(\\\"name\\\"),\\n        \\\"episode_count\\\": episodes, \\\"play_variants\\\": len(play[\\\"list\\\"]),\\n        \\\"media\\\": media, \\\"mobile_standalone_verified\\\": False,\\n        \\\"dependency\\\": \\\"Windows installed electron_bridge.dll and resources/lua\\\",\\n    }, play\\n\\n\\ndef media_probe(url, headers=None, depth=0):\\n    \\\"\\\"\\\"Check actual bytes, never equate a play URL string with successful media.\\\"\\\"\\\"\\n    request = Request(url, headers={**(headers or {}), \\\"Range\\\": \\\"bytes=0-2047\\\"})\\n    with urlopen(request, timeout=20) as response:\\n        chunk = response.read(2048)\\n        report = {\\\"host\\\": urlsplit(response.url).hostname, \\\"status\\\": response.status,\\n                \\\"content_type\\\": response.headers.get(\\\"Content-Type\\\"), \\\"bytes_read\\\": len(chunk),\\n                \\\"hls_manifest\\\": chunk.lstrip().startswith(b\\\"#EXTM3U\\\")}\\n        if report[\\\"hls_manifest\\\"] and depth < 2:\\n            text = chunk.decode(\\\"utf-8\\\", \\\"replace\\\")\\n            uris = [line.strip() for line in text.splitlines() if line.strip() and not line.startswith(\\\"#\\\")]\\n            if uris:\\n                report[\\\"first_child\\\"] = media_probe(urljoin(response.url, uris[0]), headers, depth + 1)\\n        return report\\n\\n\\ndef classify_decoder_warning(text):\\n    \\\"\\\"\\\"Return categories, excluding URLs before classifying warnings.\\\"\\\"\\\"\\n    text = re.sub(r'https?://\\\\S+', '[URL]', text.lower())\\n    codes = set()\\n    for status in ['403', '404']:\\n        if re.search(r'(?:http(?: error)?|server returned|status(?: code)?)\\\\D{0,12}' + status + r'\\\\b', text):\\n            codes.add('http_' + status)\\n    for pattern, code in [(r'\\\\b(?:tls|ssl)\\\\b|gnutls|schannel', 'tls_error'),\\n        (r'timed out|timeout', 'network_timeout'), (r'failed to resolve|name resolution', 'resolution_error'),\\n        (r'failed to open', 'open_failed'), (r'connection refused', 'connection_refused')]:\\n        if re.search(pattern, text):\\n            codes.add(code)\\n    return codes\\n\\n\\ndef decode_probe(bridge, variant, progress_seconds=0.2, deadline_seconds=16, diagnostics=False):\\n    \\\"\\\"\\\"Use the installed libmpv decoder with null audio/video outputs; no window.\\\"\\\"\\\"\\n    dll_dir = os.add_dll_directory(str(bridge.app_dir))\\n    mpv = ctypes.CDLL(str(bridge.app_dir / \\\"libmpv-2.dll\\\"))\\n    mpv.mpv_create.restype = ctypes.c_void_p\\n    mpv.mpv_set_option_string.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p]\\n    mpv.mpv_initialize.argtypes = [ctypes.c_void_p]\\n    mpv.mpv_command.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_char_p)]\\n    mpv.mpv_get_property_string.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\\n    mpv.mpv_get_property_string.restype = ctypes.c_void_p\\n    mpv.mpv_free.argtypes = [ctypes.c_void_p]\\n    mpv.mpv_wait_event.argtypes = [ctypes.c_void_p, ctypes.c_double]\\n    mpv.mpv_wait_event.restype = ctypes.c_void_p\\n    mpv.mpv_terminate_destroy.argtypes = [ctypes.c_void_p]\\n    if diagnostics:\\n        class Event(ctypes.Structure):\\n            _fields_ = [('event_id', ctypes.c_int), ('error', ctypes.c_int),\\n                        ('reply_userdata', ctypes.c_uint64), ('data', ctypes.c_void_p)]\\n        class LogMessage(ctypes.Structure):\\n            _fields_ = [('prefix', ctypes.c_char_p), ('level', ctypes.c_char_p),\\n                        ('text', ctypes.c_char_p), ('log_level', ctypes.c_int)]\\n        mpv.mpv_request_log_messages.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\\n    handle = mpv.mpv_create()\\n    if not handle:\\n        raise RuntimeError(\\\"The installed media decoder could not initialize\\\")\\n    try:\\n        if diagnostics:\\n            mpv.mpv_request_log_messages(handle, b'warn')\\n        for key, value in {\\\"vo\\\": \\\"null\\\", \\\"ao\\\": \\\"null\\\", \\\"terminal\\\": \\\"no\\\", \\\"load-scripts\\\": \\\"no\\\",\\n                           \\\"network-timeout\\\": \\\"12\\\", \\\"cache-secs\\\": \\\"2\\\", \\\"demuxer-max-bytes\\\": \\\"4M\\\"}.items():\\n            if mpv.mpv_set_option_string(handle, key.encode(), value.encode()) < 0:\\n                raise RuntimeError(f\\\"Cannot set headless decoder option {key}\\\")\\n        headers = \\\",\\\".join(f\\\"{k}: {v}\\\" for k, v in (variant.get(\\\"headers\\\") or {}).items())\\n        if headers:\\n            mpv.mpv_set_option_string(handle, b\\\"http-header-fields\\\", headers.encode())\\n        if mpv.mpv_initialize(handle) < 0:\\n            raise RuntimeError(\\\"The installed decoder initialization failed\\\")\\n        args = (ctypes.c_char_p * 4)(b\\\"loadfile\\\", variant[\\\"url\\\"].encode(), b\\\"replace\\\", None)\\n        if mpv.mpv_command(handle, args) < 0:\\n            raise RuntimeError(\\\"The installed decoder rejected the media request\\\")\\n        deadline = time.monotonic() + deadline_seconds\\n        facts = {}\\n        diagnostic_codes = set()\\n        while time.monotonic() < deadline:\\n            event_ptr = mpv.mpv_wait_event(handle, 0.1)\\n            if diagnostics and event_ptr:\\n                event = ctypes.cast(event_ptr, ctypes.POINTER(Event)).contents\\n                if event.event_id == 2 and event.data:\\n                    message = ctypes.cast(event.data, ctypes.POINTER(LogMessage)).contents\\n                    text = (message.text or b'').decode('utf-8', 'replace').lower()\\n                    # Emit categories only; raw messages may contain signed URLs.\\n                    diagnostic_codes.update(classify_decoder_warning(text))\\n                elif event.event_id == 7 and event.data:\\n                    ended = ctypes.cast(event.data, ctypes.POINTER(ctypes.c_int * 2)).contents\\n                    facts['end_file_reason'] = ended[0]\\n                    facts['end_file_error'] = ended[1]\\n            for key in [\\\"audio-codec-name\\\", \\\"video-params/w\\\", \\\"video-params/h\\\", \\\"time-pos\\\"]:\\n                ptr = mpv.mpv_get_property_string(handle, key.encode())\\n                if ptr:\\n                    try:\\n                        facts[key] = ctypes.string_at(ptr).decode(\\\"utf-8\\\", \\\"replace\\\")\\n                    finally:\\n                        mpv.mpv_free(ptr)\\n            if facts.get(\\\"video-params/w\\\") and float(facts.get(\\\"time-pos\\\", \\\"0\\\")) > progress_seconds:\\n                break\\n        facts[\\\"decoded_video\\\"] = bool(facts.get(\\\"video-params/w\\\")) and float(facts.get(\\\"time-pos\\\", \\\"0\\\")) > progress_seconds\\n        facts[\\\"outputs\\\"] = {\\\"audio\\\": \\\"null\\\", \\\"video\\\": \\\"null\\\"}\\n        if diagnostics:\\n            facts['diagnostic_codes'] = sorted(diagnostic_codes)\\n        return facts\\n    finally:\\n        mpv.mpv_terminate_destroy(handle)\\n        dll_dir.close()\\n\\n\\ndef main():\\n    parser = argparse.ArgumentParser(description=__doc__)\\n    parser.add_argument(\\\"--app-dir\\\", required=True)\\n    parser.add_argument(\\\"--keyword\\\", default=\\\"仙逆\\\")\\n    parser.add_argument(\\\"--output\\\", required=True)\\n    parser.add_argument(\\\"--show-play-schema\\\", action=\\\"store_true\\\")\\n    parser.add_argument(\\\"--decode\\\", action=\\\"store_true\\\", help=\\\"Verify actual video decoding with no window/audio output\\\")\\n    args = parser.parse_args()\\n    bridge = Bridge(args.app_dir)\\n    try:\\n        report, play = inspect(bridge, args.keyword)\\n        if args.decode:\\n            report[\\\"decoder\\\"] = decode_probe(bridge, play[\\\"list\\\"][play[\\\"default\\\"]])\\n        if args.show_play_schema:\\n            # Show keys/types and bounded non-URL metadata only; never dump signed links.\\n            print(json.dumps({k: type(v).__name__ for k, v in play.items()}, ensure_ascii=False))\\n        output = Path(args.output)\\n        output.parent.mkdir(parents=True, exist_ok=True)\\n        output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding=\\\"utf-8\\\")\\n        print(json.dumps(report, ensure_ascii=False))\\n        if args.decode and not report[\\\"decoder\\\"][\\\"decoded_video\\\"]:\\n            raise RuntimeError(\\\"Media bytes exist but headless decoding was not verified\\\")\\n    finally:\\n        bridge.close()\\n\\n\\nif __name__ == \\\"__main__\\\":\\n    sys.stdout.reconfigure(encoding=\\\"utf-8\\\")\\n    main()\\n\",\"resource_guidance\":\"## 已定位的技能资源\\n- SKILL.md: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\SKILL.md`\\n- 资源根目录: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector`\\n文中相对路径基于此目录，不基于任务工作区。以下命令路径以磁盘检查为准；列出脚本不代表脚本已通过业务验收。\\n- `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\scripts\\\\dmghg_probe.py`\\n- references: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\local-app-inspector\\\\references`\\n\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10508,
+          "completion_tokens": 132,
+          "duration_ms": 17400,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0508,
+          "prompt_tokens": 10508,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python \"D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\super-agent\\skills\\local-app-inspector\\scripts\\dmghg_probe.py\" --app-dir \"D:\\太极\\动漫共和国概念版\" --keyword \"仙逆\" --output \"scratch/dmghg-evidence.json\" --decode"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"{\\\"application\\\": \\\"D:\\\\\\\\太极\\\\\\\\动漫共和国概念版\\\", \\\"dll_sha256\\\": \\\"ecbf15ca4d5ed1983b36b19c2f343a1e307891f26cfe4d1fbc39a7efd134fe42\\\", \\\"no_desktop\\\": true, \\\"installed_version\\\": \\\"1.4.4\\\", \\\"isolated_state_root\\\": \\\"D:\\\\\\\\抖音\\\\\\\\deepcloud\\\\\\\\super-agent\\\\\\\\artifacts\\\\\\\\.delivery-runtime\\\\\\\\1d74b62aca184421806db7ee23185857\\\\\\\\dmghg-headless-tdceimzm\\\", \\\"channels\\\": 8, \\\"list_items\\\": 10, \\\"search_keyword\\\": \\\"仙逆\\\", \\\"search_items\\\": 3, \\\"detail_id\\\": 181655, \\\"detail_title\\\": \\\"仙逆\\\", \\\"episode_count\\\": 165, \\\"play_variants\\\": 1, \\\"media\\\": {\\\"host\\\": \\\"m3bkbfdm.hzhcbkj.cn\\\", \\\"status\\\": 206, \\\"content_type\\\": \\\"application/vnd.apple.mpegurl; charset=utf-8\\\", \\\"bytes_read\\\": 2048, \\\"hls_manifest\\\": true, \\\"first_child\\\": {\\\"host\\\": \\\"p4-plat.wskwai.com\\\", \\\"status\\\": 206, \\\"content_type\\\": \\\"application/pdf\\\", \\\"bytes_read\\\": 2048, \\\"hls_manifest\\\": false}}, \\\"mobile_standalone_verified\\\": false, \\\"dependency\\\": \\\"Windows installed electron_bridge.dll and resources/lua\\\", \\\"decoder\\\": {\\\"audio-codec-name\\\": \\\"aac\\\", \\\"video-params/w\\\": \\\"1920\\\", \\\"video-params/h\\\": \\\"816\\\", \\\"time-pos\\\": \\\"0.202000\\\", \\\"decoded_video\\\": true, \\\"outputs\\\": {\\\"audio\\\": \\\"null\\\", \\\"video\\\": \\\"null\\\"}}}\\r\\n\",\"stderr\":\"\",\"duration_ms\":8230,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":1106,\"totalCompressedBytes\":1106,\"totalOriginalTokens\":276,\"totalCompressedTokens\":276,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":1}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11231,
+          "completion_tokens": 841,
+          "duration_ms": 20092,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1230999,
+          "prompt_tokens": 11231,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "TargetFile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\data\\runs\\c7140417-fe5b-4f1d-a3cd-4899a521276b\\workspace\\scratch\\dump_protocol.py",
+            "CodeContent": "import json\nimport sys\nfrom pathlib import Path\n\n# 复用探针中的Bridge，把详细的数据结构dump下来观察\nsys.path.append(r\"D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\super-agent\\skills\\local-app-inspector\\scripts\")\nfrom dmghg_probe import Bridge\n\nbridge = Bridge(r\"D:\\太极\\动漫共和国概念版\")\ntry:\n    channels = bridge.call(\"catalog.get_channels\")\n    print(\"CHANNELS:\", json.dumps(channels, ensure_ascii=False))\n    \n    first_channel = channels[0][\"id\"] if channels else \"\"\n    print(\"FIRST CHANNEL:\", first_channel)\n    \n    listing = bridge.call(\"catalog.get_video_list\", {\"channel\": first_channel, \"page\": 1})\n    print(\"LISTING KEYS:\", list(listing.keys()))\n    if listing.get(\"items\"):\n        print(\"FIRST ITEM:\", json.dumps(listing[\"items\"][0], ensure_ascii=False))\n        \n    search = bridge.call(\"catalog.search_video\", {\"key\": \"仙逆\", \"page\": \"1\"})\n    print(\"SEARCH KEYS:\", list(search.keys()))\n    if search.get(\"items\"):\n        print(\"SEARCH FIRST ITEM:\", json.dumps(search[\"items\"][0], ensure_ascii=False))\n        vid = search[\"items\"][0][\"id\"]\n        detail = bridge.call(\"catalog.get_video_detail\", {\"id\": str(vid)})\n        print(\"DETAIL KEYS:\", list(detail.keys()))\n        print(\"DETAIL NAME:\", detail.get(\"name\"))\n        print(\"DETAIL PARTS COUNT:\", len(detail.get(\"parts\", [])))\n        if detail.get(\"parts\"):\n            first_part = detail[\"parts\"][0]\n            print(\"FIRST PART KEYS:\", list(first_part.keys()))\n            print(\"FIRST PART play:\", first_part.get(\"play\"), \"play_zh:\", first_part.get(\"play_zh\"))\n            print(\"FIRST PART episode sample:\", first_part.get(\"part\", [])[:3])\n            \n            # 测试 video.play\n            play_res = bridge.call(\"video.play\", {\n                \"id\": str(vid),\n                \"part\": first_part[\"part\"][0],\n                \"play\": first_part[\"play\"],\n                \"resolve\": True\n            })\n            print(\"PLAY RES KEYS:\", list(play_res.keys()))\n            print(\"PLAY RES DEFAULT:\", play_res.get(\"default\"))\n            if play_res.get(\"list\"):\n                def_variant = play_res[\"list\"][play_res[\"default\"]]\n                print(\"VARIANT HEADERS:\", def_variant.get(\"headers\"))\n                print(\"VARIANT URL SCHEME:\", def_variant.get(\"url\")[:30])\nfinally:\n    bridge.close()\n"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\\\data\\\\runs\\\\c7140417-fe5b-4f1d-a3cd-4899a521276b\\\\workspace\\\\scratch\\\\dump_protocol.py\",\"diagnostics\":[]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 7,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12227,
+          "completion_tokens": 23,
+          "duration_ms": 12438,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_7.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2227,
+          "prompt_tokens": 12227,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python scratch/dump_protocol.py"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"CHANNELS: [{\\\"areas\\\": [\\\"日本\\\"], \\\"id\\\": 20, \\\"name\\\": \\\"日漫\\\", \\\"oid\\\": 1, \\\"pid\\\": 0, \\\"types\\\": [\\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"大陆\\\"], \\\"id\\\": 21, \\\"name\\\": \\\"国漫\\\", \\\"oid\\\": 2, \\\"pid\\\": 0, \\\"types\\\": [\\\"玄幻\\\", \\\"奇幻\\\", \\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"日本\\\", \\\"中国\\\", \\\"美国\\\"], \\\"id\\\": 22, \\\"name\\\": \\\"剧场\\\", \\\"oid\\\": 3, \\\"pid\\\": 0, \\\"types\\\": [\\\"玄幻\\\", \\\"奇幻\\\", \\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"\\\"], \\\"id\\\": 23, \\\"name\\\": \\\"美漫\\\", \\\"oid\\\": 4, \\\"pid\\\": 0, \\\"types\\\": [\\\"玄幻\\\", \\\"奇幻\\\", \\\"冒险\\\", \\\"猎奇\\\", \\\"纯爱\\\", \\\"续作\\\", \\\"机战\\\", \\\"魔法少女\\\", \\\"经典\\\", \\\"机甲\\\", \\\"励志\\\", \\\"NTR\\\", \\\"超能力\\\", \\\"致郁\\\", \\\"乙女向\\\", \\\"美食\\\", \\\"漫画改\\\", \\\"搞笑\\\", \\\"轻小说改\\\", \\\"恋爱\\\", \\\"OVA\\\", \\\"百合\\\", \\\"校园\\\", \\\"战斗\\\", \\\"奇幻\\\", \\\"治愈\\\", \\\"日常\\\", \\\"后宫\\\", \\\"科幻\\\", \\\"异世界\\\", \\\"热血\\\", \\\"游戏改\\\", \\\"童年\\\", \\\"青春\\\", \\\"悬疑\\\", \\\"小说改\\\", \\\"音乐\\\", \\\"偶像\\\", \\\"推理\\\", \\\"神作\\\", \\\"穿越\\\", \\\"吐槽\\\", \\\"萝莉\\\", \\\"OAD\\\", \\\"运动\\\", \\\"战争\\\", \\\"狗粮\\\", \\\"魔法\\\", \\\"实用\\\", \\\"轻小说\\\", \\\"职场\\\", \\\"公路片\\\", \\\"智斗\\\", \\\"傲娇\\\", \\\"人生\\\", \\\"网游\\\", \\\"剧情\\\", \\\"历史\\\", \\\"泡面\\\", \\\"耽美\\\", \\\"轮回\\\", \\\"性转\\\", \\\"爱情\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"中国\\\", \\\"日本\\\"], \\\"id\\\": 25, \\\"name\\\": \\\"特摄\\\", \\\"oid\\\": 5, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"大陆\\\", \\\"日本\\\", \\\"美国\\\"], \\\"id\\\": 32, \\\"name\\\": \\\"少儿\\\", \\\"oid\\\": 6, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"中国\\\"], \\\"id\\\": 26, \\\"name\\\": \\\"动态漫\\\", \\\"oid\\\": 30, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}, {\\\"areas\\\": [\\\"\\\"], \\\"id\\\": 27, \\\"name\\\": \\\"猜你想看\\\", \\\"oid\\\": 100, \\\"pid\\\": 0, \\\"types\\\": [\\\"\\\"], \\\"years\\\": [\\\"2026\\\", \\\"2025\\\", \\\"2024\\\", \\\"2023\\\", \\\"2022\\\", \\\"2021\\\", \\\"2020\\\", \\\"2019\\\", \\\"2018\\\", \\\"2017\\\", \\\"2016\\\", \\\"2015\\\", \\\"2014\\\", \\\"2013\\\", \\\"2012\\\", \\\"2011\\\", \\\"2010\\\", \\\"2009\\\", \\\"2008\\\", \\\"2007\\\", \\\"2006\\\", \\\"2005\\\", \\\"2004\\\", \\\"2003\\\", \\\"2002\\\", \\\"2001\\\", \\\"2000\\\", \\\"1999\\\"]}]\\r\\nFIRST CHANNEL: 20\\r\\nLISTING KEYS: ['items', 'total']\\r\\nFIRST ITEM: {\\\"actor\\\": \\\"\\\", \\\"area\\\": \\\"日本\\\", \\\"cid\\\": 20, \\\"content\\\": \\\"「恋爱与选举与巧克力」是由sprite于09年发行的成人向恋爱AVG，之后便推出了两个版本的漫画作品。 　　本作故事主要讲述了主人公大岛裕树与青梅竹马住吉千里以及从以前起就是好友的同班同学木场美冬就读于以拥有超过五千名学生而自豪的工业学园「私立高藤学园」，同时他们还是以吃点心作为活动内容的社团食品研究部(通称：食研)的成员。次期自治学生会长的强力候选人东云皐月誓言要整顿杂乱且无实绩的社团活动，而其中食研更是首当其冲被指名要将其废部。为了避免面临危机的食研被废部，部员们想方设法开始行动起来了……\\\", \\\"continu\\\": \\\"13全\\\", \\\"director\\\": \\\"喜多幡徹\\\", \\\"down\\\": 0, \\\"ename\\\": \\\"lianaiyuxuanjuyuqiaokeli\\\", \\\"id\\\": 180167, \\\"ischarge\\\": 0, \\\"isend\\\": 0, \\\"name\\\": \\\"恋爱与选举与巧克力\\\", \\\"pic\\\": \\\"http://p4-ad.adukwai.com/[REDACTED_REMOTE_URL]\", \\\"total\\\": 12, \\\"type\\\": \\\"后宫,校园,游戏改,恋爱,日常,搞笑\\\", \\\"up\\\": 0, \\\"updated_at\\\": \\\"2026-11-03T09:34:48+08:00\\\", \\\"year\\\": \\\"2012\\\"}\\r\\nSEARCH KEYS: ['items', 'total']\\r\\nSEARCH FIRST ITEM: {\\\"actor\\\": \\\"\\\", \\\"area\\\": \\\"大陆\\\", \\\"cid\\\": 21, \\\"content\\\": \\\"改编自耳根同名小说《仙逆》，讲述了乡村平凡少年王林以心中之感动，逆仙而修，求的不仅是长生，更多的是摆脱那背后的蝼蚁之身。他坚信道在人为，以平庸的资质踏入修真仙途，历经坎坷风雨，凭着其聪睿的心智，一步一步走向巅峰，凭一己之力，扬名修真界。\\\", \\\"continu\\\": \\\"165|周日18:40更\\\", \\\"director\\\": \\\"\\\", \\\"down\\\": 0, \\\"ename\\\": \\\"xianni\\\", \\\"id\\\": 181655, \\\"ischarge\\\": 0, \\\"isend\\\": 0, \\\"name\\\": \\\"仙逆\\\", \\\"pic\\\": \\\"http://p4-ad.adukwai.com/[REDACTED_REMOTE_URL]\", \\\"total\\\": 24, \\\"type\\\": \\\"玄幻,战斗,小说改,奇幻\\\", \\\"up\\\": 0, \\\"updated_at\\\": \\\"2026-11-03T09:55:05+08:00\\\", \\\"year\\\": \\\"2023\\\"}\\r\\nDETAIL KEYS: ['actor', 'area', 'auto_play', 'charges', 'cid', 'comment_total', 'content', 'continu', 'created_at', 'created_by', 'danmu_count', 'director', 'down', 'ename', 'end_at', 'fid', 'gold', 'hits', 'id', 'is_sync_charge', 'ischarge', 'iscollect', 'isend', 'keywords', 'letter', 'name', 'parts', 'pic', 'source', 'stars', 'status', 'title', 'total', 'type', 'up', 'updated_at', 'updated_by', 'weight', 'year']\\r\\nDETAIL NAME: 仙逆\\r\\nDETAIL PARTS COUNT: 1\\r\\nFIRST PART KEYS: ['oid', 'part', 'play', 'play_zh']\\r\\nFIRST PART play: cn play_zh: 国语\\r\\nFIRST PART episode sample: ['第01集', '第02集', '第03集']\\r\\nPLAY RES KEYS: ['default', 'list']\\r\\nPLAY RES DEFAULT: 0\\r\\nVARIANT HEADERS: {}\\r\\nVARIANT URL SCHEME: http://m3bkbfdm.hzhcbkj.cn/[REDACTED_REMOTE_URL]\",\"stderr\":\"\",\"duration_ms\":5352,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":9113,\"totalCompressedBytes\":9113,\"totalOriginalTokens\":2277,\"totalCompressedTokens\":2277,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":2}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 8,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16067,
+          "completion_tokens": 31,
+          "duration_ms": 17830,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_8.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6067001,
+          "prompt_tokens": 16067,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"import urllib.request; print('Python standard library ready')\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"Python standard library ready\\r\\n\",\"stderr\":\"\",\"duration_ms\":3331,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":9144,\"totalCompressedBytes\":9144,\"totalOriginalTokens\":2284,\"totalCompressedTokens\":2284,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":3}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 9,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16230,
+          "completion_tokens": 3676,
+          "duration_ms": 31955,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_9.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.623,
+          "prompt_tokens": 16230,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "TargetFile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\data\\runs\\c7140417-fe5b-4f1d-a3cd-4899a521276b\\workspace\\bridge.py",
+            "CodeContent": "#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n\"\"\"动漫共和国 DMGHG v1 本地同构桥接服务 (Headless Bridge Service)\n\n独立内聚的本地服务，桥接已安装的 electron_bridge.dll 原生服务。\n仅监听 127.0.0.1 环回地址，提供只读 RPC 与 REST 路由供海阔视界 PC 运行库调用。\n\"\"\"\n\nimport argparse\nimport ctypes\nimport hashlib\nimport json\nimport os\nimport re\nimport socket\nimport sys\nimport tempfile\nimport threading\nimport time\nfrom http import HTTPStatus\nfrom http.server import HTTPServer, BaseHTTPRequestHandler\nfrom pathlib import Path\nfrom socketserver import ThreadingMixIn\nfrom urllib.parse import urlparse, parse_qs\n\n\ndef installed_version(exe_path):\n    \"\"\"从 PE 元数据读取客户端版本\"\"\"\n    version = ctypes.windll.version\n    size = version.GetFileVersionInfoSizeW(str(exe_path), None)\n    if not size:\n        raise RuntimeError(\"无法读取目标应用的 PE 版本元数据\")\n    buffer = ctypes.create_string_buffer(size)\n    if not version.GetFileVersionInfoW(str(exe_path), 0, size, buffer):\n        raise RuntimeError(\"无法读取应用版本信息\")\n    info = ctypes.c_void_p()\n    length = ctypes.c_uint()\n    if not version.VerQueryValueW(buffer, \"\\\\\", ctypes.byref(info), ctypes.byref(length)):\n        raise RuntimeError(\"版本信息结构体缺失\")\n    fields = ctypes.cast(info, ctypes.POINTER(ctypes.c_uint32))\n    if fields[0] != 0xFEEF04BD or length.value < 52:\n        raise RuntimeError(\"版本信息结构体无效\")\n    return f\"{fields[2] >> 16}.{fields[2] & 65535}.{fields[3] >> 16}\"\n\n\nclass NativeBridge:\n    \"\"\"封装 electron_bridge.dll 原生接口\"\"\"\n    READ_COMMANDS = {\n        \"app.ping\",\n        \"catalog.get_channels\",\n        \"catalog.get_banners\",\n        \"catalog.get_video_list\",\n        \"catalog.search_video\",\n        \"catalog.get_video_key\",\n        \"catalog.get_video_detail\",\n        \"catalog.get_channel_detail\",\n        \"video.play\",\n    }\n\n    def __init__(self, app_dir):\n        if os.name != \"nt\":\n            raise RuntimeError(\"本桥接服务仅支持 Windows x64 系统\")\n        self.app_dir = Path(app_dir).resolve(strict=True)\n        self.dll_path = self.app_dir / \"electron_bridge.dll\"\n        if not self.dll_path.is_file():\n            raise RuntimeError(f\"未在目标目录找到 electron_bridge.dll: {self.app_dir}\")\n\n        self.state_root = Path(tempfile.mkdtemp(prefix=\"dmghg-bridge-\"))\n        os.environ[\"DMGHG_TEST_DATA_ROOT\"] = str(self.state_root)\n        os.environ[\"RUST_LOG\"] = \"error\"\n\n        self.dll = ctypes.CDLL(str(self.dll_path))\n        self.dll.dmghg_service_new.argtypes = [ctypes.c_char_p, ctypes.c_char_p]\n        self.dll.dmghg_service_new.restype = ctypes.c_void_p\n        self.dll.dmghg_service_handle_command_json.argtypes = [ctypes.c_void_p, ctypes.c_char_p]\n        self.dll.dmghg_service_handle_command_json.restype = ctypes.c_void_p\n        self.dll.dmghg_string_free.argtypes = [ctypes.c_void_p]\n        self.dll.dmghg_service_free.argtypes = [ctypes.c_void_p]\n\n        self.lock = threading.RLock()\n        self.version = installed_version(self.app_dir / \"dmghg.exe\")\n        self.handle = self.dll.dmghg_service_new(b\"dmghg-flutter\", self.version.encode(\"ascii\"))\n        if not self.handle:\n            raise RuntimeError(\"原生桥接句柄初始化失败\")\n\n    def call(self, command, payload=None):\n        if command not in self.READ_COMMANDS:\n            raise ValueError(f\"命令 '{command}' 不在只读安全白名单中\")\n\n        request = {\n            \"request_id\": f\"req-{int(time.time() * 1000)}\",\n            \"protocol_version\": 1,\n            \"command\": command,\n            \"payload\": payload or {}\n        }\n\n        with self.lock:\n            previous = Path.cwd()\n            try:\n                # 原生 Lua 解析器依赖相对 Cwd 加载 resources/lua\n                os.chdir(self.app_dir)\n                raw_bytes = json.dumps(request, ensure_ascii=False).encode(\"utf-8\")\n                ptr = self.dll.dmghg_service_handle_command_json(self.handle, raw_bytes)\n                if not ptr:\n                    raise RuntimeError(\"原生服务返回空指针响应\")\n                try:\n                    resp_str = ctypes.string_at(ptr).decode(\"utf-8\")\n                    response = json.loads(resp_str)\n                finally:\n                    self.dll.dmghg_string_free(ptr)\n            finally:\n                os.chdir(previous)\n\n        if response.get(\"ok\") is not True:\n            err = response.get(\"error\", {})\n            raise RuntimeError(f\"{err.get('code', 'ERR')}: {err.get('message', '未知错误')}\")\n        return response.get(\"data\")\n\n    def close(self):\n        with self.lock:\n            if getattr(self, \"handle\", None):\n                try:\n                    self.dll.dmghg_service_free(self.handle)\n                except Exception:\n                    pass\n                self.handle = None\n\n\nclass ThreadedHTTPServer(ThreadingMixIn, HTTPServer):\n    \"\"\"支持多线程并发处理请求的 HTTP 服务\"\"\"\n    daemon_threads = True\n    allow_reuse_address = True\n\n\nclass BridgeRequestHandler(BaseHTTPRequestHandler):\n    \"\"\"桥接请求分发处理器\"\"\"\n    server_version = \"DMGHGBridge/1.0\"\n    timeout = 5  # 服务端读取超时 5 秒，留出整体时限余量\n\n    def log_message(self, format, *args):\n        # 静默请求日志，避免控制台污染\n        pass\n\n    def send_json(self, status_code, data):\n        body = json.dumps(data, ensure_ascii=False).encode(\"utf-8\")\n        self.send_response(status_code)\n        self.send_header(\"Content-Type\", \"application/json; charset=utf-8\")\n        self.send_header(\"Content-Length\", str(len(body)))\n        self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n        self.send_header(\"Access-Control-Allow-Headers\", \"Content-Type\")\n        self.send_header(\"Access-Control-Allow-Methods\", \"GET, POST, OPTIONS\")\n        self.end_headers()\n        self.wfile.write(body)\n\n    def do_OPTIONS(self):\n        self.send_response(HTTPStatus.NO_CONTENT)\n        self.send_header(\"Access-Control-Allow-Origin\", \"*\")\n        self.send_header(\"Access-Control-Allow-Headers\", \"Content-Type\")\n        self.send_header(\"Access-Control-Allow-Methods\", \"GET, POST, OPTIONS\")\n        self.end_headers()\n\n    def do_GET(self):\n        parsed = urlparse(self.path)\n        path = parsed.path\n        query = parse_qs(parsed.query)\n\n        try:\n            if path == \"/ping\":\n                self.send_json(HTTPStatus.OK, {\n                    \"ok\": True,\n                    \"service\": \"dmghg-bridge\",\n                    \"version\": self.server.native_bridge.version,\n                    \"status\": \"ready\"\n                })\n                return\n\n            if path == \"/channels\":\n                channels = self.server.native_bridge.call(\"catalog.get_channels\")\n                self.send_json(HTTPStatus.OK, {\n                    \"ok\": True,\n                    \"data\": channels\n                })\n                return\n\n            if path == \"/list\":\n                channel = query.get(\"channel\", [None])[0]\n                page_str = query.get(\"page\", [\"1\"])[0]\n                try:\n                    page = int(page_str)\n                except ValueError:\n                    page = 1\n                payload = {\"page\": page}\n                if channel is not None and channel != \"\":\n                    try:\n                        payload[\"channel\"] = int(channel)\n                    except ValueError:\n                        payload[\"channel\"] = channel\n                data = self.server.native_bridge.call(\"catalog.get_video_list\", payload)\n                self.send_json(HTTPStatus.OK, {\"ok\": True, \"data\": data})\n                return\n\n            if path == \"/search\":\n                key = query.get(\"key\", [query.get(\"keyword\", [\"\"])[0]])[0]\n                page = query.get(\"page\", [\"1\"])[0]\n                data = self.server.native_bridge.call(\"catalog.search_video\", {\"key\": key, \"page\": str(page)})\n                self.send_json(HTTPStatus.OK, {\"ok\": True, \"data\": data})\n                return\n\n            if path == \"/detail\":\n                vid = query.get(\"id\", [\"\"])[0]\n                if not vid:\n                    self.send_json(HTTPStatus.BAD_REQUEST, {\"ok\": False, \"error\": \"缺少参数 id\"})\n                    return\n                data = self.server.native_bridge.call(\"catalog.get_video_detail\", {\"id\": str(vid)})\n                self.send_json(HTTPStatus.OK, {\"ok\": True, \"data\": data})\n                return\n\n            if path == \"/play\":\n                vid = query.get(\"id\", [\"\"])[0]\n                part = query.get(\"part\", [\"\"])[0]\n                play = query.get(\"play\", [\"\"])[0]\n                if not vid or not part or not play:\n                    self.send_json(HTTPStatus.BAD_REQUEST, {\"ok\": False, \"error\": \"缺少必要播放参数 id/part/play\"})\n                    return\n                payload = {\n                    \"id\": str(vid),\n                    \"part\": part,\n                    \"play\": play,\n                    \"resolve\": True\n                }\n                data = self.server.native_bridge.call(\"video.play\", payload)\n                self.send_json(HTTPStatus.OK, {\"ok\": True, \"data\": data})\n                return\n\n            self.send_json(HTTPStatus.NOT_FOUND, {\"ok\": False, \"error\": f\"未知路径: {path}\"})\n        except Exception as e:\n            self.send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {\"ok\": False, \"error\": str(e)})\n\n    def do_POST(self):\n        parsed = urlparse(self.path)\n        path = parsed.path\n\n        if path != \"/call\":\n            self.send_json(HTTPStatus.NOT_FOUND, {\"ok\": False, \"error\": f\"未知 POST 路由: {path}\"})\n            return\n\n        try:\n            content_length = int(self.headers.get(\"Content-Length\", 0))\n            if content_length <= 0:\n                self.send_json(HTTPStatus.BAD_REQUEST, {\"ok\": False, \"error\": \"请求体为空\"})\n                return\n            if content_length > 1024 * 1024:  # 限制请求体 1MB\n                self.send_json(HTTPStatus.BAD_REQUEST, {\"ok\": False, \"error\": \"请求体超出 1MB 限制\"})\n                return\n\n            post_data = self.rfile.read(content_length)\n            req_json = json.loads(post_data.decode(\"utf-8\"))\n\n            command = req_json.get(\"command\")\n            payload = req_json.get(\"payload\", {})\n            if not command:\n                self.send_json(HTTPStatus.BAD_REQUEST, {\"ok\": False, \"error\": \"缺少 command 字段\"})\n                return\n\n            data = self.server.native_bridge.call(command, payload)\n            self.send_json(HTTPStatus.OK, {\n                \"ok\": True,\n                \"command\": command,\n                \"data\": data\n            })\n        except ValueError as ve:\n            self.send_json(HTTPStatus.FORBIDDEN, {\"ok\": False, \"error\": str(ve)})\n        except Exception as e:\n            self.send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {\"ok\": False, \"error\": str(e)})\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=\"动漫共和国 DMGHG 本地无头桥接服务\")\n    parser.add_argument(\"--app-dir\", required=True, help=\"动漫共和国安装根目录 (包含 electron_bridge.dll)\")\n    parser.add_argument(\"--port\", type=int, default=18002, help=\"本地监听端口 (默认 18002)\")\n    args = parser.parse_args()\n\n    # 安全检查：仅允许在 18000, 18001, 18002 端口运行\n    allowed_ports = {18000, 18001, 18002}\n    if args.port not in allowed_ports:\n        sys.stderr.write(f\"错误: 端口 {args.port} 不在允许的端机引擎端口列表中 ({allowed_ports})\\n\")\n        sys.exit(1)\n\n    # 初始化原生桥接\n    bridge = NativeBridge(args.app_dir)\n\n    # 严格绑定 127.0.0.1 环回地址，绝不绑定 0.0.0.0 或外部网络\n    server_address = (\"127.0.0.1\", args.port)\n    httpd = ThreadedHTTPServer(server_address, BridgeRequestHandler)\n    httpd.native_bridge = bridge\n\n    print(f\"DMGHG Native Bridge 服务已就绪，正在监听: [REDACTED_URL]\")\n    sys.stdout.flush()\n\n    try:\n        httpd.serve_forever()\n    except KeyboardInterrupt:\n        print(\"\\n正在停止桥接服务...\")\n    finally:\n        httpd.server_close()\n        bridge.close()\n        print(\"桥接服务已退出\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\\\data\\\\runs\\\\c7140417-fe5b-4f1d-a3cd-4899a521276b\\\\workspace\\\\bridge.py\",\"diagnostics\":[]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 10,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 20049,
+          "completion_tokens": 146,
+          "duration_ms": 46314,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_10.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0049,
+          "prompt_tokens": 20049,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"\nimport urllib.request, json\n# 检查 local-app-inspector 技能目录下还有哪些文件\nfrom pathlib import Path\np = Path(r'D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\super-agent\\skills\\local-app-inspector')\nfor f in p.rglob('*'):\n    print(f.relative_to(p))\n\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"references\\r\\nscripts\\r\\nSKILL.md\\r\\nreferences\\\\pc-native-rule-contract.md\\r\\nscripts\\\\dmghg_probe.py\\r\\nscripts\\\\__pycache__\\r\\nscripts\\\\__pycache__\\\\dmghg_probe.cpython-314.pyc\\r\\n\",\"stderr\":\"\",\"duration_ms\":3403,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":9308,\"totalCompressedBytes\":9308,\"totalOriginalTokens\":2325,\"totalCompressedTokens\":2325,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":4}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 11,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 20401,
+          "completion_tokens": 46,
+          "duration_ms": 33663,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_11.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0400999,
+          "prompt_tokens": 20401,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "skill_tool",
+          "input": {
+            "action": "read",
+            "skill_name": "deepcloud-rule-engineer",
+            "resource_path": "references/hiker-api-lifecycle.md"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "skill_tool",
+          "output": "{\"skill_name\":\"deepcloud-rule-engineer\",\"path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\references\\\\hiker-api-lifecycle.md\",\"skill_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\SKILL.md\",\"resource_root\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\",\"content\":\"# 海阔视界 (HikerView) 双端同构函数字典与页面生命周期全景手册 (API & Page Lifecycle Specification)\\r\\n\\r\\n> **核心原则**：海阔视界是一套基于**卡片数据流驱动 (Card-Driven Architecture)** 的轻量级脱机运行时。\\r\\n> 掌握海阔视界在 Android 原生端（Rhino/QuickJS）与 PC 桌面端（Node.js/V8）的**页面生命周期、变量注入规则、原生布局 `col_type` 与内置函数字典**，是杜绝代码报错、白屏卡死与界面错位的根本前提。\\r\\n\\r\\n---\\r\\n\\r\\n## 一、五大页面模型与生命周期 (Page Lifecycles & Contexts)\\r\\n\\r\\n海阔视界共有五种核心求值阶段，每一阶段注入的上下文变量和执行时机截然不同：\\r\\n\\r\\n```mermaid\\r\\nflowchart TD\\r\\n    Home[\\\"1. 一级分类列表页 (find_rule)\\\"] --> ClickCard{\\\"用户点击卡片\\\"}\\r\\n    ClickCard -- \\\"普通详情页\\\" --> Detail[\\\"3. 二级详情页 (detail_find_rule)\\\"]\\r\\n    ClickCard -- \\\"带有 @rule= 级联\\\" --> Cascade[\\\"4. 三级级联子页 (@rule=)\\\"]\\r\\n    ClickCard -- \\\"带有 @lazyRule=\\\" --> Lazy[\\\"5. 惰性播放求值 (@lazyRule=)\\\"]\\r\\n    GlobalSearch[\\\"2. 全局搜索页 (searchFind)\\\"] --> ClickCard\\r\\n```\\r\\n\\r\\n### 1. 一级页面 (Home / Channel Page)\\r\\n- **对应规则字段**：`url` + `find_rule`\\r\\n- **触发场景**：用户打开小程序、切换顶部分类频道 Tab、下拉刷新或触底加载下一页。\\r\\n- **上下文注入变量**：\\r\\n  - `MY_URL`（String）：当前频道请求的完整 URL（已将 `fyclass`、`fypage` 完成动态替换）。\\r\\n  - `MY_PAGE`（String / Number）：当前页码，首屏默认为 `1`，翻页时递增为 `2, 3...`。\\r\\n  - `MY_CATE`（String）：当前选中的分类参数（由 `class_url` 映射）。\\r\\n  - `MY_RULE`（Object）：当前规则的完整元数据对象。\\r\\n  - ⚠️ **红线警示**：移动端 Rhino 原生环境在 `find_rule` 中**未注入 `input` 变量**！必须使用 `var currentUrl = (typeof MY_URL !== 'undefined' && MY_URL) ? MY_URL : (typeof input !== 'undefined' ? input : '');` 垫片！\\r\\n- **返回契约**：必须调用 `setResult(d)`，其中 `d` 为包含卡片对象的数组。\\r\\n\\r\\n### 2. 搜索页面 (Search Page)\\r\\n- **对应规则字段**：`search_url` + `searchFind`\\r\\n- **触发场景**：用户在全局搜索栏输入关键词后按回车提交。\\r\\n- **上下文注入变量**：\\r\\n  - `MY_URL`（String）：已将 `**` 替换为经过 URL 编码的关键字地址。\\r\\n  - `KEY`（String）：用户输入的原始搜索词。\\r\\n  - `MY_PAGE`（String / Number）：搜索分页页码。\\r\\n- **返回契约**：必须调用 `setResult(d)`。\\r\\n\\r\\n### 3. 二级详情页 (Detail Page)\\r\\n- **对应规则字段**：`detail_col_type` + `detail_find_rule`\\r\\n- **触发场景**：用户在列表或搜索结果中点击某个卡片后，移动端海阔视界启动全新的 `DetailActivity` 页面容器。\\r\\n- **上下文注入变量**：\\r\\n  - `MY_URL`（String）：所点击卡片的 `url` 属性。\\r\\n  - `MY_PAGE`（String / Number）：默认为 `1`。\\r\\n- **返回契约**：\\r\\n  - 必须调用 `setResult(d)`。\\r\\n  - **首张卡片铁律**：必须输出带有 `title: '剧名：' + name` 的 `pic_1_card`，注入剧名契约上下文！\\r\\n\\r\\n### 4. 三级/多级级联路由页 (Cascade Page)\\r\\n- **触发语法**：卡片的 `url` 携带 `@rule=` 语法：`routeUrl + '@rule=' + nextTierRule`。\\r\\n- **运作机理**：截取 `@rule=` 前面的部分作为新页面的目标 URL，后面的脚本作为该页面的渲染规则，压栈启动全新页面。\\r\\n- **返回契约**：在新页面脚本末尾调用 `setResult(d)`。\\r\\n\\r\\n### 5. 选集惰性解析求值 (@lazyRule= Evaluation)\\r\\n- **触发语法**：分集条目采用 `playUrl + '@lazyRule=.js:(() => { return ...; })()'`。\\r\\n- **触发场景**：用户在选集列表中点击某一具体集数时按需执行，杜绝预先解析被封 IP。\\r\\n- **上下文注入变量**：\\r\\n  - `input`（String）：海阔视界**正式注入了 `input` 变量**，其值为 `@lazyRule=` 前面的地址！\\r\\n- **返回契约**：必须 `return playUrl`（支持返回附带防盗链注解的流媒体地址）。\\r\\n\\r\\n---\\r\\n\\r\\n## 二、海阔视界原生排版类型字典 (`col_type` Reference)\\r\\n\\r\\n海阔视界通过卡片对象的 `col_type` 字段控制界面视觉渲染，双端 100% 深度支持：\\r\\n\\r\\n| `col_type` 布局标识 | 视觉形态与宽高比 | 核心属性要求 | 最佳使用场景 |\\r\\n|---|---|---|---|\\r\\n| `movie_3` | 三列竖版海报网格 (3:4) | `title`, `pic_url`, `desc`, `url` | 电影、电视剧、动漫首页列表推荐 |\\r\\n| `movie_2` | 双列竖版大卡片瀑布流 | `title`, `pic_url`, `desc`, `url` | 小红书社区、微短剧、抖音快手双列 |\\r\\n| `movie_1_vertical_pic` | 单列宽幅海报卡片 (大封面+多行文字) | `title`, `pic_url`, `desc`, `url` | 详情页头部、精选专栏 |\\r\\n| `pic_1_card` | 顶部大卡片 (承载剧名契约) | `title: '剧名：' + cleanTitle`, `pic_url`, `desc`, `url` | 二级详情页首张卡片 (防止播放历史退化) |\\r\\n| `pic_1_full` | 全屏满宽大图 (宽度 100%，自适应高) | `title`, `pic_url`, `url: pic_url` | 漫画阅读、图集瀑布流、小红书原图连续阅览 |\\r\\n| `pic_3` | 三列正方形九宫格相册 | `title`, `pic_url`, `url` | 朋友圈相册、商品多图 |\\r\\n| `text_1` | 单行通栏大标题 / 分割栏 | `title`, `col_type: 'text_1'` | 线路切换标题（如“【蓝光专线】”）、正文说明 |\\r\\n| `text_2` | 双列中型按钮 | `title`, `desc`, `url` | 线路选择、多季分栏选择 (第1季、第2季) |\\r\\n| `text_3` | 三列方块按钮 | `title`, `url` (带 `@lazyRule=`) | 电视剧、动漫标准选集 (第01集、第02集) |\\r\\n| `text_4` | 四列紧凑型小按钮 | `title`, `url` (带 `@lazyRule=`) | 80+ 集超长短剧平铺排布 |\\r\\n| `flex_button` | 自适应宽度流式胶囊按钮 | `title`, `url` | 分类快速标签、热搜词、追问快捷动作 |\\r\\n| `rich_text` | 富文本/气泡卡片 | `title`, `desc` (支持换行与样式) | AI 视界副驾对话气泡、系统公告 |\\r\\n\\r\\n---\\r\\n\\r\\n## 三、海阔视界内置同构函数 API 全集 (Isomorphic API Reference)\\r\\n\\r\\n移动端 Rhino/QuickJS 与 PC 桌面端 V8 均原生支持的标准内置函数：\\r\\n\\r\\n### 1. 网络请求类\\r\\n- **`request(url, options)`**：\\r\\n  - 同步阻塞 HTTP 请求；\\r\\n  - `options` 参数字典：\\r\\n    ```javascript\\r\\n    {\\r\\n      method: 'GET' | 'POST',\\r\\n      headers: { 'User-Agent': '...', 'Referer': '...', 'Cookie': '...' },\\r\\n      body: '...', // POST 请求体 (String)\\r\\n      timeout: 10000 // 超时毫秒\\r\\n    }\\r\\n    ```\\r\\n  - 返回值：HTTP 响应体字符串文本。\\r\\n- **`post(url, options)`**：\\r\\n  - POST 请求快捷方法，同 `request(url, { ...options, method: 'POST' })`。\\r\\n- **`fetch(url, options)`**：\\r\\n  - 部分旧版移动端海阔视界的别名方法，双端同构开发时优先推荐使用 `request()`。\\r\\n\\r\\n### 2. DOM / CSS 选择器类 (MyJsoup / Cheerio)\\r\\n- **`pdfa(html, selector)`**：\\r\\n  - 提取符合 CSS 选择器的所有 DOM 节点，返回包含 HTML 片段的字符串数组 `string[]`；\\r\\n  - ⚠️ **死刑铁律**：严禁在 `selector` 中使用英文逗号 `,`！\\r\\n- **`pdfh(html, selector)`**：\\r\\n  - 提取单个节点的属性值或文本内容；\\r\\n  - 常用提取语法：\\r\\n    - `\\\".title&&Text\\\"`：提取文本（自动剔除内部 HTML 标签）；\\r\\n    - `\\\"a&&href\\\"`：提取 href 属性；\\r\\n    - `\\\"img&&src\\\"` 或 `\\\"img&&data-original\\\"`：提取图片链接；\\r\\n    - `\\\".content&&Html\\\"`：提取内联原始 HTML。\\r\\n- **`pd(html, selector, baseUrl)`**：\\r\\n  - 提取属性并根据 `baseUrl` 自动转换为绝对路径（免手写 URL 拼接）。\\r\\n\\r\\n### 3. 本地键值持久化存储 (Storage)\\r\\n- **`setItem(key, value)`**：持久化写入数据（String），双端本地独立加密存储。\\r\\n- **`getItem(key, defaultValue)`**：读取持久化存储，若不存在则返回 `defaultValue`。\\r\\n- **`clearItem(key)`**：删除指定 Key 的存储数据。\\r\\n\\r\\n### 4. 驱动与结果呈现\\r\\n- **`setResult(items)`**：\\r\\n  - 海阔核心卡片驱动入口；\\r\\n  - `items` 必须是包含上述 `col_type` 规范对象的数组；\\r\\n  - 严禁直接 return 数组，必须通过 `setResult(items)` 驱动渲染。\\r\\n\\r\\n### 5. 交互与状态反馈\\r\\n- **`toast(message)`**：在屏幕底部弹出提示气泡。\\r\\n- **`showLoading(text)`** / **`hideLoading()`**：唤起或关闭加载指示器。\\r\\n\",\"resource_guidance\":\"## 已定位的技能资源\\n- SKILL.md: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\SKILL.md`\\n- 资源根目录: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer`\\n文中相对路径基于此目录，不基于任务工作区。以下命令路径以磁盘检查为准；列出脚本不代表脚本已通过业务验收。\\n- `node \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\scripts\\\\export-command.cjs\\\" <参数>`\\n- `node \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\scripts\\\\import-rule.cjs\\\" <参数>`\\n- `node \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\scripts\\\\patch-rule.cjs\\\" <参数>`\\n- `node \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\scripts\\\\quick-scaffold.cjs\\\" <参数>`\\n- `node \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\scripts\\\\test-rule.cjs\\\" <参数>`\\n- `node \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\scripts\\\\update-xhs.cjs\\\" <参数>`\\n- `node \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\scripts\\\\validate-rule.cjs\\\" <参数>`\\n- references: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\references`\\n\\n\\n### 📦 技能内置开箱即用磁盘模板资源 (Available Templates on Disk)\\n【中枢提示】：当前技能目录下包含以下成熟模板。注意：**严禁将模板示例当成真实用户的任务产出！若需要参考写法，请通过 `read_file` 工具按需读取磁盘文件**，严禁凭空复制：\\n- `comic-manga.template.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\comic-manga.template.json`)\\n- `json-api.template.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\json-api.template.json`)\\n- `maccms-vod.template.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\maccms-vod.template.json`)\\n- `multi-tier-cascade.template.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\multi-tier-cascade.template.json`)\\n- `short-drama.template.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\short-drama.template.json`)\\n- `standard-rule.template.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\standard-rule.template.json`)\\n- `tencent-video.rule.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\tencent-video.rule.json`)\\n- `xiaohongshu.rule.json` (路径: `D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-frozen-source-7ndinkok\\\\super-agent\\\\skills\\\\deepcloud-rule-engineer\\\\templates\\\\xiaohongshu.rule.json`)\\n\\n## 本轮任务与证据边界\\n用户只问本地应用是否可转换时，先调查指定目录、识别技术栈和数据协议，报告有依据的可行性及尚缺环节。不得改查同名网站或直接套模板。HTTP 200 中的鉴权/业务错误仍是失败。未获得数据时不得生成空壳规则或称可播放。静态校验、沙箱页面、搜索/详情、真实媒体请求和手机实测分别报告。需要本机 DLL/服务的方案不得称手机独立可用。用户要求生成时再落盘并实测；发布和设备推送须有用户授权。\\n\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 12,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 25541,
+          "completion_tokens": 44,
+          "duration_ms": 73430,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_12.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.5541,
+          "prompt_tokens": 25541,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"import http.server, inspect; print(inspect.getsource(http.server.BaseHTTPRequestHandler.handle))\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"    def handle(self):\\r\\n        \\\"\\\"\\\"Handle multiple requests if necessary.\\\"\\\"\\\"\\r\\n        self.close_connection = True\\r\\n\\r\\n        self.handle_one_request()\\r\\n        while not self.close_connection:\\r\\n            self.handle_one_request()\\r\\n\\r\\n\",\"stderr\":\"\",\"duration_ms\":5845,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":9543,\"totalCompressedBytes\":9543,\"totalOriginalTokens\":2383,\"totalCompressedTokens\":2383,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":5}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 13,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 25790,
+          "completion_tokens": 872,
+          "duration_ms": 16313,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_13.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.579,
+          "prompt_tokens": 25790,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "plan_task",
+          "input": {
+            "delivery": {
+              "version": 1,
+              "artifacts": [
+                {
+                  "required": true,
+                  "validator": "dmghg-production-runtime",
+                  "path": "rule.json",
+                  "id": "rule"
+                },
+                {
+                  "validator": "dmghg-bridge-contract",
+                  "path": "bridge.py",
+                  "id": "bridge",
+                  "required": true
+                },
+                {
+                  "path": "README.md",
+                  "required": true,
+                  "validator": null,
+                  "id": "readme"
+                }
+              ],
+              "target": "D:\\\\太极\\\\动漫共和国概念版",
+              "scope": "implementation"
+            },
+            "constraints": [
+              "完全不使用桌面，不启动GUI，不改安装目录、不读取原账号，不发布或推送设备",
+              "严格遵循生产端口限制（18000、18001、18002），默认18002，支持--port，严禁绑定非127.0.0.1",
+              "规则中必须支持动态基址 MY_PARAMS.bridgeBase（支持首页、搜索、详情、lazy），默认回退到127.0.0.1:18002",
+              "bridge.py独立交付内聚实现，仅用标准库+原生DLL调用，包含GET /ping、GET /channels、POST /call及超时保护（服务端读取5秒超时）",
+              "选集lazy保留原生真实headers，headers为空时不强加Referer或UA"
+            ],
+            "interpretation": "为目标应用“D:\\\\太极\\\\动漫共和国概念版”生成完整的海阔规则体系，包含独立内聚的本地桥接脚本bridge.py、海阔规则rule.json以及交付说明README.md，并通过宿主生产验证器dmghg-bridge-contract和dmghg-production-runtime的真实闭环验证。",
+            "open_questions": [],
+            "steps": [
+              {
+                "depends_on": [],
+                "acceptance": "查阅pc-native-rule-contract.md与探针源码，执行探针确认安装目录与DLL调用正常，获取真实协议数据样本",
+                "id": "step-1-probe-and-inspect",
+                "evidence_kind": "observation",
+                "goal": "调查目标应用环境与协议契约，核实原生C ABI接口与数据结构"
+              },
+              {
+                "depends_on": [
+                  "step-1-probe-and-inspect"
+                ],
+                "id": "step-2-write-bridge",
+                "goal": "编写独立的本地桥接服务 bridge.py",
+                "evidence_kind": "mutation",
+                "acceptance": "bridge.py内聚实现原生DLL封装与HTTP只读服务（GET /ping、GET /channels、POST /call），包含并发锁、有界超时处理及地址白名单，支持--app-dir与--port"
+              },
+              {
+                "id": "step-3-write-rule",
+                "evidence_kind": "mutation",
+                "depends_on": [
+                  "step-2-write-bridge"
+                ],
+                "acceptance": "rule.json严格适配Hiker规范与PC生产运行时，动态获取MY_PARAMS.bridgeBase，实现一级分类、分页、搜索、详情剧名保护与选集@lazyRule，且选集语法及headers完全合规",
+                "goal": "编写海阔规则 rule.json"
+              },
+              {
+                "goal": "编写交付文档 README.md",
+                "id": "step-4-write-readme",
+                "depends_on": [
+                  "step-3-write-rule"
+                ],
+                "acceptance": "README.md清晰阐述依赖环境、安装目录要求、启动命令、导入方式、只读安全边界与网络说明",
+                "evidence_kind": "mutation"
+              },
+              {
+                "depends_on": [
+                  "step-2-write-bridge",
+                  "step-3-write-rule",
+                  "step-4-write-readme"
+                ],
+                "id": "step-5-verify-delivery",
+                "evidence_kind": "verification",
+                "goal": "执行系统级验证 verify_delivery 确保交付物完全通过检验",
+                "acceptance": "调用verify_delivery，通过dmghg-bridge-contract和dmghg-production-runtime双验证器，且解码与媒体正常通过"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "plan_task",
+          "output": "{\"error\":\"missing field `success_criteria`\",\"kind\":\"execution_failed\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 14,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 26755,
+          "completion_tokens": 149,
+          "duration_ms": 39107,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_14.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.6755,
+          "prompt_tokens": 26755,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "end_line": 50,
+            "start_line": 1,
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\data\\runs\\c7140417-fe5b-4f1d-a3cd-4899a521276b\\workspace\\bridge.py"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: #!/usr/bin/env python3\\n2: # -*- coding: utf-8 -*-\\n3: \\\"\\\"\\\"动漫共和国 DMGHG v1 本地同构桥接服务 (Headless Bridge Service)\\n4: \\n5: 独立内聚的本地服务，桥接已安装的 electron_bridge.dll 原生服务。\\n6: 仅监听 127.0.0.1 环回地址，提供只读 RPC 与 REST 路由供海阔视界 PC 运行库调用。\\n7: \\\"\\\"\\\"\\n8: \\n9: import argparse\\n10: import ctypes\\n11: import hashlib\\n12: import json\\n13: import os\\n14: import re\\n15: import socket\\n16: import sys\\n17: import tempfile\\n18: import threading\\n19: import time\\n20: from http import HTTPStatus\\n21: from http.server import HTTPServer, BaseHTTPRequestHandler\\n22: from pathlib import Path\\n23: from socketserver import ThreadingMixIn\\n24: from urllib.parse import urlparse, parse_qs\\n25: \\n26: \\n27: def installed_version(exe_path):\\n28:     \\\"\\\"\\\"从 PE 元数据读取客户端版本\\\"\\\"\\\"\\n29:     version = ctypes.windll.version\\n30:     size = version.GetFileVersionInfoSizeW(str(exe_path), None)\\n31:     if not size:\\n32:         raise RuntimeError(\\\"无法读取目标应用的 PE 版本元数据\\\")\\n33:     buffer = ctypes.create_string_buffer(size)\\n34:     if not version.GetFileVersionInfoW(str(exe_path), 0, size, buffer):\\n35:         raise RuntimeError(\\\"无法读取应用版本信息\\\")\\n36:     info = ctypes.c_void_p()\\n37:     length = ctypes.c_uint()\\n38:     if not version.VerQueryValueW(buffer, \\\"\\\\\\\\\\\", ctypes.byref(info), ctypes.byref(length)):\\n39:         raise RuntimeError(\\\"版本信息结构体缺失\\\")\\n40:     fields = ctypes.cast(info, ctypes.POINTER(ctypes.c_uint32))\\n41:     if fields[0] != 0xFEEF04BD or length.value < 52:\\n42:         raise RuntimeError(\\\"版本信息结构体无效\\\")\\n43:     return f\\\"{fields[2] >> 16}.{fields[2] & 65535}.{fields[3] >> 16}\\\"\\n44: \\n45: \\n46: class NativeBridge:\\n47:     \\\"\\\"\\\"封装 electron_bridge.dll 原生接口\\\"\\\"\\\"\\n48:     READ_COMMANDS = {\\n49:         \\\"app.ping\\\",\\n50:         \\\"catalog.get_channels\\\",\\n\",\"total_lines\":311,\"start_line\":1,\"end_line\":50,\"truncated\":false,\"bytes\":1911,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\.delivery-runtime\\\\1d74b62aca184421806db7ee23185857\\\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\\\data\\\\runs\\\\c7140417-fe5b-4f1d-a3cd-4899a521276b\\\\workspace\\\\bridge.py\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 15,
+          "session_id": "run_44c669df20774a168cd27f94d150043b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 27739,
+          "completion_tokens": 65,
+          "duration_ms": 11389,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_44c669df20774a168cd27f94d150043b\\turn_15.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.7739,
+          "prompt_tokens": 27739,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "python -c \"import http.server, inspect; print(inspect.getsource(http.server.BaseHTTPRequestHandler.setup)); print(inspect.getsource(http.server.BaseHTTPRequestHandler.handle_one_request))\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"    def setup(self):\\r\\n        self.connection = self.request\\r\\n        if self.timeout is not None:\\r\\n            self.connection.settimeout(self.timeout)\\r\\n        if self.disable_nagle_algorithm:\\r\\n            self.connection.setsockopt(socket.IPPROTO_TCP,\\r\\n                                       socket.TCP_NODELAY, True)\\r\\n        self.rfile = self.connection.makefile('rb', self.rbufsize)\\r\\n        if self.wbufsize == 0:\\r\\n            self.wfile = _SocketWriter(self.connection)\\r\\n        else:\\r\\n            self.wfile = self.connection.makefile('wb', self.wbufsize)\\r\\n\\r\\n    def handle_one_request(self):\\r\\n        \\\"\\\"\\\"Handle a single HTTP request.\\r\\n\\r\\n        You normally don't need to override this method; see the class\\r\\n        __doc__ string for information on how to handle specific HTTP\\r\\n        commands such as GET and POST.\\r\\n\\r\\n        \\\"\\\"\\\"\\r\\n        try:\\r\\n            self.raw_requestline = self.rfile.readline(65537)\\r\\n            if len(self.raw_requestline) > 65536:\\r\\n                self.requestline = ''\\r\\n                self.request_version = ''\\r\\n                self.command = ''\\r\\n                self.send_error(HTTPStatus.REQUEST_URI_TOO_LONG)\\r\\n                return\\r\\n            if not self.raw_requestline:\\r\\n                self.close_connection = True\\r\\n                return\\r\\n            if not self.parse_request():\\r\\n                # An error code has been sent, just exit\\r\\n                return\\r\\n            mname = 'do_' + self.command\\r\\n            if not hasattr(self, mname):\\r\\n                self.send_error(\\r\\n                    HTTPStatus.NOT_IMPLEMENTED,\\r\\n                    \\\"Unsupported method (%r)\\\" % self.command)\\r\\n                return\\r\\n            method = getattr(self, mname)\\r\\n            method()\\r\\n            self.wfile.flush() #actually send the response if not already done.\\r\\n        except TimeoutError as e:\\r\\n            #a read or a write timed out.  Discard this connection\\r\\n            self.log_error(\\\"Request timed out: %r\\\", e)\\r\\n            self.close_connection = True\\r\\n            return\\r\\n\\r\\n\",\"stderr\":\"\",\"duration_ms\":2368,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":11582,\"totalCompressedBytes\":11582,\"totalOriginalTokens\":2892,\"totalCompressedTokens\":2892,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":6}}}"
+        }
+      ],
+      "status": "submitted",
+      "classification": "first_attempt",
+      "prior_exposure": true,
+      "task_id": "c7140417-fe5b-4f1d-a3cd-4899a521276b"
+    }
+  ],
+  "runtime": {
+    "evolution_initial_exists": false,
+    "model_turn_budget": 40,
+    "port": 39255,
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7\\data",
+    "pid": 36128,
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-frozen-profile.json",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-independent-32e5db6d39ad4f6a831edd2489fbfec7",
+    "binarySha256": "262E7EED1225CEFD5077E8C3D64A15E97DDF59D5A6C7B459EC6351E705D739CB",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-independent-3-service.json",
+    "verified_binary_sha256": "262e7eed1225cefd5077e8c3d64a15e97ddf59d5a6c7b459ec6351e705d739cb"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "3ae6d05623f8dcd158659f2a69d5c551b518bd8afc9eb0300d0b528718ef304f",
+  "frozen_definitions_sha256": "f0c3b586c4c15fafbeada203f9b5498c9fad6b3fbfcdd33a9b6817f360c8770a",
+  "planned_task_ids": [
+    "H01-independent-1",
+    "H01-independent-2",
+    "H01-independent-3"
+  ],
+  "selected_task_ids": [
+    "H01-independent-3"
+  ]
+}

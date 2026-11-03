@@ -24,6 +24,8 @@ P2规则类当前预算为v3：40轮、1500秒。v2曾宣称48轮，但后续快
 生成任务结束后还须调用verify_dmghg_package.py，仅复制交付的三个文件到新中文目录并重复实际运行、解码和故障输入检查。certify_p2_runs.py要求三个预定ID、独立Session、独立经验根、冻结版本及预算一致、完成状态与冷包结果全部通过；人工还须核对三份源码的来源、原生状态隔离及README陈述范围。不要只凭机械报告替代文档及源码复核。
 # 生产源码快照
 
+长时间验收使用 scripts/run_delivery_durable_series.ps1 -EvidencePrefix <未使用的完整前缀> -FirstPort <空闲端口>。它将本进程和子进程的 TEMP/TMP 指向 artifacts/.delivery-runtime 下的独立目录，所有快照、独立服务、Run 与冷包保留在工作区；不修改系统环境变量，也不删除目录。2026-11-03 的 v20 临时区在第二轮自动及冷包通过后发生文件消失，原报告保留，另记 interruption；缺失源码/轨迹不能完成三连认证，后续必须用新系列完整重跑。
+
 独立认证前运行 scripts/snapshot_delivery_inputs.py --output <新收据.json>。在收据所指的 stage/super-agent 内运行 hub_delivery_evals.py prepare-rule，仍将报告写入原 reviews 绝对目录。用该快照中的 start_delivery_eval_service.ps1 启动每个全新服务，用快照 deepcloud-ui/scripts/hub-delivery-replay.cjs 提交任务。冻结manifest包含每个副本及原位置指纹；仅副本参与运行中复核，不能因其他开发任务编辑生产树而切换本轮输入。node_modules及原应用资源仍按清单引用；不复制用户账户、设置凭据或应用状态。
 
 v13以NODE_PATH引用安装依赖，源码副本内不放依赖目录连接。顺序运行脚本run_independent_delivery_series.py会在每个Run及冷目录验证完成后暂停到awaiting_manual_review状态；人工核对实际源码、Hub写盘来源、README依赖与证据边界后，在manual_review_path创建新JSON，包含task_id、passed、artifacts（文件名→原报告SHA）及审查依据。失败保持false，不修补业务文件或回填首轮结果。通过才启动下一次，最终certify_p2_runs.py必须传入三份--reviews，不能只凭自动通过报告认证完整交付。

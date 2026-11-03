@@ -1,0 +1,67 @@
+{
+  "delivery": {
+    "version": 1,
+    "scope": "implementation",
+    "target": "D:\\太极\\动漫共和国概念版",
+    "artifacts": [
+      {
+        "id": "rule",
+        "path": "rule.json",
+        "required": true,
+        "validator": "dmghg-production-runtime"
+      },
+      {
+        "id": "bridge",
+        "path": "bridge.py",
+        "required": true,
+        "validator": "dmghg-bridge-contract"
+      },
+      {
+        "id": "readme",
+        "path": "README.md",
+        "required": true
+      }
+    ]
+  },
+  "validators": [
+    {
+      "id": "dmghg-production-runtime",
+      "program": "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "program_sha256": "03168c01b7b7491423350e82c26fee71f35b43694d1319d3c668bda6903a0c38",
+      "script": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\super-agent\\scripts\\dmghg_delivery_oracle.py",
+      "script_sha256": "3a38c9bba084e0ba307e954f6c9dd70fd1ce00c8a3524016b3b159909a082c25",
+      "args": [
+        "--workspace",
+        "{workspace}",
+        "--artifact",
+        "{artifact}",
+        "--target",
+        "D:\\太极\\动漫共和国概念版",
+        "--node",
+        "D:\\UC\\nvm\\v22.22.1\\node.exe",
+        "--inputs",
+        "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-delivery-p2-v21-frozen-inputs.json",
+        "--inputs-sha256",
+        "5f712b00ac790d084f0ab0e37d1d69de17710f713cf19b2008504cb7a086d415"
+      ],
+      "timeout_seconds": 125
+    },
+    {
+      "id": "dmghg-bridge-contract",
+      "program": "C:\\Users\\刘本录\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+      "program_sha256": "03168c01b7b7491423350e82c26fee71f35b43694d1319d3c668bda6903a0c38",
+      "script": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\.delivery-runtime\\1d74b62aca184421806db7ee23185857\\hub-frozen-source-7ndinkok\\super-agent\\scripts\\verify_dmghg_package.py",
+      "script_sha256": "f7d1ba487398f0bfbc0b7a096d926807a444c0f2dc1be0a7bd2ea2f977af2278",
+      "args": [
+        "--workspace",
+        "{workspace}",
+        "--artifact",
+        "{artifact}",
+        "--target",
+        "D:\\太极\\动漫共和国概念版",
+        "--bridge-only"
+      ],
+      "timeout_seconds": 45
+    }
+  ]
+}

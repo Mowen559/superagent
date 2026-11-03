@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "classification": "first_attempt",
+  "trace_first_sha256": "17d14ca8043fb825b374c114fab1fc1f3f24d8edf905f47a8b7b44fc5d5fe882",
+  "task_id": "f7d16051-02a7-4188-8f35-81da928e2cfa",
+  "evidence": [
+    "hub-delivery-p2-v21-independent-part1.json",
+    "hub-delivery-p2-v21-independent-package1.json"
+  ],
+  "host_business_edits": false,
+  "artifacts": {
+    "README.md": "4df66abf302e3011515e5e22311032a9eea0f3923c959f3913a45d738d88c5a1",
+    "bridge.py": "14182a3ce576c293f79ea103e898a4831f4b30e0c8c511839653362964bba0dd",
+    "rule.json": "eb5defe8379582a91e978d7da4fbb88d27489087c565f2668c4418b772303e46"
+  },
+  "scope": "Headless Windows PC production rule runtime with installed native dependencies; Android and frontend window unverified",
+  "review_basis": [
+    "Reviewed full bridge.py, rule entrypoints, README and tool provenance; only frozen Skill/probe and own scratch generator used, no earlier Run implementation",
+    "Original installed ABI with PE version, temporary state, readonly command allowlist, lock/free lifecycle; threaded HTTP with five-second socket timeout; CLI host and port restrictions reviewed",
+    "Home/search/detail rebase expanded MY_URL while preserving query; real lazy executes against alternate base and preserves original playback headers",
+    "Actual fixed production and cold three-file tests passed including alternate default port, upstream identities, media decode, concurrent/partial requests, malformed/forbidden commands and shutdown",
+    "README provides dependencies, startup/import and PC/mobile/UI limits; middle episode 80 is illustrative within returned 165 names, formal sample positions and exact search inputs are established by receipts"
+  ]
+}
