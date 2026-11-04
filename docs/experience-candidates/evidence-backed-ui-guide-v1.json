@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "status": "candidate_unpromoted",
+  "created": "2026-11-04",
+  "problem_class": "Unsupported interface instructions despite successful artifact validation",
+  "lesson": "Base usage instructions on the requested platform and verifiable interface or CLI sources. Attribute historical runtime checks to their original Run. A physical artifact receipt cannot certify prose or an untested platform.",
+  "applicability": ["Import/export guides", "Installation instructions", "Cross-platform product documentation"],
+  "evidence": ["hub-rule-current-delivery-v2.json", "hub-rule-delivery-docfix-v1-document.json"],
+  "observed_correction": "Hub replaced invented mobile menu and automatic clipboard claims with source-checked PC import labels after one supervisor feedback.",
+  "promotion_requirements": [
+    "Different product and unseen UI/CLI task not used to extract this lesson",
+    "A task with actual automatic detection must not be changed to falsely deny it",
+    "Unavailable interface evidence must yield qualified instructions, not fabricated menus",
+    "Existing rule generation and delivery regressions still pass"
+  ],
+  "target_specific_paths_or_answers_in_policy": false,
+  "production_skill_modified": false,
+  "heldout_validation_completed": false
+}

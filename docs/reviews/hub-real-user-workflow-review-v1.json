@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "task": "Ordinary-user complete rule workflow",
+  "model": "gemini-3.8-flash-high",
+  "initial_prompt": "我想把 https://commons.wikimedia.org/ 上的视频弄到海阔世界里看。",
+  "project_initially_empty": true,
+  "target_protocol_or_reference_rule_supplied": false,
+  "desktop_used": false,
+  "attempts": [
+    {
+      "index": 1,
+      "file": "docs/reviews/hub-real-user-commons-01.json",
+      "task_id": "5ed516de-e806-470e-8ccf-580d8b2b7086",
+      "status": "failed",
+      "model_turns": 24,
+      "tool_calls": 25,
+      "duration_ms": 466889,
+      "model_turn_budget": 24
+    },
+    {
+      "index": 2,
+      "file": "docs/reviews/hub-real-user-commons-02.json",
+      "task_id": "475b7593-3e92-43b0-b63f-1dba85706b4f",
+      "status": "completed",
+      "model_turns": 17,
+      "tool_calls": 15,
+      "duration_ms": 378282,
+      "model_turn_budget": 24
+    },
+    {
+      "index": 3,
+      "file": "docs/reviews/hub-real-user-commons-03.json",
+      "original_bytes": 0,
+      "recovered_report": "docs/reviews/hub-real-user-commons-03-recovered.json",
+      "task_id": "bc23a9d0-96f5-49ad-b1b8-5902bde2019e",
+      "status": "cancelled",
+      "model_turns": 23,
+      "tool_calls": 23,
+      "classification": "infra_cancelled_ENOSPC"
+    },
+    {
+      "index": 4,
+      "file": "docs/reviews/hub-real-user-commons-04.json",
+      "task_id": "228e4f3b-d1d3-4b22-b92e-2b753288ddcf",
+      "status": "completed",
+      "model_turns": 16,
+      "tool_calls": 14,
+      "duration_ms": 315392,
+      "model_turn_budget": 24
+    },
+    {
+      "index": 5,
+      "file": "docs/reviews/hub-real-user-commons-05.json",
+      "task_id": "c1fba9b4-4097-4fc1-a1e3-3ae73313a65e",
+      "status": "failed",
+      "model_turns": 24,
+      "tool_calls": 24,
+      "duration_ms": 533114,
+      "model_turn_budget": 24
+    },
+    {
+      "index": 6,
+      "file": "docs/reviews/hub-real-user-commons-06.json",
+      "task_id": "268d851f-d1ec-406a-8653-8735a652cf54",
+      "status": "failed",
+      "model_turns": 40,
+      "tool_calls": 40,
+      "duration_ms": 857994,
+      "model_turn_budget": 40
+    },
+    {
+      "index": 7,
+      "file": "docs/reviews/hub-real-user-commons-07.json",
+      "task_id": "a88a65f3-60cc-4484-a920-b7834aeccaa4",
+      "status": "completed",
+      "model_turns": 4,
+      "tool_calls": 3,
+      "duration_ms": 69951,
+      "model_turn_budget": 40
+    },
+    {
+      "index": 8,
+      "file": "docs/reviews/hub-real-user-commons-08.json",
+      "task_id": "0a9e6071-a710-4f6d-9bfa-b0217c31bbc2",
+      "status": "completed",
+      "model_turns": 3,
+      "tool_calls": 2,
+      "duration_ms": 39218,
+      "model_turn_budget": 40
+    }
+  ],
+  "user_interaction": {
+    "request_id": "6a6d249d-926c-4dea-bd50-c45287d8252c",
+    "question_report": "docs/reviews/hub-real-user-commons-01.json",
+    "correlated_response_directory": "artifacts/hub-real-user-commons-v1/dialog-01",
+    "workflow_cues": 1,
+    "functional_failure_feedbacks": 2,
+    "final_PC_documentation_feedbacks": 1,
+    "resume_requests_counted_as_separate_attempts": true
+  },
+  "scope_and_provenance": {
+    "business_rule_author": "Hub",
+    "host_business_code_changes": false,
+    "host_role": "ordinary user preferences, real acceptance testing, functional observations; generic Skill/runtime tooling improvements",
+    "production_tool_added": "skills/deepcloud-rule-engineer/scripts/test-rule-live.cjs",
+    "generic_PC_guide": "skills/deepcloud-rule-engineer/references/pc-rule-import.md",
+    "skill_change": "manual user-authorized workflow correction, not automatic skill promotion",
+    "service40": "fresh private process, same transcript copied byte-identically; not a new unseen test",
+    "rule_runtime_binary_sha256": "EF1C90BF2D81D8D14B7352266EDF92B57D2E0DB7235CA9A70A05054876CD95F8"
+  },
+  "result": {
+    "functional_sample_passed": true,
+    "source_report": "artifacts/hub-real-user-commons-v1/user-test03b/result.json",
+    "delivery": "artifacts/hub-delivery/commons-real-user-20261104-v1",
+    "rule_sha256": "8c4dafc59644d9f7205649a4fcd6d02550b5a67cf37fa5dcf8a54b6bf742a4d1",
+    "GUI": false,
+    "Android": false,
+    "cloud_publication": false,
+    "all_video_or_quality_coverage": false,
+    "first_attempt_full_workflow_passed": false,
+    "stable_zero_correction_autonomy_proven": false,
+    "openspec_task_4_18_closed": false
+  },
+  "failures_preserved": {
+    "started_writing_before_choice": true,
+    "workflow_cue_required": true,
+    "budget_failures": [
+      1,
+      5,
+      6
+    ],
+    "storage_interruption": 3,
+    "question_bulk_evidence_overclaim": "API hit count and a few samples do not prove all 400k streams were fetched",
+    "wrong_mobile_guidance": "corrected only after user feedback in run08",
+    "host_tester_corrections": [
+      "artifacts/hub-real-user-commons-v1/user-tester-selection-correction.json",
+      "artifacts/hub-real-user-commons-v1/user-media-header-transport-correction.json"
+    ],
+    "original_zero_byte_report_preserved": true,
+    "failed_statuses_rewritten": false
+  },
+  "generic_fixes": {
+    "ask_user": "honor inner validated waiting budget plus5, independent of ordinary60sec tool limit",
+    "intent": "negation-aware advisory action cues; actual implementation still needs change/verification evidence",
+    "timing_v1": "78-second response accepted, but task failed after4 turns due negated action routing; retained",
+    "timing_v2": "pending",
+    "rust_regression": "pending final log",
+    "live_tool_tests": "6/6 passed",
+    "spec_validation": "change strict +6 main specs passed"
+  },
+  "infrastructure": {
+    "ENOSPC_recovery": "artifacts/hub-real-user-commons-v1/ENOSPC-recovery.json",
+    "report_persistence": "atomic temporary-write then rename",
+    "symbol_archive": "artifacts/hub-real-user-commons-v1/symbol-archive-result.json",
+    "symbol_files_deleted": false,
+    "unexecuted_recursive_cleanup": "automatic policy rejection; not executed",
+    "installation_replaced": false,
+    "commit_or_archive": false
+  },
+  "cleanup": {
+    "service24": "artifacts/hub-real-user-commons-v1/cleanup-24.json",
+    "service40": "pending",
+    "timing_service": "pending"
+  }
+}

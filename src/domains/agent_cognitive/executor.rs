@@ -1,6 +1,37 @@
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+fn tool_deadline_seconds(name: &str, args: &Value) -> u64 {
+    if name == "verify_delivery" { return 180; }
+    if name == "ask_user" {
+        use crate::services::brain::interaction_runtime::{DEFAULT_TIMEOUT_SECONDS, MAX_TIMEOUT_SECONDS};
+        let requested=args.get("TimeoutSeconds").and_then(Value::as_u64).unwrap_or(DEFAULT_TIMEOUT_SECONDS);
+        if (1..=MAX_TIMEOUT_SECONDS).contains(&requested) { return requested+5; }
+        // The interaction runtime rejects invalid budgets before waiting.
+    }
+    60
+}
+
+#[cfg(test)]
+mod interaction_deadline_tests {
+    use super::*;
+    #[test]
+    fn user_wait_is_not_cut_off_by_the_ordinary_tool_deadline() {
+        assert_eq!(tool_deadline_seconds("ask_user",&json!({})),305);
+        assert_eq!(tool_deadline_seconds("ask_user",&json!({"TimeoutSeconds":120})),125);
+        assert_eq!(tool_deadline_seconds("ask_user",&json!({"TimeoutSeconds":1800})),1805);
+    }
+    #[test]
+    fn invalid_wait_budgets_do_not_extend_the_tool_guard() {
+        for n in [0,1801,u64::MAX] {assert_eq!(tool_deadline_seconds("ask_user",&json!({"TimeoutSeconds":n})),60);}
+    }
+    #[test]
+    fn other_tool_deadlines_are_unchanged() {
+        assert_eq!(tool_deadline_seconds("verify_delivery",&json!({})),180);
+        assert_eq!(tool_deadline_seconds("run_command",&json!({"TimeoutSeconds":1800})),60);
+    }
+}
+
 
 // --- Fix 3: Tool Execution Timeout Guard ---
 fn execute_with_timeout(gateway: std::sync::Arc<crate::services::brain::tool_execution_gateway::ToolExecutionGateway>, req: crate::services::brain::tool_execution_gateway::ToolExecutionRequest, timeout_secs: u64) -> crate::services::brain::tool_execution_gateway::ToolExecutionReceipt {
@@ -1066,7 +1097,7 @@ impl AgentLoop {
                                 name: item.func_name.clone(),
                                 arguments: item.args,
                             };
-                            let deadline = if req.name == "verify_delivery" { 180 } else { 60 };
+                            let deadline = tool_deadline_seconds(&req.name, &req.arguments);
                             let receipt = execute_with_timeout(self.tool_gateway.clone(), req, deadline);
 
                             if awaits_user {

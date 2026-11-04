@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "79d5e8ba40811b1ab4d2408ca6275b02a684435b4a36b1d952094b236b8e7c35"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39861",
+  "model": "gemini-3.8-flash-high",
+  "classification": "sparse_real_user_workflow",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "generic-user-wait-over60",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-interaction-wait-v1\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-interaction-wait-v1\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 240,
+        "prompt": "请用ask_user问我选择A还是B，等我回答后简短确认即可。我会在两分钟内作答，请留出等待时间，不做其他事情。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_875923d010a5459b8bff34742156a744",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10297,
+          "completion_tokens": 60,
+          "duration_ms": 6202,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_875923d010a5459b8bff34742156a744\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0297,
+          "prompt_tokens": 10297,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "ask_user",
+          "input": {
+            "Choices": [
+              {
+                "description": "选择 A",
+                "label": "A"
+              },
+              {
+                "label": "B",
+                "description": "选择 B"
+              }
+            ],
+            "TimeoutSeconds": 120,
+            "Question": "请问您选择 A 还是 B？"
+          }
+        },
+        {
+          "kind": "interaction-request",
+          "request_id": "3f56d498-3c9e-495c-9d04-50a35aac7485",
+          "question": "请问您选择 A 还是 B？",
+          "choices": [
+            "A",
+            "B"
+          ],
+          "choice_details": [
+            {
+              "label": "A",
+              "description": "选择 A"
+            },
+            {
+              "label": "B",
+              "description": "选择 B"
+            }
+          ]
+        },
+        {
+          "kind": "tool-result",
+          "tool": "ask_user",
+          "output": "{\"requestId\":\"3f56d498-3c9e-495c-9d04-50a35aac7485\",\"response\":\"我选A。\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_875923d010a5459b8bff34742156a744",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10501,
+          "completion_tokens": 10,
+          "duration_ms": 6883,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_875923d010a5459b8bff34742156a744\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0501,
+          "prompt_tokens": 10501,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "thinking",
+          "content": "【系统自检反思】: Completion review required: The Run plan is incomplete at: Apply the coherent change. Complete it with tool evidence; verification requires a successful quality check after the latest change.. The preceding answer is a draft, not verified completion."
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_875923d010a5459b8bff34742156a744",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10714,
+          "completion_tokens": 18,
+          "duration_ms": 8319,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_875923d010a5459b8bff34742156a744\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0714,
+          "prompt_tokens": 10714,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "update_task_progress",
+          "input": {
+            "action": "status"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "update_task_progress",
+          "output": "{\"current_run_facts\":{\"session_id\":\"run_875923d010a5459b8bff34742156a744\",\"run_id\":\"f9fa2fa1-3218-4ee5-9484-9ca9d1f66ada\",\"bound\":true,\"scope_revision\":0,\"observed_calls\":1,\"counts_are_lower_bounds\":false,\"tools\":{\"ask_user\":{\"succeeded\":1,\"not_succeeded\":0,\"quality_receipts\":0,\"physical_receipts\":0}}},\"has_plan\":false,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"f9fa2fa1-3218-4ee5-9484-9ca9d1f66ada\",\"session_id\":\"run_875923d010a5459b8bff34742156a744\",\"contract\":null,\"artifacts\":{},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null},\"plan_revision\":0,\"steps\":[],\"questions\":[],\"recent_evidence\":[{\"id\":\"call_488991\",\"tool\":\"ask_user\",\"kind\":\"user_input\",\"external\":false,\"revision\":0}]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_875923d010a5459b8bff34742156a744",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11142,
+          "completion_tokens": 15,
+          "duration_ms": 10408,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_875923d010a5459b8bff34742156a744\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1142,
+          "prompt_tokens": 11142,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "error",
+          "content": "Completion blocked: The Run plan is incomplete at: Apply the coherent change. Complete it with tool evidence; verification requires a successful quality check after the latest change."
+        },
+        {
+          "kind": "error",
+          "content": "Completion blocked: The Run plan is incomplete at: Apply the coherent change. Complete it with tool evidence; verification requires a successful quality check after the latest change."
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "targeted_interaction_timing_regression_not_rule_intelligence",
+      "prior_exposure": null,
+      "task_id": "0f4b3744-ce96-441f-8a4b-fce3c802fe3a",
+      "duration_ms": 111006,
+      "tool_calls": 2,
+      "model_turns": 4,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.0297,
+          "prompt_tokens": 10297,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0501,
+          "prompt_tokens": 10501,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0714,
+          "prompt_tokens": 10714,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1142,
+          "prompt_tokens": 11142,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.0297,
+          "prompt_tokens": 10297,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0501,
+          "prompt_tokens": 10501,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0714,
+          "prompt_tokens": 10714,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1142,
+          "prompt_tokens": 11142,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-interaction-wait-v1\\hub-independent-b196ad3ac91d493695d31af35cfe24f6\\data\\runs\\0f4b3744-ce96-441f-8a4b-fce3c802fe3a\\workspace",
+      "passed": null
+    }
+  ],
+  "runtime": {
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "port": 39861,
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-interaction-wait-v1\\hub-independent-b196ad3ac91d493695d31af35cfe24f6",
+    "pid": 32468,
+    "binarySha256": "1CB464E60C834FAF8F598B69934B0FFFB4C2E6E677E1FDBD3947CDC63A0370BE",
+    "profile": null,
+    "evolution_initial_exists": false,
+    "model_turn_budget": 4,
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-interaction-wait-v1\\hub-independent-b196ad3ac91d493695d31af35cfe24f6\\data",
+    "launcher_sha256": "298B7C41E2C8423875035407AD0292042044782B65B3B367C1D5B78725268829",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-interaction-wait-v1\\identity.json",
+    "verified_binary_sha256": "1cb464e60c834faf8f598b69934b0fffb4c2e6e677e1fdbd3947cdc63a0370be"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "3169c428e55697543f8a733a5e0366edd7bc93b2061fab0b91af1c11d5e9095c",
+  "frozen_definitions_sha256": "49b12ca54ab23c73fbb9a5d9b95bd343180ee159952b9c5ebf03a20ac7a52057",
+  "planned_task_ids": [
+    "generic-user-wait-over60"
+  ],
+  "selected_task_ids": [
+    "generic-user-wait-over60"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

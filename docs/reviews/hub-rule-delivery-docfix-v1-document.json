@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "79d5e8ba40811b1ab4d2408ca6275b02a684435b4a36b1d952094b236b8e7c35"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39821",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "DMGHG-one-documentation-correction",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 400,
+        "prompt": "只修正README.md的导入说明。当前README由上一Hub任务生成，但把PC海阔世界写成了Android菜单，并承诺自动剪贴板弹窗，这些未经实测。请依据已核对的本项目PC界面文案：统一导入窗口的“口令 / 直链导入”页粘贴短口令并“解析并导入”；文件方式在“文件 / 备份恢复”页点击“选择备份包或规则文件”选择rule.json。不编造打开窗口的具体菜单，不承诺自动弹窗。Android整套导入、界面和播放均未经实机测试，不能只写长视频未测。明确规则由先前Hub据既有协议调查生成，协议调查有宿主参与。上一Run已通过分类、分页、搜索、详情、真实解码和云回读；本轮仅修正文档和README物理验收，不把历史业务检查写成本轮新执行。保留另外三个文件，不上传、不扫描、不重跑业务和媒体。修正后用verify_delivery验收README，简短答复。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_857b5c0e8cfa4916a4de89d83cb4abb4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11892,
+          "completion_tokens": 118,
+          "duration_ms": 6194,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_857b5c0e8cfa4916a4de89d83cb4abb4\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1892,
+          "prompt_tokens": 11892,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\data\\runs\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\workspace\\README.md"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: # 动漫共和国 (纯JS直连版) - 海阔视界规则使用说明\\n2: \\n3: ## 1. 产物与工程背景说明\\n4: - **历史成果归属**：本规则（`rule.json`）由此前 Hub 亲自生成，内置完整加解密算法（CryptoJS、AES 签名、鉴权与重定向改写逻辑），早前已在 PC 生产库通过免嗅与真实流媒体播放验证。云端口令及发布信息（`publication.json`、`share-command.txt`）亦为此前 Hub 真实上传至 PasteMe 的已有成果。\\n5: - **本轮工作范围**：本轮工作直接复用上述 Hub 历史成果并保持三个文件原样，仅进行规则整理、依赖与运行时复验（通过 `verify_delivery` 执行当前环境运行验证及云端口令回读校验），并编写本使用说明。本轮未从零重新逆向，未修改原规则逻辑，未进行新上传或局域网设备扫描。\\n6: \\n7: ---\\n8: \\n9: ## 2. 运行环境与前置要求\\n10: - **独立纯 JS**：本规则为纯前端/沙箱 JavaScript 实现，**无需**本地 Python 后端、无需外部代理或本机桥接服务。\\n11: - **网络连接**：运行规则与解析播放需要设备处于**正常联网**状态，以便直连访问动漫共和国源站 API、鉴权服务及 CDN 视频流。\\n12: \\n13: ---\\n14: \\n15: ## 3. 导入使用指引\\n16: \\n17: ### 方式一：云口令一键导入（推荐）\\n18: 1. 复制下方完整的真实云口令文本：\\n19:    ```text\\n20:    云6oooole/xxxxxx/qdvjijbdhafvtgja\\n21:    ```\\n22: 2. 打开海阔视界（HikerView）客户端。\\n23: 3. 客户端通常会自动识别剪贴板内容并弹出“发现海阔口令，是否导入？”提示，点击“确认导入”即可；\\n24:    若未自动弹出，可进入客户端「设置」->「剪贴板口令导入」手动粘贴导入。\\n25: \\n26: ### 方式二：本地文件导入\\n27: 1. 将当前目录下的 `rule.json` 文件传输至手机或客户端所在设备。\\n28: 2. 打开海阔视界，进入「设置」->「规则管理」/「小程序管理」。\\n29: 3. 点击右上角菜单选择「本地文件导入」，选择 `rule.json` 即可完成载入。\\n30: \\n31: ---\\n32: \\n33: ## 4. 实测验证边界与未测范围声明\\n34: - **已实测范围（PC 生产库）**：\\n35:   1. 规则数据结构与沙箱环境兼容性校验；\\n36:   2. 频道分类、首页数据加载、详情页解析及各分集选集生成；\\n37:   3. API 鉴权验签、AES 解密与流媒体直链提取链路；\\n38:   4. 云端 PasteMe 口令回读及内容 SHA256 校验一致。\\n39: - **未实测范围（真机与外设）**：\\n40:   1. **Android 实机未测**：未在真实 Android 物理设备上的海阔视界原生播放器中进行长视频播放实测；\\n41:   2. **局域网直推未测**：未执行局域网 52020 端口设备广播与静默直推（遵照要求禁止设备扫描与桌面操作）。\\n\",\"total_lines\":41,\"start_line\":1,\"end_line\":41,\"truncated\":false,\"bytes\":2846,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-rule-delivery-docfix-v1\\\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\\\data\\\\runs\\\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\\\workspace\\\\README.md\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_857b5c0e8cfa4916a4de89d83cb4abb4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13164,
+          "completion_tokens": 10,
+          "duration_ms": 4457,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_857b5c0e8cfa4916a4de89d83cb4abb4\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3163999,
+          "prompt_tokens": 13164,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"files\":[\"[DIR] .superagent\",\"[FILE] README.md\",\"[FILE] publication.json\",\"[FILE] rule.json\",\"[FILE] share-command.txt\"]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_857b5c0e8cfa4916a4de89d83cb4abb4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13317,
+          "completion_tokens": 120,
+          "duration_ms": 11188,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_857b5c0e8cfa4916a4de89d83cb4abb4\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3317,
+          "prompt_tokens": 13317,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\data\\runs\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\workspace\\share-command.txt"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: 云6oooole/xxxxxx/qdvjijbdhafvtgja\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":38,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-rule-delivery-docfix-v1\\\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\\\data\\\\runs\\\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\\\workspace\\\\share-command.txt\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_857b5c0e8cfa4916a4de89d83cb4abb4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13678,
+          "completion_tokens": 913,
+          "duration_ms": 26001,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_857b5c0e8cfa4916a4de89d83cb4abb4\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3678,
+          "prompt_tokens": 13678,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "TargetFile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\data\\runs\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\workspace\\README.md",
+            "CodeContent": "# 动漫共和国 (纯JS直连版) - 海阔视界规则使用说明\n\n## 1. 产物与工程背景说明\n- **规则生成与历史归属**：本规则（`rule.json`）由先前 Hub 依据既有协议调查生成，协议调查过程有宿主参与；云端口令与发布信息（`share-command.txt`、`publication.json`）亦为先前 Hub 发布并保留的历史产物。\n- **历史验证记录**：在上一 Run 中，规则已在 PC 端通过分类、分页、搜索、详情、真实解码以及云端口令回读校验。\n- **本轮工作范围**：本轮任务仅负责修正 README.md 中的导入指引与未测边界声明，并执行 README 的物理交付验收（`verify_delivery`）。本轮不把历史业务检查写成本轮新执行，严格保留另外三个文件（`rule.json`、`share-command.txt`、`publication.json`），不执行新上传、不进行局域网扫描，亦不重跑业务与媒体解码验证。\n\n---\n\n## 2. 运行环境与前置要求\n- **独立纯 JS**：本规则为纯前端/沙箱 JavaScript 实现，**无需**本地 Python 后端，无需外部代理或本机桥接服务。\n- **网络连接**：运行规则与解析播放需要设备处于**正常联网**状态，以便直连访问动漫共和国源站 API、鉴权服务及 CDN 视频流。\n\n---\n\n## 3. PC 端导入使用指引\n（以下依据已核对的本项目 PC 客户端界面文案编写，请在客户端打开统一导入窗口后操作；客户端不承诺剪贴板自动弹窗）：\n\n### 方式一：口令 / 直链导入（推荐）\n1. 复制下方短口令文本：\n   ```text\n   云6oooole/xxxxxx/qdvjijbdhafvtgja\n   ```\n2. 在客户端打开统一导入窗口，切换至 **“口令 / 直链导入”** 页；\n3. 将上述短口令粘贴至输入框，点击 **“解析并导入”** 即可完成加载。\n\n### 方式二：文件导入\n1. 在客户端打开统一导入窗口，切换至 **“文件 / 备份恢复”** 页；\n2. 点击 **“选择备份包或规则文件”** 按钮；\n3. 选择本项目目录下的 `rule.json` 文件即可完成载入。\n\n---\n\n## 4. 实测验证边界与未测范围声明\n- **历史实测记录（PC 客户端/环境，上一 Run 归档）**：\n  1. 频道分类、列表分页与关键字搜索加载校验；\n  2. 详情页解析与选集列表生成；\n  3. API 鉴权验签、AES 解密及真实流媒体直链解码；\n  4. 云端 PasteMe 短口令回读与内容一致性校验。\n- **明确未实测范围声明**：\n  1. **Android 端完全未经实机测试**：Android 端的整套导入流程、界面交互渲染及视频流媒体播放，均未经真实 Android 设备实测；\n  2. **剪贴板自动弹窗未测/不承诺**：客户端不承诺支持剪贴板口令自动识别弹窗；\n  3. **局域网直推未测**：未执行局域网 52020 端口广播与静默直推（遵照要求禁止设备扫描与无关操作）。\n"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-rule-delivery-docfix-v1\\\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\\\data\\\\runs\\\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\\\workspace\\\\README.md\",\"diagnostics\":[]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_857b5c0e8cfa4916a4de89d83cb4abb4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 14815,
+          "completion_tokens": 18,
+          "duration_ms": 8276,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_857b5c0e8cfa4916a4de89d83cb4abb4\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.4815,
+          "prompt_tokens": 14815,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "readme"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":false,\"completion_ready\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"f49e22f5-d86e-463b-b31f-ed5326509257\",\"session_id\":\"run_857b5c0e8cfa4916a4de89d83cb4abb4\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"dmghg:readme-only\",\"artifacts\":[{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"readme\":{\"id\":\"readme\",\"session_id\":\"run_857b5c0e8cfa4916a4de89d83cb4abb4\",\"run_id\":\"f49e22f5-d86e-463b-b31f-ed5326509257\",\"target\":\"dmghg:readme-only\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-rule-delivery-docfix-v1\\\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\\\data\\\\runs\\\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\\\workspace\\\\README.md\",\"sha256\":\"d01279a48597a4eedf32c4778bb384ef36796671b8dc9c37dc1b98f49e9f0c21\",\"bytes\":2898,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-04T07:14:24.484742700+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]}},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_857b5c0e8cfa4916a4de89d83cb4abb4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 15381,
+          "completion_tokens": 346,
+          "duration_ms": 12697,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_857b5c0e8cfa4916a4de89d83cb4abb4\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.5381,
+          "prompt_tokens": 15381,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "text",
+          "content": "已完成 `README.md` 导入说明与未测声明的修正工作，并通过 `verify_delivery` 验收完成。\n\n### 本轮修正与执行总结\n\n1. **PC 端导入指引修正（严格依据已核对界面文案）**：\n   - **口令导入**：统一导入窗口的“口令 / 直链导入”页粘贴短口令，点击“解析并导入”；\n   - **文件导入**：统一导入窗口的“文件 / 备份恢复”页点击“选择备份包或规则文件”载入 `rule.json`；\n   - **去除臆测**：不编造打开窗口的菜单路径，明确不承诺剪贴板自动识别弹窗。\n\n2. **背景与边界声明修正**：\n   - 明确规则由先前 Hub 依据既有协议调查生成（协议调查有宿主参与）；\n   - 明确历史业务验证（分类、分页、搜索、详情、真实解码、云回读）属于上一 Run 归档记录，本轮仅做文档修正与物理验收，未重跑业务与媒体验证；\n   - 明确声明 Android 端的整套导入、界面渲染与流媒体播放均未经真机测试；\n   - 完好保留 `rule.json`、`share-command.txt`、`publication.json`，无新上传与局域网扫描。\n\n3. **物理交付验收**：\n   - 已执行 `verify_delivery(artifact_ids=[\"readme\"])`，物理收据已成功确认（`completion_ready: true`）。"
+        },
+        {
+          "kind": "status",
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "classification": "one_supervisor_documentation_correction",
+      "prior_exposure": "Prior Hub README supplied, one host feedback corrects invented UI/platform claims. Fresh private Session; no target implementation supplied.",
+      "task_id": "ac667c07-e7ed-4251-b1c5-c226c2b09b84",
+      "duration_ms": 72019,
+      "tool_calls": 5,
+      "model_turns": 6,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.1892,
+          "prompt_tokens": 11892,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3163999,
+          "prompt_tokens": 13164,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3317,
+          "prompt_tokens": 13317,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3678,
+          "prompt_tokens": 13678,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.4815,
+          "prompt_tokens": 14815,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.5381,
+          "prompt_tokens": 15381,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.1892,
+          "prompt_tokens": 11892,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3163999,
+          "prompt_tokens": 13164,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3317,
+          "prompt_tokens": 13317,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3678,
+          "prompt_tokens": 13678,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.4815,
+          "prompt_tokens": 14815,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.5381,
+          "prompt_tokens": 15381,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\data\\runs\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\data\\runs\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\workspace\\rule.json",
+          "sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\data\\runs\\ac667c07-e7ed-4251-b1c5-c226c2b09b84\\workspace\\README.md",
+          "sha256": "d01279a48597a4eedf32c4778bb384ef36796671b8dc9c37dc1b98f49e9f0c21"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "runtime": {
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b",
+    "port": 39821,
+    "model_turn_budget": 10,
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\data",
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "evolution_initial_exists": false,
+    "pid": 34436,
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\profile.json",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "binarySha256": "EF1C90BF2D81D8D14B7352266EDF92B57D2E0DB7235CA9A70A05054876CD95F8",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\identity.json",
+    "verified_binary_sha256": "ef1c90bf2d81d8d14b7352266edf92b57d2e0db7235ca9a70a05054876cd95f8"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "631835588c1340218ed91ec33b37b8e08769b7d90459e5672c0b2c81defd0688",
+  "frozen_definitions_sha256": "5c1826ae27a6c1ac229490d76612d49f41f4b0105eda6caddd35a37569316709",
+  "planned_task_ids": [
+    "DMGHG-one-documentation-correction"
+  ],
+  "selected_task_ids": [
+    "DMGHG-one-documentation-correction"
+  ],
+  "selected_passed": true,
+  "all_passed": true
+}

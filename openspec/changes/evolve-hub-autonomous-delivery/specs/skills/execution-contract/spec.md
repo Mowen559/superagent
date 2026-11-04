@@ -6,6 +6,13 @@
 
 ## ADDED Requirements
 
+### Requirement: Rule skills expose actual platform execution separately from simulation
+系统 SHALL 提供不含目标站协议的PC生产运行入口，使用真实导入器与规则执行库，在当前工作区内读取规则并隔离测试数据库；区分运行结果、仿真评分、媒体解码和用户验收。PC导入指引绑定产品源码文案，不由移动端模板推导。
+
+#### Scenario: Simulated rule passes but actual detail is empty
+- **WHEN** 技能仿真退出成功而用户侧生产执行未产生播放入口
+- **THEN** Hub能够通过通用生产入口复现真实结果，仿真成功不替代功能完成，宿主不向Hub提供目标站修法
+
 ### Requirement: Skill recommendations do not expand task scope
 系统 SHALL 将自动匹配Skill作为带真实路径的候选目录渐进展示，按当前目标按需读取；完整点名的Skill优先加载，但通用工作流不得覆盖用户当前范围。worker与Run Prelude使用相同发现与排序规则，显式读取保留正文及来源。
 
@@ -59,6 +66,10 @@
 
 ### Requirement: Skill promotion requires held-out validation
 系统 SHALL 将新增或修订技能先保存为候选，在独立负例和未用于修订的留出任务上通过验证后才晋升，并保留来源、版本、原始失败和回退入口。
+
+#### Scenario: Task-specific correction produces a candidate lesson
+- **WHEN** 某任务在用户纠错或工具失败后完成
+- **THEN** 候选经验记录失败证据、适用条件和来源；目标专有答案不得直接升级为通用策略，须在未用于提炼的不同任务上验证
 
 #### Scenario: Coached case improves but unseen case regresses
 - **WHEN** 候选技能修好已提示案例却使留出任务退化

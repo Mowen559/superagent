@@ -111,7 +111,7 @@ impl DynamicIntentEngine {
         ]);
         if feasibility_question && !requests_delivery {
             ActionGoal::TargetedInvestigation
-        } else if contains_any(
+        } else if contains_affirmative(
             norm,
             &[
                 "重构",
@@ -123,7 +123,7 @@ impl DynamicIntentEngine {
             ],
         ) {
             ActionGoal::RefactoringModernization
-        } else if contains_any(
+        } else if contains_affirmative(
             norm,
             &[
                 "实现",
@@ -167,7 +167,7 @@ impl DynamicIntentEngine {
             ],
         ) {
             ActionGoal::SurgicalExecution
-        } else if contains_any(
+        } else if contains_affirmative(
             norm,
             &[
                 "架构",
@@ -181,7 +181,7 @@ impl DynamicIntentEngine {
             ],
         ) {
             ActionGoal::ArchitectureExploration
-        } else if contains_any(
+        } else if contains_affirmative(
             norm,
             &[
                 "排查",
@@ -204,7 +204,7 @@ impl DynamicIntentEngine {
             ],
         ) {
             ActionGoal::TargetedInvestigation
-        } else if contains_any(
+        } else if contains_affirmative(
             norm,
             &[
                 "测试",
@@ -408,9 +408,54 @@ fn contains_any(value: &str, needles: &[&str]) -> bool {
     })
 }
 
+// Advisory verb cues must not turn a restriction into an instruction to act.
+fn contains_affirmative(value: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|needle| value.match_indices(needle).any(|(start, _)| {
+        if needle.is_ascii() {
+            let end=start+needle.len();let word=|c:char|c.is_ascii_alphanumeric()||c=='_';
+            if value[..start].chars().next_back().is_some_and(word)||value[end..].chars().next().is_some_and(word){return false;}
+        }
+        let prefix=value[..start].rsplit(|c:char|matches!(c,','|'，'|'.'|'。'|';'|'；'|'!'|'！'|'?'|'？'|'\n')).next().unwrap_or("").trim_end();
+        let mut words:Vec<_>=prefix.split_whitespace().collect();
+        while words.last().is_some_and(|w|["to","just","also","automatically","directly","ever","again","immediately"].contains(w)){words.pop();}
+        if words.last().is_some_and(|w|["not","never","don't","cannot","can't","without","no","neither","nor"].contains(w)){return false;}
+        for negative in ["不要","不必","无需","禁止","避免","没有","不再","别","不","未"] {
+            for (at,_) in prefix.match_indices(negative) {
+                let mut tail=prefix[at+negative.len()..].trim_start();
+                loop {let next=["再","继续","额外","主动","自行","直接","去","急着","进行","另外","马上","立即","自动","尝试","只","仅"].iter().find_map(|m|tail.strip_prefix(m));if let Some(rest)=next{tail=rest.trim_start();}else{break;}}
+                if tail.is_empty()||["创","构","新","编","改","填","覆","重"].contains(&tail){return false;}
+            }
+        }
+        true
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn negative_only_choice_request_does_not_require_implementation() {
+        for text in ["请用ask_user问我选择A还是B，等我回答后简短确认，不做其他事情", "先别急着做，只问我选哪个", "只问我一个问题，不要立即编写文件"] {
+            assert_eq!(DynamicIntentEngine::analyze(text).goal,ActionGoal::ClarificationDialogue,"{}",text);
+        }
+    }
+    #[test]
+    fn english_negative_verbs_are_not_positive_action_requests() {
+        for text in ["Ask whether I prefer A or B; do not create files", "Ask my choice, never refactor", "Ask my choice; don't automatically write anything"] {
+            assert_eq!(DynamicIntentEngine::analyze(text).goal,ActionGoal::ClarificationDialogue,"{}",text);
+        }
+    }
+    #[test]
+    fn an_affirmative_request_survives_an_unrelated_restriction() {
+        for text in ["不要重构已有模块，请修复边界错误", "不要编写测试脚手架，请实现新功能", "Do not refactor; implement the requested feature"] {
+            assert_eq!(DynamicIntentEngine::analyze(text).goal,ActionGoal::SurgicalExecution,"{}",text);
+        }
+    }
+    #[test]
+    fn restriction_and_investigation_keep_their_separate_roles() {
+        assert_eq!(DynamicIntentEngine::analyze("不要立即编写代码，先解释现有行为").goal,ActionGoal::TargetedInvestigation);
+    }
 
     #[test]
     fn routes_real_objectives_without_assuming_a_framework() {

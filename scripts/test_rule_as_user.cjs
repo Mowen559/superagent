@@ -1,0 +1,39 @@
+/* User-seat test: actual importer and production runtime, no target API implementation. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto'),{spawnSync}=require('node:child_process');
+const root=path.resolve(__dirname,'..'),ui=path.resolve(root,'../deepcloud-ui'),args=process.argv.slice(2),opt=k=>args[args.indexOf(k)+1];
+const engine=require(path.join(ui,'native/runtime/hk-engine')),db=require(path.join(ui,'native/runtime/hk-db')),parser=require(path.join(ui,'native/runtime/hiker-rule-parser'));
+const {parseRequestUrl}=require(path.join(ui,'native/hk-fetch-worker'));
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+const stage=path.resolve(opt('--stage'));assert.ok(!fs.existsSync(stage),'Never overwrite a user test');fs.mkdirSync(stage,{recursive:true});
+const report={kind:'actual_user_side_production_test',gui_used:false,android_tested:false,checks:[],observed:{}};
+let phase='import',file,before;
+async function run(rule,entry,options={}){const r=await engine.runRule({rulePackage:rule,entry,page:1,params:{},...options});assert.equal(r.success,true,r.error||entry+' failed');assert.ok(Array.isArray(r.data)||entry==='action','runtime did not return cards');return r.data;}
+const content=xs=>xs.filter(c=>c&&c.url&&!['scroll_button','flex_button','input','line','blank_block','rich_text','text_center_1'].includes(c.col_type)&&!/^toast:\/\//.test(c.url)&&!(/^hiker:\/\/empty(?:#|$)/.test(c.url)&&!/@(?:rule|lazyRule)=/.test(c.url)));
+const action=url=>{const m=String(url).match(/@(lazyRule|rule)=/);assert.ok(m,'no actual playback action');return {targetUrl:url.slice(0,m.index),input:url.slice(0,m.index),actionCode:url.slice(m.index+m[0].length)};};
+function mediaUrls(v){if(typeof v==='string'){try{return mediaUrls(JSON.parse(v))}catch{}return /^https?:\/\//i.test(v.trim())?[v.trim().split(';{')[0].split('#')[0]]:[];}if(Array.isArray(v))return v.flatMap(mediaUrls);if(v&&typeof v==='object')return ['url','urls','data','result','playback'].flatMap(k=>mediaUrls(v[k]));return [];}
+function mediaVariants(v){if(typeof v==='string'){try{return mediaVariants(JSON.parse(v))}catch{}if(!/^https?:\/\//i.test(v.trim()))return [];const parsed=parseRequestUrl(v.trim());return [{url:parsed.url,headers:parsed.headers}];}if(Array.isArray(v))return v.flatMap(mediaVariants);if(v&&typeof v==='object')return ['url','urls','data','result','playback'].flatMap(k=>mediaVariants(v[k])).map(x=>({...x,headers:{...x.headers,...(v.headers&&!Array.isArray(v.headers)?v.headers:{})}}));return [];}
+async function main(){
+ db.init(stage,{seedFoundation:false});engine.init(stage);
+ if(args.includes('--self-test')){
+  const valid={title:'user-test-canary',url:'hiker://empty',find_rule:'js:setResult([{title:"actual-canary",url:"https://example.invalid/item",col_type:"movie_3"}])'};
+  assert.equal((await run(valid,'home'))[0].title,'actual-canary');
+  const bad=await engine.runRule({rulePackage:{...valid,find_rule:'js:throw new Error("intentional-invalid-rule")'},entry:'home'});assert.equal(bad.success,false);
+  assert.equal(content(await run({...valid,find_rule:'js:setResult([])'},'home')).length,0);
+  report.passed=true;report.checks=['production_valid_canary','production_invalid_rejected','empty_content_detected'];return;
+ }
+ file=path.resolve(opt('--rule'));before=hash(fs.readFileSync(file));report.rule={path:file,sha256:before};
+ const parsed=await parser.parseHikerRuleText(fs.readFileSync(file,'utf8'));assert.ok(parsed.success&&parsed.isRule,parsed.error||'file is not importable');
+ assert.equal(db.importRuleRows([parsed.ruleData],'user-functional-test','replace').count,1);const rule=db.getExecutableRuleByTitle(parsed.ruleData.title);assert.ok(rule);report.title=rule.title;report.checks.push('actual_file_import');
+ phase='home';const home=await run(rule,'home'),listing=content(home);report.observed.home=listing.length;assert.ok(listing.length,'homepage contains no video entries');report.checks.push('homepage_has_content');
+ phase='pagination';const page2=content(await run(rule,'home',{page:2}));report.observed.page2=page2.length;assert.ok(page2.length,'second page is empty');assert.notEqual(JSON.stringify(listing.map(c=>c.url)),JSON.stringify(page2.map(c=>c.url)),'second page repeats first page');report.checks.push('pagination_changes');
+ phase='categories';const controls=home.filter(c=>c.url&&['scroll_button','flex_button'].includes(c.col_type));
+ if(controls.length){const category=controls[0];const selected=category.extra?.hikerFilter?await run(rule,'home',{params:{[category.extra.kind]:category.extra.value}}):/@(?:lazyRule|rule)=/.test(category.url)?await run(rule,'action',action(category.url)):await run(rule,'home',{targetUrl:category.url});if(Array.isArray(selected))assert.ok(content(selected).length,'selected category has no content');else assert.ok(content(await run(rule,'home')).length,'category refresh has no content');report.observed.category=String(category.title);report.checks.push('actual_category_action');}
+ else if(rule.class_name&&rule.class_url){const names=String(rule.class_name).split('&'),values=String(rule.class_url).split('&');const index=values.findIndex((v,i)=>i>0&&v);if(index>=0){const filtered=content(await run(rule,'home',{params:{class:values[index]}}));assert.ok(filtered.length,'selected metadata category has no content');report.observed.category={name:names[index],count:filtered.length};report.checks.push('actual_metadata_category');}}
+ let selected,previousSearch;
+ for(const keyword of ['nature','space']){phase='search:'+keyword;const found=content(await run(rule,'search',{keyword}));report.observed[phase]=found.length;assert.ok(found.length,'search returns no results');const links=JSON.stringify(found.map(c=>c.url));if(previousSearch)assert.notEqual(links,previousSearch,'different searches return identical results');previousSearch=links;selected||=found[0];report.checks.push(phase);}
+ phase='detail';const detail=await run(rule,'detail',{targetUrl:selected.url,item:selected});report.observed.detail_cards=detail.length;assert.ok(detail.length,'detail is empty');const lazy=detail.filter(c=>c.url&&/@lazyRule=/.test(c.url)),direct=detail.filter(c=>c.url&&!['pic_1_card','pic_1_full','rich_text'].includes(c.col_type)&&/\.(webm|ogv|mp4|m3u8)(?:[#?;]|$)/i.test(c.url));const playable=lazy.length?lazy:direct;assert.ok(playable.length,'detail has no playback option');report.observed.playback_choice={title:String(playable[0].title),type:playable[0].col_type,lazy:/@lazyRule=/.test(playable[0].url)};report.checks.push('detail_has_playback');
+ phase='playback';const playback=/@lazyRule=/.test(playable[0].url)?await run(rule,'action',action(playable[0].url)):playable[0].url,variants=mediaVariants(playback);assert.ok(variants.length,'playback action returned no media URL');
+ const media=spawnSync('C:/Users/刘本录/AppData/Local/Python/pythoncore-3.14-64/python.exe',['-X','utf8',path.join(root,'scripts/verify_user_media.py'),'--domain',opt('--media-domain'),'--decoder-dir','D:/太极/动漫共和国概念版'],{input:JSON.stringify(variants[0]),encoding:'utf8',windowsHide:true,timeout:70000});
+ const result=JSON.parse(media.stdout.trim().split(/\r?\n/).at(-1));report.media=result;assert.ok(media.status===0&&result.passed,result.error||'actual playback failed');report.checks.push('actual_playback_decode_over_one_second');report.passed=true;
+}
+main().catch(error=>{report.passed=false;report.failed_feature=phase;report.error=error.message;}).finally(async()=>{await engine.terminateAllWorkers().catch(()=>{});db.db?.close();if(file)report.rule_unchanged=before===hash(fs.readFileSync(file));fs.writeFileSync(path.join(stage,'result.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));process.exit(report.passed?0:1);});

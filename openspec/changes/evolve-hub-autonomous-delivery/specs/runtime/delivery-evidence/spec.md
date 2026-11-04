@@ -6,6 +6,32 @@
 
 ## ADDED Requirements
 
+### Requirement: Sparse rule requests follow an evidence-based user workflow
+系统 SHALL 对低信息规则请求先调查目标、区分已验证事实与推断；有影响使用范围或依赖的实质选择时，以用户可理解的选项及代价询问，等待真实相关回答。用户选择后实施交付，提供可测试功能与导入方法，并依据用户侧实际测试反馈修订；用户已明确的方案不重复确认，技术调查不得转嫁给用户。
+
+#### Scenario: Sparse target presents material alternatives
+- **WHEN** 用户仅给目标内容且调查发现独立运行与外部依赖等不同使用方式
+- **THEN** Hub给出调查证据、适用范围及推荐选项，记录用户选择，不在回答前擅自扩大依赖或外发范围
+
+#### Scenario: User reports an actual failed feature
+- **WHEN** 用户侧测试发现搜索、详情或播放等功能失败并反馈实际现象
+- **THEN** Hub自行定位修复并请求复测，保留初版和失败证据；未执行的GUI或Android测试不得伪报完成
+
+#### Scenario: User takes longer than a normal tool call to choose
+- **WHEN** ask_user以有效超时等待相关回答
+- **THEN** 外层工具时限覆盖该交互超时并留结算余量，不因普通工具60秒上限提前终止；非法超时仍由交互运行时拒绝，父任务取消/时限保持生效
+
+#### Scenario: A restriction is not an implementation request
+- **WHEN** 只询问选择的用户要求“不做其他事情”或“不要写文件”
+- **THEN** 初始词面路由不得由否定动词产生实施义务，成功相关回答后可确认结束；同句明确提出的实际实施要求仍须真实执行与验证
+
+### Requirement: Evaluations distinguish correction from new requirements
+系统 SHALL 分别报告用户纠错、预定业务补充或转向、基于工具失败的自主修复和宿主基础设施修复，并保留初始尝试及原始失败；不得以内部自检失败替代用户纠错次数，也不得将一次已辅导案例作为通用能力晋升证据。
+
+#### Scenario: Mid-run scope changes without corrective feedback
+- **WHEN** 冻结评测在有效计划后发送预先声明的业务新要求，监督者未指出实现错误
+- **THEN** 记录业务补充次数及送达证据，用户纠错计为零；参数错误由Hub自行修复另行登记
+
 ### Requirement: SDK interactions follow the correlated server contract
 SDK SHALL 将补充要求提交为action=steer和response，用户回答提交为action=respond、requestId和response。旧steeringPrompt调用可映射，但不得将旧审批token/布尔值猜测转换为相关用户回答。
 

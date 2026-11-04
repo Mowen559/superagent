@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory=$true)][string]$Profile,
+    [string]$Profile,
     [Parameter(Mandatory=$true)][string]$IdentityOutput,
     [Parameter(Mandatory=$true)][int]$Port,
     [ValidateRange(1,40)][int]$ModelTurnBudget = 32
@@ -7,7 +7,8 @@ param(
 $ErrorActionPreference = 'Stop'
 if (Test-Path -LiteralPath $IdentityOutput) { throw 'Do not overwrite an existing runtime identity' }
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$profilePath = (Resolve-Path -LiteralPath $Profile).Path
+$profilePath = $null
+if (-not [string]::IsNullOrWhiteSpace($Profile)) { $profilePath = (Resolve-Path -LiteralPath $Profile).Path }
 $settingsReference = Join-Path $env:USERPROFILE '.superagent/settings'
 if (-not (Test-Path -LiteralPath (Join-Path $settingsReference 'llm.json') -PathType Leaf)) { throw 'Existing model settings are unavailable' }
 $stage = Join-Path $env:TEMP ('hub-independent-' + [guid]::NewGuid().ToString('N'))
@@ -23,7 +24,8 @@ $env:HUB_APP_DATA_ROOT = $dataRoot
 $env:HUB_SKILLS_ROOT = Join-Path $repositoryRoot 'skills'
 $env:HUB_AGENT_MAX_MODEL_TURNS = [string]$ModelTurnBudget
 $env:DISABLE_FASTEMBED = '1'
-$env:HUB_DELIVERY_PROFILE_PATH = $profilePath
+if ($profilePath) { $env:HUB_DELIVERY_PROFILE_PATH = $profilePath }
+else { Remove-Item Env:HUB_DELIVERY_PROFILE_PATH -ErrorAction SilentlyContinue }
 $frozenSourcePath = Join-Path $repositoryRoot 'frozen-source.json'
 if (Test-Path -LiteralPath $frozenSourcePath) {
     $frozenSource = Get-Content -LiteralPath $frozenSourcePath -Raw | ConvertFrom-Json

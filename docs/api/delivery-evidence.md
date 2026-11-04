@@ -1,8 +1,12 @@
 # Hub 交付证据增量契约 v1
 
-实施范围：evolve-hub-autonomous-delivery，P0–P2。本文先于代码登记；实际通过范围由 reviews 报告决定。
+实施范围：evolve-hub-autonomous-delivery，P0–P3已实施切片。本文先于代码登记；实际通过范围由 reviews 报告决定。
 
 ## 兼容性与状态所有权
+
+规则技能通用PC执行入口：scripts/test-rule-live.cjs --rule <工作区JSON> --entry home|search|detail|action，可用--request <工作区JSON>传递page/keyword/targetUrl/input/actionCode/params。使用真实生产导入与执行，结果success仅表示该入口执行成功，data为空不代表业务通过；不认证GUI、Android、媒体解码或用户验收。测试数据库在当前工作区.superagent内隔离，规则文件越界及被执行期间修改须拒绝。PC导入参考为references/pc-rule-import.md。
+
+用户交互等待：ask_user的外层工具时限遵循有效TimeoutSeconds（默认300秒、上限1800秒）加5秒结算余量，不再套用普通工具60秒。交互运行时仍拒绝0及超限值，父任务整体时限和取消不变。协议requestId/response及唯一终态不变。
 
 SDK交互修复（2026-11-04）：POST /api/agents/tasks/{taskId}/interact的body为{action:"steer",response:string}或{action:"respond",requestId:string,response:string}。SDK兼容旧{steeringPrompt}并在传输前转换；旧{token,approve}不等于当前相关回答，显式拒绝而非猜测授权。失败HTTP或success不为true不得报告已送达。现有主UI的analyzeApi同构body保持不变。
 

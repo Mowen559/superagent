@@ -1,0 +1,260 @@
+{
+  "date": "2026-11-04",
+  "passed": true,
+  "classification": "existing_hub_generated_rule_currently_usable_delivery",
+  "delivery": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-delivery\\dmghg-ready-20261104-v1",
+  "manifest": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-delivery\\dmghg-ready-20261104-v1\\manifest.json",
+  "rule_sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+  "remote_command": "云6oooole/xxxxxx/qdvjijbdhafvtgja",
+  "provenance": {
+    "rule_generated_by": "earlier Hub runs",
+    "protocol_investigation": "host-guided; see dmghg-direct-js-final-review-v1.json",
+    "current_run_new_rule_authorship": false,
+    "host_business_edits": false,
+    "host_written_rule": false,
+    "host_artifact_copies": "byte-identical",
+    "documentation_author": "ac667c07-e7ed-4251-b1c5-c226c2b09b84"
+  },
+  "attempts": [
+    {
+      "report": "docs/reviews/hub-rule-current-delivery-v1.json",
+      "sha256": "1fe8a3994758efdda5fc1b1967d75957d3fe8d4f0aa732a34a6ff33177837996",
+      "task_id": "a71aaa51-e1aa-4507-b16d-41d9017d276b",
+      "status": "failed",
+      "model_turns": 0,
+      "tools": 0,
+      "classification": "host_profile_invalid_before_model",
+      "cause": "Verifier timeout190 exceeded supported150. Original failed state retained."
+    },
+    {
+      "report": "docs/reviews/hub-rule-current-delivery-v2.json",
+      "sha256": "80595f90582ce0230e6245567f50ce8f665848138a729eb5366c7a4cbe858188",
+      "task_id": "df3d8422-b074-46e3-8165-23e808318c1c",
+      "status": "completed",
+      "model_turns": 7,
+      "tools": 7,
+      "passed": true
+    },
+    {
+      "report": "docs/reviews/hub-rule-delivery-docfix-v1-document.json",
+      "sha256": "52da185191da75c9c68e88402850221d2083b1043f384b71f50561198a69a9a8",
+      "task_id": "ac667c07-e7ed-4251-b1c5-c226c2b09b84",
+      "status": "completed",
+      "model_turns": 6,
+      "tools": 5,
+      "passed": true
+    }
+  ],
+  "verification": {
+    "current_rule_and_cloud": {
+      "status": "success",
+      "exit_code": 0,
+      "domain_verified": true,
+      "completion_ready": true,
+      "delivery_evidence": {
+        "schema_version": 1,
+        "run_id": "e1404497-0558-4782-b5b0-c888b842eb5d",
+        "session_id": "run_0531014ee1df48998a8401df389a01a1",
+        "contract": {
+          "version": 1,
+          "scope": "implementation",
+          "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\project\\rule.json",
+          "artifacts": [
+            {
+              "id": "rule",
+              "path": "rule.json",
+              "required": true,
+              "validator": "dmghg-current-runtime"
+            },
+            {
+              "id": "publication",
+              "path": "publication.json",
+              "required": true,
+              "validator": "dmghg-existing-cloud"
+            },
+            {
+              "id": "command",
+              "path": "share-command.txt",
+              "required": true,
+              "validator": null
+            },
+            {
+              "id": "readme",
+              "path": "README.md",
+              "required": true,
+              "validator": null
+            }
+          ]
+        },
+        "artifacts": {
+          "command": {
+            "id": "command",
+            "session_id": "run_0531014ee1df48998a8401df389a01a1",
+            "run_id": "e1404497-0558-4782-b5b0-c888b842eb5d",
+            "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\project\\rule.json",
+            "path": "\\\\?\\D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\hub-independent-a3785301f8d84efdabcccf59682e77b1\\data\\runs\\df3d8422-b074-46e3-8165-23e808318c1c\\workspace\\share-command.txt",
+            "sha256": "ff3a262533db728e1007542eaa616b1e062923020d3c58e8d665098842fe4042",
+            "bytes": 34,
+            "source": "runtime_file_observation; authorship requires matching tool provenance",
+            "observed_at": "2026-11-04T07:09:35.050551800+00:00",
+            "validator": null,
+            "verifier_sha256": null,
+            "domain_verified": false,
+            "checks": []
+          },
+          "rule": {
+            "id": "rule",
+            "session_id": "run_0531014ee1df48998a8401df389a01a1",
+            "run_id": "e1404497-0558-4782-b5b0-c888b842eb5d",
+            "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\project\\rule.json",
+            "path": "\\\\?\\D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\hub-independent-a3785301f8d84efdabcccf59682e77b1\\data\\runs\\df3d8422-b074-46e3-8165-23e808318c1c\\workspace\\rule.json",
+            "sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+            "bytes": 746059,
+            "source": "runtime_file_observation; authorship requires matching tool provenance",
+            "observed_at": "2026-11-04T07:08:52.841079600+00:00",
+            "validator": "dmghg-current-runtime",
+            "verifier_sha256": "8381b90197950d05faaf2f98c4cbf96cca1adf49ac720dc35919920b0462c6a2",
+            "domain_verified": true,
+            "checks": [
+              "pagination_distinct_and_matches_upstream",
+              "category:20",
+              "category:21",
+              "search:仙逆",
+              "search:斗破",
+              "detail_title_and_first_middle_last_episodes",
+              "lazy_production_runtime",
+              "no_local_bridge_or_install_paths",
+              "actual_media_bytes",
+              "null_output_decode_over_one_second"
+            ]
+          },
+          "publication": {
+            "id": "publication",
+            "session_id": "run_0531014ee1df48998a8401df389a01a1",
+            "run_id": "e1404497-0558-4782-b5b0-c888b842eb5d",
+            "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\project\\rule.json",
+            "path": "\\\\?\\D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\hub-independent-a3785301f8d84efdabcccf59682e77b1\\data\\runs\\df3d8422-b074-46e3-8165-23e808318c1c\\workspace\\publication.json",
+            "sha256": "d86fe91e2bc69d8abe3d53127ffb5a660faa25603642fa697b32a682b3353ad2",
+            "bytes": 1107,
+            "source": "runtime_file_observation; authorship requires matching tool provenance",
+            "observed_at": "2026-11-04T07:09:21.573817700+00:00",
+            "validator": "dmghg-existing-cloud",
+            "verifier_sha256": "f426d97c0b444fac1cf4409aff68042db0c2e4b4814f638a43199b20e52df2b9",
+            "domain_verified": true,
+            "checks": [
+              "remote_short_command_readback",
+              "production_cloud_command_parser",
+              "frozen_rule_fields_equal",
+              "actual_private_database_import"
+            ]
+          },
+          "readme": {
+            "id": "readme",
+            "session_id": "run_0531014ee1df48998a8401df389a01a1",
+            "run_id": "e1404497-0558-4782-b5b0-c888b842eb5d",
+            "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\project\\rule.json",
+            "path": "\\\\?\\D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\hub-independent-a3785301f8d84efdabcccf59682e77b1\\data\\runs\\df3d8422-b074-46e3-8165-23e808318c1c\\workspace\\README.md",
+            "sha256": "5411239a5d8c3deb0034553527d21efbc2e23084577a1c1b74a580d13c337d98",
+            "bytes": 2691,
+            "source": "runtime_file_observation; authorship requires matching tool provenance",
+            "observed_at": "2026-11-04T07:09:35.051912200+00:00",
+            "validator": null,
+            "verifier_sha256": null,
+            "domain_verified": false,
+            "checks": []
+          }
+        },
+        "errors": {},
+        "managed_actions": {},
+        "attempted_actions": [],
+        "completion_gap": null
+      }
+    },
+    "independent_cloud": {
+      "passed": true,
+      "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\project\\rule.json",
+      "remote_command": "云6oooole/xxxxxx/qdvjijbdhafvtgja",
+      "original_sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+      "field_hashes": {
+        "title": "810380410b6c0d8d5e3fa8e036c4f89893546980b99711d249b73eec7599501e",
+        "version": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "url": "df2477d198a9bf01503eee593cc8665f2feddab27a69d69d1ba0553663300fc7",
+        "class_name": "0f91edf0ecd079e26accf1855afa93efc10977ddb748a1ae94aae4fd5405c6ac",
+        "class_url": "c7047371b87864de6c285e4af4be1afd64d63f657221f8f77473387495e9f3b8",
+        "find_rule": "47be6733526ee38e1af97a2b1cee50e1fdb2cefd72d336bf3135d2a1784ff2d1",
+        "search_url": "02a05d9cd10072d076f35761f96daee314fffce70c601547853791bd50820e1b",
+        "searchFind": "3fbb7416d11093c5a605e7a4b521ed04d85c6ff287967c53c35adf2b40a03b54",
+        "detail_find_rule": "c216b18f80c3f6672a6b1cd85ca63d53434ca7b828c2f47e941b8bbf954a69f6"
+      },
+      "checks": [
+        "remote_short_command_readback",
+        "production_cloud_command_parser",
+        "frozen_rule_fields_equal",
+        "actual_private_database_import"
+      ],
+      "publisher": "Hub task; verifier did not upload",
+      "gui_used": false,
+      "exit_code": 0
+    },
+    "document_integrity": {
+      "passed": true,
+      "target": "scope-fixture:document",
+      "checks": [
+        "readme_revised",
+        "protected_business_artifacts_unchanged"
+      ],
+      "exit_code": 0
+    },
+    "manual_doc_review": "PC labels checked in HikerUnifiedImportModal.tsx; invented Android menus and automatic dialog removed; Android import/UI/playback untested. PC environment denotes production runtime, not GUI.",
+    "wrapper_negative": {
+      "passed": true,
+      "check": "local_bridge_rejected_before_runtime",
+      "observed": {
+        "passed": false,
+        "target": "negative-boundary",
+        "error": "rule still depends on local bridge/native execution"
+      }
+    }
+  },
+  "assistance": {
+    "supervisor_documentation_corrections": 1,
+    "user_technical_corrections": 0,
+    "host_infrastructure_fix": 1,
+    "new_cloud_publications": 0,
+    "scope": "Revalidated known Hub-authored asset, not fresh autonomous reverse engineering."
+  },
+  "observations": [
+    "One version string error in plan_task; Hub then proceeded with actual documentation write and verification.",
+    "Initial README fabricated mobile menus/automatic clipboard flow; corrected by Hub after one host feedback. Physical receipts did not validate prose."
+  ],
+  "limits": [
+    "Android actual device untested",
+    "No GUI operation",
+    "Cloud retention and future source protocol changes not guaranteed",
+    "Installed Hub release not replaced",
+    "Existing rule reused; stable one-prompt new-target generation not certified"
+  ],
+  "cleanup": [
+    {
+      "stopped": true,
+      "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v1\\hub-independent-b0d4cd547592445dbf2584074ea133f9",
+      "pid": 16244
+    },
+    {
+      "pid": 6924,
+      "stopped": true,
+      "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-current-v2\\hub-independent-a3785301f8d84efdabcccf59682e77b1"
+    },
+    {
+      "pid": 34436,
+      "stopped": true,
+      "case": "document",
+      "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-rule-delivery-docfix-v1\\hub-independent-becc4321968a4e23957c7bb940e52d9b\\hub.exe"
+    }
+  ],
+  "plan_progress": {
+    "complete": 44,
+    "total": 74,
+    "unchanged": true
+  }
+}

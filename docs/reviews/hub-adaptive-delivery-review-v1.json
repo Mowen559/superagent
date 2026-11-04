@@ -1,0 +1,291 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "objective": "以通用执行策略减少用户纠错；验收简单任务、单一增量契约、补充指令及跨Run来源归属。",
+  "conclusion": {
+    "task": "4.4",
+    "status": "accepted_for_defined_mechanism_scope",
+    "openspec": {
+      "change": "evolve-hub-autonomous-delivery",
+      "complete": 44,
+      "total": 74
+    },
+    "candidate_sha256": "ef1c90bf2d81d8d14b7352266edf92b57d2e0db7235ca9a70a05054876cd95f8",
+    "generality": "代码机制基于规范化收据、计划、Run和验证新鲜度；未新增本例函数名、价格公式、目标接口或自然语言同义词匹配。合成案例通过不是未知任务泛化认证。",
+    "rule_generation_capability": "本轮没有新生成或新发布海阔规则。既有动漫共和国和NASA独立JS链已有受监督/纠错后通过记录；一句话未知加密应用逆向到云发布的稳定独立完成仍未认证。"
+  },
+  "changes": [
+    "实际变更或已确认计划校正初始词面路由，保留真实已观察事实；只读原生变更请求执行前拒绝。",
+    "Run事实摘要与LLM投影来源标记；当前、历史和unknown分开，原事件/SSE不改写。",
+    "补充要求入账确认后失效原验证和依赖步骤，保留旧观察及修改；默认阶段已齐备时提示有据结题。",
+    "SDK将steeringPrompt映射至服务端action=steer/response；旧审批token/approve明确拒绝，不能猜成相关回答。",
+    "评测固定续轮要求与PowerShell数组参数，保留漏跑和全部失败。"
+  ],
+  "verification": {
+    "rust": {
+      "passed": 560,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "command": "cargo test --lib -- --test-threads=1 --skip domains::code_review::tests::test_review_current_project_workspace",
+      "initial_fixture_failure": {
+        "passed": 559,
+        "failed": 1,
+        "cause": "新增测试没有绑定真实Run交付上下文却断言仅在该上下文出现的提示；补齐测试上下文，原断言保留。"
+      }
+    },
+    "sdk": {
+      "tests": 4,
+      "passed": 4,
+      "typecheck_command": "npx tsc --noEmit",
+      "typecheck_exit_code": 0
+    },
+    "build": {
+      "passed": true,
+      "warning": "Windows链接器创建库/对象的stdout提示；无构建错误。"
+    },
+    "oracle": {
+      "selftest": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\adaptive-oracle-selftest-v1\\result.json",
+      "groups": 5,
+      "unchanged_from_v1": true
+    },
+    "logs": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\adaptive-rust-v2.log",
+        "sha256": "fab9d587d8aa371f9585485e5741ff95dfa2d761d95737b7c02f5e2533d1a922"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\adaptive-rust-v2-final.log",
+        "sha256": "3f82ed67477092db46d7d462708314ebbf5d71136c9d5a3b353d4315773d9eea"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\adaptive-build-v2.log",
+        "sha256": "02a63360235323b59aa5a2ea255f13f6a75dd34828727d8fb84ba3a1f12d5374"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\adaptive-sdk-test-v2.log",
+        "sha256": "b72931da3d544d1618054c1ead714133e3692ca947da2c11b21dcb33bed3c8c3"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\adaptive-sdk-typecheck-v2.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\adaptive-rust-final.log",
+        "sha256": "ef43192aacf73b023fd5d43e501bf51c0d0dde067ab98d2526c99ec7920f6032"
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\adaptive-rust-final-v2.log",
+        "sha256": "0b9805cc473ebf7b027521eb8f87cb62d6964dcc8826c2c323c6a14bb37add2f"
+      }
+    ]
+  },
+  "v1": {
+    "reports": [
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-adaptive-v1-simple.json",
+        "sha256": "0611e2bafdc23b7e4108a37064b02b4cb9851a317977b758396802ba000fdb19",
+        "attempts": [
+          {
+            "id": "ADAPTIVE-simple",
+            "task_id": "c90993d3-d5dd-421f-a188-daf6291f787f",
+            "status": "completed",
+            "model_turns": 11,
+            "tool_calls": 9,
+            "oracle_passed": true,
+            "steering": null
+          }
+        ]
+      },
+      {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-adaptive-v1-complex.json",
+        "sha256": "bb72e8f0dd0c04db25361a81c0c0eddf7c41f75597b94bcee8b60d72ddfddb2a",
+        "attempts": [
+          {
+            "id": "ADAPTIVE-complex",
+            "task_id": "b05d7173-2617-4fe3-8e48-28f3b39581d9",
+            "status": "completed",
+            "model_turns": 17,
+            "tool_calls": 17,
+            "oracle_passed": true,
+            "steering": {
+              "trigger": "first_mutation_without_plan",
+              "prompt": "补充一个要求：金额要在购物车最后汇总时四舍五入到两位小数，不能逐件提前取整。其他原有要求、用户注释和接口继续保留。",
+              "before_event_count": 25,
+              "error": "Error: [SuperAgent] 交互提交失败: 422 Unprocessable Entity"
+            }
+          }
+        ]
+      }
+    ],
+    "planned": 3,
+    "executed": 2,
+    "not_run": [
+      {
+        "id": "ADAPTIVE-complex-to-readonly",
+        "classification": "infrastructure_not_run",
+        "reason": "PowerShell单元素标量splat把续轮标志拆成字符。"
+      }
+    ],
+    "sdk_failure": "复杂案SDK返回422；金额舍入由模型运行冻结oracle获知，不能当作补充指令已生效。",
+    "raw_all_passed_scope": "旧报告的all_passed仅覆盖被选择的根任务，不代表预定三案通过；原报告和SHA不改写。",
+    "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\post-run-audit.json"
+  },
+  "v2": {
+    "audit": {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v2\\post-run-audit.json",
+      "sha256": "d98f2049de01861c5b2d607cc217bf7d395892b5f554d311007e0ad28816aea5"
+    },
+    "planned": 3,
+    "executed": 3,
+    "totals": {
+      "completed": 3,
+      "failed": 0,
+      "model_turns": 22,
+      "tool_calls": 22
+    },
+    "cases": [
+      {
+        "id": "ADAPTIVE-simple",
+        "task_id": "1b3ea259-0c50-423e-84de-3805a2d26093",
+        "status": "completed",
+        "model_turns": 7,
+        "tool_calls": 6,
+        "oracle": {
+          "passed": true,
+          "target": "adaptive-fixture:simple",
+          "checks": [
+            "actual_tier_boundaries"
+          ],
+          "exit_code": 0
+        },
+        "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-adaptive-v2-simple.json",
+        "report_sha256": "0662af8f3c9a19941e0550e9526a79abef313a10c1381c8d077d2f2cebd8c503"
+      },
+      {
+        "id": "ADAPTIVE-complex",
+        "task_id": "de4279d3-b22b-4edc-9a0d-6965e835a0e7",
+        "status": "completed",
+        "model_turns": 12,
+        "tool_calls": 15,
+        "oracle": {
+          "passed": true,
+          "target": "adaptive-fixture:complex",
+          "checks": [
+            "actual_discount_boundary",
+            "actual_quantity_integration",
+            "empty_cart",
+            "final_rounding_only",
+            "user_note_preserved"
+          ],
+          "exit_code": 0
+        },
+        "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-adaptive-v2-complex.json",
+        "report_sha256": "8b3fca8f944533cc61e5ef7c7cc8fb5d1c84a034abf57a0ce609e65b595c300e"
+      },
+      {
+        "id": "ADAPTIVE-complex-to-readonly",
+        "task_id": "4754afc3-bff0-401b-9b72-cb833427c689",
+        "status": "completed",
+        "model_turns": 3,
+        "tool_calls": 1,
+        "oracle": {
+          "passed": true,
+          "target": "adaptive-fixture:readonly",
+          "checks": [
+            "prior_workspace_files_unchanged"
+          ],
+          "exit_code": 0
+        },
+        "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-adaptive-v2-complex.json",
+        "report_sha256": "8b3fca8f944533cc61e5ef7c7cc8fb5d1c84a034abf57a0ce609e65b595c300e"
+      }
+    ],
+    "assistance": {
+      "supervisor_error_corrections": 0,
+      "predeclared_business_supplements": 1,
+      "predeclared_readonly_redirections": 1,
+      "host_target_implementation_after_launch": false,
+      "infrastructure_fix_between_versions": true,
+      "model_self_repair": "复杂案计划version=\"1\"被拒绝后自行改正；一次读取冻结oracle源码的请求被工作区边界拒绝，未获得源码。"
+    },
+    "manual_review": {
+      "simple": "7轮/6调用；1次实际修改、1次有效质量验收，无plan_task或verify_delivery。额外Git检查及最终重读仍属效率残留。",
+      "complex": {
+        "accepted_full_plans": 1,
+        "rejected_plan_calls": 1,
+        "delta_revisions": 1,
+        "original_success_criteria_retained": true,
+        "original_constraints_retained": true,
+        "retained_completed_steps": [
+          "step_plan_init"
+        ],
+        "invalidated_steps": [
+          "step_update_cart",
+          "step_verify"
+        ],
+        "all_steps_bound": true,
+        "scope_revision": 1,
+        "steering_http_success": true,
+        "steering_visible_from_model_turn": 6
+      },
+      "readonly": {
+        "same_session_reused": true,
+        "source_run": "9a52b8dc-4593-4c8f-ae91-061f63605316",
+        "current_run": "ea946534-962a-40e8-bbdb-88db7e4854d6",
+        "current_calls": {
+          "list_dir": 1
+        },
+        "mutations": 0,
+        "commands": 0,
+        "tests": 0,
+        "prose": "答复正确区分前一Run的源码读取/两次修改/测试收据与当前1次目录读取；未把历史检查重签成本轮。",
+        "files_unchanged": true
+      }
+    },
+    "integrity": {
+      "source_seed_harness_and_skill_mismatches": 0,
+      "cleanup": [
+        {
+          "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v2\\simple\\runtime-2ca9c56ad9c6435ba1984a2601f66825\\hub.exe",
+          "kind": "simple",
+          "pid": 2584,
+          "stopped": true
+        },
+        {
+          "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v2\\complex\\runtime-f8d77101b288444e84a8a3222292a573\\hub.exe",
+          "kind": "complex",
+          "pid": 29312,
+          "stopped": true
+        }
+      ],
+      "settings_unchanged": true
+    }
+  },
+  "totals": {
+    "actual_attempts": 5,
+    "completed": 5,
+    "planned_but_not_run_v1": 1,
+    "model_turns": 50,
+    "tool_calls": 48,
+    "interpretation": "有限合成重放与机制验收，不折算成智能成功率。"
+  },
+  "remaining": [
+    "经验候选来源/版本/负例与不同任务留出验证晋升仍属于4.6，未因这三案通过自动晋升任何Skill。",
+    "未知加密应用逆向、零纠错首次规则生成、Android以及完整发布/发行继续独立认证。",
+    "普通文档无宿主physical_artifacts配置时仍使用原质量门槛。",
+    "新增要求发生于实际修改之前；已有检查失效的覆盖来自确定性回归，不冒充已经实测全部晚到时序。",
+    "任意shell不是操作系统隔离；Git祖先仓库文件名暴露仍为已知残留。",
+    "简单任务仍有多余Git检查，部分结论文案如“无残留风险/完全稳定”过强，不能当成通用可靠性证明。",
+    "旧token/approve审批调用未改造成完整相关回答UI，仅明确拒绝不正确协议。"
+  ],
+  "follow_up": "按用户新要求推进4.6：提炼参数/证据/规划/验证的通用候选，分别记录纠错、新要求和自主修复；用未参与提炼的不同任务及负例验证后才晋升，保留撤回。",
+  "side_effects": {
+    "desktop_used": false,
+    "new_cloud_publications": 0,
+    "skill_promotions": 0,
+    "installed_release_replaced": false,
+    "git_committed": false,
+    "openspec_archived": false
+  }
+}

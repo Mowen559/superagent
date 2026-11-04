@@ -1048,4 +1048,19 @@ mod tests {
         assert!(matches!(runtime.review_completion("已检查基线，尚没有实施目标功能，不能将其当作已经交付的变更。"), CompletionDecision::Revise { .. }));
         assert!(!runtime.evolution_report(false).plan_closed);
     }
+
+    #[test]
+    fn confirmed_user_choice_can_finish_without_a_fabricated_file_change() {
+        let mut r=CognitiveRuntime::with_mode("请用ask_user问我选择A还是B，等我回答后简短确认，不做其他事情",ReasoningMode::Adaptive);
+        assert_eq!(r.task_kind(),TaskKind::Conversational);
+        r.observe_receipt(&ToolExecutionReceipt{call_id:"choice".into(),name:"ask_user".into(),status:ToolExecutionStatus::Succeeded,duration_ms:0,result:serde_json::json!({"requestId":"q","response":"A"}),original_result_chars:0,truncated:false,stored_result_reference:None,risk:ToolRisk::ReadOnly,verification:false});
+        assert_eq!(r.review_completion("收到，你已选择A，本轮仅确认这个选择。"),CompletionDecision::Accept);
+    }
+
+    #[test]
+    fn user_choice_does_not_complete_a_real_implementation_goal() {
+        let mut r=CognitiveRuntime::with_mode("请生成一个页面，先问我选哪个颜色",ReasoningMode::Adaptive);
+        r.observe_receipt(&ToolExecutionReceipt{call_id:"choice".into(),name:"ask_user".into(),status:ToolExecutionStatus::Succeeded,duration_ms:0,result:serde_json::json!({"requestId":"q","response":"蓝色"}),original_result_chars:0,truncated:false,stored_result_reference:None,risk:ToolRisk::ReadOnly,verification:false});
+        assert_ne!(r.review_completion("已经确认你的颜色选择，任务全部完成。"),CompletionDecision::Accept);
+    }
 }
