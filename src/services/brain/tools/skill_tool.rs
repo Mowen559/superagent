@@ -157,6 +157,7 @@ impl ToolExecutor for SkillTool {
                     "resource_root": root,
                     "content": content,
                     "resource_guidance": resource_guide,
+                    "scope_guidance": "Apply only the parts needed for the user's current outcome and required acceptance. Reading this resource does not authorize or require its entire lifecycle. For a documentation edit, revise and verify the requested document; do not regenerate, republish, or investigate unrelated runtimes unless required to resolve a material factual gap.",
                 }))
             }
             "save" | "update" => {

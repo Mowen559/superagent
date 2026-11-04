@@ -19,6 +19,9 @@ mod skill_resource_routing_tests;
 #[cfg(test)]
 #[path="bounded_recovery_tests.rs"]
 mod bounded_recovery_tests;
+#[cfg(test)]
+#[path="adaptive_run_tests.rs"]
+mod adaptive_run_tests;
 
 pub type ToolRegistry = Arc<Mutex<HashMap<String, Arc<dyn ToolExecutor>>>>;
 
@@ -436,6 +439,9 @@ impl ToolExecutionGateway {
 
         let (risk, decision) = self.policy.evaluate(&req.name, &req.arguments);
         let progress=self.delivery_progress.lock().unwrap_or_else(|e|e.into_inner()).as_ref().and_then(|p|p.upgrade());
+        if progress.as_ref().is_some_and(|p|p.lock().unwrap_or_else(|e|e.into_inner()).rejects_mutation(&req.name,risk)) {
+            return self.receipt(req,ToolExecutionStatus::PolicyDenied,started,json!({"error":"Current objective is explicitly read-only; this operation is outside its scope","kind":"read_only_task_scope"}));
+        }
         if let Some(error)=progress.as_ref().and_then(|p|p.lock().unwrap_or_else(|e|e.into_inner()).internal_trace_guard(&req.name,&req.arguments)) {
             return self.receipt(req,ToolExecutionStatus::PolicyDenied,started,json!({"error":error,"kind":"internal_trace_not_task_evidence"}));
         }

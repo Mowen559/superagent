@@ -1,0 +1,1132 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "classification": "任务范围定点机制及真实SDK复验；声明归属仍有余项",
+  "candidate": {
+    "path": "D:\\抖音\\deepcloud\\super-agent\\target\\debug\\hub.exe",
+    "sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f"
+  },
+  "model": "gemini-3.8-flash-high",
+  "plan": {
+    "complete": 43,
+    "total": 74,
+    "completed_this_round": [
+      "4.17"
+    ],
+    "still_pending": [
+      "4.4及其他P3项目",
+      "P4至P7"
+    ]
+  },
+  "changes": [
+    "自动Skill改为候选目录渐进展示，完整点名优先加载正文；worker/Prelude统一发现，资源正文仍真实可读。",
+    "相同TaskContract重传不再清空步骤收据、版本和默认验证；真实替换与增量修改的失效规则保留。",
+    "受信任物理交付策略不依赖旧词面TaskKind，统一默认推进、建议工具与系统内置验证anchor；物理收据齐备后引导结题，不降低业务或显式子任务门禁。",
+    "指导区分历史文案和本Run收据，实际结果另做人工归属复核，不把文件验收当正文或业务认证。"
+  ],
+  "verification": {
+    "rust": {
+      "passed": 552,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "mode": "串行全量；保留原仓库扫描过滤",
+      "log": "artifacts/hub-natural-rule/scope-rust-full-v3-serial.log",
+      "earlier_failure": {
+        "log": "artifacts/hub-natural-rule/scope-rust-full-v3.log",
+        "passed": 551,
+        "failed": 1,
+        "test": "services::agent::json_lines::tests::actual_driver_cancel_timeout_and_exit_reap_descendants",
+        "symptom": "固定1秒进程夹具未收到PID而Option unwrap失败；并行启动时序为疑点，未证明生产代码回归",
+        "isolated_rerun_passed": true,
+        "isolated_log": "artifacts/hub-natural-rule/scope-process-rerun-v3.log",
+        "test_not_weakened": true
+      },
+      "earlier_targeted_old_contract_failure": "artifacts/hub-natural-rule/scope-progress-v1.log：14通过/1失败；旧断言把相同计划当替换，改为真实新约束后保留旧验证失效检查。"
+    },
+    "build": {
+      "passed": true,
+      "log": "artifacts/hub-natural-rule/scope-build-v3.log"
+    },
+    "oracle_selftests": {
+      "v1_groups": 6,
+      "v2_groups": 5,
+      "source": "独立正反例及同一Hub模块的原/v2裁判对照"
+    },
+    "openspec_strict_passed": true
+  },
+  "totals": {
+    "attempts": 10,
+    "completed": 8,
+    "failed": 2,
+    "model_turns": 84,
+    "tool_calls": 78,
+    "duration_ms": 1277097
+  },
+  "attempts": [
+    {
+      "series": "hub-scope-v1",
+      "kind": "document-replay",
+      "task_id": "b27fe796-9bfb-4c09-a845-1d1a5b8f87d7",
+      "status": "failed",
+      "passed": false,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v1-document-replay.json",
+      "report_sha256": "2011148bf60654270128b23ee55b69497a9d4550929bc26f0ca79accf510b513",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\document-replay\\hub-independent-5cf898b20e414ffe94a13e814c5431f8\\data\\runs\\b27fe796-9bfb-4c09-a845-1d1a5b8f87d7\\workspace",
+      "model_turns": 10,
+      "tool_calls": 10,
+      "duration_ms": 115742,
+      "usage": {
+        "prompt_tokens": 147190,
+        "completion_tokens": 2107,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "list_dir",
+        "view_file",
+        "view_file",
+        "view_file",
+        "view_file",
+        "run_command",
+        "run_command",
+        "run_command",
+        "write_to_file",
+        "verify_delivery"
+      ],
+      "commands": 3,
+      "plans": 0,
+      "skill_reads": [],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": false,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "3d824f1ad8ce9b48c1dd9c7197c182b9987a0c7360301a55960cbc6002085e93",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": false
+      },
+      "candidate_sha256": "884f021b2840b83e484673fa4070dbf751b7373ff359755f04a7bf3570d7ef42",
+      "private_binary_sha256": "884f021b2840b83e484673fa4070dbf751b7373ff359755f04a7bf3570d7ef42",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v1",
+      "kind": "document-reworded",
+      "task_id": "5e223a98-509f-428a-88ac-dda90827fa7b",
+      "status": "completed",
+      "passed": true,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v1-document-reworded.json",
+      "report_sha256": "60ebed016f8efe33fb851e171168bee8520fa449c10fb2c977821311ab7740ce",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\document-reworded\\hub-independent-3fc431206065410ea8bbb116a46303fb\\data\\runs\\5e223a98-509f-428a-88ac-dda90827fa7b\\workspace",
+      "model_turns": 8,
+      "tool_calls": 7,
+      "duration_ms": 97550,
+      "usage": {
+        "prompt_tokens": 117319,
+        "completion_tokens": 3108,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "list_dir",
+        "view_file",
+        "view_file",
+        "view_file",
+        "view_file",
+        "write_to_file",
+        "verify_delivery"
+      ],
+      "commands": 0,
+      "plans": 0,
+      "skill_reads": [],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": false,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "233f225e5bab661a73b40eec1d7b8c571fdafb359040544b55e6b09b06b65f2c",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": false
+      },
+      "candidate_sha256": "884f021b2840b83e484673fa4070dbf751b7373ff359755f04a7bf3570d7ef42",
+      "private_binary_sha256": "884f021b2840b83e484673fa4070dbf751b7373ff359755f04a7bf3570d7ef42",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v1",
+      "kind": "explicit-implementation",
+      "task_id": "ea3dc598-3433-445c-9f7a-f48f0d90d35f",
+      "status": "completed",
+      "passed": true,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:implementation",
+        "checks": [
+          "actual_function_outputs",
+          "stable_case_insensitive_deduplication",
+          "input_unchanged",
+          "contract_and_skill_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v1-explicit-implementation.json",
+      "report_sha256": "3c0a66cff76df03e923988333f490a2814eda2cfc5c0d294e9c7713a396a8f0f",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\explicit-implementation\\hub-independent-5ac4b679a932427da018f99b9620e5ef\\data\\runs\\ea3dc598-3433-445c-9f7a-f48f0d90d35f\\workspace",
+      "model_turns": 10,
+      "tool_calls": 10,
+      "duration_ms": 143874,
+      "usage": {
+        "prompt_tokens": 128470,
+        "completion_tokens": 1346,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "skill_tool",
+        "list_dir",
+        "write_to_file",
+        "run_command",
+        "verify_delivery",
+        "view_file",
+        "run_command",
+        "run_command",
+        "run_command",
+        "verify_delivery"
+      ],
+      "commands": 4,
+      "plans": 0,
+      "skill_reads": [
+        {
+          "name": "scoped-list-fixture",
+          "resource": "SKILL.md"
+        }
+      ],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {},
+        {
+          "completion_ready": true,
+          "domain_verified": true,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "6ca3c40276160c9e8a0f91c99e6669e4309cf8040a9d71b0ed082adf7eeaa957",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": true
+      },
+      "candidate_sha256": "884f021b2840b83e484673fa4070dbf751b7373ff359755f04a7bf3570d7ef42",
+      "private_binary_sha256": "884f021b2840b83e484673fa4070dbf751b7373ff359755f04a7bf3570d7ef42",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v2",
+      "kind": "document-replay",
+      "task_id": "3449419a-0ec1-4685-bba8-329cbc9f1b65",
+      "status": "failed",
+      "passed": false,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v2-document-replay.json",
+      "report_sha256": "60fa9e9b8587d01cb96c656ddcea1e064dac66033d3bb2bf093e4cc4ea89c94a",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-replay\\hub-independent-92f354a96f39420b9d529d69514a98b3\\data\\runs\\3449419a-0ec1-4685-bba8-329cbc9f1b65\\workspace",
+      "model_turns": 10,
+      "tool_calls": 10,
+      "duration_ms": 173249,
+      "usage": {
+        "prompt_tokens": 148789,
+        "completion_tokens": 2160,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "list_dir",
+        "view_file",
+        "view_file",
+        "view_file",
+        "view_file",
+        "run_command",
+        "run_command",
+        "write_to_file",
+        "verify_delivery",
+        "run_command"
+      ],
+      "commands": 3,
+      "plans": 0,
+      "skill_reads": [],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": false,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "50ec8d603d21609ee18668794ec018eff8df3b37dffe6e839250a5ce0db0ce05",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": false,
+        "physical_verification_title": false,
+        "default_code_strategy": false
+      },
+      "candidate_sha256": "ad66dc862d00d28fb6e904b9fecb40ba0e64d7ad65fc83bd73465c589feca525",
+      "private_binary_sha256": "ad66dc862d00d28fb6e904b9fecb40ba0e64d7ad65fc83bd73465c589feca525",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v2",
+      "kind": "document-reworded",
+      "task_id": "a1fa9e37-d655-4bcd-a525-f836df55748a",
+      "status": "completed",
+      "passed": true,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v2-document-reworded.json",
+      "report_sha256": "d6cee3dcbbf2735afda66eb9f06a47a2ade8de5925812b5deaafbfde7c34b075",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9\\data\\runs\\a1fa9e37-d655-4bcd-a525-f836df55748a\\workspace",
+      "model_turns": 9,
+      "tool_calls": 8,
+      "duration_ms": 164712,
+      "usage": {
+        "prompt_tokens": 136387,
+        "completion_tokens": 3249,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "list_dir",
+        "view_file",
+        "view_file",
+        "view_file",
+        "view_file",
+        "run_command",
+        "write_to_file",
+        "verify_delivery"
+      ],
+      "commands": 1,
+      "plans": 0,
+      "skill_reads": [],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": false,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "0b4790cf3ee2418cb1f863d020e4cd2dec04257b0159025ad82f4bb316461684",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": false,
+        "physical_verification_title": true,
+        "default_code_strategy": false
+      },
+      "candidate_sha256": "ad66dc862d00d28fb6e904b9fecb40ba0e64d7ad65fc83bd73465c589feca525",
+      "private_binary_sha256": "ad66dc862d00d28fb6e904b9fecb40ba0e64d7ad65fc83bd73465c589feca525",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v2",
+      "kind": "explicit-implementation",
+      "task_id": "d4c3c37f-8b54-4a75-b0ff-52f4ee1d3558",
+      "status": "completed",
+      "passed": true,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:implementation",
+        "checks": [
+          "actual_function_outputs",
+          "stable_case_insensitive_deduplication",
+          "input_unchanged",
+          "contract_and_skill_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v2-explicit-implementation.json",
+      "report_sha256": "495e16af267bbdc250693ee4295d23425c6dccf58385d61b34b023c88df78245",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\explicit-implementation\\hub-independent-64c91cb41e7443aba00e8808bafd9318\\data\\runs\\d4c3c37f-8b54-4a75-b0ff-52f4ee1d3558\\workspace",
+      "model_turns": 7,
+      "tool_calls": 6,
+      "duration_ms": 93511,
+      "usage": {
+        "prompt_tokens": 81872,
+        "completion_tokens": 1185,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "skill_tool",
+        "list_dir",
+        "view_file",
+        "write_to_file",
+        "run_command",
+        "verify_delivery"
+      ],
+      "commands": 1,
+      "plans": 0,
+      "skill_reads": [
+        {
+          "name": "scoped-list-fixture",
+          "resource": "SKILL.md"
+        }
+      ],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": true,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "dca72aa9015ce5b1fabd2a248cb2cb5e1a1a0579b229e8a7d743b14a2330dc93",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": true,
+        "physical_verification_title": false,
+        "default_code_strategy": true
+      },
+      "candidate_sha256": "ad66dc862d00d28fb6e904b9fecb40ba0e64d7ad65fc83bd73465c589feca525",
+      "private_binary_sha256": "ad66dc862d00d28fb6e904b9fecb40ba0e64d7ad65fc83bd73465c589feca525",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v3",
+      "kind": "document-replay",
+      "task_id": "0c78db5f-99b5-4fb7-ab72-23430596f297",
+      "status": "completed",
+      "passed": true,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v3-document-replay.json",
+      "report_sha256": "c4da3dec35b187c298942398ac19a067df7bdd01280b727004ae8a0ccd6a5a37",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-replay\\hub-independent-af403b34c58947e4a66f3c5bd17a1268\\data\\runs\\0c78db5f-99b5-4fb7-ab72-23430596f297\\workspace",
+      "model_turns": 10,
+      "tool_calls": 9,
+      "duration_ms": 168748,
+      "usage": {
+        "prompt_tokens": 152921,
+        "completion_tokens": 3074,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "list_dir",
+        "view_file",
+        "view_file",
+        "view_file",
+        "view_file",
+        "run_command",
+        "run_command",
+        "write_to_file",
+        "verify_delivery"
+      ],
+      "commands": 2,
+      "plans": 0,
+      "skill_reads": [],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": false,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "bf4429bc1cec29342273a68ae3bb85a6e000b58e63e39082d9d262aaa45d2fef",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": false,
+        "physical_strategy": true,
+        "unconditional_compile_anchor": false,
+        "physical_verification_title": false,
+        "default_code_strategy": false
+      },
+      "candidate_sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f",
+      "private_binary_sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v3",
+      "kind": "document-reworded",
+      "task_id": "fb0aa5e2-17b8-4dd7-99f3-d05a405d45bd",
+      "status": "completed",
+      "passed": true,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v3-document-reworded.json",
+      "report_sha256": "05ed1f5c2f9a578c21869c441a958e90c9c6d9fece1e94fe4e8535e5b30326fc",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-reworded\\hub-independent-50fbfff17b144ee68195f54662008c50\\data\\runs\\fb0aa5e2-17b8-4dd7-99f3-d05a405d45bd\\workspace",
+      "model_turns": 8,
+      "tool_calls": 7,
+      "duration_ms": 115711,
+      "usage": {
+        "prompt_tokens": 117595,
+        "completion_tokens": 2971,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "list_dir",
+        "view_file",
+        "view_file",
+        "view_file",
+        "view_file",
+        "write_to_file",
+        "verify_delivery"
+      ],
+      "commands": 0,
+      "plans": 0,
+      "skill_reads": [],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": false,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "a25cd873824fd24c490981e2bf3e532a695a55b09dc4ae8ff600207451949a03",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": false,
+        "physical_strategy": true,
+        "unconditional_compile_anchor": false,
+        "physical_verification_title": true,
+        "default_code_strategy": false
+      },
+      "candidate_sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f",
+      "private_binary_sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-v3",
+      "kind": "explicit-implementation",
+      "task_id": "4023a809-fc72-4817-93d0-fee96c2b1202",
+      "status": "completed",
+      "passed": true,
+      "oracle_passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:implementation",
+        "checks": [
+          "actual_function_outputs",
+          "stable_case_insensitive_deduplication",
+          "input_unchanged",
+          "contract_and_skill_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-v3-explicit-implementation.json",
+      "report_sha256": "08c178f8be6e1677f3a9db9a290c2f440c65c4a232b755e54b470505e9227f5c",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\explicit-implementation\\hub-independent-94f48bba95604937aa0fa9130eb04ff0\\data\\runs\\4023a809-fc72-4817-93d0-fee96c2b1202\\workspace",
+      "model_turns": 6,
+      "tool_calls": 6,
+      "duration_ms": 95486,
+      "usage": {
+        "prompt_tokens": 71098,
+        "completion_tokens": 1208,
+        "source": "provider-reported trace-snapshot fields"
+      },
+      "tools": [
+        "skill_tool",
+        "view_file",
+        "list_dir",
+        "write_to_file",
+        "run_command",
+        "verify_delivery"
+      ],
+      "commands": 1,
+      "plans": 0,
+      "skill_reads": [
+        {
+          "name": "scoped-list-fixture",
+          "resource": "SKILL.md"
+        }
+      ],
+      "managed_actions": 0,
+      "observed_raw_publication_references": 0,
+      "verify_delivery": [
+        {
+          "completion_ready": true,
+          "domain_verified": true,
+          "exit_code": 0
+        }
+      ],
+      "runtime_prompt": {
+        "available": true,
+        "sha256": "a43a662c27666591c344b9d898b29e714496fd4690f163ec72e58f6e734ed48c",
+        "candidate_catalog": true,
+        "old_forced_mount": false,
+        "inline_explicit_skill": true,
+        "physical_strategy": false,
+        "unconditional_compile_anchor": true,
+        "physical_verification_title": false,
+        "default_code_strategy": true
+      },
+      "candidate_sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f",
+      "private_binary_sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f",
+      "frozen_mismatches": []
+    },
+    {
+      "series": "hub-scope-feedback-v1",
+      "date": "2026-11-04",
+      "classification": "corrected_same_session_scope_clarification",
+      "task_id": "989bc987-1f0d-4e20-a4dd-64e048c711a7",
+      "status": "completed",
+      "passed": true,
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "report_path": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-scope-feedback-v1.json",
+      "report_sha256": "df872c08f5aea079d1179e510448522c58568d9d422c802b3f9596e23120753a",
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-reworded\\hub-independent-50fbfff17b144ee68195f54662008c50\\data\\runs\\989bc987-1f0d-4e20-a4dd-64e048c711a7\\workspace",
+      "model_turns": 6,
+      "tool_calls": 5,
+      "duration_ms": 108514,
+      "tools": [
+        "write_to_file",
+        "view_file",
+        "view_file",
+        "write_to_file",
+        "verify_delivery"
+      ],
+      "session_reused": true,
+      "prior_history_prefix_preserved": true,
+      "initial_projected_messages": 18,
+      "prior_dialogue_visible": true,
+      "candidate_sha256": "9ec4d332d2e4ff2338536a2da168f0631d9c5e77168fcf2209c604b03d511b1f",
+      "feedback_count": 1,
+      "host_wrote_target_prose": false,
+      "manual_review": {
+        "remote_claim_correction_passed": true,
+        "strict_per_run_attribution_passed": false,
+        "notes": [
+          "已将远端回读、API探测、AST和规则引擎执行明确标为本轮未做；物理收据不再冒充这些检查。",
+          "本纠错Run只有两次README读取，却仍将同会话前一Run的三个业务文件读取笼统描述为本轮读取。会话历史可复用，但逐Run动作归属尚不严格；不认证为完全自动解决。",
+          "这里人工要求更明确的本Run归属；不据缺少本轮收据断言历史验收从未发生。"
+        ]
+      },
+      "readme": {
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-reworded\\hub-independent-50fbfff17b144ee68195f54662008c50\\data\\runs\\989bc987-1f0d-4e20-a4dd-64e048c711a7\\workspace\\README.md",
+        "sha256": "d289f9148331911bab09f0c1d7216162499b6d0d74e4cab492b041cd3ff0fdd9"
+      },
+      "protected_files": [
+        {
+          "name": "rule.json",
+          "expected": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90",
+          "actual": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90"
+        },
+        {
+          "name": "publication.json",
+          "expected": "62cbab9ac24a98f324460d5c4e5e55f3809d5f28b326311711a430261872be41",
+          "actual": "62cbab9ac24a98f324460d5c4e5e55f3809d5f28b326311711a430261872be41"
+        },
+        {
+          "name": "share-command.txt",
+          "expected": "2fe198e316d9ce03e412c53996b63351c9011771e84883c0450a6d218843fc45",
+          "actual": "2fe198e316d9ce03e412c53996b63351c9011771e84883c0450a6d218843fc45"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 118484,
+        "completion_tokens": 5243
+      }
+    }
+  ],
+  "manual_review": {
+    "v1": {
+      "date": "2026-11-04",
+      "reviews": [
+        {
+          "kind": "document-replay",
+          "file": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\document-replay\\hub-independent-5cf898b20e414ffe94a13e814c5431f8\\data\\runs\\b27fe796-9bfb-4c09-a845-1d1a5b8f87d7\\workspace\\README.md",
+          "sha256": "0202768c21585fae4a5c346de87b5c527d66913a47d6ec366640cb4201d72918",
+          "physical_oracle_passed": true,
+          "worker_status": "failed",
+          "manual_scope_passed": true,
+          "notes": [
+            "Network dependency, representative PC scope, untested GUI/Android and non-universal 4K are stated. No new AST assertion. Import menu suggestions are not GUI certification."
+          ]
+        },
+        {
+          "kind": "document-reworded",
+          "file": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\document-reworded\\hub-independent-3fc431206065410ea8bbb116a46303fb\\data\\runs\\5e223a98-509f-428a-88ac-dda90827fa7b\\workspace\\README.md",
+          "sha256": "1b01a9510af1edc9014a1aee7b862360770976e519c33243628cfc1d60b0ed8f",
+          "physical_oracle_passed": true,
+          "worker_status": "completed",
+          "manual_scope_passed": false,
+          "notes": [
+            "Retains and expands the input README’s unsupported AST/static compliance claim as a completed test tier. A prior document assertion is not proof that this check ran; physical oracle did not validate prose.",
+            "Network and untested-platform boundaries are stated, but evidence attribution requires correction."
+          ]
+        }
+      ]
+    },
+    "v1_review_correction": {
+      "date": "2026-11-04",
+      "supersedes": "manual-document-review.json broad-boundary pass for document-replay",
+      "reason": "Earlier manual review confirmed broad network/platform boundaries but did not require attribution of specific claimed sample checks. Applying the same source-attribution criterion as v2, Mars/ISS claimed test examples also lack supplied records in this documentation-only Run.",
+      "effective_manual_content_passed": {
+        "document-replay": false,
+        "document-reworded": false
+      },
+      "original_manual_review_preserved": true,
+      "worker_status_unchanged": true
+    },
+    "v2": {
+      "date": "2026-11-04",
+      "reviews": [
+        {
+          "kind": "document-replay",
+          "file": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-replay\\hub-independent-92f354a96f39420b9d529d69514a98b3\\data\\runs\\3449419a-0ec1-4685-bba8-329cbc9f1b65\\workspace\\README.md",
+          "sha256": "9fe6d47c056d69d30f9ad806629abeea82b959cec5bd495079f26fa5fe6b92b9",
+          "worker_status": "failed",
+          "physical_oracle_passed": true,
+          "manual_scope_passed": false,
+          "notes": [
+            "Network, manual import, non-universal 4K and untested Android/GUI boundaries are stated.",
+            "Specific claimed tested examples (Webb and apollo) lack supplied acceptance records; the document does not distinguish historical claims from this documentation-only Run."
+          ]
+        },
+        {
+          "kind": "document-reworded",
+          "file": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9\\data\\runs\\a1fa9e37-d655-4bcd-a525-f836df55748a\\workspace\\README.md",
+          "sha256": "b8c0d5dea4c74697ea11de5261941c1f1816dc0f7db3c0942bc44d2d5a95100d",
+          "worker_status": "completed",
+          "physical_oracle_passed": true,
+          "manual_scope_passed": false,
+          "notes": [
+            "Retains unsupported input AST certification and frames prior API/cloud checks as this Run’s completed checks.",
+            "Physical artifact acceptance does not establish those prose assertions."
+          ]
+        }
+      ]
+    },
+    "v3": [
+      {
+        "date": "2026-11-04",
+        "kind": "document-replay",
+        "worker_status": "completed",
+        "physical_oracle_passed": true,
+        "manual_scope_passed": true,
+        "file": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-replay\\hub-independent-af403b34c58947e4a66f3c5bd17a1268\\data\\runs\\0c78db5f-99b5-4fb7-ab72-23430596f297\\workspace\\README.md",
+        "sha256": "47b0dcc0b572233720ad60f819106292bc6231fd3c3e4b0500ece1738d7ea22a",
+        "notes": [
+          "明确联网依赖、代表样本而非全库、Android/PC GUI未测、不保证全部4K；保留独立JS和手动导入说明。",
+          "移除了输入README的AST认证，不再编造Webb/apollo等已测样本；最终答复明确本次仅修订文档，并按真实verify_delivery物理收据结题。",
+          "PC代表样本范围来自用户本轮给定背景；文中“本次测试”仍可更清楚标注为既有验收范围，但未新增认证。导入菜单建议不代表实际GUI认证。",
+          "一次Windows PowerShell Get-FileHash辅助调用失败；没有盲目恢复该非必需命令，真实物理交付完成后按证据答复。"
+        ]
+      },
+      {
+        "date": "2026-11-04",
+        "kind": "document-reworded",
+        "worker_status": "completed",
+        "physical_oracle_passed": true,
+        "manual_scope_passed": false,
+        "file": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-reworded\\hub-independent-50fbfff17b144ee68195f54662008c50\\data\\runs\\fb0aa5e2-17b8-4dd7-99f3-d05a405d45bd\\workspace\\README.md",
+        "sha256": "90a098a8dc0d91fc69ac9683e5c4d9a106734de7b3c46dd3bccaf296dbe91cb7",
+        "notes": [
+          "网络、全库与未测平台边界存在，AST措辞已移除。",
+          "仍将旧发布回读与API样本逻辑检查表述为本轮实际完成；本Run仅7工具：目录/文件读取、文档写入及物理verify_delivery，没有远端回读或规则运行工具收据。",
+          "原completed及物理oracle通过不变，正文证据归属复核单列未通过；下一步一次简短纠错对话，不修改已冻原始结果。"
+        ]
+      }
+    ],
+    "feedback": {
+      "remote_claim_correction_passed": true,
+      "strict_per_run_attribution_passed": false,
+      "notes": [
+        "已将远端回读、API探测、AST和规则引擎执行明确标为本轮未做；物理收据不再冒充这些检查。",
+        "本纠错Run只有两次README读取，却仍将同会话前一Run的三个业务文件读取笼统描述为本轮读取。会话历史可复用，但逐Run动作归属尚不严格；不认证为完全自动解决。",
+        "这里人工要求更明确的本Run归属；不据缺少本轮收据断言历史验收从未发生。"
+      ]
+    }
+  },
+  "feedback": {
+    "same_session": true,
+    "prior_history_prefix_preserved": true,
+    "prior_dialogue_visible": true,
+    "prompt_count": 1,
+    "remote_claim_correction_passed": true,
+    "strict_per_run_attribution_passed": false,
+    "host_replacement_prose": false
+  },
+  "oracle_correction": {
+    "old_script": "scripts/verify_scope_fixture.cjs",
+    "new_script": "scripts/verify_scope_fixture_v2.cjs",
+    "reason": "原裁判错误要求隔离工作副本含默认排除的.agents目录；v2核对同一固定原Skill源哈希，函数、不可变输入、README断言不变。原误拒与Hub补拷后10轮completed保留。",
+    "proof": "artifacts/scope-oracle-v2-proof-v1/result.json"
+  },
+  "freeze": {
+    "source_snapshots_checked": 27,
+    "source_snapshots": [
+      {
+        "series": "hub-scope-v1",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\source-snapshot\\src\\domains\\agent_cognitive\\capability_scout.rs",
+        "sha256": "eb719f542d914d5b2c4c084bbee97b5c0fb0fd0c22be2f180b74dbc158efdcc7",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v1",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\source-snapshot\\src\\services\\brain\\worker.rs",
+        "sha256": "ea1651228b03a27af55028c32eb7b032a15a4ae4b431d64ff50ead8213f1dadf",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v1",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\source-snapshot\\src\\services\\brain\\run_prelude.rs",
+        "sha256": "738439fe2009c3b5b78df100917a30d9a62bf830a51d7925cc4cc168a7679290",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v1",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\source-snapshot\\src\\services\\brain\\cognitive_runtime.rs",
+        "sha256": "48511789b6da710ee59500921501c4d0763f5f3f69907400b4eeec210390a230",
+        "reconstructed_after_run": true
+      },
+      {
+        "series": "hub-scope-v1",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\source-snapshot\\src\\services\\brain\\task_progress.rs",
+        "sha256": "7cf681c6291e7e8085d1e5c32e288f6e7573edac8cc569e532899842318921b2",
+        "reconstructed_after_run": true
+      },
+      {
+        "series": "hub-scope-v1",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\source-snapshot\\src\\services\\brain\\task_progress_tests.rs",
+        "sha256": "2a3394251e98bb4433a230a5985e2d04d9b41fae469f4e603c51a3fafdfdc261",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v1",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\source-snapshot\\src\\services\\brain\\tools\\skill_tool.rs",
+        "sha256": "1415e9baab93d75a9dabcb5a3e98411fede25d09a13436c0afe814e2839d1614",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\domains\\agent_cognitive\\capability_scout.rs",
+        "sha256": "eb719f542d914d5b2c4c084bbee97b5c0fb0fd0c22be2f180b74dbc158efdcc7",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\delivery_evidence.rs",
+        "sha256": "e67955491b120a09e9e32350afe3579c7b5f687e8563e482ee4e6f6c8aff6831",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\run_plan.rs",
+        "sha256": "f6dca723b639676d15746bb6329c9db929d80a1acc2458362431eb7e984d8c0d",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\bounded_recovery_tests.rs",
+        "sha256": "94bee1911d618c7ca9ef640ab38666c8e3598293fd3cd8c7da867605a4dc6de0",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\worker.rs",
+        "sha256": "ea1651228b03a27af55028c32eb7b032a15a4ae4b431d64ff50ead8213f1dadf",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\run_prelude.rs",
+        "sha256": "738439fe2009c3b5b78df100917a30d9a62bf830a51d7925cc4cc168a7679290",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\cognitive_runtime.rs",
+        "sha256": "92e258f2c53b1d60c3a4595b8f5413e6d4bffc7ae59b86525eef13f40d1f8dd5",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\task_progress.rs",
+        "sha256": "dc95937046c70757bfba085897524e11573858529a02bf33ee99998905b0f8a7",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\task_progress_tests.rs",
+        "sha256": "2a3394251e98bb4433a230a5985e2d04d9b41fae469f4e603c51a3fafdfdc261",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v2",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\frozen\\source\\src\\services\\brain\\tools\\skill_tool.rs",
+        "sha256": "1415e9baab93d75a9dabcb5a3e98411fede25d09a13436c0afe814e2839d1614",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\domains\\agent_cognitive\\capability_scout.rs",
+        "sha256": "eb719f542d914d5b2c4c084bbee97b5c0fb0fd0c22be2f180b74dbc158efdcc7",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\delivery_evidence.rs",
+        "sha256": "ea5237eb50b98e40e4c4f16dcbabb13bfb733df2411da4767a02acdab3027c8d",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\run_plan.rs",
+        "sha256": "f6dca723b639676d15746bb6329c9db929d80a1acc2458362431eb7e984d8c0d",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\bounded_recovery_tests.rs",
+        "sha256": "7bcc5a08251d26fa73dd7d009df48dbb14e65e1b924ad84dae9523ee1ab9a5c3",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\worker.rs",
+        "sha256": "ea1651228b03a27af55028c32eb7b032a15a4ae4b431d64ff50ead8213f1dadf",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\run_prelude.rs",
+        "sha256": "738439fe2009c3b5b78df100917a30d9a62bf830a51d7925cc4cc168a7679290",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\cognitive_runtime.rs",
+        "sha256": "dedaca0c1e41e4a5658afb05acf4487ec4e799c1c4e23b2ee5d7c6d36b2086c1",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\task_progress.rs",
+        "sha256": "dc95937046c70757bfba085897524e11573858529a02bf33ee99998905b0f8a7",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\task_progress_tests.rs",
+        "sha256": "2a3394251e98bb4433a230a5985e2d04d9b41fae469f4e603c51a3fafdfdc261",
+        "reconstructed_after_run": false
+      },
+      {
+        "series": "hub-scope-v3",
+        "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\frozen\\source\\src\\services\\brain\\tools\\skill_tool.rs",
+        "sha256": "1415e9baab93d75a9dabcb5a3e98411fede25d09a13436c0afe814e2839d1614",
+        "reconstructed_after_run": false
+      }
+    ],
+    "v1_snapshot_timing": "Run后复制；其中两文件在后续修改后内存重建，并与启动前SHA逐字节匹配，未冒称启动前副本。首次CRLF重建失败未保存错误字节。",
+    "v2_v3_snapshot_timing": "启动前真实字节副本；验证器由冻结副本执行。",
+    "skill_files_checked": 80,
+    "skill_hash_mismatches": 0,
+    "raw_reports_unchanged": true,
+    "all_run_time_frozen_hash_checks_passed": true
+  },
+  "runtime_cleanup": {
+    "services": 10,
+    "all_owned_services_stopped": true,
+    "records": [
+      {
+        "case": "document-replay",
+        "stopped": true,
+        "pid": 30704,
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\document-replay\\hub-independent-5cf898b20e414ffe94a13e814c5431f8\\hub.exe"
+      },
+      {
+        "case": "document-reworded",
+        "stopped": true,
+        "pid": 32360,
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\document-reworded\\hub-independent-3fc431206065410ea8bbb116a46303fb\\hub.exe"
+      },
+      {
+        "case": "explicit-implementation",
+        "stopped": true,
+        "pid": 33448,
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v1\\explicit-implementation\\hub-independent-5ac4b679a932427da018f99b9620e5ef\\hub.exe"
+      },
+      {
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-replay\\hub-independent-92f354a96f39420b9d529d69514a98b3\\hub.exe",
+        "case": "document-replay",
+        "stopped": true,
+        "pid": 31644
+      },
+      {
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9\\hub.exe",
+        "case": "document-reworded",
+        "stopped": true,
+        "pid": 4896
+      },
+      {
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\explicit-implementation\\hub-independent-64c91cb41e7443aba00e8808bafd9318\\hub.exe",
+        "case": "explicit-implementation",
+        "stopped": true,
+        "pid": 27604
+      },
+      {
+        "stopped": true,
+        "pid": 10560,
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-replay\\hub-independent-af403b34c58947e4a66f3c5bd17a1268\\hub.exe",
+        "case": "document-replay"
+      },
+      {
+        "stopped": true,
+        "pid": 33708,
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-reworded\\hub-independent-50fbfff17b144ee68195f54662008c50\\hub.exe",
+        "case": "document-reworded"
+      },
+      {
+        "stopped": true,
+        "pid": 34400,
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\explicit-implementation\\hub-independent-94f48bba95604937aa0fa9130eb04ff0\\hub.exe",
+        "case": "explicit-implementation"
+      },
+      {
+        "pid": 4876,
+        "stopped": true,
+        "executable": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\document-reworded\\hub-independent-50fbfff17b144ee68195f54662008c50\\hub.exe"
+      }
+    ],
+    "final_identity_check": {
+      "path": "artifacts/hub-scope-v3/final-runtime-cleanup.json",
+      "sha256": "43954faa934d234b8b3818d5443337fa9afbf0c5a1cd369fd492e2f2d0a69f8b",
+      "checked_services": 10,
+      "remaining_owned_services": []
+    }
+  },
+  "limits": [
+    "全部为已知NASA文档重放和合成本地函数任务；不是未知网站独立规则生成、Android或GUI认证。",
+    "文档worker completed及物理oracle通过不证明正文语义准确；人工归属判定单列。历史范围用语存在歧义，缺少本Run收据不证明历史测试从未发生。",
+    "第三版原文档10轮完成；另一措辞初稿仍混淆历史检查，一次会话纠错6轮修正远端/API/引擎归属，但本地读取仍按会话而非单Run概括。完整4.4不关闭。",
+    "旧意图引擎仍把部分编辑措辞归为Conversational；本轮仅让受信任physical_artifacts配置独立推进，未认证无该profile的普通前端任务自动分类。",
+    "git status在隔离目录沿祖先仓库显示外部文件名；Windows PowerShell Get-FileHash缺失。本轮未修该边界/依赖问题，也不宣称任意shell或OS隔离。",
+    "三版本与一次明确纠错的10次尝试均保留，不能把8次completed折算为智能成功率、首次自主规则成功率或成对因果收益。",
+    "未新建云发布、未晋升生产Skill、未替换安装版、未操作桌面、未提交或归档。"
+  ],
+  "evidence": [
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\scope-rust-full-v3.log",
+      "sha256": "53db98ca57958735d738a6a2ff49f6bfd6a968ea16b0851dc31afa4c5386f849"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\scope-process-rerun-v3.log",
+      "sha256": "348ca6109383606a5ccf0897178fca93bf7d55838732df3039ade552a5899d5a"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\scope-rust-full-v3-serial.log",
+      "sha256": "d3ff716dabf4676adf0b87f817873db0abbea32ed34965c915ee11adb07ca702"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-natural-rule\\scope-build-v3.log",
+      "sha256": "b5cf0c628951860ad6367c8c0aa2e4486496d47fb8410d0cef6b742d16c54355"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\scope-oracle-selftest-v1\\result.json",
+      "sha256": "fed4331b1cfb56e5968e769a4c72d57afd513aba4dbdb0d85bbd70bb1b68373b"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\scope-oracle-v2-proof-v1\\result.json",
+      "sha256": "cd8c1879acf1c37c1a32cba6c84b2a69cfb8a9671d267fdefaca0a00348b2d1e"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\openspec-final-validation.json",
+      "sha256": "73557eb9826ab8d474c06e197c002fc432a824f24236d4fab0ac6a16da1c84b0"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v3\\apply-after-4.17.json",
+      "sha256": "c29b06c781597b20d4a865aa4441c2fe68ca2439f895f93b7520e081fd2b0939"
+    }
+  ]
+}

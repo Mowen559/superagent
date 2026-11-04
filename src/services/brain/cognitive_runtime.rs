@@ -183,6 +183,8 @@ impl CognitiveRuntime {
         } else {
             RunPlan::for_task(task_kind)
         };
+        let mut progress=TaskProgress::default();
+        progress.set_read_only_scope(investigation_only || intent.constraints.read_only_mode);
         Self {
             objective: objective.chars().take(500).collect(),
             mode,
@@ -202,7 +204,7 @@ impl CognitiveRuntime {
             learned_guidance: Vec::new(),
             anchor_constraints: default_anchors,
             distilled_lessons: Vec::new(),
-            task_progress: std::sync::Arc::new(std::sync::Mutex::new(TaskProgress::default())),
+            task_progress: std::sync::Arc::new(std::sync::Mutex::new(progress)),
             proposal_only,
             recovery_hint:None,
             socratic_payload: crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryEngine::evaluate(objective, None),
@@ -228,6 +230,28 @@ impl CognitiveRuntime {
 
     pub fn task_progress(&self) -> SharedTaskProgress {
         self.task_progress.clone()
+    }
+
+    fn promote_execution(&mut self, require_action: bool) {
+        if self.proposal_only || self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).is_read_only_scope() { return; }
+        self.task_kind=TaskKind::Execution;
+        self.evidence_required=true;
+        self.verification_gate.policy=VerificationPolicy::Strict;
+        self.plan.promote_execution(require_action);
+        if require_action && self.intent.capability.suggested_mutation_tools.is_empty() {
+            self.intent.capability.suggested_mutation_tools=vec!["write_to_file".into(),"replace_in_file".into()];
+        }
+    }
+
+    fn follow_structured_plan(&mut self) {
+        let execution=self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).planned_execution();
+        if let Some(require_action)=execution { self.promote_execution(require_action); }
+    }
+    pub fn note_requirement_update(&mut self) {
+        self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).note_requirement_update();
+        self.plan.invalidate_verification();
+        self.verification_gate.invalidate_verification();
+        self.completion_review_used=false;
     }
 
     pub fn invalidate_after_rollback(&mut self) {
@@ -284,7 +308,10 @@ impl CognitiveRuntime {
             ));
         }
 
-        let strategy = match self.task_kind {
+        let physical_acceptance = self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).uses_host_physical_acceptance();
+        let strategy = if physical_acceptance {
+            "Read only the evidence needed for the requested files, make the coherent edit, then call verify_delivery. The host requests physical artifacts; runtime dependency probes and code tests are unnecessary unless essential to create those artifacts or explicitly requested. Reuse supplied facts, preserve files outside scope, and do not recalculate the same hashes to advance progress. Historical document claims are not proof of past checks: attribute them to their source or state they were not independently revalidated. Do not invent test samples, AST certification, or runtime checks in a documentation-only Run."
+        } else { match self.task_kind {
             TaskKind::Conversational => {
                 "Answer directly. Use tools only when the answer depends on workspace or live evidence."
             }
@@ -294,7 +321,7 @@ impl CognitiveRuntime {
             TaskKind::Execution => {
                 "Inspect the relevant state, make the smallest coherent change, run a quality check, and use actual failures to revise the next action."
             }
-        };
+        }};
 
         let failure_note = if self.consecutive_failures > 0 {
             format!(
@@ -318,7 +345,7 @@ impl CognitiveRuntime {
             ""
         };
 
-        let current_phase_desc = self.plan.render();
+        let current_phase_desc = self.plan.render_with_physical_acceptance(physical_acceptance);
 
         let phase_progression_block = format!(
             "\n[FOUR-PHASE COGNITIVE PROGRESSION ROADMAP]\n{}\n",
@@ -364,7 +391,11 @@ impl CognitiveRuntime {
         } else {
             format!(
                 "\n[PINNED ANCHOR CONSTRAINTS - IMMUNE TO FORGETTING/DRIFT]\n- {}",
-                self.anchor_constraints.join("\n- ")
+                self.anchor_constraints.iter().map(|anchor| {
+                    if physical_acceptance && anchor == "Verification Closed-Loop: Run compile/test checks before claiming completion; never fabricate tool output." {
+                        "Verification Closed-Loop: Use verify_delivery for the declared physical artifacts. Explicit task checks remain required. Physical receipts do not certify code behavior or historical test claims."
+                    } else { anchor.as_str() }
+                }).collect::<Vec<_>>().join("\n- ")
             )
         };
 
@@ -376,10 +407,8 @@ impl CognitiveRuntime {
             } else {
                 self.intent.capability.suggested_mutation_tools.join(", ")
             },
-            self.intent
-                .capability
-                .suggested_verification_tools
-                .join(", "),
+            if physical_acceptance { "verify_delivery (physical artifacts; no business certification)".to_string() }
+            else { self.intent.capability.suggested_verification_tools.join(", ") },
             self.intent.ambiguity_score
         );
 
@@ -416,7 +445,7 @@ impl CognitiveRuntime {
             self.successful_tools,
             self.failed_tools,
             self.mutation_tool_calls,
-            self.plan.render(),
+            current_phase_desc,
             strategy,
             failure_note,
             deadlock_warning,
@@ -430,6 +459,10 @@ impl CognitiveRuntime {
         );
         res.push_str(&format!("{}{}", phase_progression_block, pivot_mandate));
         res.push_str(&self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).delivery_guidance());
+        res.push_str(&self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).facts_guidance());
+        if self.plan.ready_for_response() && self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).completion_gap().is_none() {
+            res.push_str("\n[Execution stages satisfied]\nThe default execution stages and explicit contract have no remaining gap. If the requested outcome is covered, deliver the evidence-backed final answer now. Do not invent another plan or delivery declaration merely to call a tool. If a real user requirement remains, address only that gap.\n");
+        }
         if let Some(hint)=&self.recovery_hint {res.push_str(&format!("\n[Evidence-based recovery]\n{hint}\n"));}
         res.push_str(&format!(
             "\n[Turn Budget]\nRemaining model turns including this request: {} of {}. Batch independent read-only calls when useful and reuse facts already supplied in workspace excerpts or prior results. Read further only to resolve a material gap; once the requested outcome is supported, advance to the plan, action or delivery. Record unresolved facts honestly instead of exhausting the budget browsing unrelated files. The deadline never relaxes verification or authorization requirements.\n",
@@ -450,13 +483,12 @@ impl CognitiveRuntime {
         if receipt.name == "plan_task" && receipt.status == ToolExecutionStatus::Succeeded {
             if let Some(value) = receipt.result.get("task_contract") {
                 if let Ok(contract) = TaskContract::from_value(value.clone()) {
-                    if self.task_progress.lock().unwrap_or_else(|e| e.into_inner()).has_plan() {
-                        self.plan.invalidate_verification();
-                    }
-                    self.task_progress
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .apply_plan(contract);
+                    let mut progress = self.task_progress.lock().unwrap_or_else(|e| e.into_inner());
+                    let had_plan = progress.has_plan();
+                    let changed = progress.apply_plan(contract);
+                    if had_plan && changed { self.plan.invalidate_verification(); }
+                    drop(progress);
+                    self.follow_structured_plan();
                 }
             }
             // Planning is useful context, but not an observation of the world.
@@ -466,6 +498,7 @@ impl CognitiveRuntime {
             return;
         }
         if receipt.name == "revise_task_plan" && receipt.status == ToolExecutionStatus::Succeeded {
+            self.follow_structured_plan();
             if receipt
                 .result
                 .get("requires_verification")
@@ -493,6 +526,9 @@ impl CognitiveRuntime {
     }
 
     fn observe_tool(&mut self, status: ToolExecutionStatus, risk: ToolRisk, verification: bool) {
+        if status==ToolExecutionStatus::Succeeded && matches!(risk,ToolRisk::WorkspaceMutation|ToolRisk::Destructive) && !verification {
+            self.promote_execution(true);
+        }
         self.tool_calls += 1;
         if !verification && risk == ToolRisk::WorkspaceMutation && status == ToolExecutionStatus::Succeeded {
             self.mutation_tool_calls += 1;
@@ -662,6 +698,31 @@ mod tests {
         }
     }
     use super::*;
+
+    #[test]
+    fn repeated_plan_receipt_preserves_default_verification_but_changed_plan_invalidates_it() {
+        let mut runtime = CognitiveRuntime::begin("实现本地函数并验证");
+        let mut contract = serde_json::json!({"interpretation":"implement local function",
+            "success_criteria":["expected behavior"],"steps":[{"id":"inspect","goal":"inspect",
+            "acceptance":"source read","evidence_kind":"observation"}]});
+        let make = |value: serde_json::Value| ToolExecutionReceipt {
+            call_id: "plan".into(), name: "plan_task".into(), status: ToolExecutionStatus::Succeeded,
+            duration_ms: 0, result: serde_json::json!({"task_contract":value}), original_result_chars: 0,
+            truncated: false, stored_result_reference: None, risk: ToolRisk::ReadOnly, verification: false,
+        };
+        runtime.observe_receipt(&make(contract.clone()));
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ReadOnly, false);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::WorkspaceMutation, false);
+        runtime.observe_tool(ToolExecutionStatus::Succeeded, ToolRisk::ProcessControl, true);
+        let before = runtime.plan.render();
+        runtime.observe_receipt(&make(contract.clone()));
+        assert_eq!(runtime.plan.render(), before);
+        assert_eq!(runtime.task_progress.lock().unwrap().snapshot()["plan_revision"], 1);
+        contract["success_criteria"] = serde_json::json!(["expected behavior", "additional behavior"]);
+        runtime.observe_receipt(&make(contract));
+        assert_ne!(runtime.plan.render(), before);
+        assert_eq!(runtime.task_progress.lock().unwrap().snapshot()["plan_revision"], 2);
+    }
 
     #[test]
     fn explicit_read_only_investigation_never_requires_an_unrelated_mutation() {

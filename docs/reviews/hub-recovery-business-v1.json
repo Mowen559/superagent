@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39809",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "RECOVERY-business",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300,
+        "prompt": "请先用现有交付验收复现clamp.cjs的边界错误，修复后复核实际函数行为并交付。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_8208a141b75541f6b30b3348d690a23e",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 9338,
+          "completion_tokens": 18,
+          "duration_ms": 88150,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_8208a141b75541f6b30b3348d690a23e\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9338,
+          "prompt_tokens": 9338,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "output"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"error\":\"delivery 'output' needs verify_delivery: trusted verifier failed: exit Some(1); EISDIR: illegal operation on a directory, lstat 'D:'\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":0,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_8208a141b75541f6b30b3348d690a23e",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 9645,
+          "completion_tokens": 10,
+          "duration_ms": 6805,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_8208a141b75541f6b30b3348d690a23e\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9645,
+          "prompt_tokens": 9645,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"files\":[\"[DIR] .superagent\",\"[FILE] README.md\",\"[FILE] clamp.cjs\"],\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":1,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_8208a141b75541f6b30b3348d690a23e",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 9705,
+          "completion_tokens": 115,
+          "duration_ms": 4375,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_8208a141b75541f6b30b3348d690a23e\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9705,
+          "prompt_tokens": 9705,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\hub-independent-0e436f9783584949a60377ff1d8d51be\\data\\runs\\dd9e2aae-9d3c-48f7-9c70-17df44850132\\workspace\\clamp.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: module.exports=value=>Math.max(0,value);\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":44,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\business\\\\hub-independent-0e436f9783584949a60377ff1d8d51be\\\\data\\\\runs\\\\dd9e2aae-9d3c-48f7-9c70-17df44850132\\\\workspace\\\\clamp.cjs\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":2,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "status",
+          "status": "cancelled"
+        }
+      ],
+      "status": "cancelled",
+      "classification": "synthetic_recovery_fixture",
+      "prior_exposure": "Host-authored scaffold and acceptance contract; not held-out real-site autonomy. No feedback after launch.",
+      "task_id": "dd9e2aae-9d3c-48f7-9c70-17df44850132",
+      "duration_ms": 191864,
+      "tool_calls": 3,
+      "model_turns": 3,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 0.9338,
+          "prompt_tokens": 9338,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9645,
+          "prompt_tokens": 9645,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9705,
+          "prompt_tokens": 9705,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 0.9338,
+          "prompt_tokens": 9338,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9645,
+          "prompt_tokens": 9645,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9705,
+          "prompt_tokens": 9705,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\hub-independent-0e436f9783584949a60377ff1d8d51be\\data\\runs\\dd9e2aae-9d3c-48f7-9c70-17df44850132\\workspace",
+      "oracle": {
+        "passed": false,
+        "target": "recovery-fixture:business",
+        "error": "business_validation: clamp output mismatch at 120\n\n120 !== 100\n",
+        "checks": [
+          "actual_fixture_acceptance"
+        ],
+        "exit_code": 1
+      },
+      "oracle_passed": false,
+      "artifacts": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\hub-independent-0e436f9783584949a60377ff1d8d51be\\data\\runs\\dd9e2aae-9d3c-48f7-9c70-17df44850132\\workspace\\README.md",
+          "sha256": "97839b1f93f5cf28441edb6ddd98d1aac672493f1c2f3bd1e003511724351e02"
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "runtime": {
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\hub-independent-0e436f9783584949a60377ff1d8d51be",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "pid": 19140,
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\profile.json",
+    "binarySha256": "FE0D8F78B8062252FF58D1A48C4CAAB6965065111B3A4B95693BCFBFE2227400",
+    "port": 39809,
+    "model_turn_budget": 12,
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\hub-independent-0e436f9783584949a60377ff1d8d51be\\data",
+    "evolution_initial_exists": false,
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\identity.json",
+    "verified_binary_sha256": "fe0d8f78b8062252ff58d1a48c4caab6965065111b3a4b95693bcfbfe2227400"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "ef00bdeb9d6627a116409d62b7951024247efc1b11531075ec73cda5b0c02a49",
+  "frozen_definitions_sha256": "25ff851901c3349b9a5be154c0c3de00a2aed43f4291bbebc80e528919e32329",
+  "planned_task_ids": [
+    "RECOVERY-business"
+  ],
+  "selected_task_ids": [
+    "RECOVERY-business"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

@@ -16,6 +16,7 @@ pub mod interaction_runtime;
 pub mod ipc;
 pub mod knowledge_corpus;
 pub mod run_plan;
+pub mod run_facts;
 pub mod run_prelude;
 pub mod session_ledger;
 pub mod session_lifecycle;

@@ -1,0 +1,459 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39822",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "SCOPE-document-reworded",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300,
+        "prompt": "给接手这套NASA海阔规则的人整理一下README：写清楚网络条件、短口令怎样手动导入，以及本轮到底检查到了哪一层。别把抽样说成全库认证，也别承诺手机或桌面窗口已经测过。保留现有规则与发布凭据文件。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11189,
+          "completion_tokens": 10,
+          "duration_ms": 6465,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1189,
+          "prompt_tokens": 11189,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"files\":[\"[DIR] .superagent\",\"[FILE] README.md\",\"[FILE] publication.json\",\"[FILE] rule.json\",\"[FILE] share-command.txt\"]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11255,
+          "completion_tokens": 119,
+          "duration_ms": 3799,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1255,
+          "prompt_tokens": 11255,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\README.md"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: # NASA官方视频库 - 海阔视界规则 (HikerView Rule)\\n2: \\n3: 本项目为基于 NASA 官方开放影像接口（`https://images-api.nasa.gov/[REDACTED_REMOTE_URL] 原画 / 1080P 超清 / 720P 高清）免嗅直接播放。\\n4: \\n5: ---\\n6: \\n7: ## 📦 交付产物清单\\n8: \\n9: | 文件名 | 说明 | 校验 / 标识 |\\n10: |---|---|---|\\n11: | `rule.json` | 海阔视界规则源码文件 | SHA-256: `11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90` |\\n12: | `publication.json` | 远程云端发布与回读校验记录 | 云 Code ID: `bb8hi5w5vjlecm3c` (Pasteme) |\\n13: | `share-command.txt` | 海阔视界一键导入短口令 | `云6oooole/xxxxxx/bb8hi5w5vjlecm3c` |\\n14: | `README.md` | 本使用说明与交付验收文档 | 当前文档 |\\n15: \\n16: ---\\n17: \\n18: ## 🚀 导入与使用指引 (PC 端)\\n19: \\n20: ### 方式一：云剪切板口令一键导入（推荐）\\n21: 1. 复制 `share-command.txt` 中的导入口令：\\n22:    ```text\\n23:    云6oooole/xxxxxx/bb8hi5w5vjlecm3c\\n24:    ```\\n25: 2. 打开 DeepCloud PC / 海阔视界 PC 客户端；\\n26: 3. 软件将自动读取系统剪切板并弹出导入提示，点击确认即可导入规则。若未自动弹窗，可在规则管理界面中选择「剪切板导入」或「网络导入」。\\n27: \\n28: ### 方式二：本地文件直接导入\\n29: 1. 将本目录下的 `rule.json` 保存到本地磁盘；\\n30: 2. 打开客户端规则设置，选择「本地导入」并选中 `rule.json` 即可完成加载。\\n31: \\n32: ---\\n33: \\n34: ## 🧭 使用说明\\n35: \\n36: 1. **分类浏览**：\\n37:    - 包含：全部视频、火星探索（Mars）、国际空间站（ISS）、阿尔忒弥斯（Artemis）、地球观测（Earth）、深空韦伯（Webb）、行星探索（Planet）、航空前沿（Aeronautics）。\\n38: 2. **全局搜索**：\\n39:    - 在顶部搜索栏输入英文关键词（如 `apollo`, `black hole`, `moon`），即可实时检索 NASA 全球媒体库。\\n40: 3. **详情与播放**：\\n41:    - 点击任一视频海报进入二级详情页，将展示 NASA 任务中心代号、发布日期及官方任务简介；\\n42:    - 规则自动解析该资源的所有分发规格（MP4 视频流），按「4K原画 / 1080P超清 / 720P高清 / 标清 / 预览」清晰度列表呈现；\\n43:    - 点击具体清晰度线路，直接唤起播放器免嗅播放。\\n44: \\n45: ---\\n46: \\n47: ## 🌐 联网前提与网络依赖\\n48: \\n49: 1. **API 数据依赖**：\\n50:    - 本规则直接请求 NASA 官方公共 API：`https://images-api.nasa.gov/[REDACTED_REMOTE_URL] 与 `https://images-api.nasa.gov/[REDACTED_REMOTE_URL] 2. **流媒体与缩略图 CDN**：\\n52:    - 视频流媒体及海报图片均来自 NASA 官方 CDN（如 `images-assets.nasa.gov`）。\\n53: 3. **网络连通性要求**：\\n54:    - 目标站点及 CDN 服务器部署于境外，运行环境需具备正常访问 `nasa.gov` 域名的国际互联网连接；如网络受阻，可能导致封面图加载超时或视频缓冲慢。\\n55: \\n56: ---\\n57: \\n58: ## ⚠️ 平台兼容性与实测说明\\n59: \\n60: - **PC 运行库环境（DeepCloud PC / V8 沙箱）**：\\n61:   - ✅ **已实测验证**：已完成本地沙箱环境下的分类列表解析、动态翻页、关键词搜索、二级详情页元数据加载以及各清晰度 MP4 真实流媒体直链解析与闭包协议校验。\\n62:   - ✅ **静态合规性**：已通过静态 AST 检查，无裸 DOM 调用，遵守标准 `@lazyRule` 语法与安全变量垫片规范。\\n63: - **Android 原生移动端及其他平台**：\\n64:   - ⚠️ **未在 Android 真机实测**：受限于当前测试环境，未进行 Android 原生海阔视界 App 的实体机真机渲染与播放测试。未实测平台不声称通过，实际移动端使用请在 Android 设备上自行导入验证。\\n\",\"total_lines\":64,\"start_line\":1,\"end_line\":64,\"truncated\":false,\"bytes\":3923,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\README.md\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12904,
+          "completion_tokens": 119,
+          "duration_ms": 4241,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2903999,
+          "prompt_tokens": 12904,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\publication.json"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: {\\n2:   \\\"remote_command\\\": \\\"云6oooole/xxxxxx/bb8hi5w5vjlecm3c\\\",\\n3:   \\\"provider\\\": \\\"pasteme\\\",\\n4:   \\\"code_id\\\": \\\"bb8hi5w5vjlecm3c\\\",\\n5:   \\\"web_url\\\": \\\"https://pasteme.tyrantg.com/[REDACTED_REMOTE_URL]\",\\n6:   \\\"rule_sha256\\\": \\\"11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90\\\",\\n7:   \\\"roundtrip_verified\\\": true\\n8: }\\n\",\"total_lines\":8,\"start_line\":1,\"end_line\":8,\"truncated\":false,\"bytes\":319,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\publication.json\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13379,
+          "completion_tokens": 121,
+          "duration_ms": 30321,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3379,
+          "prompt_tokens": 13379,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\share-command.txt"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: 云6oooole/xxxxxx/bb8hi5w5vjlecm3c\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":38,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\share-command.txt\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13686,
+          "completion_tokens": 132,
+          "duration_ms": 8758,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3686,
+          "prompt_tokens": 13686,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\rule.json",
+            "start_line": 1,
+            "end_line": 40
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: {\\n2:   \\\"title\\\": \\\"NASA官方视频库\\\",\\n3:   \\\"author\\\": \\\"MoZhi\\\",\\n4:   \\\"version\\\": 1,\\n5:   \\\"url\\\": \\\"https://images-api.nasa.gov/[REDACTED_REMOTE_URL]\",\\n6:   \\\"class_name\\\": \\\"全部视频&火星探索&国际空间站&阿尔忒弥斯&地球观测&深空韦伯&行星探索&航空前沿\\\",\\n7:   \\\"class_url\\\": \\\"all&mars&iss&artemis&earth&webb&planet&aeronautics\\\",\\n8:   \\\"search_url\\\": \\\"https://images-api.nasa.gov/[REDACTED_REMOTE_URL]\",\\n9:   \\\"group\\\": \\\"纪录片\\\",\\n10:   \\\"detail_col_type\\\": \\\"movie_1_vertical_pic\\\",\\n11:   \\\"find_rule\\\": \\\"js:\\\\nvar d = [];\\\\nvar currentUrl = (typeof MY_URL !== 'undefined' && MY_URL) ? MY_URL : (typeof input !== 'undefined' ? input : '');\\\\ntry {\\\\n  var html = request(currentUrl, {\\\\n    headers: {\\\\n      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',\\\\n      'Referer': 'https://images.nasa.gov/[REDACTED_REMOTE_URL]'\\\\n    }\\\\n  });\\\\n  var json = JSON.parse(html);\\\\n  var items = (json && json.collection && json.collection.items) ? json.collection.items : [];\\\\n  for (var i = 0; i < items.length; i++) {\\\\n    var item = items[i];\\\\n    var data = (item.data && item.data[0]) ? item.data[0] : {};\\\\n    var links = item.links || [];\\\\n    var thumb = '';\\\\n    for (var j = 0; j < links.length; j++) {\\\\n      if (links[j].rel === 'preview' || links[j].render === 'image') {\\\\n        thumb = links[j].href || '';\\\\n        break;\\\\n      }\\\\n    }\\\\n    var nasaId = data.nasa_id || ('nasa_' + i);\\\\n    var title = data.title || nasaId;\\\\n    var dateStr = data.date_created ? data.date_created.slice(0, 10) : '';\\\\n    var center = data.center ? '[' + data.center + '] ' : '';\\\\n    var desc = center + dateStr;\\\\n    var collectionUrl = item.href || ('https://images-api.nasa.gov/[REDACTED_REMOTE_URL]' + encodeURIComponent(nasaId));\\\\n    var safeDetailUrl = collectionUrl + '#title=' + encodeURIComponent(title) + '&desc=' + encodeURIComponent(data.description || '') + '&thumb=' + encodeURIComponent(thumb);\\\\n    var picWithReferer = thumb ? (thumb + '@Referer=https://images.nasa.gov/[REDACTED_REMOTE_URL]') : '';\\\\n    d.push({\\\\n      title: title,\\\\n      desc: desc,\\\\n      pic_url: picWithReferer,\\\\n      url: safeDetailUrl,\\\\n      col_type: 'movie_3'\\\\n    });\\\\n  }\\\\n} catch (e) {\\\\n  d.push({\\\\n    title: '加载失败: ' + (e.message || '网络异常'),\\\\n    desc: '点击重试',\\\\n    url: currentUrl,\\\\n    col_type: 'text_1'\\\\n  });\\\\n}\\\\nsetResult(d);\\\",\\n12:   \\\"searchFind\\\": \\\"js:\\\\nvar d = [];\\\\nvar currentUrl = (typeof MY_URL !== 'undefined' && MY_URL) ? MY_URL : (typeof input !== 'undefined' ? input : '');\\\\ntry {\\\\n  var html = request(currentUrl, {\\\\n    headers: {\\\\n      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',\\\\n      'Referer': 'https://images.nasa.gov/[REDACTED_REMOTE_URL]'\\\\n    }\\\\n  });\\\\n  var json = JSON.parse(html);\\\\n  var items = (json && json.collection && json.collection.items) ? json.collection.items : [];\\\\n  for (var i = 0; i < items.length; i++) {\\\\n    var item = items[i];\\\\n    var data = (item.data && item.data[0]) ? item.data[0] : {};\\\\n    var links = item.links || [];\\\\n    var thumb = '';\\\\n    for (var j = 0; j < links.length; j++) {\\\\n      if (links[j].rel === 'preview' || links[j].render === 'image') {\\\\n        thumb = links[j].href || '';\\\\n        break;\\\\n      }\\\\n    }\\\\n    var nasaId = data.nasa_id || ('nasa_' + i);\\\\n    var title = data.title || nasaId;\\\\n    var dateStr = data.date_created ? data.date_created.slice(0, 10) : '';\\\\n    var center = data.center ? '[' + data.center + '] ' : '';\\\\n    var desc = center + dateStr;\\\\n    var collectionUrl = item.href || ('https://images-api.nasa.gov/[REDACTED_REMOTE_URL]' + encodeURIComponent(nasaId));\\\\n    var safeDetailUrl = collectionUrl + '#title=' + encodeURIComponent(title) + '&desc=' + encodeURIComponent(data.description || '') + '&thumb=' + encodeURIComponent(thumb);\\\\n    var picWithReferer = thumb ? (thumb + '@Referer=https://images.nasa.gov/[REDACTED_REMOTE_URL]') : '';\\\\n    d.push({\\\\n      title: title,\\\\n      desc: desc,\\\\n      pic_url: picWithReferer,\\\\n      url: safeDetailUrl,\\\\n      col_type: 'movie_3'\\\\n    });\\\\n  }\\\\n} catch (e) {\\\\n  d.push({\\\\n    title: '搜索异常: ' + (e.message || '网络异常'),\\\\n    desc: '点击重试',\\\\n    url: currentUrl,\\\\n    col_type: 'text_1'\\\\n  });\\\\n}\\\\nsetResult(d);\\\",\\n13:   \\\"detail_find_rule\\\": \\\"js:\\\\nvar d = [];\\\\nvar currentUrl = (typeof MY_URL !== 'undefined' && MY_URL) ? MY_URL : (typeof input !== 'undefined' ? input : '');\\\\ntry {\\\\n  var baseAssetUrl = currentUrl.split('#')[0];\\\\n  var hashPart = currentUrl.indexOf('#') > -1 ? currentUrl.slice(currentUrl.indexOf('#') + 1) : '';\\\\n  var params = {};\\\\n  if (hashPart) {\\\\n    var pairs = hashPart.split('&');\\\\n    for (var k = 0; k < pairs.length; k++) {\\\\n      var pair = pairs[k].split('=');\\\\n      if (pair.length >= 2) {\\\\n        params[pair[0]] = decodeURIComponent(pair.slice(1).join('='));\\\\n      }\\\\n    }\\\\n  }\\\\n  var pageTitle = params.title || 'NASA Video';\\\\n  var pageDesc = params.desc || '';\\\\n  var pageThumb = params.thumb || '';\\\\n  var headerPic = pageThumb ? (pageThumb + '@Referer=https://images.nasa.gov/[REDACTED_REMOTE_URL]') : '';\\\\n\\\\n  d.push({\\\\n    title: '剧名：' + pageTitle,\\\\n    desc: pageDesc ? pageDesc.slice(0, 120) + '...' : 'NASA 官方高清纪录影片',\\\\n    pic_url: headerPic,\\\\n    url: baseAssetUrl,\\\\n    col_type: 'pic_1_card'\\\\n  });\\\\n\\\\n  if (pageDesc) {\\\\n    d.push({\\\\n      title: '📖 内容简介',\\\\n      desc: pageDesc,\\\\n      col_type: 'text_1'\\\\n    });\\\\n  }\\\\n\\\\n  d.push({\\\\n    title: '🚀 播放线路与高清画质',\\\\n    col_type: 'text_1'\\\\n  });\\\\n\\\\n  var assetHtml = request(baseAssetUrl, {\\\\n    headers: {\\\\n      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',\\\\n      'Referer': 'https://images.nasa.gov/[REDACTED_REMOTE_URL]'\\\\n    }\\\\n  });\\\\n  var assetJson = JSON.parse(assetHtml);\\\\n  var rawList = [];\\\\n  if (Array.isArray(assetJson)) {\\\\n    rawList = assetJson;\\\\n  } else if (assetJson && assetJson.collection && Array.isArray(assetJson.collection.items)) {\\\\n    for (var a = 0; a < assetJson.collection.items.length; a++) {\\\\n      if (assetJson.collection.items[a] && assetJson.collection.items[a].href) {\\\\n        rawList.push(assetJson.collection.items[a].href);\\\\n      }\\\\n    }\\\\n  }\\\\n\\\\n  var videoLinks = [];\\\\n  for (var m = 0; m < rawList.length; m++) {\\\\n    var rawUrl = rawList[m];\\\\n    if (typeof rawUrl === 'string' && rawUrl.toLowerCase().indexOf('.mp4') > -1) {\\\\n      var httpsUrl = rawUrl.indexOf('http://') === 0 ? ('https://' + rawUrl.slice(7)) : rawUrl;\\\\n      videoLinks.push(httpsUrl);\\\\n    }\\\\n  }\\\\n\\\\n  var qualityMap = [\\\\n    { flag: '~orig.mp4', label: '原画 4K/最高清 (Original)' },\\\\n    { flag: '~large.mp4', label: '超清 1080P (Large)' },\\\\n    { flag: '~medium.mp4', label: '高清 720P (Medium)' },\\\\n    { flag: '~small.mp4', label: '标清 480P (Small)' },\\\\n    { flag: '~mobile.mp4', label: '移动流畅 (Mobile)' },\\\\n    { flag: '~preview.mp4', label: '预览片段 (Preview)' }\\\\n  ];\\\\n\\\\n  var added = 0;\\\\n  for (var q = 0; q < qualityMap.length; q++) {\\\\n    var targetFlag = qualityMap[q].flag;\\\\n    for (var v = 0; v < videoLinks.length; v++) {\\\\n      if (videoLinks[v].indexOf(targetFlag) > -1) {\\\\n        var playTarget = videoLinks[v];\\\\n        d.push({\\\\n          title: qualityMap[q].label,\\\\n          url: playTarget + '@lazyRule=.js:(() => { return input + \\\\\\\";{Referer@https://images.nasa.gov/[REDACTED_REMOTE_URL]\"; })()',\\\\n          col_type: 'text_2'\\\\n        });\\\\n        added++;\\\\n        break;\\\\n      }\\\\n    }\\\\n  }\\\\n\\\\n  if (added === 0 && videoLinks.length > 0) {\\\\n    for (var alt = 0; alt < videoLinks.length; alt++) {\\\\n      var singleUrl = videoLinks[alt];\\\\n      var fileName = singleUrl.split('/').pop() || ('视频源 ' + (alt + 1));\\\\n      d.push({\\\\n        title: '播放源: ' + fileName,\\\\n        url: singleUrl + '@lazyRule=.js:(() => { return input + \\\\\\\";{Referer@https://images.nasa.gov/[REDACTED_REMOTE_URL]\"; })()',\\\\n        col_type: 'text_2'\\\\n      });\\\\n    }\\\\n  }\\\\n} catch (err) {\\\\n  d.push({\\\\n    title: '解析视频资源失败: ' + (err.message || '未知错误'),\\\\n    desc: '点击重试',\\\\n    url: currentUrl,\\\\n    col_type: 'text_1'\\\\n  });\\\\n}\\\\nsetResult(d);\\\"\\n14: }\\n\",\"total_lines\":14,\"start_line\":1,\"end_line\":14,\"truncated\":false,\"bytes\":8053,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\rule.json\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16927,
+          "completion_tokens": 40,
+          "duration_ms": 32786,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6927,
+          "prompt_tokens": 16927,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "powershell -Command \"(Get-FileHash -Algorithm SHA256 .\\\\rule.json).Hash.ToLower()\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":1,\"stdout\":\"\",\"stderr\":\"Get-FileHash : The term 'Get-FileHash' is not recognized as the name of a cmdlet, function, script file, or operable pr\\r\\nogram. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\\r\\nAt line:1 char:2\\r\\n+ (Get-FileHash -Algorithm SHA256 .\\\\\\\\rule.json).Hash.ToLower()\\r\\n+  ~~~~~~~~~~~~\\r\\n    + CategoryInfo          : ObjectNotFound: (Get-FileHash:String) [], CommandNotFoundException\\r\\n    + FullyQualifiedErrorId : CommandNotFoundException\\r\\n \\r\\n\",\"duration_ms\":6024,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":0,\"totalCompressedBytes\":0,\"totalOriginalTokens\":0,\"totalCompressedTokens\":0,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":1}},\"recovery_state\":{\"active\":true,\"failure_class\":\"missing_dependency\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":0,\"hint\":\"Check the named dependency and available runtime. Restore it only within authorized scope or use an evidenced alternative; do not repeat the same missing-dependency command.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 7,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 17417,
+          "completion_tokens": 2101,
+          "duration_ms": 53460,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_7.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7417,
+          "prompt_tokens": 17417,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "TargetFile": "D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\README.md",
+            "CodeContent": "# NASA官方视频库 - 海阔视界规则 (HikerView Rule)\n\n本项目为基于 NASA 官方开放影像接口（`https://images-api.nasa.gov/[REDACTED_REMOTE_URL] 原画 / 1080P 超清 / 720P 高清 / 标清等）MP4 流媒体免嗅直接解析。\n\n---\n\n## 📦 交付产物清单\n\n以下产物均已就绪并完整保留在工作区中：\n\n| 文件名 | 说明 | 标识 / 校验信息 |\n|---|---|---|\n| `rule.json` | 海阔视界规则源码定义文件 | SHA-256: `11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90` |\n| `publication.json` | 云端托管发布与回读校验记录 | Pasteme Code ID: `bb8hi5w5vjlecm3c` |\n| `share-command.txt` | 海阔视界一键分享短口令 | `云6oooole/xxxxxx/bb8hi5w5vjlecm3c` |\n| `README.md` | 接手维护与交付验收说明文档 | 当前文档 |\n\n---\n\n## 🌐 网络条件与运行前提\n\n接手维护或在客户端运行本规则时，必须满足以下网络前置条件：\n\n1. **依赖的官方域名**：\n   - **元数据与检索 API**：`https://images-api.nasa.xn--gov`(-5t3dr14rckbxxl4ex3ldtb365cwq4a4ik54szhj114a8c3amzcz59fwmq96g/[REDACTED_REMOTE_URL] asset 清单解析）\n   - **海报与静态资源**：`https://images-assets.nasa.xn--gov`()-tg8i498csklwp4dumj753c990b/[REDACTED_REMOTE_URL]\n   - **流媒体下载与拉流 CDN**：`https://images-assets.nasa.xn--gov`(-ts2mo05o/[REDACTED_REMOTE_URL] MP4 视频流源站）\n2. **国际网络可达性**：\n   - 上述 API 与媒体服务器均部署在境外，运行客户端的设备环境必须具备稳定访问 `nasa.gov` 及相关子域名的国际互联网连接。\n3. **异常排查参考**：\n   - 若网络受阻或 DNS 无法解析，会导致分类与搜索列表返回“加载失败/网络异常”、封面缩略图出现空白裂图、或二级播放线路解析超时；排查时请优先确认设备到 `images-api.nasa.gov` 的连通性。\n\n---\n\n## 🚀 短口令手动导入与使用指引\n\n规则短口令及托管地址：\n- **短口令**：`云6oooole/xxxxxx/bb8hi5w5vjlecm3c`\n- **Pasteme 托管链接**：`https://pasteme.tyrantg.com/[REDACTED_REMOTE_URL]\n\n### 1. 剪切板自动识别导入（首选）\n1. 复制上述完整短口令（`云6oooole/xxxxxx/bb8hi5w5vjlecm3c`）；\n2. 启动海阔视界 App 或兼容客户端；\n3. 客户端在检测到剪切板口令后会自动弹出导入确认弹窗，点击「立即导入」或「确认」即可。\n\n### 2. 短口令手动导入步骤（当系统未自动弹窗时）\n由于部分系统存在剪切板读取权限限制或弹窗被拦截，请按以下步骤手动导入：\n1. 打开海阔视界，进入「设置」页面（通常位于主界面侧边栏或底部导航）；\n2. 点击进入「规则管理」或「小程序管理」；\n3. 点击页面右上角的菜单按钮（或「+」号功能键）；\n4. 在弹出的菜单中选择 **「剪切板导入」**，App 会主动读取剪切板中的口令并完成导入；\n5. **备选网络导入**：若剪切板导入仍未识别，可在菜单中选择 **「网络导入」**，手动粘贴托管地址 `https://pasteme.tyrantg.com/[REDACTED_REMOTE_URL] 或口令文本，点击确定即可拉取规则。\n\n### 3. 本地文件直接导入（离线备用）\n1. 将工作区中的 `rule.json` 文件传输至设备存储（或在 PC 客户端中定位该文件）；\n2. 在海阔视界的「规则管理」页面，选择「本地导入」；\n3. 浏览并选中 `rule.json` 即可完成加载。\n\n---\n\n## 🧭 规则主要功能与交互规范\n\n1. **分类导航**：\n   - 内置类目：全部视频、火星探索（Mars）、国际空间站（ISS）、阿尔忒弥斯（Artemis）、地球观测（Earth）、深空韦伯（Webb）、行星探索（Planet）、航空前沿（Aeronautics）。\n2. **检索能力**：\n   - 支持英文关键词检索（如 `apollo`, `black hole`, `mars rover`, `jupiter` 等），调用官方全文检索接口。\n3. **二级详情与播放解析**：\n   - 详情页展示 NASA 任务中心代号、拍摄/发布日期及任务英文简介；\n   - 规则自动解析资产清单中的所有可用视频源，按「4K原画 / 1080P超清 / 720P高清 / 标清 / 移动流畅 / 预览片段」等规格映射为播放线路，采用 `@lazyRule` 免嗅直链输出并附带官方 Referer 请求头。\n\n---\n\n## 🔬 本轮检查边界与实测范围说明\n\n接手人请特别注意本轮测试的实际覆盖层次，避免对测试结论产生误解：\n\n### ✅ 本轮已检查并验证的层次\n1. **静态代码与 AST 语法合规检查**：\n   - 验证了 `rule.json` 的整体 JSON 结构合规；\n   - 检查了 `find_rule`、`searchFind`、`detail_find_rule` 内的 JavaScript 代码，确认无 DOM/Window/Document 裸调用，符合海阔沙箱全局函数规范（`request`、`setResult`、`@lazyRule`）；\n2. **逻辑与接口抽样解析（无头沙箱层）**：\n   - 对官方分类接口、关键词搜索接口以及代表性媒体详情的 `asset.json` 进行了**有限样本抽样请求与逻辑验证**；\n   - 验证了多清晰度正则匹配规则（`~orig.mp4`、`~large.mp4`、`~medium.mp4` 等）能够正确提取真实视频 MP4 直链；\n3. **发布与短口令闭环**：\n   - 验证了远程 Pasteme 托管发布成功，回读对比 SHA-256 哈希完全一致。\n\n### ⚠️ 未涵盖范围与边界声明（请勿过度推断）\n1. **抽样检查，非全库认证**：\n   - 本轮仅针对分类首屏及典型关键词的有限返回条目做了逻辑抽样验证；\n   - **未对 NASA 官方影像库做全量库遍历认证**。NASA 媒体库庞大且存在大量早期历史档案，部分历史冷门条目可能存在字段缺失、只有音频/图片或特殊转码格式的情况；\n2. **未在手机端真机运行实测**：\n   - 本轮**未在 Android 原生真机或 iOS 设备的实际海阔视界 App 中进行实体机安装测试**，未在手机屏幕上实测 UI 触控、列表滑动流程度或移动端播放器真实拉流行为；\n3. **未在桌面图形视窗（GUI）中实测**：\n   - 本轮**未在桌面端图形窗口或原生系统播放器视窗中做端到端画面渲染测试**，所有逻辑验证仅在无头/沙箱接口测试层完成。\n\n---\n\n## 📌 接手人后续建议\n\n1. 在实际目标设备（如 Android 手机）上通过短口令或本地文件导入规则；\n2. 在连接国际互联网的真机网络环境下，抽查不同年代的冷门视频资源，评估手机端系统解码器对 4K 原画（`~orig.mp4`）及 1080P 超清视频的播放流畅度与兼容性；\n3. 如遇部分早期条目无 MP4 规格，可考虑在 `detail_find_rule` 中进一步扩充格式后备兜底策略。\n"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\README.md\",\"diagnostics\":[],\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 8,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 19573,
+          "completion_tokens": 18,
+          "duration_ms": 5101,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_8.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9573,
+          "prompt_tokens": 19573,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "readme"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":false,\"completion_ready\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"1a4ee97b-c78a-4cfc-b0a3-d5a56d0b124f\",\"session_id\":\"run_1aa36282d8f84515b76473666d561b3b\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"scope-fixture:document\",\"artifacts\":[{\"id\":\"readme\",\"path\":\"README.md\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"readme\":{\"id\":\"readme\",\"session_id\":\"run_1aa36282d8f84515b76473666d561b3b\",\"run_id\":\"1a4ee97b-c78a-4cfc-b0a3-d5a56d0b124f\",\"target\":\"scope-fixture:document\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-scope-v2\\\\document-reworded\\\\hub-independent-693e36c6449d4ee8806546f865a664f9\\\\data\\\\runs\\\\a1fa9e37-d655-4bcd-a525-f836df55748a\\\\workspace\\\\README.md\",\"sha256\":\"b8c0d5dea4c74697ea11de5261941c1f1816dc0f7db3c0942bc44d2d5a95100d\",\"bytes\":6710,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-04T01:48:39.238914100+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]}},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 9,
+          "session_id": "run_1aa36282d8f84515b76473666d561b3b",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 20057,
+          "completion_tokens": 589,
+          "duration_ms": 11311,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_1aa36282d8f84515b76473666d561b3b\\turn_9.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0057,
+          "prompt_tokens": 20057,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "text",
+          "content": "已完成 `README.md` 的整理与更新，所有原有规则文件（`rule.json`）、发布凭据（`publication.json`）及短口令（`share-command.txt`）均完整保留，且物理交付物已通过验证闭环。\n\n---\n\n### 📋 核心更新内容总结\n\n1. **明确网络条件与前置依赖**：\n   - 明确指出依赖的 NASA 官方域名（API 检索域名 `images-api.nasa.gov` 与媒体直链 CDN `images-assets.nasa.gov`）；\n   - 标明服务器部署于境外，客户端运行环境必须具备直连或无障碍国际互联网访问；\n   - 补充了网络受阻时的典型排查特征（封面裂图、列表提示异常、二级详情加载超时）。\n\n2. **详述短口令手动导入路径**：\n   - 保留首选的剪切板自动识别弹窗导入方式；\n   - 补充系统未弹窗时的手动兜底操作指引：海阔视界「设置」→「规则/小程序管理」→「右上角菜单」→ 选择 **「剪切板导入」**；\n   - 补充网络直链导入（粘贴 Pasteme 地址 `https://pasteme.tyrantg.com/[REDACTED_REMOTE_URL]\n\n3. **客观界定检查层次与边界风险**：\n   - **已实测层次**：静态 AST 合规性检查（无裸 DOM、变量作用域垫片）、无头沙箱环境下的分类/搜索/详情抽样解析与 MP4 直链正则匹配闭环、Pasteme 云端发布及回读校验；\n   - **未实测边界与免责声明**：\n     - **抽样非全库认证**：仅针对首屏类目与典型关键词做了抽样请求，未对庞大的 NASA 历史影像全量库做穷尽遍历；\n     - **未做真机实测**：未在 Android 原生真机或 iOS 实体设备上的海阔 App 中进行实机触控与拉流测试；\n     - **未做桌面 GUI 视窗实测**：未在桌面图形视窗或原生播放器渲染窗口中做端到端画面播映实测。\n\n4. **后续接手建议**：\n   - 建议接手人在真机环境下使用短口令导入，实测不同网络状态下的 4K/1080P 解码表现，并针对无 MP4 分发的特殊早期历史条目按需扩充备用解析分支。"
+        },
+        {
+          "kind": "status",
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "classification": "new_wording_known_target",
+      "prior_exposure": "Host-provided scaffolds and current acceptance contract; not a held-out site or zero-shot rule generation. No feedback after launch.",
+      "task_id": "a1fa9e37-d655-4bcd-a525-f836df55748a",
+      "duration_ms": 164712,
+      "tool_calls": 8,
+      "model_turns": 9,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.1189,
+          "prompt_tokens": 11189,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1255,
+          "prompt_tokens": 11255,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2903999,
+          "prompt_tokens": 12904,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3379,
+          "prompt_tokens": 13379,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3686,
+          "prompt_tokens": 13686,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6927,
+          "prompt_tokens": 16927,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7417,
+          "prompt_tokens": 17417,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9573,
+          "prompt_tokens": 19573,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0057,
+          "prompt_tokens": 20057,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.1189,
+          "prompt_tokens": 11189,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1255,
+          "prompt_tokens": 11255,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2903999,
+          "prompt_tokens": 12904,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3379,
+          "prompt_tokens": 13379,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3686,
+          "prompt_tokens": 13686,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6927,
+          "prompt_tokens": 16927,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7417,
+          "prompt_tokens": 17417,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9573,
+          "prompt_tokens": 19573,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0057,
+          "prompt_tokens": 20057,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9\\data\\runs\\a1fa9e37-d655-4bcd-a525-f836df55748a\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "scope-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_artifacts_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9\\data\\runs\\a1fa9e37-d655-4bcd-a525-f836df55748a\\workspace\\rule.json",
+          "sha256": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90"
+        },
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9\\data\\runs\\a1fa9e37-d655-4bcd-a525-f836df55748a\\workspace\\README.md",
+          "sha256": "b8c0d5dea4c74697ea11de5261941c1f1816dc0f7db3c0942bc44d2d5a95100d"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "runtime": {
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\profile.json",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "pid": 4896,
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\hub-independent-693e36c6449d4ee8806546f865a664f9\\data",
+    "model_turn_budget": 10,
+    "binarySha256": "AD66DC862D00D28FB6E904B9FECB40BA0E64D7AD65FC83BD73465C589FECA525",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "port": 39822,
+    "evolution_initial_exists": false,
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-scope-v2\\document-reworded\\identity.json",
+    "verified_binary_sha256": "ad66dc862d00d28fb6e904b9fecb40ba0e64d7ad65fc83bd73465c589feca525"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "f3c452d6ed8186b2c22b0fb571870c186857038290d680d17dc46e59e93b2047",
+  "frozen_definitions_sha256": "df63d923be707d7c73a46efe08abd7bf1790d25639ba56efd09a03c28a97ffb2",
+  "planned_task_ids": [
+    "SCOPE-document-reworded"
+  ],
+  "selected_task_ids": [
+    "SCOPE-document-reworded"
+  ],
+  "selected_passed": true,
+  "all_passed": true
+}

@@ -245,12 +245,29 @@ fn revised_plans_clear_bindings_without_losing_observed_facts() {
     runtime.apply_plan(plan());
     runtime.observe(&receipt("read", "view_file", ToolRisk::ReadOnly, false));
     complete(&mut runtime, "inspect", &["read"]).unwrap();
-    runtime.apply_plan(plan());
+    let mut replacement = plan();
+    replacement.interpretation.push_str(" with a revised scope");
+    runtime.apply_plan(replacement);
     assert!(runtime.completion_gap().unwrap().contains("inspect"));
     complete(&mut runtime, "inspect", &["read"]).unwrap();
     let mut fresh = TaskProgress::default();
     fresh.apply_plan(plan());
     assert!(complete(&mut fresh, "inspect", &["read"]).is_err());
+}
+
+#[test]
+fn identical_plan_retransmission_preserves_fresh_evidence_and_revision() {
+    let mut runtime = verified();
+    let before = runtime.snapshot();
+    assert!(runtime.completion_gap().is_none());
+    assert!(!runtime.apply_plan(plan()));
+    assert_eq!(runtime.snapshot(), before);
+    assert!(runtime.completion_gap().is_none());
+    // A genuine change still invalidates prior completion bindings.
+    let mut changed = plan();
+    changed.success_criteria.push("Additional acceptance".into());
+    assert!(runtime.apply_plan(changed));
+    assert!(runtime.completion_gap().is_some());
 }
 
 #[test]
@@ -411,7 +428,9 @@ fn duplicate_delta_is_a_noop_and_full_replacement_invalidates_old_checks() {
     assert_eq!(result["status"], "unchanged");
     assert_eq!(result["plan_revision"], 1);
     assert!(runtime.completion_gap().is_none());
-    runtime.apply_plan(plan());
+    let mut replacement = plan();
+    replacement.constraints.push("A genuinely new constraint".into());
+    runtime.apply_plan(replacement);
     complete(&mut runtime, "inspect", &["read"]).unwrap();
     complete(&mut runtime, "change", &["write"]).unwrap();
     assert!(complete(&mut runtime, "verify", &["test"]).is_err());

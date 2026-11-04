@@ -1,0 +1,568 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39831",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "ADAPTIVE-simple",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 360,
+        "prompt": "tier.cjs把数量恰好8划进了single；边界应该算bulk。把这个临界值处理妥当，其他行为及导出接口保留。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 9431,
+          "completion_tokens": 111,
+          "duration_ms": 5889,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9431,
+          "prompt_tokens": 9431,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\data\\runs\\c90993d3-d5dd-421f-a188-daf6291f787f\\workspace\\tier.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: module.exports=n=>n>8?'bulk':'single';\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":42,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-adaptive-v1\\\\simple\\\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\\\data\\\\runs\\\\c90993d3-d5dd-421f-a188-daf6291f787f\\\\workspace\\\\tier.cjs\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 9802,
+          "completion_tokens": 155,
+          "duration_ms": 5252,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9802,
+          "prompt_tokens": 9802,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "replace_in_file",
+          "input": {
+            "replace_text": "module.exports=n=>n>=8?'bulk':'single';",
+            "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\data\\runs\\c90993d3-d5dd-421f-a188-daf6291f787f\\workspace\\tier.cjs",
+            "search_text": "module.exports=n=>n>8?'bulk':'single';"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "replace_in_file",
+          "output": "{\"success\":true,\"message\":\"Successfully replaced text in D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-adaptive-v1\\\\simple\\\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\\\data\\\\runs\\\\c90993d3-d5dd-421f-a188-daf6291f787f\\\\workspace\\\\tier.cjs\",\"diagnostics\":[]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10288,
+          "completion_tokens": 51,
+          "duration_ms": 4403,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0288,
+          "prompt_tokens": 10288,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_task_tool",
+          "input": {
+            "command": "node --test \"D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\frozen\\verify_adaptive_fixture.cjs\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_task_tool",
+          "output": "{\"status\":\"passed\",\"exit_code\":0,\"command\":\"node --test \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-adaptive-v1\\\\frozen\\\\verify_adaptive_fixture.cjs\\\"\",\"summary\":\"Verification succeeded! All tests/checks passed without errors.\",\"output_tail\":\"ok 1 - D:\\\\\\\\抖音\\\\\\\\deepcloud\\\\\\\\super-agent\\\\\\\\artifacts\\\\\\\\hub-adaptive-v1\\\\\\\\frozen\\\\\\\\verify_adaptive_fixture.cjs\\n  ---\\n  duration_ms: 227.9829\\n  type: 'test'\\n  ...\\n1..1\\n# tests 1\\n# suites 0\\n# pass 1\\n# fail 0\\n# cancelled 0\\n# skipped 0\\n# todo 0\\n# duration_ms 254.6565\\n\",\"full_result_reference\":\"tool-result://0764bd4e98406dbc\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10662,
+          "completion_tokens": 10,
+          "duration_ms": 5854,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0662,
+          "prompt_tokens": 10662,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"error\":\"no delivery declaration; call plan_task with delivery first\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":0,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10959,
+          "completion_tokens": 10,
+          "duration_ms": 11964,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0959,
+          "prompt_tokens": 10959,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"files\":[\"[DIR] .superagent\",\"[FILE] README.md\",\"[FILE] USER_DATA.txt\",\"[FILE] tier.cjs\"],\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":1,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11117,
+          "completion_tokens": 314,
+          "duration_ms": 20161,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1117,
+          "prompt_tokens": 11117,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "plan_task",
+          "input": {
+            "steps": [
+              {
+                "goal": "检查 tier.cjs 当前实现",
+                "acceptance": "确认 tier.cjs 原有判定逻辑与单参数函数导出形式",
+                "id": "step_inspect",
+                "evidence_kind": "observation"
+              },
+              {
+                "id": "step_modify",
+                "acceptance": "tier.cjs 中判定条件修改为 n >= 8 ? 'bulk' : 'single'",
+                "evidence_kind": "mutation",
+                "depends_on": [
+                  "step_inspect"
+                ],
+                "goal": "修改 tier.cjs 边界临界值"
+              },
+              {
+                "goal": "运行验收测试验证行为正确性",
+                "evidence_kind": "verification",
+                "depends_on": [
+                  "step_modify"
+                ],
+                "id": "step_verify",
+                "acceptance": "通过 node --test 验收测试"
+              }
+            ],
+            "open_questions": [],
+            "delivery": {
+              "version": "1",
+              "scope": "implementation",
+              "target": "tier.cjs",
+              "artifacts": [
+                {
+                  "id": "tier",
+                  "required": true,
+                  "path": "tier.cjs"
+                }
+              ]
+            },
+            "success_criteria": [
+              "数量恰好 8 时返回 bulk，小于 8 时返回 single",
+              "验收测试 node --test 通过"
+            ],
+            "interpretation": "修复 tier.cjs 边界条件，使数量为 8 时判定为 bulk，小于 8 时为 single，保持导出单参数函数接口及其他文件不变。",
+            "constraints": [
+              "保留导出接口和USER_DATA.txt",
+              "无第三方依赖"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "plan_task",
+          "output": "{\"error\":\"invalid type: string \\\"1\\\", expected u32\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"arguments\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":0,\"hint\":\"Correct the actual tool parameters or choose a registered tool before retrying. Do not repeat unchanged invalid input.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 7,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11649,
+          "completion_tokens": 113,
+          "duration_ms": 14248,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_7.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1649001,
+          "prompt_tokens": 11649,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\data\\runs\\c90993d3-d5dd-421f-a188-daf6291f787f\\workspace\\USER_DATA.txt"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: existing user data must remain unchanged\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":44,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-adaptive-v1\\\\simple\\\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\\\data\\\\runs\\\\c90993d3-d5dd-421f-a188-daf6291f787f\\\\workspace\\\\USER_DATA.txt\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"arguments\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":1,\"hint\":\"Correct the actual tool parameters or choose a registered tool before retrying. Do not repeat unchanged invalid input.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 8,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11990,
+          "completion_tokens": 111,
+          "duration_ms": 6898,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_8.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.199,
+          "prompt_tokens": 11990,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\data\\runs\\c90993d3-d5dd-421f-a188-daf6291f787f\\workspace\\tier.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: module.exports=n=>n>=8?'bulk':'single';\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":43,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-adaptive-v1\\\\simple\\\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\\\data\\\\runs\\\\c90993d3-d5dd-421f-a188-daf6291f787f\\\\workspace\\\\tier.cjs\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"arguments\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":2,\"hint\":\"Correct the actual tool parameters or choose a registered tool before retrying. Do not repeat unchanged invalid input.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 9,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12384,
+          "completion_tokens": 242,
+          "duration_ms": 8397,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_9.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2384,
+          "prompt_tokens": 12384,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "thinking",
+          "content": "【系统自检反思】: Completion review required: The Run plan is incomplete at: Verify the changed behavior. Complete it with tool evidence; verification requires a successful quality check after the latest change.. The preceding answer is a draft, not verified completion."
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 10,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13206,
+          "completion_tokens": 51,
+          "duration_ms": 6456,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_10.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3206,
+          "prompt_tokens": 13206,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_task_tool",
+          "input": {
+            "command": "node --test \"D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\frozen\\verify_adaptive_fixture.cjs\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_task_tool",
+          "output": "{\"status\":\"passed\",\"exit_code\":0,\"command\":\"node --test \\\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-adaptive-v1\\\\frozen\\\\verify_adaptive_fixture.cjs\\\"\",\"summary\":\"Verification succeeded! All tests/checks passed without errors.\",\"output_tail\":\"ok 1 - D:\\\\\\\\抖音\\\\\\\\deepcloud\\\\\\\\super-agent\\\\\\\\artifacts\\\\\\\\hub-adaptive-v1\\\\\\\\frozen\\\\\\\\verify_adaptive_fixture.cjs\\n  ---\\n  duration_ms: 328.4531\\n  type: 'test'\\n  ...\\n1..1\\n# tests 1\\n# suites 0\\n# pass 1\\n# fail 0\\n# cancelled 0\\n# skipped 0\\n# todo 0\\n# duration_ms 368.7376\\n\",\"recovery_state\":{\"active\":true,\"failure_class\":\"arguments\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":3,\"hint\":\"Correct the actual tool parameters or choose a registered tool before retrying. Do not repeat unchanged invalid input.\"},\"full_result_reference\":\"tool-result://a8706069230452af\"}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 11,
+          "session_id": "run_329c6bbe73924b75bbadd511d966c9a4",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13613,
+          "completion_tokens": 348,
+          "duration_ms": 7912,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_329c6bbe73924b75bbadd511d966c9a4\\turn_11.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3613,
+          "prompt_tokens": 13613,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "text",
+          "content": "### 交付报告：`tier.cjs` 临界值边界修复\n\n#### 1. 变更说明\n- **修改文件**：`tier.cjs`\n- **逻辑调整**：将数量判定条件由原先的严格大于 `n > 8` 修正为大于等于 `n >= 8`。\n- **目标达成**：\n  - 当数量为 `8` 及以上时返回 `'bulk'`（修复前 `8` 会被错误划分到 `'single'`）。\n  - 当数量小于 `8` 时保持返回 `'single'`。\n  - 保留原有单参数箭头函数的导出接口（`module.exports = ...`），无第三方依赖，`USER_DATA.txt` 保持未被修改。\n\n修复后代码：\n```javascript\nmodule.exports=n=>n>=8?'bulk':'single';\n```\n\n---\n\n#### 2. 验证结果\n执行验收测试命令：\n```bash\nnode --test \"D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\frozen\\verify_adaptive_fixture.cjs\"\n```\n- **测试状态**：`passed`（退出码 0）\n- **测试统计**：1 个测试套件，1 pass，0 fail，耗时 368ms。\n\n#### 3. 残余风险评估\n- **影响范围**：仅改动 `tier.cjs` 的单一运算符比较（`>` 改为 `>=`）。\n- **向后兼容**：接口签名和返回类型完全兼容现有调用方，残余风险为零。"
+        },
+        {
+          "kind": "status",
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "classification": "natural_wording_no_delivery_profile",
+      "prior_exposure": "Host-authored bounded Node scaffold; not a held-out website. No implementation supplied after launch.",
+      "task_id": "c90993d3-d5dd-421f-a188-daf6291f787f",
+      "duration_ms": 111310,
+      "tool_calls": 9,
+      "model_turns": 11,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 0.9431,
+          "prompt_tokens": 9431,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9802,
+          "prompt_tokens": 9802,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0288,
+          "prompt_tokens": 10288,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0662,
+          "prompt_tokens": 10662,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0959,
+          "prompt_tokens": 10959,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1117,
+          "prompt_tokens": 11117,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1649001,
+          "prompt_tokens": 11649,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.199,
+          "prompt_tokens": 11990,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2384,
+          "prompt_tokens": 12384,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3206,
+          "prompt_tokens": 13206,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3613,
+          "prompt_tokens": 13613,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 0.9431,
+          "prompt_tokens": 9431,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.9802,
+          "prompt_tokens": 9802,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0288,
+          "prompt_tokens": 10288,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0662,
+          "prompt_tokens": 10662,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0959,
+          "prompt_tokens": 10959,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1117,
+          "prompt_tokens": 11117,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1649001,
+          "prompt_tokens": 11649,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.199,
+          "prompt_tokens": 11990,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2384,
+          "prompt_tokens": 12384,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3206,
+          "prompt_tokens": 13206,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3613,
+          "prompt_tokens": 13613,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\data\\runs\\c90993d3-d5dd-421f-a188-daf6291f787f\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "adaptive-fixture:simple",
+        "checks": [
+          "actual_tier_boundaries"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\data\\runs\\c90993d3-d5dd-421f-a188-daf6291f787f\\workspace\\README.md",
+          "sha256": "da8a532e3671a1e644063d346235e5a3d9e36fc6aa1000e461cfff2ee44cefdb"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "runtime": {
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8",
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "binarySha256": "25a2aa7d4001e9b44fdbc17ecb4ef69629ac1ba0bcb796fbe1bb86eaf085753f",
+    "model_turn_budget": 12,
+    "pid": 2468,
+    "profile": null,
+    "evolution_baseline": "private empty service, complex continuation retains its own history",
+    "port": 39831,
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\runtime-d6473ddc72aa4cd898eeb0f6e8d443a8\\data",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-adaptive-v1\\simple\\identity.json",
+    "verified_binary_sha256": "25a2aa7d4001e9b44fdbc17ecb4ef69629ac1ba0bcb796fbe1bb86eaf085753f"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "5e2d5114cf1c57d9f6c82a2efb11fba3a7d87c7a1df9228ff4fd2946dcc4f3d6",
+  "frozen_definitions_sha256": "610c3035e7a17e93d71b9c7b92f616442f0d20e47c3ff5d54ebd4e10da428677",
+  "planned_task_ids": [
+    "ADAPTIVE-simple"
+  ],
+  "selected_task_ids": [
+    "ADAPTIVE-simple"
+  ],
+  "selected_passed": true,
+  "all_passed": true
+}

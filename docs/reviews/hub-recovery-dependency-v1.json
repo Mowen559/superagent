@@ -1,0 +1,594 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39805",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "RECOVERY-dependency",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300,
+        "prompt": "请先用现有交付验收复现本目录运行失败，再依据README补齐缺失的本地依赖并通过复验；不安装外部依赖。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16134,
+          "completion_tokens": 20,
+          "duration_ms": 6057,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6134,
+          "prompt_tokens": 16134,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"files\":[\"[DIR] .superagent\",\"[FILE] README.md\",\"[FILE] main.cjs\"]}"
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"error\":\"delivery 'output' needs verify_delivery: trusted verifier failed: exit Some(1); EISDIR: illegal operation on a directory, lstat 'D:'\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":0,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16470,
+          "completion_tokens": 117,
+          "duration_ms": 5289,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6470001,
+          "prompt_tokens": 16470,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\hub-independent-f8728f3637d147d4b7970186c5a18147\\data\\runs\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\workspace\\main.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: const double=require('./helper.cjs'); module.exports=value=>double(value);\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":78,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\data\\\\runs\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\workspace\\\\main.cjs\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":1,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16780,
+          "completion_tokens": 40,
+          "duration_ms": 8077,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.678,
+          "prompt_tokens": 16780,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node -e \"try { require('./main.cjs'); } catch(e) { console.error(e); }\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"\",\"stderr\":\"Error: Cannot find module './helper.cjs'\\nRequire stack:\\n- D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\data\\\\runs\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\workspace\\\\main.cjs\\n- D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\data\\\\runs\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\workspace\\\\[eval]\\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)\\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)\\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)\\n    at Function._load (node:internal/modules/cjs/loader:1192:37)\\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\\n    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\\n    at Module.require (node:internal/modules/cjs/loader:1463:12)\\n    at require (node:internal/modules/helpers:147:16)\\n    at Object.<anonymous> (D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\data\\\\runs\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\workspace\\\\main.cjs:1:14)\\n    at Module._compile (node:internal/modules/cjs/loader:1705:14) {\\n  code: 'MODULE_NOT_FOUND',\\n  requireStack: [\\n    'D:\\\\\\\\抖音\\\\\\\\deepcloud\\\\\\\\super-agent\\\\\\\\artifacts\\\\\\\\hub-recovery-v1\\\\\\\\dependency\\\\\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\\\\\data\\\\\\\\runs\\\\\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\\\\\workspace\\\\\\\\main.cjs',\\n    'D:\\\\\\\\抖音\\\\\\\\deepcloud\\\\\\\\super-agent\\\\\\\\artifacts\\\\\\\\hub-recovery-v1\\\\\\\\dependency\\\\\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\\\\\data\\\\\\\\runs\\\\\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\\\\\workspace\\\\\\\\[eval]'\\n  ]\\n}\\n\",\"duration_ms\":2327,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":0,\"totalCompressedBytes\":0,\"totalOriginalTokens\":0,\"totalCompressedTokens\":0,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":1}},\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 17702,
+          "completion_tokens": 146,
+          "duration_ms": 10389,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7702,
+          "prompt_tokens": 17702,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "CodeContent": "module.exports = function(value) {\n  return value * 2;\n};\n",
+            "TargetFile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\hub-independent-f8728f3637d147d4b7970186c5a18147\\data\\runs\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\workspace\\helper.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\data\\\\runs\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\workspace\\\\helper.cjs\",\"diagnostics\":[]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 17980,
+          "completion_tokens": 51,
+          "duration_ms": 4773,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.798,
+          "prompt_tokens": 17980,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node -e \"const fn = require('./main.cjs'); console.log('3 =>', fn(3)); console.log('-2 =>', fn(-2));\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"3 => 6\\n-2 => -4\\n\",\"stderr\":\"\",\"duration_ms\":2263,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":16,\"totalCompressedBytes\":16,\"totalOriginalTokens\":4,\"totalCompressedTokens\":4,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":2}}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 18156,
+          "completion_tokens": 22,
+          "duration_ms": 6353,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8155999,
+          "prompt_tokens": 18156,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "output",
+              "helper"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"error\":\"delivery 'output' needs verify_delivery: trusted verifier failed: exit Some(1); EISDIR: illegal operation on a directory, lstat 'D:'\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":0,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 7,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 18712,
+          "completion_tokens": 18,
+          "duration_ms": 5566,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_7.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8712001,
+          "prompt_tokens": 18712,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {
+            "path": ".superagent"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"files\":[\"[DIR] traces\"],\"recovery_state\":{\"active\":true,\"failure_class\":\"business_validation\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":1,\"hint\":\"Inspect the actual artifact and validator error, repair the source, then rerun the required validator. Repeated direct endpoint probes cannot certify the artifact.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 8,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 18764,
+          "completion_tokens": 28,
+          "duration_ms": 6009,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_8.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8764,
+          "prompt_tokens": 18764,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node -e \"console.log(process.cwd())\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\data\\\\runs\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\workspace\\n\",\"stderr\":\"\",\"duration_ms\":1964,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":191,\"totalCompressedBytes\":191,\"totalOriginalTokens\":47,\"totalCompressedTokens\":47,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":3}},\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 9,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 18982,
+          "completion_tokens": 16,
+          "duration_ms": 6910,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_9.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8982,
+          "prompt_tokens": 18982,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {
+            "path": ".."
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"error\":\"Security Error: Path '..' escapes workspace boundary 'D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency\\\\hub-independent-f8728f3637d147d4b7970186c5a18147\\\\data\\\\runs\\\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\\\workspace'\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"unknown\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":0,\"hint\":\"Read the scoped full tool result, identify a concrete cause and change the approach. Do not repeat unchanged failures indefinitely.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 10,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 19267,
+          "completion_tokens": 52,
+          "duration_ms": 11531,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_10.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9267,
+          "prompt_tokens": 19267,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node -e \"const fs = require('fs'); try { fs.lstatSync('D:'); } catch(e) { console.error(e.message); }\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"\",\"stderr\":\"\",\"duration_ms\":1824,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":191,\"totalCompressedBytes\":191,\"totalOriginalTokens\":47,\"totalCompressedTokens\":47,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":4}},\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 11,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 19363,
+          "completion_tokens": 565,
+          "duration_ms": 7745,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_11.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9362999,
+          "prompt_tokens": 19363,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "thinking",
+          "content": "【系统自检反思】: Completion review required: delivery 'output' needs verify_delivery: trusted verifier failed: exit Some(1); EISDIR: illegal operation on a directory, lstat 'D:'. The preceding answer is a draft, not verified completion."
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 12,
+          "session_id": "run_e46b93d7777e4a48a39dc2a13e066050",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 20648,
+          "completion_tokens": 40,
+          "duration_ms": 5699,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_e46b93d7777e4a48a39dc2a13e066050\\turn_12.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0648,
+          "prompt_tokens": 20648,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node -e \"const fs = require('fs'); console.log(fs.lstatSync('D:'));\""
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"status\":\"completed\",\"exit_code\":0,\"stdout\":\"Stats {\\n  dev: 510086759,\\n  mode: 16822,\\n  nlink: 1,\\n  uid: 0,\\n  gid: 0,\\n  rdev: 0,\\n  blksize: 4096,\\n  ino: 1125899908489639,\\n  size: 0,\\n  blocks: 0,\\n  atimeMs: 1793726152226.6184,\\n  mtimeMs: 1793726152225.6172,\\n  ctimeMs: 1793726152225.6172,\\n  birthtimeMs: 1793726109666.5432\\n}\\n\",\"stderr\":\"\",\"duration_ms\":1900,\"rtk_metrics\":{\"stdout_reduction_percent\":0.0,\"tokens_saved_est\":0,\"tracker_stats\":{\"totalOriginalBytes\":470,\"totalCompressedBytes\":470,\"totalOriginalTokens\":116,\"totalCompressedTokens\":116,\"totalTokensSaved\":0,\"overallReductionPercent\":0.0,\"totalInvocations\":5}}}"
+        },
+        {
+          "kind": "error",
+          "content": "cognitive turn budget exceeded: 12 model turns"
+        },
+        {
+          "kind": "error",
+          "content": "cognitive turn budget exceeded: 12 model turns"
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "synthetic_recovery_fixture",
+      "prior_exposure": "Host-authored scaffold and acceptance contract; not held-out real-site autonomy. No feedback after launch.",
+      "task_id": "99dd23f5-ea8f-4dc7-8f1e-393051d57089",
+      "duration_ms": 112891,
+      "tool_calls": 12,
+      "model_turns": 12,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.6134,
+          "prompt_tokens": 16134,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6470001,
+          "prompt_tokens": 16470,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.678,
+          "prompt_tokens": 16780,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7702,
+          "prompt_tokens": 17702,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.798,
+          "prompt_tokens": 17980,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8155999,
+          "prompt_tokens": 18156,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8712001,
+          "prompt_tokens": 18712,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8764,
+          "prompt_tokens": 18764,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8982,
+          "prompt_tokens": 18982,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9267,
+          "prompt_tokens": 19267,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9362999,
+          "prompt_tokens": 19363,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0648,
+          "prompt_tokens": 20648,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.6134,
+          "prompt_tokens": 16134,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6470001,
+          "prompt_tokens": 16470,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.678,
+          "prompt_tokens": 16780,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7702,
+          "prompt_tokens": 17702,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.798,
+          "prompt_tokens": 17980,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8155999,
+          "prompt_tokens": 18156,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8712001,
+          "prompt_tokens": 18712,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8764,
+          "prompt_tokens": 18764,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8982,
+          "prompt_tokens": 18982,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9267,
+          "prompt_tokens": 19267,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.9362999,
+          "prompt_tokens": 19363,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 2.0648,
+          "prompt_tokens": 20648,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\hub-independent-f8728f3637d147d4b7970186c5a18147\\data\\runs\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "recovery-fixture:dependency",
+        "checks": [
+          "actual_local_dependency_execution"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\hub-independent-f8728f3637d147d4b7970186c5a18147\\data\\runs\\99dd23f5-ea8f-4dc7-8f1e-393051d57089\\workspace\\README.md",
+          "sha256": "a42994988de59ea5b7a933af024ef39d7b7f2f5227b3ef1baee3cd1587fad26a"
+        }
+      ],
+      "passed": false
+    }
+  ],
+  "runtime": {
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\hub-independent-f8728f3637d147d4b7970186c5a18147\\data",
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "model_turn_budget": 12,
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\profile.json",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\hub-independent-f8728f3637d147d4b7970186c5a18147",
+    "evolution_initial_exists": false,
+    "port": 39805,
+    "pid": 26824,
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "binarySha256": "FE0D8F78B8062252FF58D1A48C4CAAB6965065111B3A4B95693BCFBFE2227400",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\identity.json",
+    "verified_binary_sha256": "fe0d8f78b8062252ff58d1a48c4caab6965065111b3a4b95693bcfbfe2227400"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "c23c1534e0e9013258361dbd5c35ffd0803f59dce945d25ca5ff5eeccc32a25e",
+  "frozen_definitions_sha256": "3e22ebfd84e85e6b506e3d04d881152df72040fc3c32f518cf96e7399ad5c336",
+  "planned_task_ids": [
+    "RECOVERY-dependency"
+  ],
+  "selected_task_ids": [
+    "RECOVERY-dependency"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

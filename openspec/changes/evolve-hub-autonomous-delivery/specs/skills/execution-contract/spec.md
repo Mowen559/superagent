@@ -6,6 +6,17 @@
 
 ## ADDED Requirements
 
+### Requirement: Skill recommendations do not expand task scope
+系统 SHALL 将自动匹配Skill作为带真实路径的候选目录渐进展示，按当前目标按需读取；完整点名的Skill优先加载，但通用工作流不得覆盖用户当前范围。worker与Run Prelude使用相同发现与排序规则，显式读取保留正文及来源。
+
+#### Scenario: Domain words appear in a documentation edit
+- **WHEN** 用户只要求修订已有规则的说明文件，词面匹配规则工程Skill
+- **THEN** 系统推荐该Skill而非注入强制全流程，指引先完成说明文件及适用验收，不要求重新生成规则或发布
+
+#### Scenario: Explicit skill accompanies an implementation request
+- **WHEN** 用户完整点名Skill要求实现产物
+- **THEN** 系统优先加载该Skill正文，保留实际实施与验收要求，不以目录推荐替代工作
+
 ### Requirement: Skills expose versioned execution expectations
 系统 SHALL 支持技能声明适用任务、版本、依赖、资源、预期产物及验证器引用，并使自动匹配与显式调用消费相同信息；旧技能保持可读取，缺失声明不得被解释为业务已认证。
 

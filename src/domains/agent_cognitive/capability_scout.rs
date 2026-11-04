@@ -54,6 +54,22 @@ pub struct MatchedSkill {
 }
 
 impl MatchedSkill {
+    pub fn explicitly_named(&self, prompt: &str) -> bool {
+        let prompt = prompt.to_lowercase();
+        let name = self.name.to_lowercase();
+        // Full names only; a generic domain word is a recommendation, not an invocation.
+        !name.is_empty() && prompt.match_indices(&name).any(|(start, _)| {
+            let token = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_';
+            !prompt[..start].chars().next_back().is_some_and(token)
+                && !prompt[start + name.len()..].chars().next().is_some_and(token)
+        })
+    }
+
+    pub fn render_recommendation(&self) -> String {
+        format!("- `{}`: {}\n  来源: `{}`；按需使用 skill_tool(action=read, skill_name={}) 读取正文及资源。\n",
+            self.name, self.description, self.path, self.name)
+    }
+
     pub fn render_system_prompt_section(&self) -> String {
         format!(
             "### 已挂载业务技能: {}\n简介: {}\n技能原文: `{}`\n资源根目录: `{}`\n相对资源路径均相对此目录；使用 skill_tool read 读取原文。\n\n{}\n",
@@ -172,14 +188,37 @@ if __name__ == "__main__":
 
     /// 自动扫描并匹配与 Prompt 最相关的领域技能包 (Proactive Skill Scouting & Mounting)
     pub fn scout_and_match_skills(prompt: &str, workspace_root: &Path) -> Vec<MatchedSkill> {
+        Self::match_skills(prompt, Self::discover_skills(workspace_root))
+    }
+
+    fn match_skills(prompt: &str, mut candidates: Vec<MatchedSkill>) -> Vec<MatchedSkill> {
         let p_lower = prompt.to_lowercase();
-        let mut candidates = Self::discover_skills(workspace_root);
         for skill in &mut candidates {
             skill.score = Self::compute_skill_score(&p_lower, &skill.name, &skill.description);
         }
         candidates.retain(|skill| skill.score > 0.0);
-        candidates.sort_by(|a, b| b.score.total_cmp(&a.score).then_with(|| a.name.cmp(&b.name)));
-        candidates.into_iter().take(2).collect()
+        candidates.sort_by(|a, b| b.explicitly_named(prompt).cmp(&a.explicitly_named(prompt))
+            .then_with(|| b.score.total_cmp(&a.score)).then_with(|| a.name.cmp(&b.name)));
+        let mut automatic = 0;
+        candidates.into_iter().filter(|skill| {
+            if skill.explicitly_named(prompt) { return true; }
+            automatic += 1;
+            automatic <= 2
+        }).collect()
+    }
+
+    pub fn render_task_skills(prompt: &str, skills: &[MatchedSkill], include_explicit_body: bool) -> String {
+        if skills.is_empty() { return String::new(); }
+        let mut section = String::from("\n# 当前任务的Skill候选\n自动匹配仅是候选目录，不代表本轮必须执行其全部工作流。先按用户当前目标及必需交付选择相关步骤；文档修改、调查、实现与发布各按实际范围推进。简单产物直接实施并验收；复杂任务使用一份plan_task，新增要求用revise_task_plan增量修订，保留已有证据。不要为遵循通用流程重做已验收产物、探测无关依赖或启动未要求的发布。\n");
+        for skill in skills {
+            if include_explicit_body && skill.explicitly_named(prompt) {
+                section.push_str("\n用户完整点名的Skill（正文按当前任务范围使用）：\n");
+                section.push_str(&skill.render_system_prompt_section());
+            } else {
+                section.push_str(&skill.render_recommendation());
+            }
+        }
+        section
     }
 
     /// One discovery policy for automatic mounting and explicit skill_tool access.
@@ -496,6 +535,32 @@ if __name__ == "__main__":
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recommendations_are_progressive_and_explicit_names_take_priority() {
+        let make = |name: &str, desc: &str| MatchedSkill {
+            name: name.into(), description: desc.into(), path: format!("/skills/{name}/SKILL.md"),
+            instructions: format!("PRIVATE_BODY_{name}"), score: 0.0,
+        };
+        let candidates = vec![make("deepcloud-rule-engineer", "海阔规则"),
+            make("local-app-inspector", "本地应用"), make("writing-guide", "Documentation")];
+        let editorial = "把已有海阔规则的README整理清楚，保留口令和本地应用产物";
+        let automatic = CapabilityScout::match_skills(editorial, candidates.clone());
+        assert!(!automatic.is_empty());
+        let projection = CapabilityScout::render_task_skills(editorial, &automatic, true);
+        assert!(projection.contains("skill_tool(action=read"));
+        assert!(projection.contains("deepcloud-rule-engineer"));
+        assert!(!projection.contains("PRIVATE_BODY_"));
+        let explicit = "按 writing-guide 整理海阔规则、本地应用和口令的说明";
+        let selected = CapabilityScout::match_skills(explicit, candidates);
+        assert_eq!(selected[0].name, "writing-guide");
+        let loaded = CapabilityScout::render_task_skills(explicit, &selected, true);
+        assert!(loaded.contains("PRIVATE_BODY_writing-guide"));
+        assert!(!loaded.contains("PRIVATE_BODY_deepcloud-rule-engineer"));
+        assert!(!selected[0].explicitly_named("writing-guide-extra"));
+        let prelude = CapabilityScout::render_task_skills(explicit, &selected, false);
+        assert!(!prelude.contains("PRIVATE_BODY_"));
+    }
 
     #[test]
     fn skill_discovery_preserves_priority_and_unique_names() {

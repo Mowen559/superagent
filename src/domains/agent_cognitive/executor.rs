@@ -419,9 +419,9 @@ impl AgentLoop {
         self.steering_queue.enqueue(source, content, correlation_id)
     }
 
-    fn inject_pending_steering(&mut self) -> Result<(), String> {
+    fn inject_pending_steering(&mut self) -> Result<bool, String> {
         let Some(lease) = self.steering_queue.lease(None)? else {
-            return Ok(());
+            return Ok(false);
         };
         self.push_event(SessionEvent::SteeringInjected {
             lease_id: lease.lease_id.clone(),
@@ -436,7 +436,7 @@ impl AgentLoop {
             ));
         }
         self.steering_queue.ack(&lease)?;
-        Ok(())
+        Ok(true)
     }
 
     fn transition_session(
@@ -624,7 +624,7 @@ impl AgentLoop {
                 return Err("Model turn budget exhausted without verified completion".to_string());
             }
             // 1.5 Lease runtime steering, persist its delivery fact, then ack.
-            self.inject_pending_steering()?;
+            if self.inject_pending_steering()? { cognition.note_requirement_update(); }
 
             // 1.8 瑙﹀彂 RTK 閽╁瓙 (Circuit Breaker 绛?
             self.event_bus

@@ -82,12 +82,219 @@
           "kind": "tool-result",
           "tool": "view_file",
           "output": "{\"content\":\"1: {\\\"operaton\\\":\\\"ping\\\",\\\"request_id\\\":\\\"keep-this-id\\\"}\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":51,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\arguments\\\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\\\data\\\\runs\\\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\\\workspace\\\\request.json\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"arguments\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":1,\"hint\":\"Correct the actual tool parameters or choose a registered tool before retrying. Do not repeat unchanged invalid input.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_d474e79b02d94b0eb18fb0e84842ae92",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12022,
+          "completion_tokens": 158,
+          "duration_ms": 5941,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_d474e79b02d94b0eb18fb0e84842ae92\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2021999,
+          "prompt_tokens": 12022,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "replace_in_file",
+          "input": {
+            "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\data\\runs\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\workspace\\request.json",
+            "replace_text": "{\"operation\":\"ping\",\"request_id\":\"keep-this-id\"}",
+            "search_text": "{\"operaton\":\"ping\",\"request_id\":\"keep-this-id\"}"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "replace_in_file",
+          "output": "{\"success\":true,\"message\":\"Successfully replaced text in D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\arguments\\\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\\\data\\\\runs\\\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\\\workspace\\\\request.json\",\"diagnostics\":[],\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_d474e79b02d94b0eb18fb0e84842ae92",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12285,
+          "completion_tokens": 18,
+          "duration_ms": 4893,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_d474e79b02d94b0eb18fb0e84842ae92\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2285,
+          "prompt_tokens": 12285,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "output"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":true,\"completion_ready\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"9b715758-cd62-46a7-95b2-913c8d1ca65b\",\"session_id\":\"run_d474e79b02d94b0eb18fb0e84842ae92\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"recovery-fixture:arguments\",\"artifacts\":[{\"id\":\"output\",\"path\":\"request.json\",\"required\":true,\"validator\":\"fixture\"}]},\"artifacts\":{\"output\":{\"id\":\"output\",\"session_id\":\"run_d474e79b02d94b0eb18fb0e84842ae92\",\"run_id\":\"9b715758-cd62-46a7-95b2-913c8d1ca65b\",\"target\":\"recovery-fixture:arguments\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\arguments\\\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\\\data\\\\runs\\\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\\\workspace\\\\request.json\",\"sha256\":\"afe4bfa8f97a995a258e26210e8705936adb9585db102372963f62e5134077ae\",\"bytes\":49,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-03T17:14:18.983361600+00:00\",\"validator\":\"fixture\",\"verifier_sha256\":\"e9aec93bc9a6cbb836a03bd6185e0f2ffeeafbda8f1ed422307c673b207a1a01\",\"domain_verified\":true,\"checks\":[\"actual_request_fields\"]}},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_d474e79b02d94b0eb18fb0e84842ae92",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12739,
+          "completion_tokens": 18,
+          "duration_ms": 4987,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_d474e79b02d94b0eb18fb0e84842ae92\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2739,
+          "prompt_tokens": 12739,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "update_task_progress",
+          "input": {
+            "action": "status"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "update_task_progress",
+          "output": "{\"has_plan\":false,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"9b715758-cd62-46a7-95b2-913c8d1ca65b\",\"session_id\":\"run_d474e79b02d94b0eb18fb0e84842ae92\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"recovery-fixture:arguments\",\"artifacts\":[{\"id\":\"output\",\"path\":\"request.json\",\"required\":true,\"validator\":\"fixture\"}]},\"artifacts\":{\"output\":{\"id\":\"output\",\"session_id\":\"run_d474e79b02d94b0eb18fb0e84842ae92\",\"run_id\":\"9b715758-cd62-46a7-95b2-913c8d1ca65b\",\"target\":\"recovery-fixture:arguments\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\arguments\\\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\\\data\\\\runs\\\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\\\workspace\\\\request.json\",\"sha256\":\"afe4bfa8f97a995a258e26210e8705936adb9585db102372963f62e5134077ae\",\"bytes\":49,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-03T17:14:18.983361600+00:00\",\"validator\":\"fixture\",\"verifier_sha256\":\"e9aec93bc9a6cbb836a03bd6185e0f2ffeeafbda8f1ed422307c673b207a1a01\",\"domain_verified\":true,\"checks\":[\"actual_request_fields\"]}},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null},\"plan_revision\":0,\"steps\":[],\"questions\":[],\"recent_evidence\":[{\"id\":\"call_750219\",\"tool\":\"verify_delivery\",\"kind\":\"verification\",\"external\":false,\"revision\":2},{\"id\":\"call_1014597\",\"tool\":\"replace_in_file\",\"kind\":\"mutation\",\"external\":false,\"revision\":2},{\"id\":\"call_925299\",\"tool\":\"view_file\",\"kind\":\"observation\",\"external\":false,\"revision\":1}]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_d474e79b02d94b0eb18fb0e84842ae92",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13427,
+          "completion_tokens": 241,
+          "duration_ms": 9157,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_d474e79b02d94b0eb18fb0e84842ae92\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3427,
+          "prompt_tokens": 13427,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "text",
+          "content": "已完成修复与交付复核，具体执行情况如下：\n\n### 1. 初始交付验收\n- 首次调用 `verify_delivery`，验证器反馈错误：\n  ```\n  missing field operation=ping\n  + undefined\n  - 'ping'\n  ```\n\n### 2. 问题定位与修复\n- 查阅 `request.json` 发现字段名存在拼写错误（`\"operaton\"` 缺少字母 `i`）。\n- 使用精确替换将字段修正为 `\"operation\": \"ping\"`，并保留了原始请求 ID：\n  ```json\n  {\"operation\":\"ping\",\"request_id\":\"keep-this-id\"}\n  ```\n\n### 3. 复核交付结果\n- 再次执行 `verify_delivery` 交付验收，结果验证通过：\n  - **Status**: `success`\n  - **Exit Code**: `0`\n  - **Domain Verified**: `true`\n  - **Completion Ready**: `true`\n  - **Artifact**: `request.json` 校验通过（`actual_request_fields` 检查全部满足）"
+        },
+        {
+          "kind": "status",
+          "status": "completed"
         }
       ],
-      "status": "submitted",
+      "status": "completed",
       "classification": "synthetic_recovery_fixture",
       "prior_exposure": "Host-authored scaffold and acceptance contract; not held-out real-site autonomy. No feedback after launch.",
-      "task_id": "9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e"
+      "task_id": "9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e",
+      "duration_ms": 77767,
+      "tool_calls": 5,
+      "model_turns": 6,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.1398,
+          "prompt_tokens": 11398,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1733,
+          "prompt_tokens": 11733,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2021999,
+          "prompt_tokens": 12022,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2285,
+          "prompt_tokens": 12285,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2739,
+          "prompt_tokens": 12739,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3427,
+          "prompt_tokens": 13427,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.1398,
+          "prompt_tokens": 11398,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.1733,
+          "prompt_tokens": 11733,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2021999,
+          "prompt_tokens": 12022,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2285,
+          "prompt_tokens": 12285,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2739,
+          "prompt_tokens": 12739,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3427,
+          "prompt_tokens": 13427,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\hub-independent-d9304b5735934bfabbc0a2a3fc993bf7\\data\\runs\\9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "recovery-fixture:arguments",
+        "checks": [
+          "actual_request_fields"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [],
+      "passed": true
     }
   ],
   "runtime": {
@@ -116,5 +323,7 @@
   ],
   "selected_task_ids": [
     "RECOVERY-arguments"
-  ]
+  ],
+  "selected_passed": true,
+  "all_passed": true
 }

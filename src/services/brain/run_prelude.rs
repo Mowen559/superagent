@@ -432,68 +432,11 @@ pub fn scan_workspace_topography(root: &std::path::Path) -> Option<String> {
 }
 
 fn scan_recommended_skills(root: &std::path::Path, objective: &str) -> Option<String> {
-    let skills_dir = root.join(".agents").join("skills");
-    if !skills_dir.is_dir() {
-        return None;
-    }
-
-    let obj_lower = objective.to_ascii_lowercase();
-    let mut matched = Vec::new();
-
-    for entry in walkdir::WalkDir::new(&skills_dir)
-        .max_depth(2)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
-        if entry.file_name() == "SKILL.md" {
-            if let Ok(content) = std::fs::read_to_string(entry.path()) {
-                let skill_name = entry
-                    .path()
-                    .parent()
-                    .and_then(|p| p.file_name())
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("unknown");
-
-                let mut is_match = obj_lower.contains(&skill_name.to_ascii_lowercase());
-                if !is_match {
-                    for line in content.lines().take(15) {
-                        let line_lower = line.to_ascii_lowercase();
-                        if (line_lower.starts_with("description:")
-                            || line_lower.starts_with("name:"))
-                            && obj_lower
-                                .split_whitespace()
-                                .any(|word| word.len() >= 3 && line_lower.contains(word))
-                        {
-                            is_match = true;
-                            break;
-                        }
-                    }
-                }
-
-                if is_match {
-                    matched.push(format!(
-                        "- `{}`: Read via `skill_tool(action='read', skill_name='{}')`",
-                        skill_name, skill_name
-                    ));
-                    if matched.len() >= 3 {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    if matched.is_empty() {
-        return None;
-    }
-
-    let mut buf =
-        String::from("<proactively-recommended-skills>\nRelevant workspace skills discovered:\n");
-    for item in matched {
-        buf.push_str(&format!("{item}\n"));
-    }
-    buf.push_str("</proactively-recommended-skills>\n");
-    Some(buf)
+    use crate::domains::agent_cognitive::capability_scout::CapabilityScout;
+    let skills = CapabilityScout::scout_and_match_skills(objective, root);
+    if skills.is_empty() { return None; }
+    Some(format!("<proactively-recommended-skills>\n{}\n</proactively-recommended-skills>\n",
+        CapabilityScout::render_task_skills(objective, &skills, false)))
 }
 
 #[cfg(test)]

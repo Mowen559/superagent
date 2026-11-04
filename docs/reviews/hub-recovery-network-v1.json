@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39807",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "RECOVERY-network",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300,
+        "prompt": "只做复核：验证本目录现有network.txt是否通过注册的交付验收，保持文件不修改，给出实际结果。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_0fc3ed2c8b5f429582e01f68dba47e33",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12113,
+          "completion_tokens": 131,
+          "duration_ms": 7041,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_0fc3ed2c8b5f429582e01f68dba47e33\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2113,
+          "prompt_tokens": 12113,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\hub-independent-f97352a194694bb6a395972d46bea7f4\\data\\runs\\fe7af786-bf5e-4a55-8303-108b366a2aa8\\workspace\\network.txt"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: existing-network-fixture\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":28,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\network\\\\hub-independent-f97352a194694bb6a395972d46bea7f4\\\\data\\\\runs\\\\fe7af786-bf5e-4a55-8303-108b366a2aa8\\\\workspace\\\\network.txt\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "output"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"error\":\"delivery 'output' needs verify_delivery: trusted verifier failed: exit Some(1); transient_network: ECONNRESET simulated first acceptance attempt\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"transient_network\",\"attempts\":1,\"limit\":2,\"observations_since_failure\":0,\"hint\":\"Allow at most one identical retry for the transient network failure. Then change an evidenced transport or report external unavailability; a direct probe does not replace required runtime verification.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_0fc3ed2c8b5f429582e01f68dba47e33",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12697,
+          "completion_tokens": 18,
+          "duration_ms": 5607,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_0fc3ed2c8b5f429582e01f68dba47e33\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2697,
+          "prompt_tokens": 12697,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {
+            "artifact_ids": [
+              "output"
+            ]
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":true,\"completion_ready\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"972bd78e-4bf0-44d7-877a-c0e46e78067b\",\"session_id\":\"run_0fc3ed2c8b5f429582e01f68dba47e33\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"recovery-fixture:network\",\"artifacts\":[{\"id\":\"output\",\"path\":\"network.txt\",\"required\":true,\"validator\":\"fixture\"}]},\"artifacts\":{\"output\":{\"id\":\"output\",\"session_id\":\"run_0fc3ed2c8b5f429582e01f68dba47e33\",\"run_id\":\"972bd78e-4bf0-44d7-877a-c0e46e78067b\",\"target\":\"recovery-fixture:network\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\network\\\\hub-independent-f97352a194694bb6a395972d46bea7f4\\\\data\\\\runs\\\\fe7af786-bf5e-4a55-8303-108b366a2aa8\\\\workspace\\\\network.txt\",\"sha256\":\"d82f1c6f775198db97f8e79293658c1cc3fd2438c153cec9859dcb8bb122d862\",\"bytes\":25,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-03T17:17:27.844690700+00:00\",\"validator\":\"fixture\",\"verifier_sha256\":\"e9aec93bc9a6cbb836a03bd6185e0f2ffeeafbda8f1ed422307c673b207a1a01\",\"domain_verified\":true,\"checks\":[\"transient_fixture_recovers_without_source_edit\"]}},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null},\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_0fc3ed2c8b5f429582e01f68dba47e33",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 13113,
+          "completion_tokens": 419,
+          "duration_ms": 13793,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_0fc3ed2c8b5f429582e01f68dba47e33\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3113,
+          "prompt_tokens": 13113,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "text",
+          "content": "已完成复核，**本目录现有的 `network.txt` 已通过注册的交付验收**，全程未对文件进行任何修改。实际复核结果与证据如下：\n\n---\n\n### 一、 复核验收结论\n- **验收状态**：✅ **通过 (SUCCESS)**\n- **交付就绪 (completion_ready)**：`true`\n- **业务领域验证 (domain_verified)**：`true`\n- **退出码 (exit_code)**：`0`\n- **文件变更状态**：保持原样，未做任何修改（0 mutations）\n\n---\n\n### 二、 证据与验证详情\n\n1. **工件基本信息**：\n   - **工件 ID**：`output`\n   - **物理路径**：`network.txt`\n   - **内容**：`existing-network-fixture`\n   - **文件大小**：25 bytes\n   - **SHA-256 哈希值**：`d82f1c6f775198db97f8e79293658c1cc3fd2438c153cec9859dcb8bb122d862`\n\n2. **验收过程与检查项**：\n   - **校验目标**：`recovery-fixture:network`（校验器：`fixture`）\n   - **执行过程**：首次校验触发了系统预设的瞬时网络异常（`transient_network: ECONNRESET`），依据瞬时容灾重试规约自动发起二次复核后直接通过。\n   - **通过的断言检查项**：\n     - `transient_fixture_recovers_without_source_edit`（无需源码修改的瞬时容灾恢复验证通过）\n   - **完成度差距 (completion_gap)**：`null`（无遗留缺失）"
+        },
+        {
+          "kind": "status",
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "classification": "synthetic_recovery_fixture",
+      "prior_exposure": "Host-authored scaffold and acceptance contract; not held-out real-site autonomy. No feedback after launch.",
+      "task_id": "fe7af786-bf5e-4a55-8303-108b366a2aa8",
+      "duration_ms": 57955,
+      "tool_calls": 3,
+      "model_turns": 3,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.2113,
+          "prompt_tokens": 12113,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2697,
+          "prompt_tokens": 12697,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3113,
+          "prompt_tokens": 13113,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.2113,
+          "prompt_tokens": 12113,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2697,
+          "prompt_tokens": 12697,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.3113,
+          "prompt_tokens": 13113,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\hub-independent-f97352a194694bb6a395972d46bea7f4\\data\\runs\\fe7af786-bf5e-4a55-8303-108b366a2aa8\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "recovery-fixture:network",
+        "checks": [
+          "transient_fixture_recovers_without_source_edit"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [],
+      "passed": true
+    }
+  ],
+  "runtime": {
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "port": 39807,
+    "model_turn_budget": 10,
+    "pid": 7812,
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "evolution_initial_exists": false,
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\hub-independent-f97352a194694bb6a395972d46bea7f4\\data",
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\profile.json",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\hub-independent-f97352a194694bb6a395972d46bea7f4",
+    "binarySha256": "FE0D8F78B8062252FF58D1A48C4CAAB6965065111B3A4B95693BCFBFE2227400",
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\identity.json",
+    "verified_binary_sha256": "fe0d8f78b8062252ff58d1a48c4caab6965065111b3a4b95693bcfbfe2227400"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "3c2e30432c7af95bba29da0dbdb9978ee49f802a0ab90495253604021494f752",
+  "frozen_definitions_sha256": "ad6f8aa6200a6e431f9d4b1ef1c22c4d208ee8f0205a42842feb6286da17681f",
+  "planned_task_ids": [
+    "RECOVERY-network"
+  ],
+  "selected_task_ids": [
+    "RECOVERY-network"
+  ],
+  "selected_passed": true,
+  "all_passed": true
+}

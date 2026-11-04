@@ -72,6 +72,10 @@ fn physical_document_completion_is_explicit_fresh_and_not_domain_verification() 
         let tmp=tempfile::tempdir().unwrap();let work=tmp.path().join("work");fs::create_dir(&work).unwrap();fs::write(work.join("README.md"),"before").unwrap();let config=profile(tmp.path(),physical,false);
         let mut runtime=CognitiveRuntime::with_mode("Fix the existing README documentation bug in this workspace",ReasoningMode::Adaptive);let progress=runtime.task_progress();
         progress.lock().unwrap().configure_delivery_profile(&work,"s","r",Some(&config)).unwrap();
+        let guidance=runtime.next_guidance().unwrap();
+        assert_eq!(guidance.contains("Verify declared physical files with verify_delivery"),physical);
+        assert_eq!(guidance.contains("run a quality check"),!physical);
+        assert_eq!(guidance.contains("verify_delivery (physical artifacts; no business certification)"),physical);
         let g=ToolExecutionGateway::with_policy(registry(vec![Arc::new(ReadFileTool::new(work.clone())),Arc::new(WriteFileTool::new(work.clone())),Arc::new(VerifyDeliveryTool(progress.clone()))]),ToolPolicy::new(ToolPolicyMode::Audit));g.bind_delivery_progress(&progress);
         for (name,args) in [("view_file",json!({"AbsolutePath":work.join("README.md")})),("write_to_file",json!({"TargetFile":work.join("README.md"),"CodeContent":"Updated documentation with actual import instructions."}))] {let r=invoke(&g,name,args);assert_eq!(r.status,ToolExecutionStatus::Succeeded);runtime.observe_receipt(&r);}
         let verified=invoke(&g,"verify_delivery",json!({}));assert_eq!(verified.status,ToolExecutionStatus::Succeeded);assert_eq!(verified.result["domain_verified"],false);assert_eq!(verified.result["completion_ready"],true);assert!(!verified.verification);runtime.observe_receipt(&verified);
@@ -87,4 +91,24 @@ fn physical_policy_cannot_be_enabled_by_model_or_cover_business_validators() {
     let mut json:Value=serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();json["delivery"]["artifacts"][0]["validator"]=json!("business");fs::write(&config,serde_json::to_vec(&json).unwrap()).unwrap();
     assert!(TaskProgress::default().configure_delivery_profile(&work,"s","r",Some(&config)).unwrap_err().contains("physical_artifacts"));
     let mut declaration=json["delivery"].clone();declaration["completion_policy"]=json!("physical_artifacts");assert!(serde_json::from_value::<DeliveryContract>(declaration).is_err());
+}
+
+#[test]
+fn physical_guidance_uses_host_scope_even_when_legacy_intent_misses_editing_words() {
+    for objective in ["请修订本目录README，准确说明现有独立JS规则的验收范围", "给接手的人整理一下README", "Fix the existing README documentation bug"] {
+        let tmp=tempfile::tempdir().unwrap();let work=tmp.path().join("work");fs::create_dir(&work).unwrap();fs::write(work.join("README.md"),"before").unwrap();let config=profile(tmp.path(),true,false);
+        let mut runtime=CognitiveRuntime::with_mode(objective,ReasoningMode::Adaptive);let progress=runtime.task_progress();progress.lock().unwrap().configure_delivery_profile(&work,"s","r",Some(&config)).unwrap();
+        runtime.add_anchor_constraint("Explicit custom constraint: preserve protected files");
+        let guidance=runtime.next_guidance().unwrap();
+        assert!(guidance.contains("Read only the evidence needed for the requested files"),"{objective}");
+        assert!(!guidance.contains("Run compile/test checks before claiming completion"));
+        assert!(guidance.contains("Explicit custom constraint: preserve protected files"));
+        assert!(guidance.contains("Historical document claims are not proof"));
+        let g=ToolExecutionGateway::with_policy(registry(vec![Arc::new(ReadFileTool::new(work.clone())),Arc::new(WriteFileTool::new(work.clone())),Arc::new(VerifyDeliveryTool(progress.clone()))]),ToolPolicy::new(ToolPolicyMode::Audit));g.bind_delivery_progress(&progress);
+        for (name,args) in [("view_file",json!({"AbsolutePath":work.join("README.md")})),("write_to_file",json!({"TargetFile":work.join("README.md"),"CodeContent":"Scope-limited documentation. Historical behavior not revalidated."})),("verify_delivery",json!({}))] {let r=invoke(&g,name,args);assert_eq!(r.status,ToolExecutionStatus::Succeeded);runtime.observe_receipt(&r);}
+        assert!(runtime.next_guidance().unwrap().contains("otherwise deliver the final answer now"));
+        assert_eq!(runtime.review_completion("The README was revised and has a fresh physical receipt. No new runtime or platform certification was performed."),CompletionDecision::Accept);
+        fs::write(work.join("README.md"),"changed after verification").unwrap();
+        assert!(!progress.lock().unwrap().delivery_guidance().contains("All declared physical artifacts have fresh receipts"));
+    }
 }

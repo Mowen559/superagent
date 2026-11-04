@@ -6,6 +6,63 @@
 
 ## ADDED Requirements
 
+### Requirement: SDK interactions follow the correlated server contract
+SDK SHALL 将补充要求提交为action=steer和response，用户回答提交为action=respond、requestId和response。旧steeringPrompt调用可映射，但不得将旧审批token/布尔值猜测转换为相关用户回答。
+
+#### Scenario: Frontend submits a live supplement
+- **WHEN** 运行中的前端SDK调用interact携带steeringPrompt
+- **THEN** 实际HTTP请求符合后端契约并将补充指令送达工作循环，成功响应不能伪报未投递的指令
+
+### Requirement: Delivered supplements invalidate affected acceptance
+系统 MUST 在补充指令成功入账并确认投递后更新当前验收轮次，使验证及其依赖步骤与物理收据待复验，保留观察、实际修改及单一任务契约，不用旧检查为新约束结题。
+
+#### Scenario: Constraint arrives after a passing check
+- **WHEN** 同Run已有成功检查，用户又补充验收约束
+- **THEN** 旧检查仍是已发生的事实但不能满足新验收；系统要求当前约束下的新检查，不伪造新的修改动作
+
+### Requirement: Completed default stages do not force ceremonial planning
+系统 SHALL 在默认执行阶段及显式契约无缺口时建议有据答复；没有交付声明时明确verify_delivery不适用，不强迫为它新增计划。真实剩余要求仍须处理。
+
+#### Scenario: Ordinary adjustment is already checked
+- **WHEN** 当前Run实际完成修改和有效质量检查，且没有待完成的显式子任务或交付声明
+- **THEN** 系统建议据实答复，不要求为了调用verify_delivery补建计划或重新检查
+
+### Requirement: Structured plans and receipts correct advisory routing
+系统 SHALL 用当前Run已确认计划的步骤类型及规范化真实收据校正初始词面路由，保留已经观察到的事实和当前验证新鲜度；计划不得被当成实施证据，也不得降级已有执行或宿主验收要求。
+
+#### Scenario: Editing wording was initially conversational
+- **WHEN** 词面分类漏识别编辑请求，但当前Run提交mutation计划或实际写入成功
+- **THEN** 系统采用执行推进与严格验证，先前真实观察可以沿用，不要求重写同一计划或重复读取
+
+#### Scenario: Explicit read-only redirection
+- **WHEN** 新Run用户明确只做复核，模型提交mutation计划或调用已识别原生写工具
+- **THEN** 在确认计划或执行工具前拒绝，历史已完成实施不能授权本轮修改；通用shell限制仍如实披露
+
+### Requirement: Projected history retains Run provenance
+系统 MUST 在模型上下文中区分当前工具结果、历史Run结果和来源未知的旧结果，保留工具配对、折叠原文规则及原账本，不把历史结果重新记作当前成功工具。
+
+#### Scenario: Resume a session after earlier file reads
+- **WHEN** 前Run读过业务文件而当前Run只更新说明文档
+- **THEN** 历史结果带原Run标签，当前事实摘要只计本轮操作；历史内容仍可复用但不能被声称为本轮新读取
+
+#### Scenario: Legacy or ambiguous tool history
+- **WHEN** 旧会话结果缺少可匹配Run边界或跨边界恢复配对
+- **THEN** 投影标记unknown，不伪造current身份，旧会话仍能读取
+
+### Requirement: Current Run summaries contain only host facts
+系统 SHALL 按绑定Session/Run输出有界事实摘要，包含规范化工具状态计数和本轮收据引用；不注入原命令、文件正文或工具自带指令，不将普通进程成功或物理文件检查提升为领域验证。
+
+#### Scenario: Provider payload claims additional checks
+- **WHEN** 工具返回自称已运行其他检查或重复收据被观察
+- **THEN** 摘要只按宿主规范化收据记录一次该调用，不信任其中的额外操作声明；超容量时明确计数为下界
+
+### Requirement: Identical plan retransmission preserves evidence
+系统 MUST 在完全相同TaskContract重传时保留计划版本、已完成绑定和当前验证；有变化的完整替换仍按既有规则失效，新增要求优先走单一契约增量修订。
+
+#### Scenario: Model repeats an acknowledged plan
+- **WHEN** 当前计划已有有效步骤收据，模型再次提交完全相同plan_task
+- **THEN** 计划版本和进度不变，不因重传要求重读或重验；真实修订仍失效受影响步骤
+
 ### Requirement: Recovery budgets survive unrelated successful observations
 系统 MUST 按当前Run、规范化调用指纹和工作区修订记录失败类别及预算；参数/缺依赖错误须改变输入或修复状态后再试，网络/业务/未知错误的原样执行最多两次。成功的无关观察不能重置预算，真实工作区变更或同一调用成功后可更新恢复状态。
 
@@ -19,6 +76,18 @@
 #### Scenario: Documentation has fresh physical receipts
 - **WHEN** 宿主明确仅验收文档文件，当前Run写入并通过完整物理verify_delivery且显式子任务无缺口
 - **THEN** 默认代码质量检查不再阻止结题，domain_verified保持false
+
+#### Scenario: Physical delivery guidance before files are written
+- **WHEN** 受信任宿主已声明physical_artifacts，当前文件尚未交付
+- **THEN** 默认认知推进、验证阶段标题及建议工具都指向文件与verify_delivery，不同时强制无关的代码质量或运行环境探测；原质量模式和业务验收保持不变
+
+#### Scenario: Legacy intent classifier misses an editing phrase
+- **WHEN** 宿主已固定physical_artifacts但旧词面分类把编辑措辞归为普通对话
+- **THEN** 文件交付指引仍按该宿主策略呈现，系统默认编译测试anchor不再与之冲突，用户显式检查与自定义约束保持有效；不得将该展示修正冒称完整分类引擎已验证
+
+#### Scenario: Historical README claims an unproven certification
+- **WHEN** 文档任务读到旧README的AST或平台认证声明，本Run未取得对应验证收据
+- **THEN** 指导要求把它标为未独立复核的历史文案或移除，不得将物理文件验收改写成新增业务认证
 
 #### Scenario: Physical acceptance attempts to bypass business verification
 - **WHEN** profile同时声明physical_artifacts与业务validator或受控动作

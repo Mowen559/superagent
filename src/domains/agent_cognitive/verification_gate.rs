@@ -65,6 +65,8 @@ impl Default for VerificationGateGuard {
 }
 
 impl VerificationGateGuard {
+    /// New acceptance input invalidates a check, not the fact of past writes.
+    pub fn invalidate_verification(&mut self) { self.latest_receipt=None; }
     pub fn new(policy: VerificationPolicy, max_retries: usize) -> Self {
         Self {
             policy,

@@ -36,6 +36,9 @@ pub struct RunPlan {
     consecutive_failures: usize,
     replans: usize,
     replan_notice: Option<String>,
+    observation_seen: bool,
+    mutation_seen: bool,
+    verified_current_state: bool,
 }
 
 impl RunPlan {
@@ -61,6 +64,7 @@ impl RunPlan {
             consecutive_failures: 0,
             replans: 0,
             replan_notice: None,
+            observation_seen: false, mutation_seen: false, verified_current_state: false,
         }
     }
 
@@ -103,6 +107,9 @@ impl RunPlan {
             self.invalidate_verification();
         }
         if status == ToolExecutionStatus::Succeeded {
+            self.observation_seen |= verification || matches!(risk,ToolRisk::ReadOnly|ToolRisk::Network|ToolRisk::ProcessControl);
+            self.mutation_seen |= matches!(risk,ToolRisk::WorkspaceMutation|ToolRisk::Destructive);
+            self.verified_current_state |= verification;
             self.consecutive_failures = 0;
             self.advance_success(risk, verification);
             return;
@@ -130,11 +137,25 @@ impl RunPlan {
     }
 
     pub(crate) fn invalidate_verification(&mut self) {
+        self.verified_current_state = false;
         for step in &mut self.steps {
             if step.id == "verify" || step.id == "respond" {
                 step.status = PlanStepStatus::Pending;
             }
         }
+    }
+
+    /// Routing may change; only the actual observed facts are carried forward.
+    pub fn promote_execution(&mut self, require_action: bool) {
+        let require_action = require_action || self.requires_action && self.kind==TaskKind::Execution;
+        if self.kind==TaskKind::Execution && self.requires_action==require_action { return; }
+        let mut next = if require_action { Self::for_task(TaskKind::Execution) } else { Self::for_verification() };
+        if self.observation_seen { next.advance_success(ToolRisk::ReadOnly,false); }
+        if self.mutation_seen { next.advance_success(ToolRisk::WorkspaceMutation,false); }
+        if self.verified_current_state { next.advance_success(ToolRisk::ProcessControl,true); }
+        next.observation_seen=self.observation_seen;next.mutation_seen=self.mutation_seen;next.verified_current_state=self.verified_current_state;
+        next.replans=self.replans;next.replan_notice=self.replan_notice.take();next.consecutive_failures=self.consecutive_failures;
+        *self=next;
     }
 
     pub fn begin_completion(&mut self) {
@@ -155,6 +176,10 @@ impl RunPlan {
                 }
             }
         }
+    }
+    pub fn ready_for_response(&self) -> bool {
+        self.kind==TaskKind::Execution && self.is_completed("inspect")
+            && (!self.requires_action||self.is_completed("act")) && self.is_completed("verify")
     }
 
     pub fn reset_evidence(&mut self) {
@@ -181,6 +206,11 @@ impl RunPlan {
     }
 
     pub fn render(&self) -> String {
+        self.render_with_physical_acceptance(false)
+    }
+
+    /// Presentation only. Completion still requires fresh host-owned receipts.
+    pub fn render_with_physical_acceptance(&self, physical: bool) -> String {
         self.steps
             .iter()
             .map(|step| {
@@ -191,7 +221,7 @@ impl RunPlan {
                         PlanStepStatus::InProgress => "in_progress",
                         PlanStepStatus::Completed => "completed",
                     },
-                    step.title,
+                    if physical && step.id == "verify" { "Verify declared physical files with verify_delivery" } else { step.title },
                     if step.failed_attempts > 0 {
                         format!(" (failed attempts: {})", step.failed_attempts)
                     } else {

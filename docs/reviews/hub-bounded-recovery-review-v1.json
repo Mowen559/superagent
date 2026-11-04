@@ -1,0 +1,684 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-04",
+  "classification": "scoped_recovery_and_physical_document_acceptance_verified_with_preserved_failures",
+  "candidate": {
+    "path": "D:\\抖音\\deepcloud\\super-agent\\target\\debug\\hub.exe",
+    "sha256": "fe0d8f78b8062252ff58d1a48c4caab6965065111b3a4b95693bcfbfe2227400"
+  },
+  "model": "gemini-3.8-flash-high",
+  "changes": [
+    "Run-local categorized failed invocation budgets persist across unrelated successful observations; canonical argument aliases do not renew the budget; successful workspace writes and new Runs reset recovery state.",
+    "Live approval state remains controlled by the policy store. Normal successful tool results retain their shape; only host-authored recovery metadata enters runtime guidance, with provider hint injection rejected.",
+    "Host-only explicit physical_artifacts acceptance closes default code-verification stages for fresh physical delivery while domain_verified remains false; business validators/actions are rejected with that policy, and explicit TaskContract steps remain required.",
+    "Direct current-Run internal trace access and recognized explicit shell paths are refused before execution; scoped full-result and selected-Skill readers remain available, with an explicit host diagnostic opt-in."
+  ],
+  "verification": {
+    "rust": {
+      "passed": 548,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "filter": "Existing repository-scanning test domains::code_review::tests::test_review_current_project_workspace",
+      "log": "artifacts/hub-natural-rule/recovery-rust-full-v2.log"
+    },
+    "build": {
+      "passed": true,
+      "log": "artifacts/hub-natural-rule/recovery-build-v2.log"
+    },
+    "targeted_runtime_tests": {
+      "passed": 5,
+      "log": "artifacts/hub-natural-rule/bounded-recovery-targeted-v2.log",
+      "note": "Preliminary targeted run; all five tests also passed in the final 548-test suite after approval/metadata compatibility fixes."
+    },
+    "host_oracle_selftests": "artifacts/recovery-oracle-selftest-v1/result.json",
+    "namespace_causal_proof": "artifacts/hub-recovery-v1/namespace-oracle-causal-proof.json",
+    "skill_identity": "artifacts/hub-recovery-v1/skill-baseline-check.json",
+    "openspec": {
+      "passed": true,
+      "log": "artifacts/hub-recovery-v1/openspec-final-validation.json"
+    }
+  },
+  "cases": [
+    {
+      "label": "document",
+      "classification": "known_nasa_document_budget_exhausted",
+      "task_id": "9a1182ae-35d0-44dd-8db3-32fc9a2e8fb2",
+      "status": "failed",
+      "passed": false,
+      "model_turns": 10,
+      "tool_calls": 10,
+      "duration_ms": 143729,
+      "budget": {
+        "model_turns": 10,
+        "seconds": 300,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-document-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "missing_dependency"
+      ],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "list_dir": 1,
+        "view_file": 4,
+        "run_command": 3,
+        "write_to_file": 1,
+        "verify_delivery": 1
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:document",
+        "checks": [
+          "readme_revised",
+          "protected_business_files_unchanged"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "publication.json",
+          "sha256": "62cbab9ac24a98f324460d5c4e5e55f3809d5f28b326311711a430261872be41"
+        },
+        {
+          "name": "README.md",
+          "sha256": "a03e06121fc8527c57a2d5d3dd6c5cf0084eb38b64af25bfedc7b18ed9798dd2"
+        },
+        {
+          "name": "rule.json",
+          "sha256": "11a93a4d51b49edfacb877de59e2f8b9130372086d5dd963c88159decb0b8d90"
+        },
+        {
+          "name": "share-command.txt",
+          "sha256": "2fe198e316d9ce03e412c53996b63351c9011771e84883c0450a6d218843fc45"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\document\\post-run-audit.json",
+      "verification_summary": [
+        {
+          "status": "success",
+          "completion_ready": true,
+          "domain_verified": false
+        }
+      ]
+    },
+    {
+      "label": "arguments",
+      "classification": "synthetic_recovery_fixture",
+      "task_id": "9fc6bd1b-6ec3-429b-9b41-fbb1f521e30e",
+      "status": "completed",
+      "passed": true,
+      "model_turns": 6,
+      "tool_calls": 5,
+      "duration_ms": 77767,
+      "budget": {
+        "model_turns": 12,
+        "seconds": 300,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-arguments-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "arguments"
+      ],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "verify_delivery": 2,
+        "view_file": 1,
+        "replace_in_file": 1,
+        "update_task_progress": 1
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:arguments",
+        "checks": [
+          "actual_request_fields"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "request.json",
+          "sha256": "afe4bfa8f97a995a258e26210e8705936adb9585db102372963f62e5134077ae"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\arguments\\post-run-audit.json",
+      "verification_summary": [
+        {},
+        {
+          "status": "success",
+          "completion_ready": true,
+          "domain_verified": true
+        }
+      ]
+    },
+    {
+      "label": "dependency",
+      "classification": "infrastructure_failure_windows_oracle_namespace",
+      "task_id": "99dd23f5-ea8f-4dc7-8f1e-393051d57089",
+      "status": "failed",
+      "passed": false,
+      "model_turns": 12,
+      "tool_calls": 12,
+      "duration_ms": 112891,
+      "budget": {
+        "model_turns": 12,
+        "seconds": 300,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-dependency-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "business_validation",
+        "unknown"
+      ],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "list_dir": 3,
+        "verify_delivery": 2,
+        "view_file": 1,
+        "run_command": 5,
+        "write_to_file": 1
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:dependency",
+        "checks": [
+          "actual_local_dependency_execution"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "helper.cjs",
+          "sha256": "eddf64f53b136c401711a44f4de5b5a06b76297b9529cb73729186400cdb38a1"
+        },
+        {
+          "name": "main.cjs",
+          "sha256": "f4569dd7fbb2bf81b56853fb61cbe4bd269ad7d9977430fe71f6b003bef905cb"
+        },
+        {
+          "name": "README.md",
+          "sha256": "a42994988de59ea5b7a933af024ef39d7b7f2f5227b3ef1baee3cd1587fad26a"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency\\post-run-audit.json",
+      "verification_summary": [
+        {},
+        {}
+      ]
+    },
+    {
+      "label": "network",
+      "classification": "synthetic_recovery_fixture",
+      "task_id": "fe7af786-bf5e-4a55-8303-108b366a2aa8",
+      "status": "completed",
+      "passed": true,
+      "model_turns": 3,
+      "tool_calls": 3,
+      "duration_ms": 57955,
+      "budget": {
+        "model_turns": 10,
+        "seconds": 300,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-network-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "transient_network"
+      ],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "view_file": 1,
+        "verify_delivery": 2
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:network",
+        "checks": [
+          "transient_fixture_recovers_without_source_edit"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "network.txt",
+          "sha256": "d82f1c6f775198db97f8e79293658c1cc3fd2438c153cec9859dcb8bb122d862"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\network\\post-run-audit.json",
+      "verification_summary": [
+        {},
+        {
+          "status": "success",
+          "completion_ready": true,
+          "domain_verified": true
+        }
+      ]
+    },
+    {
+      "label": "business",
+      "classification": "infrastructure_abort_known_windows_oracle_namespace",
+      "task_id": "dd9e2aae-9d3c-48f7-9c70-17df44850132",
+      "status": "cancelled",
+      "passed": false,
+      "model_turns": 3,
+      "tool_calls": 3,
+      "duration_ms": 191864,
+      "budget": {
+        "model_turns": 12,
+        "seconds": 300,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-business-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "business_validation"
+      ],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "verify_delivery": 1,
+        "list_dir": 1,
+        "view_file": 1
+      },
+      "independent_oracle": {
+        "passed": false,
+        "target": "recovery-fixture:business",
+        "error": "business_validation: clamp output mismatch at 120\n\n120 !== 100\n",
+        "checks": [
+          "actual_fixture_acceptance"
+        ],
+        "exit_code": 1
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "clamp.cjs",
+          "sha256": "6eab417f55cef331741f0ce9dbf9f9860d45c2755c9660f1ae091a804c997f42"
+        },
+        {
+          "name": "README.md",
+          "sha256": "97839b1f93f5cf28441edb6ddd98d1aac672493f1c2f3bd1e003511724351e02"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business\\post-run-audit.json",
+      "verification_summary": [
+        {}
+      ]
+    },
+    {
+      "label": "plain-document",
+      "classification": "synthetic_documentation_completion",
+      "task_id": "bc7156c5-dedf-4ad1-923d-2fef6b2a5171",
+      "status": "completed",
+      "passed": true,
+      "model_turns": 5,
+      "tool_calls": 4,
+      "duration_ms": 41097,
+      "budget": {
+        "model_turns": 8,
+        "seconds": 240,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-plain-document-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "view_file": 2,
+        "write_to_file": 1,
+        "verify_delivery": 1
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:plain-document",
+        "checks": [
+          "documentation_present_and_revised"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "README.md",
+          "sha256": "ef006165abb23412b1f7895a44bcf700726fe1a0926ccb56ccd816e4b1ec6c76"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\plain-document\\post-run-audit.json",
+      "verification_summary": [
+        {
+          "status": "success",
+          "completion_ready": true,
+          "domain_verified": false
+        }
+      ]
+    },
+    {
+      "label": "trace-negative",
+      "classification": "explicit_internal_trace_negative",
+      "task_id": "c6a9f1ba-d754-49f7-a18a-d3e17cc5dc2f",
+      "status": "completed",
+      "passed": true,
+      "model_turns": 5,
+      "tool_calls": 4,
+      "duration_ms": 36381,
+      "budget": {
+        "model_turns": 8,
+        "seconds": 240,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-trace-negative-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "policy"
+      ],
+      "trace_denials": 1,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "list_dir": 1,
+        "view_file": 1,
+        "replace_in_file": 1,
+        "verify_delivery": 1
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:trace-negative",
+        "checks": [
+          "documentation_present_and_revised"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "README.md",
+          "sha256": "69604608b52d0a80caca81ed9fdb9d7046474b643a171e09bc7795407b9673ee"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\trace-negative\\post-run-audit.json",
+      "verification_summary": [
+        {
+          "status": "success",
+          "completion_ready": true,
+          "domain_verified": false
+        }
+      ]
+    },
+    {
+      "label": "dependency-v2",
+      "classification": "synthetic_recovery_oracle_corrected",
+      "task_id": "9b6742e6-dde0-40a0-98a7-3ccb34c56660",
+      "status": "completed",
+      "passed": true,
+      "model_turns": 5,
+      "tool_calls": 5,
+      "duration_ms": 68832,
+      "budget": {
+        "model_turns": 12,
+        "seconds": 300,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-dependency-v2-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "missing_dependency"
+      ],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "verify_delivery": 2,
+        "view_file": 2,
+        "write_to_file": 1
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:dependency",
+        "checks": [
+          "actual_local_dependency_execution"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "helper.cjs",
+          "sha256": "71465ff1388b925d4f4fb24492543d4260a2cf227d89f069fc913c611cf0cffd"
+        },
+        {
+          "name": "main.cjs",
+          "sha256": "f4569dd7fbb2bf81b56853fb61cbe4bd269ad7d9977430fe71f6b003bef905cb"
+        },
+        {
+          "name": "README.md",
+          "sha256": "a42994988de59ea5b7a933af024ef39d7b7f2f5227b3ef1baee3cd1587fad26a"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\post-run-audit.json",
+      "verification_summary": [
+        {},
+        {
+          "status": "success",
+          "completion_ready": true,
+          "domain_verified": true
+        }
+      ]
+    },
+    {
+      "label": "business-v2",
+      "classification": "synthetic_recovery_oracle_corrected",
+      "task_id": "c67f7453-6dc9-4d87-9239-3f0611111d51",
+      "status": "completed",
+      "passed": true,
+      "model_turns": 5,
+      "tool_calls": 6,
+      "duration_ms": 75776,
+      "budget": {
+        "model_turns": 12,
+        "seconds": 300,
+        "followup_feedback": 0
+      },
+      "report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-recovery-business-v2-v1.json",
+      "binary_matches_frozen": true,
+      "changed_frozen_files": [],
+      "observed_failure_classes": [
+        "business_validation"
+      ],
+      "trace_denials": 0,
+      "recovery_budget_blocks": 0,
+      "tool_counts": {
+        "view_file": 1,
+        "verify_delivery": 2,
+        "list_dir": 1,
+        "replace_in_file": 1,
+        "run_command": 1
+      },
+      "independent_oracle": {
+        "passed": true,
+        "target": "recovery-fixture:business",
+        "checks": [
+          "actual_function_boundary_cases"
+        ],
+        "exit_code": 0
+      },
+      "host_oracle_reference_in_tool_inputs": false,
+      "cloud_action_calls": 0,
+      "known_cloud_creation_reference": false,
+      "artifacts": [
+        {
+          "name": "clamp.cjs",
+          "sha256": "e37edd50d4a19c3269ce2d36f02d9b97cabfe356bdf0870724c541f299a41335"
+        },
+        {
+          "name": "README.md",
+          "sha256": "97839b1f93f5cf28441edb6ddd98d1aac672493f1c2f3bd1e003511724351e02"
+        }
+      ],
+      "audit": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\business-v2\\post-run-audit.json",
+      "verification_summary": [
+        {},
+        {
+          "status": "success",
+          "completion_ready": true,
+          "domain_verified": true
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "fixed_error_fixtures": [
+      {
+        "label": "arguments",
+        "status": "completed",
+        "model_turns": 6,
+        "actual_failure_class": "arguments"
+      },
+      {
+        "label": "dependency-v2",
+        "status": "completed",
+        "model_turns": 5,
+        "actual_failure_class": "missing_dependency"
+      },
+      {
+        "label": "network",
+        "status": "completed",
+        "model_turns": 3,
+        "actual_failure_class": "transient_network"
+      },
+      {
+        "label": "business-v2",
+        "status": "completed",
+        "model_turns": 5,
+        "actual_failure_class": "business_validation"
+      }
+    ],
+    "pure_document": {
+      "status": "completed",
+      "model_turns": 5,
+      "quality_process_calls": 0,
+      "domain_verified": false
+    },
+    "internal_trace_negative": {
+      "status": "completed",
+      "model_turns": 5,
+      "actual_denials": 1
+    },
+    "known_nasa_document_still_failed": true
+  },
+  "scope_limits": [
+    "Synthetic scaffolds and injected transient network failure are mechanism tests, not unknown-site autonomous generation or proof of a real external network repair.",
+    "The original NASA documentation replay exhausted 10 turns after physical verification. Skill/goal selection and excessive preparatory investigation remain unresolved under 4.4.",
+    "Original dependency failure and original business cancellation retain their worker states; a separate v2 host oracle only strips the Windows device namespace before CommonJS require, keeping acceptance assertions unchanged.",
+    "The path guard and invocation budgets do not provide arbitrary-shell or OS isolation and do not prove semantic-loop prevention across arbitrary argument variations.",
+    "Skill hashes match a previously frozen pre-launch baseline, checked while the first case was running; no new pre-launch Skill snapshot is claimed.",
+    "No cloud publication, desktop automation, installed-Hub replacement, automatic skill promotion, commit or archive performed.",
+    "Failure classification is based on tool status and recognizable error markers; arbitrary causal diagnosis and an A/B gain in general intelligence are not certified."
+  ],
+  "all_attempts_retained": true,
+  "totals": {
+    "attempts": 9,
+    "completed": 6,
+    "failed": 2,
+    "cancelled": 1,
+    "model_turns": 54,
+    "tool_calls": 52,
+    "duration_ms": 806292
+  },
+  "earlier_nonpassing_checks": {
+    "compile_v1": "artifacts/hub-natural-rule/bounded-recovery-targeted-v1.log",
+    "full_suite_v1": {
+      "passed": 545,
+      "failed": 3,
+      "log": "artifacts/hub-natural-rule/recovery-rust-full-v1.log",
+      "reason": "Approval-state recovery and new result metadata compatibility, corrected before final passing suite"
+    }
+  },
+  "installed_hub_replaced": false,
+  "plan": {
+    "complete": 42,
+    "total": 73,
+    "newly_verified": [
+      "4.5 (fixed four-category fixtures only)",
+      "4.14",
+      "4.15",
+      "4.16"
+    ],
+    "remaining_priority": "4.4 task/Skill scoping and avoiding preparatory over-investigation"
+  },
+  "runtime_cleanup": "artifacts/hub-recovery-v1/runtime-cleanup.json",
+  "artifact_reviews": {
+    "plain_document": "Confirmed and untested scopes kept separate; conflicting all-platform claim removed.",
+    "configuration": "operation spelling corrected; original request_id preserved.",
+    "dependency": "main.cjs retained; missing local helper exports multiplication by two, without third-party installation.",
+    "business": "Clamp implemented with Math.min/Math.max over numeric interval [0,100].",
+    "trace_negative": "Actual direct refusal confirmed; wording about general safety in the generated note is not accepted as OS isolation/compliance certification."
+  },
+  "evidence_hashes": [
+    {
+      "path": "artifacts/hub-natural-rule/recovery-rust-full-v2.log",
+      "sha256": "6d5546b5af3d6a7dee4412e3b0d48f9e287f5c0a4dc92815ddd70a32a1d6f0c6"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/recovery-build-v2.log",
+      "sha256": "7b110736c35bb4804e2f2834d0b334ff63257b019e03e2e5ca8c87c29edf58b0"
+    },
+    {
+      "path": "artifacts/hub-natural-rule/bounded-recovery-targeted-v2.log",
+      "sha256": "aac60cea06ba6766c22ec342c678f0196f0143d1f38287d488830b447d6f39bd"
+    },
+    {
+      "path": "artifacts/recovery-oracle-selftest-v1/result.json",
+      "sha256": "aef87a80fae77649d956dfcbe652c5262d9e5c5ce160c25eb6693046fc291ab7"
+    },
+    {
+      "path": "artifacts/hub-recovery-v1/namespace-oracle-causal-proof.json",
+      "sha256": "a5447cebd8c0360d90c7ff7906a6a66c88a63a2101b5340d2a5c0560f6502398"
+    },
+    {
+      "path": "artifacts/hub-recovery-v1/skill-baseline-check.json",
+      "sha256": "7f316e1ab2786ffb37d2371ee92d626403931fb51de7a2eccd838d074d2da601"
+    },
+    {
+      "path": "artifacts/hub-recovery-v1/openspec-final-validation.json",
+      "sha256": "c2ab4df19002a7b988cba18cb3910c0c9ca6c880eb87a345de005a03c7e544f5"
+    },
+    {
+      "path": "artifacts/hub-recovery-v1/runtime-cleanup.json",
+      "sha256": "0f3b6e15f55819092728162668fb09d5e571741bb17ed87d08e06897ffd3206d"
+    }
+  ]
+}

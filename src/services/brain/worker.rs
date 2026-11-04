@@ -173,29 +173,11 @@ pub async fn run_worker(
 
     // 动态技能侦测与挂载 (Proactive Domain Skill Scouting & Mounting)
     let matched_skills = crate::domains::agent_cognitive::capability_scout::CapabilityScout::scout_and_match_skills(prompt, &cwd_path);
-    if !matched_skills.is_empty() {
-        full_system_prompt.push_str("\n\n# 🎯 动态装载的业务技能规约 (Active Domain Skill Directives)\n");
-        full_system_prompt.push_str("【中枢已根据用户意图自动识别并装载以下专属业务技能契约，你必须强制严格遵守】：\n\n");
-        for skill in &matched_skills {
-            full_system_prompt.push_str(&skill.render_system_prompt_section());
-            eprintln!(
-                "\x1b[32;1m[Skill Scout] 🎯 Successfully matched and loaded Skill '{}' (score: {:.1})\x1b[0m",
-                skill.name, skill.score
-            );
-        }
-        full_system_prompt.push_str(
-            "\n【技能自治交付最高纲领 (Zero-Prompt Protocol)】：\n\
-             当前任务已成功匹配并挂载专属业务技能 (Domain Skill)。\n\
-             1. 你必须严格遵循挂载技能规约中的架构规范与工程方法论，作为你的内置专业本能；\n\
-             2. 按用户当前意图推进；缺少必要授权或关键信息时如实说明，不能用编造结果替代。可行性调查的交付物是证据与结论，不强迫生成规则；\n\
-             3. 【成熟智能体自主闭环 (ReAct)】：\n\
-                - 若用户任务为【修复报错/修改现有代码】：仔细分析报错原因与上下文，自主调用 `read_file` 查阅代码，必要时使用 `web_fetch` 联网探针目标站点，定位根因后输出精准修复方案与修复后的代码；若涉及规则且需要验证，可调用配备的测试脚本；\n\
-                - 若用户任务为【分析本地应用能否转规则】：先检查指定路径及真实应用技术栈、接口和鉴权，不改查同名网站。先做无需桌面的文件/日志/接口调查；未验证的环节如实列出；\n\
-                - 若用户任务为【新建规则/全生命周期产出】：使用技能自身真实资源路径编写和验证；分别报告静态校验、数据页面、搜索/详情和真实媒体请求结果。仅在得到用户授权时发布云短口令或推送设备；\n\
-                - 若用户任务为【技术咨询/原理分析】：严密论证，直接输出深入浅出的技术解答；\n\
-             4. 【优雅折叠完整源码】：当交付完整规则或大段代码时，建议使用 `<details><summary><b>点击展开查看规则完整源码 (JSON)</b></summary>\n\n```json\n...\n```\n</details>` 语法包裹，兼顾紧凑与复制体验；\n\
-             5. 【绝不造假】：严禁在未调用工具的情况下臆造假口令！当工具执行失败时，认真根据报错输出进行反思修正（Self-Correction）！\n"
-        );
+    full_system_prompt.push_str(&crate::domains::agent_cognitive::capability_scout::CapabilityScout::render_task_skills(
+        prompt, &matched_skills, true));
+    for skill in &matched_skills {
+        eprintln!("[Skill Scout] {} '{}' (score: {:.1})",
+            if skill.explicitly_named(prompt) { "Explicit" } else { "Recommended" }, skill.name, skill.score);
     }
 
     let mut agent = AgentLoop::with_workspace_model(&full_system_prompt, effective_root.clone(), model.as_deref());

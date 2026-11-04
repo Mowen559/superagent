@@ -203,6 +203,9 @@ impl DeliveryEvidence {
     pub fn host_physical_delivery_complete(&self)->bool {
         self.profile_file.is_some() && self.completion_policy==CompletionPolicy::PhysicalArtifacts && self.completion_gap().is_none()
     }
+    pub fn uses_host_physical_acceptance(&self)->bool {
+        self.profile_file.is_some() && self.completion_policy==CompletionPolicy::PhysicalArtifacts
+    }
 
     pub fn internal_trace_guard(&self,name:&str,args:&Value)->Option<String> {
         if self.allow_internal_diagnostics {return None;}
@@ -392,9 +395,14 @@ impl DeliveryEvidence {
     }
 
     pub fn action_guidance(&self)->String {
+        if self.contract.is_none() {return "\n[Delivery tool applicability]\nNo physical delivery contract is registered. verify_delivery is not applicable yet and is not mandatory for ordinary scoped code work. Do not create a plan solely to use it after a coherent change and successful quality check; retain any real explicit requirements.\n".into();}
         if self.actions.is_empty() {
             return if self.completion_policy==CompletionPolicy::PhysicalArtifacts {
-                "\n[Host physical-artifact acceptance]\nFinish the declared files and call verify_delivery for all required artifacts. Fresh physical receipts satisfy this host's document acceptance; they do not certify business behavior. No unrelated code test or internal trace investigation is required.\n".into()
+                if self.host_physical_delivery_complete() {
+                    "\n[Host physical-artifact acceptance]\nAll declared physical artifacts have fresh receipts. Complete any remaining explicit TaskContract steps; otherwise deliver the final answer now. Do not repeat hashes or checks merely to fill a generic phase. These receipts do not certify business behavior or validate historical claims in document text. Report only what this Run actually did.\n".into()
+                } else {
+                    "\n[Host physical-artifact acceptance]\nFinish the declared files and call verify_delivery for all required artifacts; the tool computes the declared file hashes. Fresh physical receipts satisfy this host's document acceptance; they do not certify business behavior. No unrelated code test or internal trace investigation is required. Distinguish supplied scope, historical document assertions and actual current-Run receipts.\n".into()
+                }
             } else {String::new()};
         }
         let mut actions:Vec<_>=self.actions.values().collect();actions.sort_by_key(|a|&a.id);

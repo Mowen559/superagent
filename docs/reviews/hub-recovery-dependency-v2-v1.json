@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "4d0e4ac92f10483c842bd9b16b572468c4cf06ceb09e373659c8a411dee33884"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39815",
+  "model": "gemini-3.8-flash-high",
+  "classification": "first_attempt",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "RECOVERY-dependency-v2",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 300,
+        "prompt": "请先用现有交付验收复现本目录运行失败，再依据README补齐缺失的本地依赖并通过复验；不安装外部依赖。"
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_26ed1cfca4b3463fad85ae37deeffa1a",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16126,
+          "completion_tokens": 10,
+          "duration_ms": 7920,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_26ed1cfca4b3463fad85ae37deeffa1a\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6126,
+          "prompt_tokens": 16126,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"error\":\"delivery 'output' needs verify_delivery: trusted verifier failed: exit Some(1); Cannot find module './helper.cjs'\\nRequire stack:\\n- D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency-v2\\\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\\\data\\\\runs\\\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\\\workspace\\\\main.cjs\\n- D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\scripts\\\\verify_recovery_fixture_v2.cjs\",\"kind\":\"execution_failed\",\"recovery_state\":{\"active\":true,\"failure_class\":\"missing_dependency\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":0,\"hint\":\"Check the named dependency and available runtime. Restore it only within authorized scope or use an evidenced alternative; do not repeat the same missing-dependency command.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_26ed1cfca4b3463fad85ae37deeffa1a",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 16799,
+          "completion_tokens": 230,
+          "duration_ms": 5781,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_26ed1cfca4b3463fad85ae37deeffa1a\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6798999,
+          "prompt_tokens": 16799,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\data\\runs\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\workspace\\main.cjs"
+          }
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\data\\runs\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\workspace\\README.md"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: const double=require('./helper.cjs'); module.exports=value=>double(value);\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":78,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency-v2\\\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\\\data\\\\runs\\\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\\\workspace\\\\main.cjs\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"missing_dependency\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":1,\"hint\":\"Check the named dependency and available runtime. Restore it only within authorized scope or use an evidenced alternative; do not repeat the same missing-dependency command.\"}}"
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: 本地模块约定：main.cjs导出函数，输入3得到6，输入-2得到-4。缺失的模块应在项目目录实现，不安装第三方包。\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":150,\"file_path\":\"D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency-v2\\\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\\\data\\\\runs\\\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\\\workspace\\\\README.md\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"missing_dependency\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":2,\"hint\":\"Check the named dependency and available runtime. Restore it only within authorized scope or use an evidenced alternative; do not repeat the same missing-dependency command.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_26ed1cfca4b3463fad85ae37deeffa1a",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 17483,
+          "completion_tokens": 136,
+          "duration_ms": 6992,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_26ed1cfca4b3463fad85ae37deeffa1a\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7483,
+          "prompt_tokens": 17483,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "write_to_file",
+          "input": {
+            "TargetFile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\data\\runs\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\workspace\\helper.cjs",
+            "CodeContent": "module.exports = value => value * 2;\n"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "write_to_file",
+          "output": "{\"status\":\"success\",\"message\":\"File written to D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency-v2\\\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\\\data\\\\runs\\\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\\\workspace\\\\helper.cjs\",\"diagnostics\":[],\"recovery_state\":{\"active\":false}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_26ed1cfca4b3463fad85ae37deeffa1a",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 17718,
+          "completion_tokens": 10,
+          "duration_ms": 5105,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_26ed1cfca4b3463fad85ae37deeffa1a\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7718,
+          "prompt_tokens": 17718,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "verify_delivery",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "verify_delivery",
+          "output": "{\"status\":\"success\",\"exit_code\":0,\"domain_verified\":true,\"completion_ready\":true,\"delivery_evidence\":{\"schema_version\":1,\"run_id\":\"6767bd0a-2d20-41eb-a1d5-5d8caec686e0\",\"session_id\":\"run_26ed1cfca4b3463fad85ae37deeffa1a\",\"contract\":{\"version\":1,\"scope\":\"implementation\",\"target\":\"recovery-fixture:dependency\",\"artifacts\":[{\"id\":\"output\",\"path\":\"main.cjs\",\"required\":true,\"validator\":\"fixture\"},{\"id\":\"helper\",\"path\":\"helper.cjs\",\"required\":true,\"validator\":null}]},\"artifacts\":{\"helper\":{\"id\":\"helper\",\"session_id\":\"run_26ed1cfca4b3463fad85ae37deeffa1a\",\"run_id\":\"6767bd0a-2d20-41eb-a1d5-5d8caec686e0\",\"target\":\"recovery-fixture:dependency\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency-v2\\\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\\\data\\\\runs\\\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\\\workspace\\\\helper.cjs\",\"sha256\":\"71465ff1388b925d4f4fb24492543d4260a2cf227d89f069fc913c611cf0cffd\",\"bytes\":37,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-03T17:23:54.827265900+00:00\",\"validator\":null,\"verifier_sha256\":null,\"domain_verified\":false,\"checks\":[]},\"output\":{\"id\":\"output\",\"session_id\":\"run_26ed1cfca4b3463fad85ae37deeffa1a\",\"run_id\":\"6767bd0a-2d20-41eb-a1d5-5d8caec686e0\",\"target\":\"recovery-fixture:dependency\",\"path\":\"\\\\\\\\?\\\\D:\\\\抖音\\\\deepcloud\\\\super-agent\\\\artifacts\\\\hub-recovery-v1\\\\dependency-v2\\\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\\\data\\\\runs\\\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\\\workspace\\\\main.cjs\",\"sha256\":\"f4569dd7fbb2bf81b56853fb61cbe4bd269ad7d9977430fe71f6b003bef905cb\",\"bytes\":75,\"source\":\"runtime_file_observation; authorship requires matching tool provenance\",\"observed_at\":\"2026-11-03T17:23:46.704705400+00:00\",\"validator\":\"fixture\",\"verifier_sha256\":\"77bd5e39a26496ca9d62d518d97e2f35b978489cb5e69f90bd74d425cc2e6c51\",\"domain_verified\":true,\"checks\":[\"actual_local_dependency_execution\"]}},\"errors\":{},\"managed_actions\":{},\"attempted_actions\":[],\"completion_gap\":null}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_26ed1cfca4b3463fad85ae37deeffa1a",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 18262,
+          "completion_tokens": 298,
+          "duration_ms": 9234,
+          "tools_count": 31,
+          "snapshot_file": ".superagent\\traces\\run_26ed1cfca4b3463fad85ae37deeffa1a\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8262001,
+          "prompt_tokens": 18262,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "text",
+          "content": "已完成全流程处理与闭环验证，具体执行记录如下：\n\n### 1. 故障复现（现有交付验收）\n调用交付验收工具 `verify_delivery` 进行基准测试，成功捕获并复现失败现场：\n- **错误类型**：`missing_dependency`\n- **详细信息**：`Cannot find module './helper.cjs'`，`main.cjs` 在运行时尝试加载缺失的本地模块 `./helper.cjs`。\n\n### 2. 依据 README 补齐本地依赖\n- 检查 `README.md` 规范：\n  > “本地模块约定：main.cjs导出函数，输入3得到6，输入-2得到-4。缺失的模块应在项目目录实现，不安装第三方包。”\n- 根据契约在当前目录实现 `helper.cjs`，不引入任何外部第三方包：\n  ```javascript\n  module.exports = value => value * 2;\n  ```\n\n### 3. 复验结果\n再次调用 `verify_delivery` 进行交付校验，验收已全绿通过：\n- **执行状态**：`status: \"success\"`，`exit_code: 0`\n- **业务验证**：`domain_verified: true`，`completion_ready: true`\n- **检查项**：`actual_local_dependency_execution` 校验通过。"
+        },
+        {
+          "kind": "status",
+          "status": "completed"
+        }
+      ],
+      "status": "completed",
+      "classification": "synthetic_recovery_oracle_corrected",
+      "prior_exposure": "Fresh original scaffold and private Session. Prior attempt preserved; host oracle Windows namespace normalization fixed, assertions unchanged. No corrected business implementation or follow-up hint supplied.",
+      "task_id": "9b6742e6-dde0-40a0-98a7-3ccb34c56660",
+      "duration_ms": 68832,
+      "tool_calls": 5,
+      "model_turns": 5,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.6126,
+          "prompt_tokens": 16126,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6798999,
+          "prompt_tokens": 16799,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7483,
+          "prompt_tokens": 17483,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7718,
+          "prompt_tokens": 17718,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8262001,
+          "prompt_tokens": 18262,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.6126,
+          "prompt_tokens": 16126,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.6798999,
+          "prompt_tokens": 16799,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7483,
+          "prompt_tokens": 17483,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.7718,
+          "prompt_tokens": 17718,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.8262001,
+          "prompt_tokens": 18262,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\data\\runs\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\workspace",
+      "oracle": {
+        "passed": true,
+        "target": "recovery-fixture:dependency",
+        "checks": [
+          "actual_local_dependency_execution"
+        ],
+        "exit_code": 0
+      },
+      "oracle_passed": true,
+      "artifacts": [
+        {
+          "path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\data\\runs\\9b6742e6-dde0-40a0-98a7-3ccb34c56660\\workspace\\README.md",
+          "sha256": "a42994988de59ea5b7a933af024ef39d7b7f2f5227b3ef1baee3cd1587fad26a"
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "runtime": {
+    "profile": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\profile.json",
+    "settings_sha256": "ED5AAAD98822C9A0242592761327B34F410C0361AB6A3C5A0EFA8FDE664F048B",
+    "model_turn_budget": 12,
+    "settings_reference": "C:\\Users\\刘本录\\.superagent\\settings",
+    "stage": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c",
+    "pid": 31640,
+    "binarySha256": "FE0D8F78B8062252FF58D1A48C4CAAB6965065111B3A4B95693BCFBFE2227400",
+    "evolution_initial_exists": false,
+    "launcher_sha256": "74C1241966CF1AB43DCAF4FCE6BC7C55B143545AB708E32A71608D5977BFB970",
+    "app_data_root": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\hub-independent-a5a03fb803b34d7ea206f46fee1ba30c\\data",
+    "evolution_baseline": "empty; private to this service and independent Run",
+    "port": 39815,
+    "identity_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-recovery-v1\\dependency-v2\\identity.json",
+    "verified_binary_sha256": "fe0d8f78b8062252ff58d1a48c4caab6965065111b3a4b95693bcfbfe2227400"
+  },
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "4aa2ad5ab421c51b1e5c422fea79c2d4f3bf822db0aa467333ed3e8ccdc9ea05",
+  "frozen_definitions_sha256": "5eff9c31326926e667199d0a68acebd420518bb08a05957cb6a83594f6cd7aa3",
+  "planned_task_ids": [
+    "RECOVERY-dependency-v2"
+  ],
+  "selected_task_ids": [
+    "RECOVERY-dependency-v2"
+  ],
+  "selected_passed": true,
+  "all_passed": true
+}

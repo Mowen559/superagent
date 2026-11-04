@@ -4,6 +4,14 @@
 
 ## 兼容性与状态所有权
 
+SDK交互修复（2026-11-04）：POST /api/agents/tasks/{taskId}/interact的body为{action:"steer",response:string}或{action:"respond",requestId:string,response:string}。SDK兼容旧{steeringPrompt}并在传输前转换；旧{token,approve}不等于当前相关回答，显式拒绝而非猜测授权。失败HTTP或success不为true不得报告已送达。现有主UI的analyzeApi同构body保持不变。
+
+补充指令在Run账本持久化并确认后更新current_run_facts.scope_revision；验证及其依赖步骤和物理收据失效，旧观察与修改事实保留。相同Run的旧检查仍计入发生过的调用，不能算新约束的当前有效验收。只读Run不因补充文本自动扩大权限，扩大工作模式使用新的获授权Run。
+
+2026-11-04推进增量：TaskProgress快照可选新增current_run_facts（session_id/run_id、工具成功/失败/规范化验证计数、容量截断标记）；该摘要仅来自当前Run宿主收据，计数不等于不同文件数，也不证明命令内具体行为。工具结果与历史助手文本仅在LLM投影中附来源Run/current或historical/unknown标签，原始事件、SSE结果及工具ID配对不变。旧无Run记录标unknown。
+
+TaskContract的mutation/verification步骤和实际变更可上调初始路由，不能降低已有执行要求或修改授权/宿主验收；不凭计划生成观察或验证事实。显式只读约束拒绝mutation计划和已识别原生变更/受控发布，任意shell仍需原权限策略。文档无宿主物理验收配置时保留原质量门禁。
+
 不新增 HTTP 生命周期或第二个 completed 状态。SessionLedger 仍负责唯一终态；plan_task 的 task_contract 可选新增 delivery，旧 JSON 无该字段仍可读取。update_task_progress 的快照新增 delivery_evidence；现有字段不删除。旧消费者忽略新增字段即可，缺少交付认证证据不自动显示业务已认证。
 
 SDK AgentRunRequest 可选新增 resumeSessionId，原样传递给 HTTP 已支持的 resumeSessionId。继续尚未 Apply 的隔离成果时，project 应指向上一任务的隔离工作区，服务会从其创建下一份工作副本；不把原项目目录未 Apply 的文件视为已经修改。恢复 Session 只提供历史对话，每个 Run 重新建立任务范围和交付证据。
@@ -33,6 +41,12 @@ delivery 包含 version=1、scope（read_only / implementation）、target 及 a
 产物记录和验证记录仅属于当前 Run；完成时重新核对哈希。未变化的已验证产物可复用本 Run 记录；改动后旧验证失效。必需项失败阻止业务完成，可选项失败显示限制。只读任务不需要制造文件变更。
 
 ## 工作区及大结果
+
+2026-11-04范围消费增量：自动Skill命中仅为目录推荐，正文通过skill_tool按需读取；完整点名的Skill优先加载正文。候选与正文都不能将通用全流程变成本轮额外目标，Skill读取结果增加scope_guidance，资源content保持原文。worker与Run Prelude复用同一发现排序策略。完全相同TaskContract重传为无变更，plan_revision、已有步骤收据和验证不被重置；有变化的完整替换仍清理绑定，新增要求优先使用revise_task_plan。
+
+受信任宿主已声明physical_artifacts时，默认认知推进与验证阶段展示改为修改必需文件并用verify_delivery验收；不再同时要求验证代码行为。该模式来源于宿主profile而非文件后缀/任务关键词，不限制合法工具，不跳过显式子任务或物理指纹门禁；quality_checks模式保持原验证指导。
+
+该物理推进指导独立于旧意图引擎的TaskKind：即使编辑措辞被分类为Conversational，也仍提供文件交付指导。仅替换系统内置的默认编译测试anchor展示，自定义约束和显式TaskContract检查保留。全部物理收据新鲜时提示完成剩余显式步骤或直接答复；产物改变后恢复待验提示。历史README声明不等于过去测试证据，不应在文档修订中把旧AST/平台认证当成本Run新增验收。
 
 2026-11-04恢复增量：固定宿主profile可选completion_policy（默认quality_checks；physical_artifacts仅接受非空必需物理产物、无业务validator且无actions），以及allow_internal_diagnostics（默认false）。物理验收只放行默认RunPlan/DoD步骤，保留显式子任务、当前Run/路径/哈希和profile指纹门禁，domain_verified及工具verification事实不被提升。
 

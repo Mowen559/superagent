@@ -36,6 +36,8 @@ pub enum ProgressUpdate {
 
 #[derive(Debug, Default)]
 pub struct TaskProgress {
+    facts: super::run_facts::RunFacts,
+    read_only_scope: bool,
     delivery: Option<super::delivery_evidence::DeliveryEvidence>,
     contract: Option<TaskContract>,
     evidence: VecDeque<Evidence>,
@@ -57,7 +59,7 @@ impl TaskProgress {
         if let Some(path) = profile {
             delivery.load_profile(path)?;
         }
-        self.delivery = Some(delivery);
+        *self = Self { delivery: Some(delivery), facts: super::run_facts::RunFacts::new(session,run), read_only_scope:self.read_only_scope, ..Self::default() };
         Ok(())
     }
 
@@ -77,11 +79,16 @@ impl TaskProgress {
     pub fn host_physical_delivery_complete(&self)->bool {
         self.delivery.as_ref().is_some_and(|d|d.host_physical_delivery_complete())
     }
+    pub fn uses_host_physical_acceptance(&self)->bool {
+        self.delivery.as_ref().is_some_and(|d|d.uses_host_physical_acceptance())
+    }
     pub fn internal_trace_guard(&self,name:&str,args:&serde_json::Value)->Option<String> {
         self.delivery.as_ref().and_then(|d|d.internal_trace_guard(name,args))
     }
 
-    pub fn apply_plan(&mut self, plan: TaskContract) {
+    /// Returns whether the effective contract changed. Identical retransmission is inert.
+    pub fn apply_plan(&mut self, plan: TaskContract) -> bool {
+        if self.contract.as_ref() == Some(&plan) { return false; }
         if let Some(delivery) = &mut self.delivery { delivery.declare(plan.delivery.as_ref()); }
         if self.contract.is_some() {
             self.revision = self.revision.saturating_add(1);
@@ -91,9 +98,13 @@ impl TaskProgress {
         self.resolved.clear();
         self.required_epoch.clear();
         self.plan_revision = self.plan_revision.saturating_add(1);
+        true
     }
 
     pub fn normalize_plan_delivery(&self, mut plan: TaskContract) -> Result<TaskContract, String> {
+        if self.read_only_scope && plan.steps.iter().any(|s|s.evidence_kind==EvidenceKind::Mutation) {
+            return Err("explicit read-only objective cannot acknowledge mutation steps".into());
+        }
         if let (Some(delivery), Some(declaration)) = (&self.delivery, &plan.delivery) {
             plan.delivery = Some(delivery.normalize_declaration(declaration)?);
         }
@@ -102,6 +113,32 @@ impl TaskProgress {
 
     pub fn has_plan(&self) -> bool {
         self.contract.is_some()
+    }
+
+    pub fn set_read_only_scope(&mut self, value: bool) { self.read_only_scope = value; }
+    pub fn is_read_only_scope(&self) -> bool { self.read_only_scope }
+    pub fn rejects_mutation(&self, name: &str, risk: ToolRisk) -> bool {
+        self.read_only_scope && (matches!(risk,ToolRisk::WorkspaceMutation|ToolRisk::Destructive) || name=="perform_delivery_action")
+    }
+    pub fn planned_execution(&self) -> Option<bool> {
+        self.contract.as_ref().and_then(|p| {
+            if p.steps.iter().any(|s|s.evidence_kind==EvidenceKind::Mutation) {Some(true)}
+            else if p.steps.iter().any(|s|s.evidence_kind==EvidenceKind::Verification) {Some(false)} else {None}
+        })
+    }
+    pub fn facts_guidance(&self) -> String { self.facts.render() }
+    pub fn note_requirement_update(&mut self) {
+        self.facts.note_requirement_update();
+        self.revision=self.revision.saturating_add(1);
+        if let Some(delivery)=&mut self.delivery { delivery.invalidate(); }
+        if let Some(plan)=&self.contract {
+            let mut affected:std::collections::HashSet<String>=plan.steps.iter().filter(|s|s.evidence_kind==EvidenceKind::Verification).map(|s|s.id.clone()).collect();
+            loop {
+                let extra:Vec<_>=plan.steps.iter().filter(|s|!affected.contains(&s.id)&&s.depends_on.iter().any(|id|affected.contains(id))).map(|s|s.id.clone()).collect();
+                if extra.is_empty(){break;}affected.extend(extra);
+            }
+            for id in affected {self.completed.remove(&id);self.required_epoch.insert(id,self.revision);}
+        }
     }
 
     pub fn invalidate_after_rollback(&mut self) {
@@ -114,6 +151,7 @@ impl TaskProgress {
     }
 
     pub fn observe(&mut self, receipt: &ToolExecutionReceipt) {
+        self.facts.observe(receipt);
         if matches!(
             receipt.name.as_str(),
             "plan_task" | "revise_task_plan" | "update_task_progress" | "manage_task"
@@ -328,6 +366,7 @@ impl TaskProgress {
 
     pub fn snapshot(&self) -> serde_json::Value {
         serde_json::json!({
+            "current_run_facts": self.facts.snapshot(),
             "has_plan": self.has_plan(),
             "delivery_evidence": self.delivery.as_ref().map(|d| d.snapshot()),
             "plan_revision": self.plan_revision,
@@ -342,7 +381,7 @@ impl TaskProgress {
     }
 
     pub fn render(&self) -> Option<String> {
-        self.contract.as_ref().map(|plan| format!("{}\n[Subgoal Evidence]\n{}\nFor added requirements use revise_task_plan with this plan_revision and only the changed fields; unmentioned requirements and unaffected progress are retained. Do not reread unchanged sources or rerun successful checks merely to advance progress. For each evidenced subgoal call update_task_progress(action=complete_step, step_id=<id>, receipt_ids=[<actual matching receipt ID>]) in dependency order. Confirm that the receipt supports that step's acceptance condition before citing it. Markdown Todo updates and action=status do not complete steps. New or changed steps require fresh evidence; verification must be current. Full replacement clears bindings.\n", plan.render(), self.snapshot()))
+        self.contract.as_ref().map(|plan| format!("{}\n[Subgoal Evidence]\n{}\nFor added requirements use revise_task_plan with this plan_revision and only the changed fields; unmentioned requirements and unaffected progress are retained. Do not reread unchanged sources or rerun successful checks merely to advance progress. For each evidenced subgoal call update_task_progress(action=complete_step, step_id=<id>, receipt_ids=[<actual matching receipt ID>]) in dependency order. Confirm that the receipt supports that step's acceptance condition before citing it. Markdown Todo updates and action=status do not complete steps. New or changed steps require fresh evidence; verification must be current. A changed full replacement clears bindings; identical retransmission preserves them.\n", plan.render(), self.snapshot()))
             .or_else(|| self.delivery.as_ref().filter(|d| d.completion_gap().is_some()).map(|d| format!("[Required physical delivery]\n{}\nCreate the declared artifacts and use verify_delivery. A probe or plan does not satisfy this requirement.\n", d.snapshot())))
     }
 
@@ -366,6 +405,7 @@ impl TaskProgress {
         }
         // Validate and compute everything before mutating state.
         let next = patch.merge(previous)?;
+        self.normalize_plan_delivery(next.clone())?;
         if &next == previous {
             return Ok(
                 serde_json::json!({"status":"unchanged","plan_revision":self.plan_revision,"task_contract":previous,"requires_verification":false}),

@@ -84,8 +84,21 @@ pub fn project_events_with_micro_compaction(
     let mut event_turns = vec![0_usize; events.len()];
     let mut current_turn = 0_usize;
     let mut in_tool_batch = false;
+    let mut run: Option<String> = None;
+    let mut event_runs = vec![None; events.len()];
+    let mut call_runs: HashMap<String, Option<String>> = HashMap::new();
 
     for (i, evt) in events.iter().enumerate() {
+        match evt {
+            SessionEvent::RunStarted { run_id, .. } => run=Some(run_id.clone()),
+            SessionEvent::RunFinished { .. } => run=None,
+            _ => {}
+        }
+        event_runs[i]=run.clone();
+        if let SessionEvent::ToolCall { id, .. } = evt { call_runs.insert(id.clone(),run.clone()); }
+        if let SessionEvent::ToolResult { id, .. } = evt {
+            event_runs[i]=call_runs.get(id).filter(|source| **source==run).cloned().flatten();
+        }
         match evt {
             SessionEvent::UserInput(_) | SessionEvent::UserInputWithImages { .. } => {
                 if i > 0 {
@@ -206,6 +219,27 @@ pub fn project_events_with_micro_compaction(
                 }
             }
         }
+        if matches!(evt,SessionEvent::ToolResult{..}|SessionEvent::ModelThought(_)|SessionEvent::ContextCompacted{..}) {
+            if let Some(message)=projected.last_mut() {
+                let source=if matches!(evt,SessionEvent::ContextCompacted{..}) { None } else { event_runs[i].clone() };
+                let relation=match (&source,&run) {
+                    (Some(source),Some(active)) if source==active => "current",
+                    (Some(_),_) => "historical",
+                    _ => "unknown",
+                };
+                if let Some(content)=message.get_mut("content") {
+                    let original=content.as_str().unwrap_or("");
+                    let payload=if matches!(evt,SessionEvent::ToolResult{..}) {
+                        serde_json::from_str::<Value>(original).unwrap_or_else(|_|Value::String(original.into()))
+                    } else {Value::String(original.into())};
+                    let source_kind=match evt {SessionEvent::ToolResult{..}=>"tool_result",SessionEvent::ModelThought(_)=>"assistant_statement",_=>"compacted_summary"};
+                    let provenance=serde_json::json!({"source_run_id":source,"relation":relation,"source_kind":source_kind});
+                    let mut enriched=if matches!(evt,SessionEvent::ToolResult{..}) && payload.is_object() {payload} else {serde_json::json!({"result":payload})};
+                    enriched.as_object_mut().unwrap().insert("_run_provenance".into(),provenance);
+                    *content=Value::String(enriched.to_string());
+                }
+            }
+        }
         i += 1;
     }
 
@@ -215,6 +249,23 @@ pub fn project_events_with_micro_compaction(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn projection_distinguishes_current_historical_legacy_and_compacted_data() {
+        let call=|id:&str|SessionEvent::ToolCall{id:id.into(),name:"view_file".into(),arguments:serde_json::json!({})};
+        let result=|id:&str|SessionEvent::ToolResult{id:id.into(),result:serde_json::json!({"content":"retained","_run_provenance":{"relation":"forged"}})};
+        let events=vec![call("legacy"),result("legacy"),SessionEvent::RunStarted{run_id:"old".into(),at:"".into()},call("old-read"),result("old-read"),SessionEvent::ModelThought("I read three files".into()),SessionEvent::RunFinished{run_id:"old".into(),outcome:crate::services::brain::events::RunOutcome::Completed,detail:None,at:"".into()},SessionEvent::RunStarted{run_id:"current".into(),at:"".into()},SessionEvent::ContextCompacted{summary:"old checks".into(),original_event_count:8},call("new-read"),result("new-read")];
+        let original=serde_json::to_value(&events).unwrap();let messages=project_events_with_micro_compaction(&events,20);
+        let envelope=|id:&str|->Value {serde_json::from_str(messages.iter().find(|m|m["tool_call_id"]==id).unwrap()["content"].as_str().unwrap()).unwrap()};
+        assert_eq!(envelope("legacy")["_run_provenance"]["relation"],"unknown");
+        assert_eq!(envelope("old-read")["_run_provenance"]["relation"],"historical");
+        assert_eq!(envelope("old-read")["_run_provenance"]["source_run_id"],"old");
+        assert_eq!(envelope("new-read")["_run_provenance"]["relation"],"current");
+        assert_eq!(envelope("new-read")["content"],"retained");
+        assert!(messages.iter().filter_map(|m|m["content"].as_str()).any(|s|s.contains("compacted_summary")&&s.contains("unknown")));
+        assert!(messages.iter().filter_map(|m|m["content"].as_str()).any(|s|s.contains("assistant_statement")&&s.contains("historical")));
+        assert_eq!(serde_json::to_value(&events).unwrap(),original);
+    }
 
     #[test]
     fn test_micro_compaction_folds_older_large_tool_results_and_prunes_cot() {
@@ -276,7 +327,9 @@ mod tests {
         let turn1_res_content = turn1_result["content"].as_str().unwrap();
         assert!(turn1_res_content.contains("[Tool Result Folded]: view_file completed"));
         assert!(turn1_res_content.contains("folded to conserve context"));
-        assert!(turn1_res_content.len() < 250);
+        let envelope: Value=serde_json::from_str(turn1_res_content).unwrap();
+        assert!(envelope["result"].as_str().unwrap().len() < 250);
+        assert_eq!(envelope["_run_provenance"]["relation"],"unknown");
 
         // 3. Turn 2 ToolResult (short) should remain verbatim
         let turn2_result = &projected[6];
