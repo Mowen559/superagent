@@ -1,0 +1,104 @@
+{
+  "date": "2026-11-06",
+  "author": "Codex implemented Hub runtime changes; controlled model stub wrote fixture responses",
+  "stage": "P8-B",
+  "progress": {
+    "complete": 60,
+    "total": 106
+  },
+  "candidateBeforeSupervision": "29e0b5578eeb251f1a469710e31564662dae33427fa1445b2b82d8fca766260c",
+  "installed": false,
+  "tests": {
+    "rustPassed": 626,
+    "failed": 0,
+    "ignored": 2,
+    "skipped": [
+      "domains::code_review::tests::test_review_current_project_workspace"
+    ],
+    "newRegressionTests": 13,
+    "globalHttpChecks": 17,
+    "globalGuardCandidate": "ea57fd0585a8f806305ecbe7b4bdf1aa71e6fba410ce22a4d8a8e1241b28356a",
+    "globalGuardEvidence": "artifacts/hub-swarm-memory-20261106/v2/global-supervision-guard.json",
+    "finalCandidateAdditionalGlobalReplay": "not executed: automatic approval rejected extra service launch; blocked by policy",
+    "controlledHttpObservations": 31,
+    "controlledModelStub": true,
+    "finalControlledProof": "artifacts/hub-swarm-memory-20261106/v2/control-scope-green/acceptance.json",
+    "parentReadOnlyCap": true,
+    "controlledChildStates": [
+      {
+        "role": "opaque-custom-role",
+        "state": "succeeded",
+        "policy": "plan",
+        "pid": 30836,
+        "reaped": true,
+        "businessVerified": false
+      },
+      {
+        "role": "researcher",
+        "state": "succeeded",
+        "policy": "plan",
+        "pid": 23672,
+        "reaped": true,
+        "businessVerified": false
+      },
+      {
+        "role": "reviewer",
+        "state": "cancelled",
+        "policy": "plan",
+        "pid": 3696,
+        "reaped": true,
+        "businessVerified": false
+      },
+      {
+        "role": "coder",
+        "state": "failed",
+        "policy": "plan",
+        "pid": null,
+        "reaped": true,
+        "businessVerified": false
+      }
+    ]
+  },
+  "realModel": {
+    "model": "gemini-3.8-flash-high",
+    "attempts": [
+      {
+        "taskId": "619c0038-29e8-43df-a00a-6f13e5a39bea",
+        "classification": "infra_failed_rate_limited",
+        "childStarts": 0,
+        "processReminders": 0
+      },
+      {
+        "taskId": "dece81fd-6c23-4ee1-9a4c-d511fb088f32",
+        "classification": "corrected_attempt_timed_out_at_900s",
+        "childStarts": 2,
+        "processReminders": 1,
+        "candidate": "ea57fd0585a8f806305ecbe7b4bdf1aa71e6fba410ce22a4d8a8e1241b28356a",
+        "childRoles": [
+          "invoice-calculator-auditor",
+          "format-boundary-auditor"
+        ],
+        "childFinalResultsReceived": 0,
+        "permissionsGapObserved": "auditor role inherited parent yolo; fixed in subsequent candidate; not certified in this real run"
+      }
+    ],
+    "completedParentRuns": 0,
+    "totalParentRuns": 2,
+    "businessCertification": false
+  },
+  "pending": [
+    "worktree snapshot base and verified conflict-aware collection",
+    "child heartbeat and persistent recovery/reconciliation",
+    "workflow artifact verification",
+    "real model completed two-child business acceptance",
+    "automatic memory integration"
+  ],
+  "evidenceRoot": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v2",
+  "candidate": {
+    "sha256": "0d7e857b140a84ff53f110b7a4b033c8bf6743b7a73fee447e816624b70c5d7d",
+    "path": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v2/candidate-scope-bundle/hub.exe",
+    "manifestEntries": 39,
+    "installed": false
+  },
+  "finalVerdict": "9.5 complete; 9.6 partial guard fixes only; real business autonomy not certified; default unchanged"
+}

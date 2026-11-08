@@ -1,0 +1,83 @@
+{
+  "date": "2026-11-06",
+  "scope": "P8 A truthful capability/API protection only",
+  "author": "Codex implemented Rust/API/spec/tests; no Hub model task executed in this stage",
+  "baseline_sha256": "51602e2255d1d02c7d11a896224a38e6661112476b69546e31dbe443bbd776a7",
+  "candidate_sha256": "4021fbc50618e96239a64f3233d24e95f41b2878a5e71d7f284344b0827c0aa9",
+  "source_identity": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/source-identity.json",
+  "baseline_identity": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/baseline-identity.json",
+  "patch": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/guard.patch",
+  "plan": "D:/抖音/deepcloud/super-agent/docs/reviews/hub-swarm-memory-next-plan-20261106.md",
+  "api": "D:/抖音/deepcloud/super-agent/docs/api/hub-swarm-execution.md",
+  "baseline": {
+    "http": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/baseline-http.json",
+    "independent_rejection": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/baseline-acceptance-red.json",
+    "domain_red": {
+      "passed": 1,
+      "failed": 4,
+      "log": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/workflow-red.log"
+    }
+  },
+  "verification": {
+    "rust_full": {
+      "passed": 613,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "excluded": "domains::code_review::tests::test_review_current_project_workspace",
+      "same_legacy_exclusion": true,
+      "log": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/regression-green.log"
+    },
+    "new_tests": {
+      "workflow": 5,
+      "http_routes": 4
+    },
+    "frozen_acceptance": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/acceptance-identity.json",
+    "candidate_http": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/candidate-acceptance-green.json",
+    "installed_http": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/installed-acceptance-green.json",
+    "observations_each": 17,
+    "cold": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/candidate-cold-proof.json",
+    "installed_cold": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/installed-cold-proof.json",
+    "model_calls": 0,
+    "gui": false
+  },
+  "installation": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/local-installation.json",
+  "known_limits": [
+    "Swarm execution runtime remains unconnected; spawn/shutdown/workflow execute intentionally return HTTP 501",
+    "Real two-worker code/review delivery and lifecycle recovery remain tasks 9.5-9.10",
+    "Automatic experience project identity/storage and candidate governance remain 9.11-9.15",
+    "Default graph readiness and held-out business transfer remain 9.16-9.20",
+    "No full installer or Android/GUI certification; no new cloud publish",
+    "Ordinary invoke_subagent path is not replaced or certified by these HTTP truthfulness checks"
+  ],
+  "progress": {
+    "total": 106,
+    "complete": 59,
+    "new_phase_complete": [
+      "9.1",
+      "9.2",
+      "9.3",
+      "9.4"
+    ],
+    "next": "9.5"
+  },
+  "protected": {
+    "model_settings_changed": false,
+    "skill_resources_changed": false,
+    "accepted_anime_rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+    "new_cloud_publish": false
+  },
+  "cleanup": {
+    "owned_baseline_services_stopped": true,
+    "owned_candidate_service_stopped": true,
+    "owned_installed_service_stopped": true,
+    "model_proxy_modified": false
+  },
+  "strict_specs": {
+    "change": true,
+    "main_passed": 6,
+    "main_failed": 0
+  },
+  "diff_check": "passed; only existing CRLF conversion warning",
+  "final_state": "D:/抖音/deepcloud/super-agent/artifacts/hub-swarm-memory-20261106/v1/final-state.json"
+}

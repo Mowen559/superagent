@@ -1,0 +1,272 @@
+{
+  "date": "2026-11-05",
+  "scope": "general parameter-error feedback and managed delivery closeout",
+  "user_phone_acceptance": {
+    "remote_command": "云6oooole/xxxxxx/ifdfmbe8mvrihecg",
+    "verbatim": "手机实测可用。hub现在还存在哪些缺陷，帮我继续推进",
+    "date": "2026-11-05",
+    "source": "user_message",
+    "scope": "User-reported mobile usability of delivered v2; not direct host device testing or exhaustive platform coverage",
+    "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e"
+  },
+  "changes": [
+    "Aggregate delivery.version type and empty-validator errors with field paths; no coercion or authority change",
+    "Prioritize remaining managed-delivery files/checks/final response in the main cognitive strategy; freshness and one-shot gates unchanged"
+  ],
+  "core_tests": {
+    "passed": 581,
+    "failed": 0,
+    "ignored": 2,
+    "filtered": 1,
+    "log": "artifacts/hub-closeout-20261105/v1/rust-tests-final.log",
+    "four_new_tests": "captured multi-field type errors; immutable Run state on bad plan; closeout stages/stale source; changed host/verifier",
+    "golden_cases": "test_golden_cases_all_pass is included in this core suite"
+  },
+  "build": "artifacts/hub-closeout-20261105/v1/build.log",
+  "source_files": [
+    {
+      "path": "src/services/brain/delivery_evidence.rs",
+      "sha256": "ee6b68a663dafb064e4d81bfc3583a0292ad2c2f760d62ebf442862c179524bd"
+    },
+    {
+      "path": "src/services/brain/task_understanding.rs",
+      "sha256": "a0ca4b2d55f713e6b5fa53dc3f7c85ef564f96168da4e6a42a83948ea072a690"
+    },
+    {
+      "path": "src/services/brain/task_progress.rs",
+      "sha256": "015d5c884e798fb1264af3b989d9038e7e0d0cb6c6064943351dbd4050a7e407"
+    },
+    {
+      "path": "src/services/brain/cognitive_runtime.rs",
+      "sha256": "acd9e9f33986cdeb1fecadaa01c4b9877b38d78a3e92dc0e227be633456bcad5"
+    },
+    {
+      "path": "src/services/brain/delivery_action_tests.rs",
+      "sha256": "e5350b66faa3c2046ebbb90805c9058533d092acf12453e997f682c844503b38"
+    }
+  ],
+  "binaries": {
+    "baseline": "2c86a2eb7f5e7060fc46dd724ea72bc819b27542db128f3e9e3a1c4056d22302",
+    "candidate": "6a2b5e84ecc2c8cf76410feee1241afd08446c2538a8a04e0d9fbd3d3ac0b3c4"
+  },
+  "model": "gemini-3.8-flash-high",
+  "same_prompt_profile_source": true,
+  "creation_disabled_by_fixed_reuse_only_arg": true,
+  "cases": [
+    {
+      "label": "baseline",
+      "task_id": "e14d0b71-563a-4b34-8610-6b5e851f7d6c",
+      "status": "completed",
+      "model_turns": 9,
+      "tool_calls": 8,
+      "duration_ms": 248245,
+      "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\e14d0b71-563a-4b34-8610-6b5e851f7d6c\\workspace",
+      "raw_report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-closeout-baseline-v1.json",
+      "raw_report_sha256": "92963eb19f92d6c3cfdf5bd66aeb0e302f84c4ad9ce1b24d6a5025154bc58ffe",
+      "runtime_user_feedback": 0,
+      "managed_action_calls": 1,
+      "cloud_creation_attempt_files": 0,
+      "independent_cloud": {
+        "passed": true,
+        "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-closeout-20261105\\v1\\project\\rule.json",
+        "remote_command": "云6oooole/xxxxxx/ifdfmbe8mvrihecg",
+        "source_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+        "field_hashes": {
+          "title": "15a895e2bc5394f7b1e9eb99058cc91a0b1c08f1aaec6178d025a11e440f0c0f",
+          "version": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+          "url": "df2477d198a9bf01503eee593cc8665f2feddab27a69d69d1ba0553663300fc7",
+          "class_name": "0f91edf0ecd079e26accf1855afa93efc10977ddb748a1ae94aae4fd5405c6ac",
+          "class_url": "c7047371b87864de6c285e4af4be1afd64d63f657221f8f77473387495e9f3b8",
+          "find_rule": "47be6733526ee38e1af97a2b1cee50e1fdb2cefd72d336bf3135d2a1784ff2d1",
+          "search_url": "02a05d9cd10072d076f35761f96daee314fffce70c601547853791bd50820e1b",
+          "searchFind": "e92614179a2c1021f2e7c5d079ce37fb69a8e4c0cd1400f8d743e74d06b589c9",
+          "detail_find_rule": "0f34116a1c3aab6568f8b894888543873fb3d0e238e40bd1c97e36a06dfec305"
+        },
+        "checks": [
+          "new_short_command_readback",
+          "production_parser_field_equality",
+          "real_private_database_import"
+        ],
+        "android_verified": false,
+        "uploaded_by_verifier": false
+      },
+      "snapshots": [
+        {
+          "turn": 1,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 2,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 3,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 4,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 5,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 6,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 7,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 8,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 9,
+          "managed_closeout_strategy": false
+        }
+      ],
+      "files": [
+        {
+          "name": "rule.json",
+          "sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e"
+        },
+        {
+          "name": "publication.json",
+          "sha256": "1859895b0df49a1b5c48d8afcdd1a8b8bdf7e913e169046c89f4589f0a18d163"
+        },
+        {
+          "name": "share-command.txt",
+          "sha256": "3d88046e2fc13fef6973da1890ac46cd2613fdc95cd28d9444038dda96475295"
+        },
+        {
+          "name": "README.md",
+          "sha256": "d0e85fd0b6ad9be2cb9d96de3e3642044b28ba07feda001b62320f4e06bb9e5a"
+        }
+      ],
+      "delivery": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-closeout-20261105\\v1\\baseline\\delivery",
+      "harness_oracle_not_requested": true
+    },
+    {
+      "label": "candidate",
+      "task_id": "606cff18-cb58-4226-aa41-728834a94de0",
+      "status": "completed",
+      "model_turns": 8,
+      "tool_calls": 8,
+      "duration_ms": 278365,
+      "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\606cff18-cb58-4226-aa41-728834a94de0\\workspace",
+      "raw_report": "D:\\抖音\\deepcloud\\super-agent\\docs\\reviews\\hub-closeout-candidate-v1.json",
+      "raw_report_sha256": "e99f0d8864e50e17bf8b1cf2431cf83a180da7c4fb4d140159e116bd577cb939",
+      "runtime_user_feedback": 0,
+      "managed_action_calls": 1,
+      "cloud_creation_attempt_files": 0,
+      "independent_cloud": {
+        "passed": true,
+        "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-closeout-20261105\\v1\\project\\rule.json",
+        "remote_command": "云6oooole/xxxxxx/ifdfmbe8mvrihecg",
+        "source_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+        "field_hashes": {
+          "title": "15a895e2bc5394f7b1e9eb99058cc91a0b1c08f1aaec6178d025a11e440f0c0f",
+          "version": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+          "url": "df2477d198a9bf01503eee593cc8665f2feddab27a69d69d1ba0553663300fc7",
+          "class_name": "0f91edf0ecd079e26accf1855afa93efc10977ddb748a1ae94aae4fd5405c6ac",
+          "class_url": "c7047371b87864de6c285e4af4be1afd64d63f657221f8f77473387495e9f3b8",
+          "find_rule": "47be6733526ee38e1af97a2b1cee50e1fdb2cefd72d336bf3135d2a1784ff2d1",
+          "search_url": "02a05d9cd10072d076f35761f96daee314fffce70c601547853791bd50820e1b",
+          "searchFind": "e92614179a2c1021f2e7c5d079ce37fb69a8e4c0cd1400f8d743e74d06b589c9",
+          "detail_find_rule": "0f34116a1c3aab6568f8b894888543873fb3d0e238e40bd1c97e36a06dfec305"
+        },
+        "checks": [
+          "new_short_command_readback",
+          "production_parser_field_equality",
+          "real_private_database_import"
+        ],
+        "android_verified": false,
+        "uploaded_by_verifier": false
+      },
+      "snapshots": [
+        {
+          "turn": 1,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 2,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 3,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 4,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 5,
+          "managed_closeout_strategy": false
+        },
+        {
+          "turn": 6,
+          "managed_closeout_strategy": true
+        },
+        {
+          "turn": 7,
+          "managed_closeout_strategy": true
+        },
+        {
+          "turn": 8,
+          "managed_closeout_strategy": true
+        }
+      ],
+      "files": [
+        {
+          "name": "rule.json",
+          "sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e"
+        },
+        {
+          "name": "publication.json",
+          "sha256": "1859895b0df49a1b5c48d8afcdd1a8b8bdf7e913e169046c89f4589f0a18d163"
+        },
+        {
+          "name": "share-command.txt",
+          "sha256": "3d88046e2fc13fef6973da1890ac46cd2613fdc95cd28d9444038dda96475295"
+        },
+        {
+          "name": "README.md",
+          "sha256": "eaed050c82a9d63017133e6cc3e830ca5deec5b34a7bc438f0cfc5de786420da"
+        }
+      ],
+      "delivery": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-closeout-20261105\\v1\\candidate\\delivery",
+      "harness_oracle_not_requested": true
+    }
+  ],
+  "interpretation": "One known-target pair, no statistical or unknown-target generalization claim. Baseline ran while build/tests used CPU; do not treat wall-time difference as causal. Type-error improvements are causally covered by captured-input tests; this dialogue pair did not provoke every type error.",
+  "preserved_host_test_command_failure": "Initial cargo command omitted the established current-project repository-scan skip; process stopped, original rust-tests.log retained; final core test command restored that exclusion.",
+  "remaining_defects": [
+    "Unknown encrypted-app investigation still needs supervision; prior root cause supplied by host",
+    "Current-stage natural language routing can misread requests for repair proposals as execution",
+    "Successful arbitrary shell cannot certify actual file changes without trusted change receipts",
+    "Model may rewrite publication metadata and drop provider/readback fields; immutable tool receipt remains separate",
+    "Natural-language descriptions can blur local source byte hashes and semantic cloud roundtrip equality",
+    "External Understand, Supermemory transfer and automatic candidate promotion need separate source/version/holdout validation",
+    "Installed frontend/bundled Hub resource integration is not covered by this source candidate test"
+  ],
+  "installed_Hub_replaced": false,
+  "host_direct_cloud_upload": false,
+  "unknown_target_certified": false,
+  "service_cleanup": {
+    "baseline": {
+      "baseline_pid": 1636,
+      "stopped": true
+    },
+    "candidate": {
+      "candidate_pid": 29048,
+      "stopped": true,
+      "tasks_terminal": true,
+      "model_proxy_8045_untouched": true
+    }
+  },
+  "plan_progress": "46/77"
+}

@@ -47,8 +47,17 @@ pub(crate) async fn list_agent_skills(Path(kind_str): Path<String>) -> Response 
 
     let spec = agent::discovery::get_agent_discovery_spec(kind);
     let mut cache = agent::skills::ScannerCache::new();
-    let skills =
-        agent::skills::scan_skills_for_agent(kind.info().slug, &spec.skill_paths, &mut cache);
+    let mut paths=spec.skill_paths;
+    if kind.info().slug == "superagent" {
+        let cwd=std::env::current_dir().unwrap_or_default();
+        paths.extend(crate::domains::agent_cognitive::capability_scout::CapabilityScout::skill_roots(&cwd));
+    }
+    let mut skills = agent::skills::scan_skills_for_agent(kind.info().slug, &paths, &mut cache);
+    if kind.info().slug == "superagent" {
+        let selected:std::collections::HashMap<_,_>=crate::domains::agent_cognitive::capability_scout::CapabilityScout::discover_skills(&std::env::current_dir().unwrap_or_default())
+            .into_iter().filter_map(|s|Some((s.name,std::fs::canonicalize(std::path::Path::new(&s.path).parent()?).ok()?))).collect();
+        skills.retain(|s|selected.get(&s.name).is_some_and(|expected|std::fs::canonicalize(&s.path).ok().as_ref()==Some(expected)));
+    }
 
     Json(json!({ "skills": skills })).into_response()
 }

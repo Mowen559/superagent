@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-06",
+  "scope": "Read-only source review plus current default CLI doctor; no live model/subagent/swarm execution test this turn",
+  "binary_sha256": "51602e2255d1d02c7d11a896224a38e6661112476b69546e31dbe443bbd776a7",
+  "doctor": {
+    "project": "D:/抖音/deepcloud",
+    "graph": {
+      "state": "missing",
+      "ready": false,
+      "path": "C:\\Users\\刘本录\\.cache\\codebase-memory-mcp\\D--抖音-deepcloud.db",
+      "reason": "Run project analysis to create the graph database"
+    },
+    "understand": {
+      "ready": false,
+      "tool": "project_index",
+      "depends_on": "graph",
+      "metadata_path": null
+    },
+    "supermemory": {
+      "state": "ready",
+      "path": "D:/抖音/deepcloud\\.supermemory\\supermemory.json",
+      "records": 34,
+      "scope": "current_project",
+      "project_notes": {
+        "state": "missing",
+        "path": "D:\\抖音\\deepcloud\\..\\.shadow-git\\project-notes\\352b81fc19cfdba34c411d18bf70e309fea6557deb1af6e865a7079cea3c5b3f\\supermemory.json",
+        "project": "D:/抖音/deepcloud",
+        "records": 0,
+        "eligible_records": 0,
+        "validation": "unverified_history"
+      }
+    },
+    "rtk": {
+      "state": "integrated",
+      "source_filter": "rtk::core::filter",
+      "terminal_filter": "LocalShellProvider -> compress_by_command",
+      "process_metrics": {
+        "totalOriginalBytes": 0,
+        "totalCompressedBytes": 0,
+        "totalOriginalTokens": 0,
+        "totalCompressedTokens": 0,
+        "totalTokensSaved": 0,
+        "overallReductionPercent": 0,
+        "totalInvocations": 0
+      },
+      "note": "Process metrics differ from rtk gain; zero usage is not a failed readiness check"
+    }
+  },
+  "memory": {
+    "session": "executor.rs save_session synchronizes ledger",
+    "project_notes": "store/retrieve/search/revoke and cross-Run restart tested previously; not automatic knowledge capture for every dialogue",
+    "automatic_lessons": "successful Run triggers heuristic reflection/distillation conditionally; quality and shared promotion governance incomplete",
+    "swarm_blackboard": "process-memory HashMap/Vec; separate from persistent project note store"
+  },
+  "subagents": {
+    "tools": [
+      "invoke_subagent",
+      "check_worker_status",
+      "intervene_worker",
+      "cancel_subagent"
+    ],
+    "implementation": "spawns child process, IPC, timeout/cancel and parent steering result delivery",
+    "same_parent_concurrency_limit": 4,
+    "delegation_depth_limit": 3,
+    "previous_popup_attempts": 12,
+    "previous_popup_subagent_calls": 0,
+    "live_multiworker_business_acceptance_verified": false
+  },
+  "static_findings": [
+    {
+      "file": "src/routes/ruflo_adapter.rs",
+      "line": 71,
+      "finding": "swarm health returns healthy=true without checking actual workers"
+    },
+    {
+      "file": "src/routes/ruflo_adapter.rs",
+      "line": 108,
+      "finding": "shutdown returns success message without stopping workers"
+    },
+    {
+      "file": "src/routes/ruflo_adapter.rs",
+      "line": 341,
+      "finding": "spawn registers SwarmNode metadata but does not launch SubagentRuntime worker"
+    },
+    {
+      "file": "src/domains/swarm_intelligence/workflow.rs",
+      "line": 171,
+      "finding": "advance_workflow marks steps succeeded and fills constant success output without actual tool execution"
+    },
+    {
+      "file": "src/domains/swarm_intelligence/consciousness.rs",
+      "line": 39,
+      "finding": "swarm blackboard is memory-held data, distinct from durable super_memory"
+    }
+  ],
+  "skill_workflow": "prior popup case used Skill reference + single Hub execution + host-authored independent verifier; not a swarm run; framework patch authored by Codex",
+  "limitations": "Static/source findings are not a new live failure reproduction. Existing 604 tests do not certify real-model swarm task delivery. No code/config changed or paid model called for this review."
+}

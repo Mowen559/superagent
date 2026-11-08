@@ -68,16 +68,16 @@ impl WorkflowEngine {
                 WorkflowStage {
                     id: "stage-1-plan".to_string(),
                     name: "Architecture & Spec Design".to_string(),
-                    status: WorkflowStatus::Succeeded,
+                    status: WorkflowStatus::Pending,
                     steps: vec![
                         WorkflowStep {
                             id: "step-1-1".to_string(),
                             name: "Analyze Task Requirements".to_string(),
                             action: "search_graph".to_string(),
                             target_agent: Some("agent-leader".to_string()),
-                            status: WorkflowStatus::Succeeded,
+                            status: WorkflowStatus::Pending,
                             input_data: serde_json::json!({ "scope": "workspace" }),
-                            output_data: Some(serde_json::json!({ "spec_approved": true })),
+                            output_data: None,
                             error_message: None,
                         },
                     ],
@@ -85,14 +85,14 @@ impl WorkflowEngine {
                 WorkflowStage {
                     id: "stage-2-code".to_string(),
                     name: "Surgical Implementation".to_string(),
-                    status: WorkflowStatus::Running,
+                    status: WorkflowStatus::Pending,
                     steps: vec![
                         WorkflowStep {
                             id: "step-2-1".to_string(),
                             name: "Author Domain Logic".to_string(),
                             action: "replace_in_file".to_string(),
                             target_agent: Some("agent-coder".to_string()),
-                            status: WorkflowStatus::Running,
+                            status: WorkflowStatus::Pending,
                             input_data: serde_json::json!({ "mode": "surgical" }),
                             output_data: None,
                             error_message: None,
@@ -134,8 +134,8 @@ impl WorkflowEngine {
                     ],
                 },
             ],
-            current_stage_index: 1,
-            status: WorkflowStatus::Running,
+            current_stage_index: 0,
+            status: WorkflowStatus::Pending,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
@@ -152,7 +152,16 @@ impl WorkflowEngine {
         self.workflows.get(id)
     }
 
-    pub fn create_workflow(&mut self, name: &str, description: &str, stages: Vec<WorkflowStage>) -> String {
+    pub fn create_workflow(&mut self, name: &str, description: &str, mut stages: Vec<WorkflowStage>) -> String {
+        // A caller supplies a definition, never execution receipts.
+        for stage in &mut stages {
+            stage.status = WorkflowStatus::Pending;
+            for step in &mut stage.steps {
+                step.status = WorkflowStatus::Pending;
+                step.output_data = None;
+                step.error_message = None;
+            }
+        }
         let id = format!("wf-{}", &uuid::Uuid::new_v4().to_string()[..8]);
         let instance = WorkflowInstance {
             id: id.clone(),
@@ -169,37 +178,79 @@ impl WorkflowEngine {
     }
 
     pub fn advance_workflow(&mut self, id: &str) -> Result<WorkflowInstance, String> {
-        let wf = self.workflows.get_mut(id).ok_or("Workflow not found")?;
-        if wf.current_stage_index >= wf.stages.len() {
-            wf.status = WorkflowStatus::Succeeded;
-            wf.updated_at = Utc::now();
-            return Ok(wf.clone());
+        if !self.workflows.contains_key(id) {
+            return Err("Workflow not found".into());
         }
-
-        let cur_idx = wf.current_stage_index;
-        wf.stages[cur_idx].status = WorkflowStatus::Succeeded;
-        for step in &mut wf.stages[cur_idx].steps {
-            step.status = WorkflowStatus::Succeeded;
-            step.output_data = Some(serde_json::json!({ "result": "Step executed successfully via SDD engine" }));
-        }
-
-        if cur_idx + 1 < wf.stages.len() {
-            wf.current_stage_index += 1;
-            let next_idx = wf.current_stage_index;
-            wf.stages[next_idx].status = WorkflowStatus::Running;
-            for step in &mut wf.stages[next_idx].steps {
-                step.status = WorkflowStatus::Running;
-            }
-            wf.status = WorkflowStatus::Running;
-        } else {
-            wf.status = WorkflowStatus::Succeeded;
-        }
-
-        wf.updated_at = Utc::now();
-        Ok(wf.clone())
+        // The metadata engine has no execution adapter. A coordinator must
+        // supply real Run/step receipts before any transition is possible.
+        Err("Workflow execution runtime is not connected".into())
     }
 }
 
 lazy_static::lazy_static! {
     pub static ref GLOBAL_WORKFLOW_ENGINE: Arc<RwLock<WorkflowEngine>> = Arc::new(RwLock::new(WorkflowEngine::new()));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_unexecuted(workflow: &WorkflowInstance) {
+        assert!(matches!(workflow.status, WorkflowStatus::Pending));
+        assert_eq!(workflow.current_stage_index, 0);
+        for stage in &workflow.stages {
+            assert!(matches!(stage.status, WorkflowStatus::Pending));
+            for step in &stage.steps {
+                assert!(matches!(step.status, WorkflowStatus::Pending));
+                assert!(step.output_data.is_none());
+                assert!(step.error_message.is_none());
+            }
+        }
+    }
+
+    #[test]
+    fn template_has_no_unobserved_execution_or_approval() {
+        let engine = WorkflowEngine::new();
+        assert_unexecuted(engine.get_workflow("wf-sdd-standard").unwrap());
+    }
+
+    #[test]
+    fn execution_without_runtime_preserves_entire_workflow() {
+        let mut engine = WorkflowEngine::new();
+        let before = serde_json::to_value(engine.get_workflow("wf-sdd-standard")).unwrap();
+        assert!(engine.advance_workflow("wf-sdd-standard").is_err());
+        let after = serde_json::to_value(engine.get_workflow("wf-sdd-standard")).unwrap();
+        assert_eq!(before, after, "No receipt may be manufactured by advancing a definition");
+    }
+
+    #[test]
+    fn empty_workflow_cannot_be_completed_by_execution_request() {
+        let mut engine = WorkflowEngine::new();
+        let id = engine.create_workflow("empty", "no execution steps", vec![]);
+        let before = serde_json::to_value(engine.get_workflow(&id)).unwrap();
+        assert!(engine.advance_workflow(&id).is_err());
+        assert_eq!(before, serde_json::to_value(engine.get_workflow(&id)).unwrap());
+    }
+
+    #[test]
+    fn creating_definition_does_not_accept_caller_supplied_success() {
+        let mut engine = WorkflowEngine::new();
+        let mut stages = engine.get_workflow("wf-sdd-standard").unwrap().stages.clone();
+        for stage in &mut stages {
+            stage.status = WorkflowStatus::Succeeded;
+            for step in &mut stage.steps {
+                step.status = WorkflowStatus::Succeeded;
+                step.output_data = Some(serde_json::json!({"untrusted": "success"}));
+                step.error_message = Some("old execution".into());
+            }
+        }
+        let id = engine.create_workflow("definition", "not a run", stages);
+        assert_unexecuted(engine.get_workflow(&id).unwrap());
+    }
+
+    #[test]
+    fn unknown_workflow_remains_missing() {
+        let mut engine = WorkflowEngine::new();
+        assert_eq!(engine.advance_workflow("unknown").unwrap_err(), "Workflow not found");
+    }
 }

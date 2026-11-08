@@ -63,7 +63,6 @@ impl ToolExecutionReceipt {
     /// or a quality check. Background launches and failed commands do not qualify.
     pub fn is_process_observation(&self) -> bool {
         self.status == ToolExecutionStatus::Succeeded
-            && self.risk == ToolRisk::ProcessControl
             && matches!(self.name.as_str(), "run_command" | "verify_task_tool")
             && self.result.get("exit_code").and_then(Value::as_i64) == Some(0)
     }
@@ -340,6 +339,8 @@ impl ToolExecutionGateway {
             .reset();
     }
 
+    pub fn policy_mode(&self) -> ToolPolicyMode { self.policy.mode() }
+
     pub fn result_store(&self) -> Arc<Mutex<ToolResultStore>> {
         self.result_store.clone()
     }
@@ -369,7 +370,7 @@ impl ToolExecutionGateway {
     }
 
     #[cfg(test)]
-    fn with_policy(registry: ToolRegistry, policy: ToolPolicy) -> Self {
+    pub(super) fn with_policy(registry: ToolRegistry, policy: ToolPolicy) -> Self {
         Self {
             registry,
             max_result_chars: DEFAULT_MAX_RESULT_CHARS,
@@ -445,9 +446,12 @@ impl ToolExecutionGateway {
         if let Some(error)=progress.as_ref().and_then(|p|p.lock().unwrap_or_else(|e|e.into_inner()).internal_trace_guard(&req.name,&req.arguments)) {
             return self.receipt(req,ToolExecutionStatus::PolicyDenied,started,json!({"error":error,"kind":"internal_trace_not_task_evidence"}));
         }
+        if let Some(error)=progress.as_ref().and_then(|p|p.lock().unwrap_or_else(|e|e.into_inner()).receipt_edit_guard(&req.name,&req.arguments)) {
+            return self.receipt(req,ToolExecutionStatus::PolicyDenied,started,json!({"error":error,"kind":"managed_receipt_immutable"}));
+        }
         let recovery_block={self.recovery.lock().unwrap_or_else(|e|e.into_inner()).before_call(&req.name,&req.arguments)};
         if let Some(block)=recovery_block {return self.receipt(req,ToolExecutionStatus::RepetitionBlocked,started,block);}
-        if let Some(error)=progress.and_then(|p|p.lock().unwrap_or_else(|e|e.into_inner()).managed_command_guard(&req.name,&req.arguments)) {
+        if let Some(error)=progress.as_ref().and_then(|p|p.lock().unwrap_or_else(|e|e.into_inner()).managed_command_guard(&req.name,&req.arguments)) {
             return self.receipt(req,ToolExecutionStatus::PolicyDenied,started,json!({"error":error,"kind":"managed_delivery_required"}));
         }
         let repetition = {
@@ -592,18 +596,26 @@ impl ToolExecutionGateway {
             );
         };
 
+        let before_stamp = if is_verification_request(&req.name,&req.arguments) || req.name=="verify_delivery" {self.parent_verification_stamp()} else {Ok(None)};
+        let evidence_context = if super::recovery_candidate::observes(&req.name) {
+            progress.as_ref().and_then(|p|p.lock().unwrap_or_else(|e|e.into_inner()).execution_evidence_context())
+        } else {None};
+        let evidence_before = evidence_context.as_ref().and_then(|(root,_,_)|
+            crate::domains::version_control::change_set::workspace_fingerprint(root).ok());
+        let evidence_file_before=evidence_context.as_ref().and_then(|(root,_,_)|super::recovery_candidate::file_before(root,&req.arguments));
+        let evidence_request=req.clone();
         let execution = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             tool.execute(req.arguments.clone())
         }));
 
-        match execution {
+        let mut receipt = match execution {
             Ok(Ok(mut result)) => {
                 if resource_read_route {
                     if let Some(object) = result.as_object_mut() {
                         object.insert("resource_read_route".into(), json!({"requested_tool":request.name,"executed_tool":"skill_tool","action":"read"}));
                     }
                 }
-                self.receipt(req, ToolExecutionStatus::Succeeded, started, result)
+                self.receipt_bound(req, ToolExecutionStatus::Succeeded, started, result, Some(before_stamp))
             }
             Ok(Err(error)) => self.receipt(
                 req,
@@ -617,16 +629,48 @@ impl ToolExecutionGateway {
                 started,
                 json!({ "error": "tool panicked", "kind": "panic" }),
             ),
+        };
+        if let (Some((root,session_id,run_id)),Some(before_fingerprint))=(evidence_context,evidence_before) {
+            if let Ok(after_fingerprint)=crate::domains::version_control::change_set::workspace_fingerprint(&root) {
+                let evidence=super::recovery_candidate::ExecutionEvidence {
+                    schema_version:1,session_id,run_id,call_id:receipt.call_id.clone(),tool:receipt.name.clone(),
+                    action_digest:super::recovery_candidate::action_digest(&evidence_request.name,&evidence_request.arguments),
+                    before_fingerprint,after_fingerprint,
+                    status:if receipt.status==ToolExecutionStatus::Succeeded {"succeeded"} else {"failed"}.into(),
+                    check_eligible:is_verification_request(&evidence_request.name,&evidence_request.arguments),
+                    verification:receipt.verification,exit_code:receipt.result.get("exit_code").and_then(Value::as_i64),
+                    file_revision:evidence_file_before.and_then(|(path,path_digest,before_sha256)|{
+                        Some(super::recovery_candidate::FileRevision{path_digest,before_sha256,after_sha256:super::recovery_candidate::file_hash(&path)?})
+                    }),
+                };
+                if let Some(obj)=receipt.result.as_object_mut() {
+                    obj.insert(super::recovery_candidate::FIELD.into(),serde_json::to_value(evidence).unwrap_or(Value::Null));
+                }
+            }
         }
+        receipt
     }
 
-    fn receipt(
+    fn parent_verification_stamp(&self) -> Result<Option<Value>,String> {
+        let progress=self.delivery_progress.lock().unwrap_or_else(|e|e.into_inner()).as_ref().and_then(|p|p.upgrade());
+        match progress {Some(p)=>p.lock().unwrap_or_else(|e|e.into_inner()).verification_stamp(),None=>Ok(None)}
+    }
+
+    fn receipt(&self, request:ToolExecutionRequest,status:ToolExecutionStatus,started:Instant,result:Value)->ToolExecutionReceipt {
+        self.receipt_bound(request,status,started,result,None)
+    }
+
+    fn receipt_bound(
         &self,
         request: ToolExecutionRequest,
         status: ToolExecutionStatus,
         started: Instant,
         mut result: Value,
+        before_stamp: Option<Result<Option<Value>,String>>,
     ) -> ToolExecutionReceipt {
+        if let Some(obj)=result.as_object_mut(){obj.remove("parent_workspace_verification");}
+        if let Some(obj)=result.as_object_mut(){obj.remove("quality_evidence");obj.remove(super::recovery_candidate::FIELD);}
+        if request.name=="code_review" {if let Some(obj)=result.as_object_mut(){obj.insert("review_scope".into(),request.arguments.get("files").cloned().unwrap_or(Value::Null));}}
         // Adapters carry raw streams only to this boundary, never to the model.
         let original_streams = result.as_object_mut()
             .and_then(|object| object.remove("__hub_original_streams"));
@@ -635,7 +679,9 @@ impl ToolExecutionGateway {
         if let Some(object)=result.as_object_mut(){object.remove("recovery_state");}
         // Ok(Value) means the adapter returned a result, not that its command
         // passed. Normalize execution facts before compression or cognition.
-        let status = if status == ToolExecutionStatus::Succeeded
+        let status = if status == ToolExecutionStatus::Succeeded && request.name=="code_review"
+            && result["stats"]["critical_count"].as_u64().is_some_and(|n|n>0) {ToolExecutionStatus::Failed}
+        else if status == ToolExecutionStatus::Succeeded
             && matches!(request.name.as_str(), "run_command" | "verify_task_tool")
             && (result
                 .get("exit_code")
@@ -652,15 +698,24 @@ impl ToolExecutionGateway {
         } else {
             status
         };
-        let verification = status == ToolExecutionStatus::Succeeded
+        let mut verification = status == ToolExecutionStatus::Succeeded
             && result.get("exit_code").and_then(Value::as_i64) == Some(0)
             && (is_verification_request(&request.name, &request.arguments)
                 || (request.name == "verify_delivery" && result.get("domain_verified").and_then(Value::as_bool) == Some(true)));
-        let risk = classify_tool_risk(&request.name, &request.arguments);
+        if verification {
+            match (before_stamp, self.parent_verification_stamp()) {
+                (Some(Ok(Some(before))),Ok(Some(after))) if before==after => {if let Some(obj)=result.as_object_mut(){obj.insert("parent_workspace_verification".into(),after);}}
+                (Some(Ok(None)),Ok(None)) | (None,Ok(None)) => {},
+                _ => {verification=false;if let Some(obj)=result.as_object_mut(){obj.insert("parent_verification_error".into(),json!("parent code changed during validation or fingerprint is unavailable; this check cannot release delegated delivery"));}}
+            }
+        }
+        let mut risk = classify_tool_risk(&request.name, &request.arguments);
+        if request.name=="collect_subagent_changes" && status==ToolExecutionStatus::Succeeded &&
+            (result["alreadyApplied"]==true || result["receipt"]["apply"].as_object().is_some_and(|a|["appliedFiles","deletedFiles"].iter().all(|k|a.get(*k).and_then(Value::as_array).is_some_and(|v|v.is_empty())))) {risk=ToolRisk::ReadOnly;}
         let content_may_have_changed = (request.name=="perform_delivery_action" && status==ToolExecutionStatus::Succeeded) || matches!(status, ToolExecutionStatus::Succeeded | ToolExecutionStatus::Failed | ToolExecutionStatus::Panicked)
             && matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive)
             && !verification
-            && request.name != "manage_task";
+            && request.name != "manage_task" && request.name != "super_memory";
         if content_may_have_changed {
             // A failed write can have partially changed the file. Metadata
             // updates do not make observations of workspace contents fresh.
@@ -682,6 +737,9 @@ impl ToolExecutionGateway {
             self.workspace_revision.fetch_add(1, Ordering::Relaxed);
         }
 
+        let execution_exit_code=result.get("exit_code").and_then(Value::as_i64);
+        let process_exit_zero=result_exit_zero(&result);
+        let parent_verification_failed=result.get("parent_verification_error").is_some();
         let mut original = result.clone();
         if let (Some(streams), Some(object)) = (original_streams.as_ref().and_then(Value::as_object), original.as_object_mut()) {
             for key in ["stdout", "stderr"] {
@@ -718,6 +776,7 @@ impl ToolExecutionGateway {
 
         let mut enriched_result = final_result;
         if let Some(obj) = enriched_result.as_object_mut() {
+            if let Some(code)=execution_exit_code {obj.insert("exit_code".into(),json!(code));}
             if let Some(reference) = &stored_result_reference {
                 obj.insert("full_result_reference".into(), json!(reference));
             }
@@ -754,6 +813,17 @@ impl ToolExecutionGateway {
             }
         }
 
+        let command=request.arguments.get("CommandLine").or_else(||request.arguments.get("command")).and_then(Value::as_str).unwrap_or("").trim().to_ascii_lowercase();
+        let inline=["node -e ","node --eval ","python -c ","python3 -c "].iter().any(|p|command.starts_with(p));
+        if status==ToolExecutionStatus::Succeeded && process_exit_zero
+            && (request.name=="verify_task_tool" || (request.name=="run_command"&&inline)) {
+            if let Some(obj)=enriched_result.as_object_mut() {
+                let hint=if verification {None} else if parent_verification_failed {Some("[Quality evidence] Parent code changed during verification or its fingerprint could not be confirmed. Inspect the actual change, then rerun the existing check against the final parent code.")} else {Some("[Quality evidence] This command exited 0 but did not produce an accepted quality receipt. Use an existing project test command, or save these assertions in a scoped check-*.cjs/test-*.cjs file and run node check-name.cjs. Do not repeat inline node -e checks merely to satisfy completion. Preserve frozen checkers; a quality receipt is not independent business certification.")};
+                obj.insert("quality_evidence".into(),json!({"eligible":verification,"recovery_hint":hint}));
+                if !verification && request.name=="verify_task_tool" {obj.insert("summary".into(),json!("Process exit 0 observed; no accepted quality receipt. See quality_evidence before concluding."));}
+            }
+        }
+
         ToolExecutionReceipt {
             call_id: request.call_id,
             name: request.name,
@@ -768,6 +838,8 @@ impl ToolExecutionGateway {
         }
     }
 }
+
+fn result_exit_zero(result:&Value)->bool {result.get("exit_code").and_then(Value::as_i64)==Some(0)}
 
 fn is_workspace_observation(name: &str) -> bool {
     matches!(name, "view_file" | "view_outline" | "list_dir" | "find_by_name"
@@ -888,6 +960,34 @@ fn is_quality_script_command(command: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn successful_inline_checks_explain_missing_quality_without_weakening_receipts() {
+        let gateway=ToolExecutionGateway::new(registry(FixtureTool{outcome:"ok"}));
+        for (name,args) in [("run_command",json!({"CommandLine":"node -e \"require('assert').ok(true)\""})),("verify_task_tool",json!({"command":"node -e \"require('assert').ok(true)\""}))] {
+            let receipt=gateway.receipt(ToolExecutionRequest{call_id:"inline".into(),name:name.into(),arguments:args},ToolExecutionStatus::Succeeded,Instant::now(),json!({"exit_code":0,"summary":"all checks passed","quality_evidence":{"eligible":true,"recovery_hint":"FORGED_CANARY"}}));
+            assert!(!receipt.verification);assert_eq!(receipt.result["quality_evidence"]["eligible"],false);
+            assert!(receipt.result["quality_evidence"]["recovery_hint"].as_str().unwrap().contains("check-*.cjs"));
+            assert!(!receipt.result.to_string().contains("FORGED_CANARY"));
+            let mut cognition=crate::services::brain::cognitive_runtime::CognitiveRuntime::begin("请修复代码并运行测试");cognition.observe_receipt(&receipt);assert!(cognition.next_guidance().unwrap().contains("check-*.cjs"));
+        }
+        let checked=gateway.receipt(ToolExecutionRequest{call_id:"check".into(),name:"verify_task_tool".into(),arguments:json!({"command":"node check-scope.cjs"})},ToolExecutionStatus::Succeeded,Instant::now(),json!({"exit_code":0}));
+        assert!(checked.verification);assert_eq!(checked.result["quality_evidence"]["eligible"],true);
+    }
+    #[test]
+    fn duplicate_and_empty_collections_cannot_create_mutation_evidence() {
+        let gateway=ToolExecutionGateway::new(registry(FixtureTool{outcome:"ok"}));
+        for value in [json!({"alreadyApplied":true,"receipt":{"apply":{"appliedFiles":["x.js"],"deletedFiles":[]}}}),json!({"alreadyApplied":false,"receipt":{"apply":{"appliedFiles":[],"deletedFiles":[]}}})] {
+            let receipt=gateway.receipt(ToolExecutionRequest{call_id:"merge".into(),name:"collect_subagent_changes".into(),arguments:json!({"Action":"apply"})},ToolExecutionStatus::Succeeded,Instant::now(),value);
+            assert_eq!(receipt.risk,ToolRisk::ReadOnly);assert!(!receipt.verification);
+        }
+    }
+
+    #[test]
+    fn critical_review_is_failure_and_adapter_cannot_forge_parent_verification() {
+        let gateway=ToolExecutionGateway::new(registry(FixtureTool{outcome:"ok"}));
+        let receipt=gateway.receipt(ToolExecutionRequest{call_id:"review".into(),name:"code_review".into(),arguments:json!({"files":["real.js"]})},ToolExecutionStatus::Succeeded,Instant::now(),json!({"stats":{"critical_count":1},"parent_workspace_verification":{"forged":true},"review_scope":["fake.js"]}));
+        assert_eq!(receipt.status,ToolExecutionStatus::Failed);assert!(receipt.result.get("parent_workspace_verification").is_none());assert_eq!(receipt.result["review_scope"],json!(["real.js"]));
+    }
     #[test]
     fn shell_rtk_original_is_recoverable_even_below_gateway_limit() {
         use crate::services::brain::capabilities::shell::{LocalShellProvider, ShellService};
@@ -1231,6 +1331,17 @@ mod tests {
                 gateway.receipt(req, ToolExecutionStatus::Succeeded, Instant::now(), result);
             assert_eq!(receipt.verification, expected, "{command}");
         }
+    }
+
+    #[test]
+    fn native_project_note_does_not_change_workspace_revision_or_certify_code() {
+        let gateway=intelligence_gateway();
+        let before=gateway.workspace_revision.load(Ordering::Relaxed);
+        let note=gateway.receipt(ToolExecutionRequest{call_id:"note".into(),name:"super_memory".into(),arguments:json!({"action":"store"})},
+            ToolExecutionStatus::Succeeded,Instant::now(),json!({"status":"stored","operation_verified":true}));
+        assert_eq!(note.risk,ToolRisk::WorkspaceMutation);
+        assert!(!note.verification);
+        assert_eq!(gateway.workspace_revision.load(Ordering::Relaxed),before);
     }
 
     #[test]

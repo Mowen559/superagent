@@ -1,5 +1,7 @@
 # PC 独有 Python 爬虫引擎与海阔规则协同架构规范 (Python Engine Synergy Specification)
 
+> **适用范围**：仅用户明确选择依赖本地引擎的方案时使用。本页为可选架构/接口示例，须核验当前服务，不能宣称已通过站点验证码或通用过盾。独立JS任务不自动探测或调用本服务。
+
 > **核心宗旨**：DeepCloud PC 桌面端拥有全栈 Python 边缘爬虫引擎（`scraper-service`，监听 `127.0.0.1:18000`）。
 > 本规范定义海阔规则与 PC 端 Python 爬虫引擎的**端机协同分级加速架构**，解决纯移动端 JS 在面对重度反爬、滑块风控与客户端水合（SPA）时的算力短板。
 
@@ -33,7 +35,7 @@ flowchart LR
 1. **常驻无头浏览器池 (`fetcher.py / BrowserPool`)**：
    - `static`：基于高性能异步网络库，毫秒级抓取；
    - `dynamic`：基于 Playwright / Scrapling 常驻 Chromium 内核，自动执行复杂 JS、完成 SPA 客户端水合渲染；
-   - `stealthy`：真实指纹伪装，过 Cloudflare 5秒盾、Akamai 与风控滑块验证。
+   - `stealthy`：可选浏览器环境与指纹配置；效果取决于目标和实际会话，不保证Cloudflare、Akamai或滑块验证通过。
 2. **多源聚合与 MacCMS 协议适配 (`pyspider.py / spider_runner.py`)**：
    - 兼容成熟的 Python 爬虫插件源；
    - 提供 `/api.php/provide/vod?spider=...` 标准接口，秒级输出海阔兼容数据。
@@ -46,11 +48,11 @@ flowchart LR
 
 ## 二、三阶端机协同加速梯队 (Engine Acceleration Ladder)
 
-在编写海阔规则时，必须采用**自愈感知三阶梯队**，兼顾“手机脱机轻量”与“电脑端重型算力”：
+仅在用户选择依赖本地引擎的PC方案后，可按实际条件选择以下路径，兼顾“手机独立运行”与“电脑端重型算力”：
 
 | 梯度 | 运行环境 | 适用场景 | 实现逻辑 |
 |---|---|---|---|
-| **Tier 1：轻量同构模式**<br>(Lightweight Isomorphic) | 双端脱机运行<br>(移动端 + PC 端) | 公开、防爬弱、免密、小程序/移动端 REST API 站点。 | 纯 JS 编写，基于 `request(url, options)` 直接请求，毫秒级响应，零依赖。 |
+| **Tier 1：轻量同构模式**<br>(Lightweight Isomorphic) | 双端独立运行（仍需联网）<br>(移动端 + PC 端) | 公开、防爬弱、免密、小程序/移动端 REST API 站点。 | 纯 JS 编写，基于 `request(url, options)` 直接请求，毫秒级响应，零依赖。 |
 | **Tier 2：PC 本地引擎加速模式**<br>(Engine-Assisted Mode) | PC 桌面端运行<br>(或局域网打通) | 目标站有高防风控（如小红书详情 302 重定向、反爬滑块、SPA 纯动态渲染）。 | 规则在 JS 中自动探测本地 `127.0.0.1:18000`。若在线，将复杂任务交由本地 Python 引擎的 `dynamic/stealthy` 模式解析；若不在线，优雅降级走 Tier 1。 |
 | **Tier 3：全源 PySpider 沉淀模式**<br>(Full PySpider Pipeline) | 企业级/深度逆向 | 具有复杂加密签名 (如 Wbi、SO 逆向签名、需本地持久化 Cookie 池) 的站点。 | 编写 `scraper-service` 对应的 Python 爬虫类 (`SpiderRunner`)，由 PC 引擎全托管调度，通过本地 Hiker API 统一向海阔视界输出。 |
 
@@ -81,7 +83,7 @@ try {
 
 // 3. 智能分支调度
 if (isEngineOnline) {
-    // 【PC 端算力加持】：调用本地 Python 引擎的动态浏览器池进行免风控无头渲染
+    // 【PC 端算力加持】：调用本地 Python 引擎的动态浏览器池进行浏览器动态渲染（不保证过盾）
     var scrapeReq = post(localEngine + '/api/v1/scrape', {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -95,7 +97,7 @@ if (isEngineOnline) {
     // 解析经过 Python 引擎渲染后的完备 DOM / JSON
     parseContent(html);
 } else {
-    // 【移动端纯脱机降级】：走轻量移动端 H5 / 小程序 API
+    // 【移动端独立请求回退】：走轻量移动端 H5 / 小程序 API
     var fallbackUrl = getMobileApiUrl(currentUrl);
     var html = request(fallbackUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X)' }

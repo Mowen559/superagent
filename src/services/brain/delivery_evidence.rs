@@ -41,6 +41,31 @@ pub struct ArtifactRequirement {
 }
 
 impl DeliveryContract {
+    /// Give the model actionable feedback for observed shape errors, without
+    /// coercing its plan or changing the Run's host-owned declaration.
+    pub fn validate_model_value(value: &Value) -> Result<(), String> {
+        let mut issues = Vec::new();
+        if let Some(version) = value.get("version") {
+            if version.as_u64() != Some(1) {
+                let received = if version.is_string() { "string" } else { "non-version-1 value" };
+                issues.push(format!("delivery.version: expected integer 1 (unquoted), received {received}; use \"version\": 1"));
+            }
+        }
+        if let Some(artifacts) = value.get("artifacts").and_then(Value::as_array) {
+            for (index, artifact) in artifacts.iter().enumerate() {
+                if let Some(validator) = artifact.get("validator") {
+                    if !validator.is_null() && !validator.as_str().is_some_and(|s| !s.is_empty() && s.len() <= 80) {
+                        issues.push(format!("delivery.artifacts[{index}].validator: expected null, omission, or a registered non-empty validator ID (maximum 80 bytes); an empty string is invalid"));
+                    }
+                }
+            }
+        }
+        if issues.is_empty() { Ok(()) } else {
+            Err(json!({"kind":"invalid_task_plan","issues":issues,
+                "recovery":"Correct all listed fields in one submission. Preserve the host delivery requirements; do not guess a validator or change the target."}).to_string())
+        }
+    }
+
     pub fn validate(&self) -> Result<(), String> {
         if self.version != 1 || self.target.trim().is_empty() || self.target.len() > 2000 || self.artifacts.len() > 12 {
             return Err("delivery requires version=1, a bounded target and at most 12 artifacts".into());
@@ -63,11 +88,11 @@ impl DeliveryContract {
 
     pub fn schema() -> Value {
         json!({"type":"object","additionalProperties":false,"required":["version","scope","target","artifacts"],
-          "properties":{"version":{"type":"integer","enum":[1]},"scope":{"type":"string","enum":["read_only","implementation"]},
+          "properties":{"version":{"type":"integer","enum":[1],"description":"Use the integer 1, never the string \"1\"."},"scope":{"type":"string","enum":["read_only","implementation"]},
           "target":{"type":"string","minLength":1,"maxLength":2000},"artifacts":{"type":"array","maxItems":12,"items":{
             "type":"object","additionalProperties":false,"required":["id","path"],"properties":{
               "id":{"type":"string","maxLength":64},"path":{"type":"string","maxLength":500},
-              "required":{"type":"boolean","default":true},"validator":{"type":"string","maxLength":80}}}}}})
+              "required":{"type":"boolean","default":true},"validator":{"type":["string","null"],"minLength":1,"maxLength":80,"description":"Use the exact host-registered validator ID, or omit/use null for a physical-only artifact. Never use an empty string."}}}}}})
     }
 }
 
@@ -102,7 +127,11 @@ enum CompletionPolicy { #[default] QualityChecks, PhysicalArtifacts }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct DeliveryAction { id: String, source: String, executor: String }
+struct DeliveryAction {
+    id: String, source: String, executor: String,
+    #[serde(default)]
+    receipt_artifacts: Vec<String>,
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ArtifactRecord {
@@ -134,6 +163,8 @@ pub struct DeliveryEvidence {
     errors: HashMap<String, String>,
     actions: HashMap<String, DeliveryAction>,
     attempted_actions: HashSet<String>,
+    issued_receipts: HashMap<String, ArtifactRecord>,
+    receipt_protection_error: Option<String>,
     declaration_error: Option<String>,
     completion_policy: CompletionPolicy,
     allow_internal_diagnostics: bool,
@@ -158,6 +189,7 @@ impl DeliveryEvidence {
             contract: None, imposed: None, validators: HashMap::new(), profile_file: None,
             records: HashMap::new(), errors: HashMap::new(), declaration_error: None,
             actions: HashMap::new(), attempted_actions: HashSet::new(),
+            issued_receipts: HashMap::new(), receipt_protection_error: None,
             completion_policy:CompletionPolicy::default(), allow_internal_diagnostics:false })
     }
 
@@ -182,7 +214,13 @@ impl DeliveryEvidence {
             if artifact.validator.as_ref().is_some_and(|id| !validators.contains_key(id)) { return Err("missing host verifier".into()); }
         }
         let mut actions = HashMap::new();
+        let mut receipt_owners = HashSet::new();
         for action in profile.actions {
+            if action.receipt_artifacts.len() > 12 || action.receipt_artifacts.iter().any(|id|
+                id == &action.source || !receipt_owners.insert(id.clone())
+                    || !profile.delivery.artifacts.iter().any(|a| &a.id == id && a.required)) {
+                return Err("action receipt_artifacts must uniquely reference required output IDs, never its source".into());
+            }
             if action.id.is_empty() || action.id.len()>64 || !validators.contains_key(&action.executor)
                 || profile.delivery.artifacts.iter().any(|a|a.validator.as_ref()==Some(&action.executor))
                 || !profile.delivery.artifacts.iter().any(|a| a.id==action.source && a.required && a.validator.is_some() && a.validator.as_ref()!=Some(&action.executor))
@@ -341,6 +379,7 @@ impl DeliveryEvidence {
     }
 
     pub fn verify(&mut self, ids: &[String]) -> Result<Value, String> {
+        if let Some(error) = self.receipt_integrity_gap() { return Err(error); }
         let items = self.contract.as_ref().ok_or("no delivery declaration; call plan_task with delivery first")?.artifacts.clone();
         if items.iter().any(|a|self.actions.values().any(|action|a.validator.as_ref()==Some(&action.executor))) {return Err("managed action executor cannot be used as an artifact validator".into());}
         if ids.iter().any(|id| !items.iter().any(|i| &i.id == id)) { return Err("unknown artifact ID".into()); }
@@ -372,8 +411,49 @@ impl DeliveryEvidence {
         // A timed-out process may already have committed. Never blindly retry it.
         self.attempted_actions.insert(id.into());
         let invocation=ArtifactRequirement {validator:Some(action.executor),..source};
-        let result=self.run_verifier(&invocation,&mut record)?;
+        let outcome=self.run_verifier(&invocation,&mut record);
+        // Even a failed/timed-out action may already have issued a public ID.
+        for id in &action.receipt_artifacts {
+            let requirement=self.contract.as_ref().and_then(|c|c.artifacts.iter().find(|a| &a.id == id)).cloned();
+            let captured=requirement.as_ref().ok_or_else(|| "receipt requirement missing".to_string()).and_then(|a|self.inspect(a));
+            match captured {
+                Ok(receipt) => { self.issued_receipts.insert(id.clone(),receipt); }
+                Err(_) => { self.receipt_protection_error=Some(format!("managed receipt '{id}' could not be captured after action; preserve existing outputs and report the failure, never fabricate or recreate it")); }
+            }
+        }
+        let result=outcome?;
+        if let Some(error)=&self.receipt_protection_error { return Err(error.clone()); }
         Ok(json!({"status":"success","exit_code":0,"action_id":id,"source_sha256":record.sha256,"result":result}))
+    }
+
+    fn receipt_integrity_gap(&self) -> Option<String> {
+        if let Some(error)=&self.receipt_protection_error { return Some(error.clone()); }
+        for (id, issued) in &self.issued_receipts {
+            let current=fs::canonicalize(&issued.path).ok();
+            if current.as_ref()!=Some(&issued.path) || file_sha256(&issued.path).ok().as_ref()!=Some(&issued.sha256) {
+                return Some(format!("managed receipt '{id}' was removed or modified after issuance; original fingerprint remains authoritative"));
+            }
+        }
+        None
+    }
+
+    pub fn receipt_edit_guard(&self,name:&str,args:&Value)->Option<String> {
+        if !matches!(name,"write_to_file"|"replace_in_file"|"multi_replace_file_content") { return None; }
+        let paths:Vec<_>=["TargetFile","path","file_path","filePath","file","AbsolutePath"].iter()
+            .filter_map(|key|args.get(*key).and_then(Value::as_str)).map(|s|self.root.join(s)).collect();
+        let resolve=|p:&Path| fs::canonicalize(p).ok().or_else(|| {
+            Some(fs::canonicalize(p.parent()?).ok()?.join(p.file_name()?))
+        });
+        for action in self.actions.values().filter(|a|self.attempted_actions.contains(&a.id)) {
+            for id in &action.receipt_artifacts {
+                let requirement=self.contract.as_ref()?.artifacts.iter().find(|a|&a.id==id)?;
+                let protected=resolve(&self.root.join(&requirement.path));
+                if protected.is_some() && paths.iter().any(|p|resolve(p)==protected) {
+                    return Some(format!("Managed receipt '{id}' is immutable after action '{}'. Read the issued receipt and write explanations to a separate requested document; do not replace provider, ID or readback evidence.",action.id));
+                }
+            }
+        }
+        None
     }
 
     pub fn managed_command_guard(&self,name:&str,args:&Value)->Option<String> {
@@ -423,7 +503,41 @@ impl DeliveryEvidence {
         format!("\n[Local-first managed delivery]\n{}\nRepair local business failures before investigating remote publication. Never modify the frozen verifier.\n",rows.join("\n"))
     }
 
+    /// A focused advisory, not a permission change or completion decision.
+    pub fn managed_closeout_strategy(&self) -> Option<String> {
+        if self.actions.is_empty() || self.declaration_error.is_some() || self.receipt_integrity_gap().is_some()
+            || self.actions.keys().any(|id| !self.attempted_actions.contains(id)) {
+            return None;
+        }
+        if let Some((path, expected)) = &self.profile_file {
+            if file_sha256(path).as_ref() != Ok(expected) { return None; }
+        }
+        let contract = self.contract.as_ref()?;
+        for action in self.actions.values() {
+            let source = contract.artifacts.iter().find(|i| i.id == action.source)?;
+            let record = self.records.get(&source.id)?;
+            let current = self.inspect(source).ok()?;
+            if self.errors.contains_key(&source.id) || !record.domain_verified
+                || current.sha256 != record.sha256 || current.path != record.path || current.target != record.target {
+                return None;
+            }
+            self.check_verifier(self.validators.get(source.validator.as_ref()?)?).ok()?;
+        }
+        let missing: Vec<_> = contract.artifacts.iter()
+            .filter(|i| i.required && !self.root.join(&i.path).is_file())
+            .map(|i| json!({"id":i.id,"path":i.path})).collect();
+        let next = if !missing.is_empty() {
+            format!("Write the missing required files in the current execution workspace {}: {}. Reuse existing action outputs; do not browse historical preparation directories or verifier implementations merely to write these files. Then call verify_delivery for ALL required artifacts.", self.root.display(), json!(missing))
+        } else if self.completion_gap().is_none() {
+            "All required delivery receipts are current. Complete any real explicit TaskContract gap; otherwise give the final answer now using the existing files and receipts. No additional investigation, hashing or publication is needed.".into()
+        } else {
+            "Required files are present. Call verify_delivery for ALL required artifacts and address only its actual remaining errors before the final answer.".into()
+        };
+        Some(format!("[Managed delivery closeout] {next} Every registered action was already attempted: never invoke it again or create another external ID. An attempt is not proof of success; preserve real receipts and disclose failures rather than invent outputs. Existing permissions and verification gates remain in force."))
+    }
+
     pub fn completion_gap(&self) -> Option<String> {
+        if let Some(error)=self.receipt_integrity_gap() { return Some(error); }
         if let Some(error) = &self.declaration_error { return Some(error.clone()); }
         if let Some((path, expected)) = &self.profile_file {
             if file_sha256(path).as_ref() != Ok(expected) { return Some("host delivery profile changed".into()); }
@@ -447,7 +561,8 @@ impl DeliveryEvidence {
 
     pub fn snapshot(&self) -> Value {
         json!({"schema_version":1,"run_id":self.run_id,"session_id":self.session_id,"contract":self.contract,
-            "artifacts":self.records,"errors":self.errors,"managed_actions":self.actions,"attempted_actions":self.attempted_actions,"completion_gap":self.completion_gap()})
+            "artifacts":self.records,"errors":self.errors,"managed_actions":self.actions,"attempted_actions":self.attempted_actions,
+            "issued_receipts":self.issued_receipts,"completion_gap":self.completion_gap()})
     }
 }
 

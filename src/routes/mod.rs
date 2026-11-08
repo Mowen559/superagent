@@ -25,3 +25,4 @@ pub mod understand;
 pub mod vision;
 pub mod workspaces;
 pub mod ruflo_adapter;
+pub mod swarm_execution;

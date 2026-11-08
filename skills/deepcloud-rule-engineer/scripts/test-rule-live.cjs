@@ -9,7 +9,7 @@ const report={kind:'production_rule_entry',scope:'entry_execution_only_not_GUI_m
 async function main(){
  const input=opt('--request')?JSON.parse(fs.readFileSync(owned(opt('--request')),'utf8')):{};
  file=owned(opt('--rule')||input.rulePath);assert.ok(fs.statSync(file).size<=4*1024*1024,'rule too large');const bytes=fs.readFileSync(file);before=sha(bytes);
- const native=path.resolve(__dirname,'../../../../deepcloud-ui/native/runtime');assert.ok(fs.existsSync(path.join(native,'hk-engine.js')),'PC production runtime unavailable; simulation is not a replacement');
+ const native=require('./pc-runtime-resources.cjs').resolvePcRuntime();
  engine=require(path.join(native,'hk-engine'));db=require(path.join(native,'hk-db'));const parser=require(path.join(native,'hiker-rule-parser'));
  const cache=path.join(cwd,'.superagent');fs.mkdirSync(cache,{recursive:true});const stage=fs.mkdtempSync(path.join(cache,'live-rule-'));
  db.init(stage,{seedFoundation:false});engine.init(stage);

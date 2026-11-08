@@ -38,10 +38,12 @@ pub struct DistilledLesson {
     pub domain: String,             // 领域/模块标签 (如 "engine-service", "iam", "controller", "mybatis", "rust")
     pub trigger_scenario: String,   // 触发场景/任务特征
     pub trap_pattern: String,       // 踩坑反模式
-    pub golden_solution: String,    // 经过工程验证的黄金解决方案
+    pub golden_solution: String,    // Historical field name; automatic records are observations, not certified fixes
     pub confidence_score: f32,      // 置信度 (0.0 - 1.0)
     pub usage_count: u32,           // 命中复用次数
     pub updated_at: String,
+    #[serde(default, skip_serializing_if="Option::is_none")]
+    pub recovery_evidence: Option<super::recovery_candidate::RecoveryCandidate>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +58,8 @@ pub struct EvolutionReport {
 #[serde(rename_all = "camelCase")]
 struct EvolutionData {
     version: u32,
+    #[serde(default, skip_serializing_if="Option::is_none")]
+    source_project: Option<String>,
     strategies: Vec<EvolutionStrategy>,
     #[serde(default)]
     lessons: Vec<DistilledLesson>,
@@ -65,22 +69,31 @@ struct EvolutionData {
 #[derive(Debug, Clone)]
 pub struct EvolutionMemory {
     path: PathBuf,
+    project: Option<String>,
 }
 
 impl EvolutionMemory {
+    pub fn scope_receipt(&self)->serde_json::Value {
+        serde_json::json!({"sourceProject":self.project,"storageKind":if self.project.is_some(){"project_runtime"}else{"legacy_unscoped"},"storeTarget":self.path,"reliability":"unverified_historical_experience"})
+    }
     pub fn default_location() -> Self {
         let paths = crate::config::app_paths::AppPaths::new();
         Self::new(paths.data_path(&["evolution", "strategies.json"]))
     }
 
     pub fn new(path: PathBuf) -> Self {
-        Self { path }
+        Self { path,project:None }
+    }
+
+    pub fn for_project(config:&crate::config::runtime::RuntimeConfig,workspace:&std::path::Path)->Self {
+        let (project,notes)=super::project_memory::managed_scope(config,workspace);
+        Self {path:notes.with_file_name("evolution.json"),project:Some(super::project_memory::project_identity(&project))}
     }
 
     /// 记录并持久化一条提炼出的实战经验
     pub fn record_lesson(&self, lesson: DistilledLesson) -> io::Result<()> {
         let mut data = self.load()?;
-        if let Some(existing) = data.lessons.iter_mut().find(|l| l.id == lesson.id || l.trigger_scenario == lesson.trigger_scenario) {
+        if let Some(existing) = data.lessons.iter_mut().find(|l| l.id == lesson.id || (lesson.recovery_evidence.is_none() && l.recovery_evidence.is_none() && l.trigger_scenario == lesson.trigger_scenario)) {
             existing.confidence_score = (existing.confidence_score * 0.7 + lesson.confidence_score * 0.3).min(1.0);
             existing.usage_count += 1;
             existing.updated_at = chrono::Utc::now().to_rfc3339();
@@ -98,6 +111,7 @@ impl EvolutionMemory {
         let data = self.load()?;
         let mut scored: Vec<(f32, DistilledLesson)> = data.lessons
             .into_iter()
+            .filter(|lesson| lesson.recovery_evidence.is_none())
             .filter_map(|lesson| {
                 let mut score = lesson.confidence_score;
                 let text = format!("{} {} {} {}", lesson.domain, lesson.trigger_scenario, lesson.trap_pattern, lesson.golden_solution).to_lowercase();
@@ -184,74 +198,20 @@ impl EvolutionMemory {
         events: &[SessionEvent],
         is_success: bool,
     ) -> Option<DistilledLesson> {
-        if !is_success || events.is_empty() {
-            return None;
-        }
-
-        // 分析事件序列中是否存在错误纠偏（从失败到最终成功是最佳经验源）
-        let mut had_error = false;
-        let mut error_snippet = String::new();
-        let mut corrective_tools = Vec::new();
-
-        for event in events {
-            match event {
-                SessionEvent::ToolResult { result, .. } => {
-                    let res_str = result.to_string();
-                    if res_str.contains("error")
-                        || res_str.contains("failed")
-                        || res_str.contains("TargetContent not found")
-                        || res_str.contains("timed out")
-                        || res_str.contains("cannot find")
-                    {
-                        had_error = true;
-                        if error_snippet.is_empty() {
-                            error_snippet = res_str.chars().take(120).collect();
-                        }
-                    }
-                }
-                SessionEvent::ToolCall { name, .. } => {
-                    if had_error {
-                        corrective_tools.push(name.clone());
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        if !had_error {
-            return None; // 顺畅一次性完成无需记录坑点
-        }
-
-        let domain = if prompt.contains("controller") || prompt.contains("api") {
-            "controller".to_string()
-        } else if prompt.contains("job") || prompt.contains("spider") || prompt.contains("engine") {
-            "engine-service".to_string()
-        } else if prompt.contains("user") || prompt.contains("iam") || prompt.contains("auth") {
-            "iam-service".to_string()
-        } else if prompt.contains("mybatis") || prompt.contains("sql") || prompt.contains("repository") {
-            "mybatis".to_string()
-        } else if prompt.contains("ui") || prompt.contains("page") || prompt.contains("frontend") {
-            "frontend".to_string()
-        } else {
-            "general".to_string()
-        };
-
+        if !is_success {return None;}
+        // Prompt text, command output and edit contents are deliberately excluded.
+        let _ = prompt;
+        let evidence=super::recovery_candidate::extract(events,true).into_iter().next()?;
         let lesson = DistilledLesson {
-            id: format!("lesson-{}", &Uuid::new_v4().to_string()[..8]),
-            domain,
-            trigger_scenario: prompt.chars().take(100).collect(),
-            trap_pattern: format!("Encountered roadblock: {}", error_snippet.trim()),
-            golden_solution: format!(
-                "Pivoted strategy and resolved by leveraging tools: {:?}",
-                corrective_tools
-            ),
-            confidence_score: 0.85,
-            usage_count: 1,
-            updated_at: chrono::Utc::now().to_rfc3339(),
+            id:format!("lesson-{}",Uuid::new_v4()),domain:"observed_recovery_candidate".into(),
+            trigger_scenario:format!("Same-check recovery {}",evidence.failure.action_digest),
+            trap_pattern:evidence.failure_reason.clone(),golden_solution:evidence.summary(),
+            confidence_score:0.0,usage_count:0,updated_at:chrono::Utc::now().to_rfc3339(),
+            recovery_evidence:Some(evidence),
         };
-
-        let _ = self.record_lesson(lesson.clone());
-        Some(lesson)
+        super::project_memory::reject_sensitive(&lesson).ok()?;
+        self.record_lesson(lesson.clone()).ok()?;
+        self.list_lessons().ok()?.into_iter().find(|saved|saved.id==lesson.id)
     }
 
     pub fn observe(&self, report: &EvolutionReport) -> io::Result<()> {
@@ -311,12 +271,17 @@ impl EvolutionMemory {
         let Some(source) = source else {
             return Ok(EvolutionData {
                 version: 1,
+                source_project:self.project.clone(),
                 strategies: Vec::new(),
                 lessons: Vec::new(),
             });
         };
-        serde_json::from_slice(&fs::read(source)?)
-            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
+        let data:EvolutionData=serde_json::from_slice(&fs::read(source)?)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+        if self.project.is_some() && data.source_project!=self.project {
+            return Err(io::Error::new(io::ErrorKind::InvalidData,"evolution memory source does not match current project; legacy data was not adopted"));
+        }
+        Ok(data)
     }
 
     fn save(&self, data: &EvolutionData) -> io::Result<()> {
@@ -512,41 +477,15 @@ mod tests {
 
     #[test]
     fn test_distill_and_retrieve_lesson() {
-        let directory = tempdir().unwrap();
-        let path = directory.path().join("strategies.json");
-        let memory = EvolutionMemory::new(path);
-
-        let events = vec![
-            SessionEvent::UserInput("重构 spider job controller 接口".to_string()),
-            SessionEvent::ToolCall {
-                id: "1".to_string(),
-                name: "replace_in_file".to_string(),
-                arguments: serde_json::json!({ "file": "JobController.java" }),
-            },
-            SessionEvent::ToolResult {
-                id: "1".to_string(),
-                result: serde_json::json!({ "error": "TargetContent not found" }),
-            },
-            SessionEvent::ToolCall {
-                id: "2".to_string(),
-                name: "view_outline".to_string(),
-                arguments: serde_json::json!({ "file": "JobController.java" }),
-            },
-            SessionEvent::ToolResult {
-                id: "2".to_string(),
-                result: serde_json::json!({ "outline": "public Result<Long> createJob" }),
-            },
-        ];
-
-        let distilled = memory.distill_trajectory("重构 spider job controller 接口", &events, true);
-        assert!(distilled.is_some());
-        let lesson = distilled.unwrap();
-        assert_eq!(lesson.domain, "controller");
-        assert!(lesson.trap_pattern.contains("TargetContent not found"));
-
-        let retrieved = memory.retrieve_relevant_lessons("job controller").unwrap();
-        assert_eq!(retrieved.len(), 1);
-        assert_eq!(retrieved[0].id, lesson.id);
+        let directory=tempdir().unwrap();let memory=EvolutionMemory::new(directory.path().join("evolution.json"));
+        let events=super::super::recovery_candidate::tests::successful_fixture(false);
+        let lesson=memory.distill_trajectory("sk-not-to-be-copied-1234567890",&events,true).unwrap();
+        assert_eq!(lesson.domain,"observed_recovery_candidate");
+        assert!(lesson.recovery_evidence.is_some());
+        assert_eq!(memory.list_lessons().unwrap().len(),1);
+        assert!(memory.retrieve_relevant_lessons("").unwrap().is_empty(),"candidate cannot become active guidance");
+        assert!(!std::fs::read_to_string(directory.path().join("evolution.json")).unwrap().contains("sk-not-to-be-copied"));
+        assert!(memory.distill_trajectory("repair",&events,false).is_none());
     }
 
     #[test]
@@ -556,6 +495,7 @@ mod tests {
         let memory = EvolutionMemory::new(path);
 
         let lesson = DistilledLesson {
+            recovery_evidence:None,
             id: "les_elo_1".to_string(),
             domain: "mybatis".to_string(),
             trigger_scenario: "querying active users".to_string(),

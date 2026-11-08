@@ -32,6 +32,19 @@ delivery 包含 version=1、scope（read_only / implementation）、target 及 a
 
 ## verify_delivery 工具
 
+2026-11-05项目记忆增量：SupermemoryStoreData增加可选memory_context映射，旧version=1文件仍可读取。新super_memory.store笔记由运行时绑定规范化来源项目，保存到程序管理的project-notes缓存，默认候选且未经业务认证；可携带source_file/source_hash及expires_at，不写回来源源码。retrieve/search及Run Prelude合并持久项目笔记和既有来源知识，过滤失效记录，旧数据标明legacy_unverified。store/revoke为WorkspaceMutation，读取为ReadOnly；撤销保留记录供审阅，不再召回。敏感canary验证覆盖写入边界，不表示完整DLP。端点和已有record字段不删除。
+
+原生笔记保存/撤销成功回执增加operation_verified，表示工具已从实际检查点读回确认该操作，不认证笔记内容或代码质量。明确以super_memory开头的纯笔记请求按受限笔记范围执行：非只读工具仅允许super_memory；混合代码修改或显式测试请求保留原实施/测试门槛。笔记回执不计作源码修改或质量验证。首轮真实SDK已发现旧默认代码测试门禁误拒保存/读回成功的笔记，原failed保留，修订另起版本验证。
+
+
+2026-11-05前端技能目录接线：GET /api/agents/superagent/skills保持原skills数组结构，扩展为复用CapabilityScout实际资源根（包含随包skills）；其余智能体扫描规则不变。新数据目录的目录发现不是模型已配置或所有外部依赖已就绪。未执行的PolicyDenied/ApprovalRequired等工具回执不得作为DoD真实测试失败；实际执行失败继续阻止无依据完成。
+
+同名Skill选择顺序：当前工作区/来源、显式HUB_SKILLS_ROOT、随包根、全局后备根。Superagent目录仅保留当前服务cwd下运行时选中的同名路径，避免旧全局别名抢占已更新随包版本；工作区专属选择仍由该任务的实际根决定，不宣称目录视图包含所有项目上下文。
+
+2026-11-05回执保护增量：HostProfile.actions可选receipt_artifacts数组，值必须是该契约中的必需产物ID且不能是来源ID；旧配置缺省为空。动作尝试结束后冻结已产生的对应文件路径和SHA，受控动作原失败仍保留。原生编辑命中这些文件时执行前返回managed_receipt_immutable；旁路变更导致verify_delivery和完成门禁失败。读取及写其他文件允许；不构成任意shell的操作系统隔离。
+
+2026-11-05收尾与参数反馈增量：受控动作均尝试后，若来源收据/哈希及宿主验证指纹仍有效，认知主策略按剩余工作切换为补齐指定文件、全量verify_delivery或最终答复；不执行自动结题、不增加外发额度、不替代显式TaskContract。来源或验证器变化时回到原本地修复指导。plan_task对delivery.version错误类型及空validator一次返回具体字段与合法类型示例，不静默强制转换或修改Run权威契约。
+
 增量实施（2026-11-03，实际通过范围见对应评测）：宿主profile可选actions数组，每项{id,source,executor}；source引用已声明且有业务validator的产物，executor引用validators中的固定程序/脚本。perform_delivery_action({action_id})不接受命令、URL、正文或模型指定源文件。执行前复核source当前Run业务收据、目标/路径/SHA及宿主/执行器指纹；每动作最多调用一次，超时/失败同样消耗额度。执行器argv新增{sha256}绑定来源哈希，最后行仍须passed/target/checks。动作结果不替代其他交付物的业务验证。未配置actions的旧profile行为不变。
 
 显式artifact_ids子集成功可返回status=success及completion_ready=false，记录本地通过事实；最终结题仍校验所有required。模型每轮优先收到本地失败/缺失/待验指引。启用actions时，对已知云端点/导出CLI的shell及工作区脚本调用在进程启动前拒绝；此检测不是任意shell的网络安全沙箱。合法发布由固定适配器读取已验证文件，最多一次create，保存公开ID后读回，失败不另建ID，不保存auth_code等管理凭据。
@@ -108,3 +121,7 @@ P2 v5 的受信任 profile 分别认证规则及桥接产物：规则走生产�
 
 长时间独立验收的源码快照、服务、Run、冷包和轨迹应置于工作区内专用持久暂存根。编排进程仅在自身及子进程作用域覆盖 TEMP/TMP，不修改用户全局环境；各 Run 继续使用独立空目录和经验根，不复用旧业务实现。报告记录实际物理位置及哈希。若系统临时区文件在验收后消失，保留原自动结果并另记基础设施中断；没有完整文件及来源时不得补签人工通过或认证三连成功。新系列重新冻结，不能拼接旧系列成绩。
 
+
+进程风险不等于实际修改：run_command/verify_task_tool成功前台退出只证明命令执行，可提供观察或已认证质量检查。保守WorkspaceMutation风险继续控制权限并失效旧验证，但不能增加修改计数、Mutation证据或关闭实施步骤；另需真实编辑/受信任变更证据。
+
+2026-11-05自然笔记召回：项目作用域检索对至少4字符、由字母数字/下划线/连字符组成的完整笔记标识（含中文标识）提供独立精确匹配，ASCII前后缀不算同一标识，其他查询继续关键词检索。Prelude在可选目录/Skill推荐前保留有界且闭合的历史笔记块，截断块标明truncated且不计作完整上下文观察。执行器将实际完整投影的项目笔记数量传入CognitiveRuntime，允许其支持只读回答；工具成功数、变更数、质量验证收据不因此增加。新要求/回滚清除该观察资格，原显式代码/测试/笔记写入门禁保留。缺笔记优先super_memory精确查询；无匹配不等于不存在。

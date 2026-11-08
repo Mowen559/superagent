@@ -56,6 +56,14 @@ impl AgentBackend for SuperAgentBackend {
                 map_event: Box::new(|evt, st| {
                     let mut out = Vec::new();
                     if let Some(t) = evt.get("type").and_then(|v| v.as_str()) {
+                        if t == "subagent_runtime" {
+                            if evt["event"]=="bound" {
+                                st.subagent_session=evt["parent"]["parentSessionId"].as_str().map(str::to_owned);
+                                if let Some(session)=&st.subagent_session {st.session_id=session.clone();}
+                            }
+                            out.push(AgentMessage::Log { level:"subagent".into(), content:evt.to_string() });
+                            return out;
+                        }
                         if t == "text" {
                             if let Some(c) = evt.get("content").and_then(|v| v.as_str()) {
                                 st.output.push_str(c);

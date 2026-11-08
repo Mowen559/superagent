@@ -242,13 +242,6 @@ if __name__ == "__main__":
             skill_roots.push(PathBuf::from(root));
         }
 
-        // 全局用户配置目录
-        if let Some(home) = dirs::home_dir() {
-            skill_roots.push(home.join(".gemini").join("config").join("skills"));
-            skill_roots.push(home.join(".agents").join("skills"));
-            skill_roots.push(home.join(".codex").join("skills"));
-        }
-
         if let Some(root) = std::env::var_os("HUB_BUNDLE_ROOT").filter(|v| !v.is_empty()) {
             let root = PathBuf::from(root);
             skill_roots.push(root.join("skills"));
@@ -259,6 +252,13 @@ if __name__ == "__main__":
             for dir in exe.parent().into_iter().flat_map(|p| p.ancestors().take(3)) {
                 skill_roots.push(dir.join("skills"));
             }
+        }
+        // Explicit workspace/environment choices precede the shipped defaults;
+        // legacy global aliases remain available without shadowing that bundle.
+        if let Some(home) = dirs::home_dir() {
+            skill_roots.push(home.join(".gemini").join("config").join("skills"));
+            skill_roots.push(home.join(".agents").join("skills"));
+            skill_roots.push(home.join(".codex").join("skills"));
         }
         skill_roots
     }
@@ -613,6 +613,25 @@ mod tests {
         let skills = CapabilityScout::scout_and_match_skills("请转化为海阔世界的可用规则", tmp.path());
         assert_eq!(skills.iter().filter(|s| s.name == "deepcloud-rule-engineer").count(), 1);
         assert!(skills[0].path.contains(".agents"));
+    }
+
+    #[test]
+    fn shipped_defaults_precede_legacy_global_aliases_but_not_workspace_skills() {
+        let tmp=tempfile::tempdir().unwrap();
+        let roots=CapabilityScout::skill_roots(tmp.path());
+        assert_eq!(roots[0],tmp.path().join(".agents/skills"));
+        let exe=std::env::current_exe().unwrap();
+        let bundled=exe.parent().unwrap().join("skills");
+        if let Some(home)=dirs::home_dir() {
+            let global=home.join(".gemini/config/skills");
+            assert!(roots.iter().position(|p|p==&bundled).unwrap()<roots.iter().position(|p|p==&global).unwrap());
+        }
+        let selected=tmp.path().join("bundle/skills/current");let old=tmp.path().join("global/legacy");
+        for (dir,body) in [(&selected,"current bundled instructions"),(&old,"legacy bridge instructions")] {
+            std::fs::create_dir_all(dir).unwrap();std::fs::write(dir.join("SKILL.md"),format!("---\nname: same-name\ndescription: fixture\n---\n{body}")).unwrap();
+        }
+        let found=CapabilityScout::discover_skills_in(&[tmp.path().join("bundle/skills"),tmp.path().join("global")]);
+        assert_eq!(found.len(),1);assert!(found[0].instructions.contains("current bundled instructions"));
     }
 
     #[test]

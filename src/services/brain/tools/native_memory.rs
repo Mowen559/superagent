@@ -1,194 +1,132 @@
-use crate::models::memory::SupermemoryRecord;
-use crate::domains::agent_cognitive::executor::ToolExecutor;
-use crate::services::supermemory_store::SupermemoryStore;
+use crate::{
+    domains::agent_cognitive::executor::ToolExecutor,
+    models::memory::SupermemoryRecord,
+    services::{brain::project_memory, supermemory_store::SupermemoryStore},
+};
 use serde_json::{json, Value};
 
-/// 原生超级记忆海马体 (Native SuperMemory Organ)
 pub struct NativeMemoryTool {
     pub workspace_root: std::path::PathBuf,
 }
 impl NativeMemoryTool {
-    pub fn new(w: std::path::PathBuf) -> Self {
-        Self { workspace_root: w }
+    pub fn new(workspace_root: std::path::PathBuf) -> Self {
+        Self { workspace_root }
     }
 }
-
 impl ToolExecutor for NativeMemoryTool {
     fn name(&self) -> &'static str {
         "super_memory"
     }
-
     fn description(&self) -> &'static str {
-        "Store, retrieve, or search project-level long-term core memory and architecture guidelines using SupermemoryStore. Actions: 'store', 'retrieve', 'search', 'list'."
+        "Project-scoped persistent notes: store, retrieve by exact key, search, list, revoke. Notes are unverified historical data; relevance does not establish truth. Never store credentials."
     }
-
     fn parameters_schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "action": {
-                    "type": "string",
-                    "enum": ["store", "retrieve", "search", "list"],
-                    "description": "Action to perform: 'store' to record, 'retrieve' to fetch by key, 'search' for semantic/keyword search, 'list' for recent entries."
-                },
-                "key": {
-                    "type": "string",
-                    "description": "The key or title for the memory (required for 'store' and 'retrieve')."
-                },
-                "query": {
-                    "type": "string",
-                    "description": "The search query (required for 'search')."
-                },
-                "content": {
-                    "type": "string",
-                    "description": "The payload/content to store (required for 'store')."
-                }
-            },
-            "required": ["action"]
-        })
+        json!({"type":"object","properties":{
+            "action":{"type":"string","enum":["store","retrieve","search","list","revoke"]},
+            "key":{"type":"string","description":"Exact key required for store/retrieve/revoke"},
+            "query":{"type":"string"},"content":{"type":"string","description":"Non-sensitive note for store"},
+            "source_file":{"type":"string","description":"Optional existing workspace-relative file; changed contents invalidate recall"},
+            "expires_at":{"type":"string","description":"Optional future RFC3339 expiry"}
+        },"required":["action"]})
     }
-
     fn prompt_projection(&self) -> Option<String> {
-        Some(r#"
-[Tool Projection: super_memory]
-- Role: Native Long-Term Memory (超级记忆海马体)
-- Usage: Query project architecture guidelines, design decisions, and distilled lessons using action='search' or 'retrieve'. Persist newly verified architectural decisions or critical patterns using action='store'.
-"#.trim().to_string())
+        Some("[super_memory] Search/retrieve relevant project notes before repeating investigation. Store useful non-sensitive project conventions or lessons as candidate evidence. Store/revoke mutate persistent project notes; read-only tasks cannot do so. Source binding and expiry are optional. Recall never promotes a note to verified authority; recheck against current files and user authorization.".into())
     }
-
     fn execute(&self, args: Value) -> Result<Value, String> {
-        let action = args
-            .get("action")
-            .and_then(|v| v.as_str())
-            .unwrap_or("search");
-
-        // 智能定位主工程 supermemory 路径 (沙箱逃逸自愈定位)
-        let resolved_project_path = crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
-            &self.workspace_root,
-            &[],
+        let action = args["action"].as_str().ok_or("Missing action")?;
+        let config = crate::config::runtime::RuntimeConfig::from_env(
+            &crate::config::app_paths::AppPaths::new(),
         );
-
-        let app_paths = crate::config::app_paths::AppPaths::new();
-        let config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
-        // Reading origin knowledge is allowed; new memories belong to this workspace.
-        let memory_root = &self.workspace_root;
-        let project_path_str = memory_root.to_string_lossy().to_string();
-        let store = SupermemoryStore::new(&config, Some(&project_path_str));
-        let origin = SupermemoryStore::new(&config, Some(&resolved_project_path.to_string_lossy()));
-        let search = |query: &str| {
-            let mut results = store.search(query, 5);
-            if resolved_project_path != self.workspace_root {
-                for record in origin.search(query, 5) {
-                    if !results.iter().any(|r| r.id == record.id) { results.push(record); }
-                }
-            }
-            results.truncate(5); results
+        let (project,path) = project_memory::managed_scope(&config,&self.workspace_root);
+        let store = SupermemoryStore::from_path(&path);
+        let key = || {
+            args["key"]
+                .as_str()
+                .filter(|key| !key.trim().is_empty() && key.len() <= 200)
+                .ok_or("Non-empty key (maximum 200 bytes) required".to_string())
         };
-
         match action {
             "store" => {
-                let key = args
-                    .get("key")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| "Missing required 'key' for action='store'".to_string())?;
-                let content = args
-                    .get("content")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| "Missing required 'content' for action='store'".to_string())?;
-
-                let record = SupermemoryRecord {
-                    id: key.to_string(),
-                    name: key.to_string(),
-                    summary: content.to_string(),
-                    tags: vec!["superagent".to_string(), "architectural_decision".to_string()],
-                    file_path: "".to_string(),
-                    complexity: "core".to_string(),
-                    node_type: "decision".to_string(),
-                    source_graph_path: "".to_string(),
-                    source_label: "SuperAgentReflexion".to_string(),
-                    updated_at: chrono::Utc::now().to_rfc3339(),
-                    embedding: crate::services::brain::embedding_service::get_embedding_service()
-                        .ok()
-                        .and_then(|svc| {
-                            use crate::services::brain::embedding_service::EmbeddingService;
-                            let combined = format!("{} {}", key, content);
-                            svc.embed_text(&combined).ok()
-                        }),
-                };
-                store.write_memory(record);
-                eprintln!(
-                    "\x1b[35m[Native Memory] 🧠 Stored long-term memory to {}: {}\x1b[0m",
-                    project_path_str, key
-                );
-                Ok(json!({ "status": "stored", "key": key, "store_target": project_path_str }))
-            }
-            "retrieve" => {
-                let key = args
-                    .get("key")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| "Missing required 'key' for action='retrieve'".to_string())?;
-                let results = search(key);
-                let json_results: Vec<Value> = results
-                    .into_iter()
-                    .map(|r| {
-                        json!({
-                            "key": r.id,
-                            "name": r.name,
-                            "content": r.summary,
-                            "tags": r.tags,
-                            "updatedAt": r.updated_at
-                        })
-                    })
-                    .collect();
-                Ok(json!({ "status": "retrieved", "query": key, "results": json_results }))
-            }
-            "search" => {
-                let query = args
-                    .get("query")
-                    .or_else(|| args.get("key"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                let results = search(query);
-                let json_results: Vec<Value> = results
-                    .into_iter()
-                    .map(|r| {
-                        json!({
-                            "id": r.id,
-                            "name": r.name,
-                            "summary": r.summary,
-                            "nodeType": r.node_type,
-                            "tags": r.tags,
-                            "updatedAt": r.updated_at
-                        })
-                    })
-                    .collect();
-                Ok(json!({ "status": "success", "results": json_results }))
-            }
-            "list" => {
-                let mut data = store.load();
-                if resolved_project_path != self.workspace_root {
-                    for record in origin.load().memories {
-                        if !data.memories.iter().any(|r| r.id == record.id) { data.memories.push(record); }
+                let key = key()?;
+                let content = args["content"]
+                    .as_str()
+                    .filter(|s| !s.trim().is_empty() && s.len() <= 32_000)
+                    .ok_or("Non-empty content (maximum 32000 bytes) required")?;
+                let optional = |name: &str| -> Result<Option<&str>, String> {
+                    match args.get(name) {
+                        None | Some(Value::Null) => Ok(None),
+                        Some(Value::String(s)) => Ok(Some(s)),
+                        _ => Err(format!("{name} must be a string")),
                     }
+                };
+                let context = project_memory::new_context(
+                    &project,
+                    &self.workspace_root,
+                    optional("source_file")?,
+                    optional("expires_at")?,
+                )?;
+                let record = SupermemoryRecord {
+                    id: key.into(),
+                    name: key.into(),
+                    summary: content.into(),
+                    tags: vec!["project_note".into()],
+                    file_path: String::new(),
+                    complexity: String::new(),
+                    node_type: "project_note".into(),
+                    source_graph_path: String::new(),
+                    source_label: "native_super_memory".into(),
+                    updated_at: chrono::Utc::now().to_rfc3339(),
+                    embedding: None,
+                };
+                store.write_context_memory(record, context)?;
+                let mut data = store.load_result()?;
+                if !data.memories.iter().any(|record|record.id==key && record.summary==content) {
+                    return Err("Memory readback did not match the requested note".into());
                 }
-                let recent: Vec<Value> = data
-                    .memories
-                    .iter()
-                    .rev()
-                    .take(10)
-                    .map(|r| {
-                        json!({
-                            "id": r.id,
-                            "name": r.name,
-                            "summary": r.summary,
-                            "nodeType": r.node_type,
-                            "updatedAt": r.updated_at
-                        })
-                    })
-                    .collect();
-                Ok(json!({ "total": data.memories.len(), "recent": recent }))
+                let context = data.memory_context
+                    .remove(key)
+                    .ok_or("Stored context unavailable")?;
+                Ok(
+                    json!({"status":"stored","key":key,"store_target":path,"context":context,"reliability":"unverified_project_note","operation_verified":true}),
+                )
             }
-            _ => Err(format!("Unknown action: {}", action)),
+            "revoke" => {
+                let key = key()?;
+                store.revoke_context_memory(key)?;
+                let data=store.load_result()?;
+                if !data.memory_context.get(key).is_some_and(|context|context.state=="revoked") {
+                    return Err("Memory revocation readback did not match".into());
+                }
+                Ok(json!({"status":"revoked","key":key,"project":project,"operation_verified":true}))
+            }
+            "retrieve" | "search" | "list" => {
+                let query = match action {
+                    "retrieve" => Some(key()?),
+                    "search" => Some(args["query"].as_str().ok_or("Missing query")?),
+                    _ => None,
+                };
+                let mut recalled = project_memory::recall(
+                    &config,
+                    &self.workspace_root,
+                    if action == "retrieve" { None } else { query },
+                    usize::MAX,
+                );
+                if action == "retrieve" {
+                    recalled
+                        .hits
+                        .retain(|hit| Some(hit.record.id.as_str()) == query);
+                }
+                recalled
+                    .hits
+                    .truncate(if action == "list" { 10 } else { 5 });
+                let results = recalled.hits.iter().map(|hit| json!({"key":hit.record.id,"name":hit.record.name,"content":hit.record.summary,
+                    "source":hit.record.source_label,"updatedAt":hit.record.updated_at,"context":hit.context,
+                    "reliability":project_memory::reliability(hit.context.as_ref())})).collect::<Vec<_>>();
+                Ok(
+                    json!({"status":"success","project":project,"results":results,"warnings":recalled.warnings}),
+                )
+            }
+            _ => Err("Unknown memory action".into()),
         }
     }
 }

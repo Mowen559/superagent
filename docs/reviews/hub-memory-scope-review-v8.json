@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-08",
+  "stage": "P8-C1",
+  "progress": {
+    "complete": 65,
+    "total": 106,
+    "completedThisContinuation": [
+      "9.10",
+      "9.11"
+    ],
+    "9.9": "not complete: latest upstream preflight timed out after 60 seconds"
+  },
+  "candidate": {
+    "sha256": "696b7bae6b29811320b19565dff3e11f73919a2cdbe9899b0a392aceefa394f0",
+    "manifestEntries": 39,
+    "installed": false,
+    "sources": [
+      {
+        "path": "src/config/runtime.rs",
+        "sha256": "81ec3443974ce63aa516e8c5dbdbdc386d53fac8335e9773822c0f34102a6f21"
+      },
+      {
+        "path": "src/services/brain/project_memory.rs",
+        "sha256": "09cb873360cbfac3a9f10261052cb2a454714ee2e83d161f90404f6c7180aa91"
+      },
+      {
+        "path": "src/services/brain/evolution_memory.rs",
+        "sha256": "96fbf88a74d273da7f17568346c054ffd55be449638e257fce786673187d75ae"
+      },
+      {
+        "path": "src/services/brain/tools/native_memory.rs",
+        "sha256": "b4cb1173664d2d14abfc930431b0f6342b654e5a2f220a1d14a73d902fbd2cc2"
+      },
+      {
+        "path": "src/services/brain/tools/hermes.rs",
+        "sha256": "4affe096c044c5db301038b6b1d20ec98f01b618a934e6e48fedf369e748058e"
+      },
+      {
+        "path": "src/services/brain/worker.rs",
+        "sha256": "9ef3bd557c000684b2795d01ddb55ca940278003ada55e4943eb430092c9dc68"
+      },
+      {
+        "path": "src/domains/agent_cognitive/plan_reflection.rs",
+        "sha256": "ccacc3a2ac9ee9e05215cbad2e9be02bda721eaf3fa0ff06c55e6fdbbe5eea41"
+      },
+      {
+        "path": "src/domains/agent_cognitive/executor.rs",
+        "sha256": "2a9025000c95289dffaf89fc35e1472559bfdd4bba9dd11e598614e75feea46f"
+      },
+      {
+        "path": "src/services/brain/cognitive_runtime.rs",
+        "sha256": "fff5d8dc49b928a806b528058cc17d8403bb7cb522c459fcbf3e050361e8edbe"
+      }
+    ]
+  },
+  "changes": [
+    "Explicit super_memory and automatic Reflection use a shared canonical origin and projects_root/.project-memory/{identity}/supermemory.json.",
+    "EvolutionMemory is per source project under the same managed directory; sourceProject mismatch or unscoped data fails closed. Original global history is not automatically imported.",
+    "Legacy shadow project-notes are preserved and read-only recall labels them legacy_managed_project_notes; no source project .supermemory file is created by new writes.",
+    "Worker relies on the existing RunPrelude once, removing duplicate old legacy-store injection that demanded obedience. Hermes is bound to project evolution and exposes scope.",
+    "Automatic reflection entries are marked automatic_reflection/experience_candidate with candidate state; persistence count requires actual readback, without certifying repair correctness."
+  ],
+  "validation": {
+    "rustPassed": 644,
+    "failed": 0,
+    "ignored": 2,
+    "filtered": [
+      "domains::code_review::tests::test_review_current_project_workspace"
+    ],
+    "addedTests": [
+      "shared origin across two Run directories and changed cwd/shadow root, explicit/automatic notes co-resident, legacy file unchanged, project isolation",
+      "evolution reloaded in project scope; copied foreign and unscoped files rejected; original legacy global bytes unchanged"
+    ],
+    "liveControlledHttp": [
+      {
+        "phase": "store",
+        "taskId": "129ec900-67e2-4f38-adcf-fd313a42fbe4",
+        "status": "completed"
+      },
+      {
+        "phase": "recall",
+        "taskId": "72e37648-be7b-497f-8045-63087dcc1b30",
+        "status": "completed"
+      },
+      {
+        "phase": "other",
+        "taskId": "8f1c73dd-8c2b-4975-a727-43d9fc23feba",
+        "status": "completed"
+      }
+    ],
+    "actualProcessRestart": true,
+    "liveEvidence": "artifacts/hub-swarm-memory-20261108/v8/memory-live-final/acceptance.json",
+    "businessIntelligenceCertified": false,
+    "strictChangeAndSixMainSpecs": "passed"
+  },
+  "limits": [
+    "9.12 repair extraction still uses historical heuristics; matching calls, actual revisions and verification receipts remain to implement.",
+    "9.13 per-Run memory decisions, read-only automatic-write suppression and concurrent experience-writer verification remain pending.",
+    "9.14 candidate promotion/withdrawal and 9.15 actual-model natural recall across restart remain pending.",
+    "Legacy notes are read-only references; this change does not silently migrate them into editable managed notes.",
+    "Current candidate is not installed; no desktop, user proxy settings change or new cloud publication."
+  ],
+  "relatedNegativeAcceptance": "docs/reviews/hub-swarm-execution-review-v7.json",
+  "evidenceRoot": "artifacts/hub-swarm-memory-20261108/v8"
+}

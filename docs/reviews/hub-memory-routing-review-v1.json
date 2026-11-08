@@ -1,0 +1,353 @@
+{
+  "date": "2026-11-05",
+  "scope": "Tasks 5.9 and 5.10: bounded exact-key project memory recall, contextual observation accounting, natural routing, rule capability documentation",
+  "implementation_author": "Codex changed Hub/runtime and Skill docs; Hub actually stored the three random conventions and performed every dialogue task",
+  "model": "gemini-3.8-flash-high",
+  "binary_identity": {
+    "baseline/hub.exe": "0542cf6c47d6b633993fc318e62ea3608b98ad55675f6dbca2fa442d146bd725",
+    "candidate/hub.exe": "671e33d885abead88097bd70aeabf67dfddc100b1d444c4a635035c4bb1f43ee"
+  },
+  "source_identity": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/source-identity.json",
+  "independent_comparison": {
+    "passed": true,
+    "sums": {
+      "baseline": {
+        "turns": 13,
+        "tools": 17,
+        "duration_ms": 127321
+      },
+      "candidate": {
+        "turns": 11,
+        "tools": 7,
+        "duration_ms": 95194
+      },
+      "no_memory": {
+        "turns": 22,
+        "tools": 34,
+        "duration_ms": 163335
+      }
+    },
+    "evidence": [
+      {
+        "phase": "baseline",
+        "id": "long-ascii",
+        "task_id": "3be6e7fc-713b-4679-95ac-5cbf9337372d",
+        "session_id": "run_e066dfef4d8c49a7a5f264f1c62f822a",
+        "status": "completed",
+        "model_turns": 5,
+        "tool_calls": 4,
+        "duration_ms": 53901,
+        "automatic_note_blocks": 3,
+        "first_context_sha256": "dcac6d53fb2a8cdc105ae292cd87d6d7bc2018ae437b481caa35e803c3b667ff",
+        "tool_errors": []
+      },
+      {
+        "phase": "baseline",
+        "id": "new-identifier",
+        "task_id": "f481c561-0947-4f26-8716-28847764a2f7",
+        "session_id": "run_d0618a080c8242c7b68f2102574581a9",
+        "status": "completed",
+        "model_turns": 2,
+        "tool_calls": 3,
+        "duration_ms": 19847,
+        "automatic_note_blocks": 0,
+        "first_context_sha256": "81a96be510448360ad4f20baad12923a3eb9a7e1d47a475f88689ef8178e860c",
+        "tool_errors": []
+      },
+      {
+        "phase": "baseline",
+        "id": "chinese-label",
+        "task_id": "ce865beb-1692-4d78-9678-c275242c4bfc",
+        "session_id": "run_fe6dee797cd549e7b035190716efe313",
+        "status": "completed",
+        "model_turns": 3,
+        "tool_calls": 5,
+        "duration_ms": 24349,
+        "automatic_note_blocks": 1,
+        "first_context_sha256": "f174c2803a2a74f95676c381052770bdb4ef56b79288e966b4b4314244db7e2d",
+        "tool_errors": []
+      },
+      {
+        "phase": "baseline",
+        "id": "near-identifier-negative",
+        "task_id": "6dd51970-4e86-4936-abba-788d5232bedd",
+        "session_id": "run_ba223bacaa38492abd66c43b75366220",
+        "status": "completed",
+        "model_turns": 3,
+        "tool_calls": 5,
+        "duration_ms": 29224,
+        "automatic_note_blocks": 3,
+        "first_context_sha256": "1b43e333012ef34a1cc49a56891bec7407359c0e5955b3232e526123e5cb22c1",
+        "tool_errors": []
+      },
+      {
+        "phase": "candidate",
+        "id": "long-ascii",
+        "task_id": "375a983b-b004-4d6b-9b89-f9767b8efe51",
+        "session_id": "run_20951c2a62d74c9fa1980e22d53296cf",
+        "status": "completed",
+        "model_turns": 3,
+        "tool_calls": 2,
+        "duration_ms": 31495,
+        "automatic_note_blocks": 3,
+        "first_context_sha256": "cb36ce23a3b07b9a7e4de41b4f77bc9841f54a4d669781cb7f46033c4b0917e8",
+        "tool_errors": []
+      },
+      {
+        "phase": "candidate",
+        "id": "new-identifier",
+        "task_id": "9eca9b0f-e466-49e6-9649-235eee2b4afe",
+        "session_id": "run_c81e6f905e074abd988cd4f086224ec6",
+        "status": "completed",
+        "model_turns": 2,
+        "tool_calls": 1,
+        "duration_ms": 16636,
+        "automatic_note_blocks": 1,
+        "first_context_sha256": "a4daf6c5f1936c17b6c0e29711227f4036368f3f5ed3d4e32a613340ec08e08d",
+        "tool_errors": []
+      },
+      {
+        "phase": "candidate",
+        "id": "chinese-label",
+        "task_id": "e3288253-02c2-452a-9487-ece17d9906b1",
+        "session_id": "run_f00af922367545e3a504c66eac594f23",
+        "status": "completed",
+        "model_turns": 2,
+        "tool_calls": 1,
+        "duration_ms": 19571,
+        "automatic_note_blocks": 1,
+        "first_context_sha256": "7350cf452a21e9562219dcf371c039a9ac19bd90b4410ad07a9e2fa02834f1c0",
+        "tool_errors": []
+      },
+      {
+        "phase": "candidate",
+        "id": "near-identifier-negative",
+        "task_id": "eabf11dc-e856-420f-ad35-e588a2ec0e7d",
+        "session_id": "run_bffc3537cec340438715f9e12bc9490e",
+        "status": "completed",
+        "model_turns": 4,
+        "tool_calls": 3,
+        "duration_ms": 27492,
+        "automatic_note_blocks": 3,
+        "first_context_sha256": "2b4da5ec403766f8ab2121fee8ade68d23c554d87eb30aa770cbf7984a75263d",
+        "tool_errors": []
+      },
+      {
+        "phase": "no_memory",
+        "id": "long-ascii",
+        "task_id": "3537853d-2c0e-44d4-a036-7111bf7b2bc7",
+        "session_id": "run_14911dfe8daf47ca8d92428c6428d11a",
+        "status": "completed",
+        "model_turns": 5,
+        "tool_calls": 9,
+        "duration_ms": 41917,
+        "automatic_note_blocks": 0,
+        "first_context_sha256": "2f63e37404056d1a97559054aaf7e2efa5d26f3d3c2fc7092d73a8c835a3de3d",
+        "tool_errors": [
+          {
+            "tool": "list_dir",
+            "kind": "internal_trace_not_task_evidence"
+          }
+        ]
+      },
+      {
+        "phase": "no_memory",
+        "id": "new-identifier",
+        "task_id": "e0a87c07-6004-44fb-87ae-74516f108fcb",
+        "session_id": "run_4811a41113884f40a7b539f7da9cc685",
+        "status": "completed",
+        "model_turns": 6,
+        "tool_calls": 8,
+        "duration_ms": 38665,
+        "automatic_note_blocks": 0,
+        "first_context_sha256": "ad2be34772d204e3a18ad2f751ff9dfbaf56fb0d6c0dc3d23546e5f5b3e9d353",
+        "tool_errors": [
+          {
+            "tool": "list_dir",
+            "kind": "internal_trace_not_task_evidence"
+          }
+        ]
+      },
+      {
+        "phase": "no_memory",
+        "id": "chinese-label",
+        "task_id": "71651171-d930-4811-9c7e-d8dcc797acef",
+        "session_id": "run_001121d6267e40638d12d4fd2e380773",
+        "status": "completed",
+        "model_turns": 6,
+        "tool_calls": 9,
+        "duration_ms": 41541,
+        "automatic_note_blocks": 0,
+        "first_context_sha256": "ddb73b133c0c22c84f03445c07d61b4bd6040799391b36a194ee63541dac4778",
+        "tool_errors": [
+          {
+            "tool": "list_dir",
+            "kind": "internal_trace_not_task_evidence"
+          },
+          {
+            "tool": "skill_tool",
+            "kind": "policy_denied"
+          }
+        ]
+      },
+      {
+        "phase": "no_memory",
+        "id": "near-identifier-negative",
+        "task_id": "e8e53fe5-6bf1-420e-8d96-4fb785c3cc93",
+        "session_id": "run_83bc1decd454404aadae74e078970f42",
+        "status": "completed",
+        "model_turns": 5,
+        "tool_calls": 8,
+        "duration_ms": 41212,
+        "automatic_note_blocks": 0,
+        "first_context_sha256": "dc4f5ad8815a0ba0c9a9e343ba5f92f4f3c736bfbe5e9fbe6456b70e4b6b59f5",
+        "tool_errors": []
+      }
+    ],
+    "source": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/comparison-proof.json",
+    "frozen_files": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/frozen-eval-files.json",
+    "oracle_adapter": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/oracle-retry-adapter.json"
+  },
+  "direct_context_probe": {
+    "passed": true,
+    "task_id": "2250cc27-f64b-4912-aae5-9634f365c156",
+    "status": "completed",
+    "turns": 1,
+    "tools": 0,
+    "explicit_instruction_to_reuse_context": true,
+    "excluded_from_natural_query_comparison": true,
+    "actual_runtime_history_used": true
+  },
+  "host_assistance": {
+    "teacher_prompt_explicitly_requested_native_storage": true,
+    "host_did_not_seed_store": true,
+    "natural_query_texts_frozen_before_candidate_execution": true,
+    "corrected_runs_received_no_runtime_user_feedback": true,
+    "direct_probe_explicitly_requested_reuse_and_is_excluded_from_natural_scores": true
+  },
+  "preserved_interruption": {
+    "task_id": "03b290d7-1936-4b17-a173-6f0792e5af75",
+    "reported_status": "infra_failed",
+    "error": "Error: EPERM: operation not permitted, rename 'D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-memory-routing-20261105\\v1\\control-runs.json.tmp' -> 'D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-memory-routing-20261105\\v1\\control-runs.json'",
+    "cancellation_requested": true,
+    "backend_status": "cancelled",
+    "source": "original control-runs.json retained; EPERM in host checkpoint writer, not model or service failure"
+  },
+  "harness_fix": {
+    "scope": "Host SDK test checkpoint writer only; no model/API/request semantics changed",
+    "retry_errors": [
+      "EPERM",
+      "EACCES",
+      "EBUSY"
+    ],
+    "bounded_attempts": 10,
+    "keeps_prior_checkpoint_on_failure": true,
+    "tests": 3,
+    "redaction_self_test": "passed",
+    "original_control_report": "control-runs.json preserved; backend cancelled original interrupted task",
+    "files": {
+      "scripts/hub-user-workflow.cjs": "34cd1c357924467b3d4bf7a0487be7e0e0608dba9db4aa17dd31189327b195d9",
+      "scripts/hub-workflow-checkpoint.cjs": "a13f916ea60bb87a4014ce11c911735dcc82bf17f36c2bd1281ad59d6723d345",
+      "scripts/test_hub_workflow_checkpoint.cjs": "0a28ed72cebe6b6cad36add176e34409a47e79930f6e8415dd33080090615993"
+    }
+  },
+  "validation": {
+    "rust": {
+      "passed": 602,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "log": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/regression.log"
+    },
+    "crypto_cookie_captcha_node": {
+      "passed": 10,
+      "failed": 0,
+      "log": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/crypto-verification-tests.log",
+      "scope": "algorithm behavior, mock cookies and static source contracts; not live site challenge certification"
+    },
+    "checkpoint_node": {
+      "passed": 3,
+      "failed": 0
+    },
+    "strict_change_spec": "passed; D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/spec-validation-final.log",
+    "main_specs": "6 passed; D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/main-specs-validation.log"
+  },
+  "local_installation": {
+    "updated": true,
+    "method": "direct copy of verified frozen manifest files after Node cpSync overwrite failure",
+    "targets": [
+      {
+        "target": "D:/抖音/deepcloud/deepcloud-ui/native/prebuilt/bin",
+        "binary_sha256": "671e33d885abead88097bd70aeabf67dfddc100b1d444c4a635035c4bb1f43ee",
+        "old": {
+          "hub.exe": "0542cf6c47d6b633993fc318e62ea3608b98ad55675f6dbca2fa442d146bd725",
+          "hub-bundle-manifest.json": "55662b666c7956723218648c3713e5d0558a25ea41b708102c9908534f004d9b"
+        },
+        "backup": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/local-resource-backups/prebuilt",
+        "verified_files": 39
+      },
+      {
+        "target": "D:/抖音/deepcloud/bin",
+        "binary_sha256": "671e33d885abead88097bd70aeabf67dfddc100b1d444c4a635035c4bb1f43ee",
+        "old": {
+          "hub.exe": "0542cf6c47d6b633993fc318e62ea3608b98ad55675f6dbca2fa442d146bd725",
+          "hub-bundle-manifest.json": "55662b666c7956723218648c3713e5d0558a25ea41b708102c9908534f004d9b"
+        },
+        "backup": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/local-resource-backups/root-bin",
+        "verified_files": 39
+      }
+    ],
+    "desktop_started": false,
+    "user_config_changed": false
+  },
+  "installation_failure_preserved": "D:/抖音/deepcloud/super-agent/artifacts/hub-memory-routing-20261105/v1/install-initial-error.json",
+  "cold_start": {
+    "passed": true,
+    "mode": "default",
+    "exe": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\hub.exe",
+    "exe_sha256": "671e33d885abead88097bd70aeabf67dfddc100b1d444c4a635035c4bb1f43ee",
+    "cwd": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-default-5BHPdy",
+    "data_dir": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-default-5BHPdy\\全新数据",
+    "frontend_catalog_count": 37,
+    "rule_skill_path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\skills\\deepcloud-rule-engineer",
+    "resource_sha256": "8931209c24ef1aae73b71ae3f6167a4870a056b26a4bf39cbb56c13d3d266059",
+    "service_reachable": true,
+    "no_model_call": true,
+    "no_gui": true,
+    "development_skill_env": false
+  },
+  "capability_explanation": "D:/抖音/deepcloud/super-agent/docs/reviews/hiker-crypto-verification-status-20261105.md",
+  "rule_unchanged_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+  "limitations": [
+    "One frozen synthetic project, fixed baseline/candidate/empty-cache order, three named notes and a near-key negative; not a statistical latency result or unknown-app/unknown-task generalization certification.",
+    "New natural-query runs still chose explicit native readback, including one unnecessary grep. Direct 1-turn/0-tool probe used an explicit reuse instruction and is reported separately.",
+    "Near-key negative rose from 3 to 4 model turns despite fewer tool calls; no-memory controls still searched broadly (34 tools / 22 turns). Missing-record convergence and prose confidence still need work.",
+    "Only complete untruncated typed project-note blocks count as context observations; short/opaque or semantic paraphrase queries keep keyword/explicit retrieval behavior.",
+    "Legacy/Hermes lifecycle, independent graph/Understand freshness and complete ordinary-user rule creation workflow remain unclosed.",
+    "Skill body has manually reviewed capability wording changes, not automatic experience promotion. Workspace and bundle target sections/new reference match while unrelated existing differences remain.",
+    "Initial fs.cpSync overwrite of an existing Skill reference failed on Windows (errno 0/unlink). Frozen per-file copies completed both targets with 39-file verification; this does not certify the original helper against every future Windows copy failure.",
+    "No desktop interaction, no new cloud creation, no changes to user-accepted rule or original model credentials."
+  ],
+  "plan_progress": {
+    "complete": 52,
+    "total": 83,
+    "closed_this_turn": [
+      "5.9",
+      "5.10"
+    ],
+    "still_pending": [
+      "4.18",
+      "5.1–5.7"
+    ],
+    "verified": {
+      "total": 83,
+      "complete": 52,
+      "remaining": 31
+    }
+  },
+  "shutdown": {
+    "owned_ports_39872_39874_not_listening": true,
+    "existing_proxy_8045_listening_pid": 10148,
+    "desktop_used": false
+  }
+}

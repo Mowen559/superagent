@@ -1,0 +1,664 @@
+{
+  "date": "2026-11-08",
+  "stage": "P8-B11 bounded replacement + actual-model development acceptance",
+  "progress": {
+    "complete": 66,
+    "total": 106,
+    "newlyCompleted": "9.9"
+  },
+  "candidate": {
+    "sha256": "e3cc57b82a1a36337e9ad2eaf78a5c304ac8fb8b23c83ef8b46a8a6a2bd66dc1",
+    "manifestEntries": 39,
+    "installed": false,
+    "sources": [
+      {
+        "path": "src/services/brain/subagent_runtime.rs",
+        "sha256": "3e053bb0fc39065201df840dbd662bfc4c47cc01111195bd3166a5ad5e523aef"
+      },
+      {
+        "path": "src/services/brain/subagent_runtime_tests.rs",
+        "sha256": "7cbeaea92095f56607038da3538ec9b09a343aa5e7fdf603df69c62bc086eac6"
+      },
+      {
+        "path": "src/services/brain/task_progress.rs",
+        "sha256": "2e8a6d4afa16439c12aed56024ed7a80f81afd0388a4894cf9752fac7105e64e"
+      },
+      {
+        "path": "src/services/brain/subagent_workspace.rs",
+        "sha256": "5615bd40541b2b1b434e5ed1e6c0eabd4636c9c205e596231cc11d5d0fb308e6"
+      },
+      {
+        "path": "src/services/brain/tools/subagent.rs",
+        "sha256": "3dfe2c096c639a64cd89af269bd73dcccb22c3b84fc846caabc97e1921fb6887"
+      },
+      {
+        "path": "src/routes/swarm_execution.rs",
+        "sha256": "e140a3ac1139ca80ae02d390d8f7e3dfb5694b4a557f40d04acd91497d69131b"
+      },
+      {
+        "path": "src/domains/agent_cognitive/executor.rs",
+        "sha256": "6d80de8c138f9fcd6c257f3ea5e6ba519cca07430d9061beda5624119324df51"
+      },
+      {
+        "path": "src/services/brain/tool_policy.rs",
+        "sha256": "77f9bae9e761def68fe084ded9dcc65c95f1fadcc8291ee552659b63811b11a9"
+      }
+    ]
+  },
+  "authorship": {
+    "implementation": "Hub / gemini-3.8-flash-high",
+    "host": "requirements, TODO stubs, frozen public checks, independent oracle and framework implementation; no edits to generated business code",
+    "humanRuntimePromptsThisSuccessfulAttempt": 0,
+    "frameworkTeachingAcrossAttempts": "quality receipt feedback, explicit replacement tool, worker-deadline guidance; all failed attempts preserved"
+  },
+  "changes": [
+    "retry_subagent and POST owned-child/retry create one explicit replacement using the original in-memory frozen request; callers cannot change task/role/policy/workspace/timeout.",
+    "Only settled/reaped failed/cancelled/timed-out isolated implementation workers may be replaced; read-only review purpose and replacement chains denied.",
+    "replacesSubagentId is durable while old terminal history is immutable; failed/uncollected replacement remains blocking.",
+    "Parent validation stamp binds delegationEpoch and current file fingerprint; new child state or collection invalidates old validation.",
+    "Frozen recipe is not journaled. Restart retains link/receipts without replay; missing recipe rejects new retries.",
+    "Coordinator guidance advances own integration while workers run and distinguishes status wait from total task budget."
+  ],
+  "validation": {
+    "rustPassed": 648,
+    "failed": 0,
+    "ignored": 2,
+    "filtered": [
+      "domains::code_review::tests::test_review_current_project_workspace"
+    ],
+    "replacementProcessTests": 23,
+    "managedApiTests": 4,
+    "finalHttpCases": [
+      {
+        "case": "pass",
+        "parentState": "completed"
+      },
+      {
+        "case": "review-reject",
+        "parentState": "failed"
+      },
+      {
+        "case": "stale",
+        "parentState": "failed"
+      }
+    ],
+    "rootAndLeafToolVisibility": "retry visible to root, absent in leaves; control suite and original 17 requests passed",
+    "strictChangeAndSixMainSpecs": "passed"
+  },
+  "realSuccess": {
+    "parentStatus": "completed",
+    "configuredModel": "gemini-3.8-flash-high",
+    "elapsedSeconds": 837.417,
+    "workers": [
+      {
+        "id": "0940a125-93ba-47d7-9e6c-647e2cf67c99",
+        "role": "SortJobs Engineer",
+        "state": "succeeded",
+        "reaped": true,
+        "collected": true,
+        "files": [
+          "check-sort-jobs-spec.cjs",
+          "sort-jobs.js"
+        ]
+      },
+      {
+        "id": "94e0b02a-c061-41d1-931a-f36c1d63fb27",
+        "role": "NormalizeJobs Engineer",
+        "state": "succeeded",
+        "reaped": true,
+        "collected": true,
+        "files": [
+          "check-normalize-jobs.cjs",
+          "normalize-jobs.js"
+        ]
+      }
+    ],
+    "independentOracle": "independent oracle passed\n",
+    "audit": {
+      "sessions": [
+        {
+          "session": "0940a125-93ba-47d7-9e6c-647e2cf67c99.events",
+          "successfulModelRounds": 32,
+          "reportedPromptTokens": 650551,
+          "reportedCompletionTokens": 6683,
+          "toolCalls": 32
+        },
+        {
+          "session": "94e0b02a-c061-41d1-931a-f36c1d63fb27.events",
+          "successfulModelRounds": 16,
+          "reportedPromptTokens": 267297,
+          "reportedCompletionTokens": 3877,
+          "toolCalls": 17
+        },
+        {
+          "session": "run_02131d0335fb44b8b6bd784d5deed7b7.events",
+          "successfulModelRounds": 38,
+          "reportedPromptTokens": 1346268,
+          "reportedCompletionTokens": 5854,
+          "toolCalls": 46
+        }
+      ],
+      "totalSuccessfulModelRounds": 86,
+      "totalReportedPromptTokens": 2264116,
+      "totalReportedCompletionTokens": 16414,
+      "hostOracleSourceMentionedInToolCalls": false,
+      "frozenCheckerUnchanged": true,
+      "originStubsUnchanged": true,
+      "artifactSha256": {
+        "normalize-jobs.js": "4022340d70a7eecc21e81eb5880aa0d297f9e0159c8149fdc09c1437bfa34021",
+        "sort-jobs.js": "c07f78e2b9b22f6f00bb360a7f7f3b0c4d8da00f842665f49b8da650a7c09d53",
+        "index.js": "f92c3c7750a19dcf1277751f3fab9e60f37dbb17400d18188c386f56f46d0ff2"
+      },
+      "workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-swarm-memory-20261108\\v11\\real-default-deadline\\data\\runs\\8fa9c35a-aa25-4f77-8b9e-fbf23b3bdcdd\\workspace",
+      "elapsedSeconds": 837.417,
+      "humanRuntimeInterventions": 0,
+      "scope": "successful corrected attempt after earlier framework fixes and budget revisions; not first-attempt autonomy certification",
+      "proxyRequestCorrelation": {
+        "scope": "model/time window and unique evaluation-directory string in request body; raw requests/accounts/headers not exported",
+        "requestCount": 86,
+        "statusCounts": {
+          "200": 86
+        },
+        "requests": [
+          {
+            "timestamp": 1794133755937,
+            "status": 200,
+            "durationMs": 10100
+          },
+          {
+            "timestamp": 1794133769635,
+            "status": 200,
+            "durationMs": 13612
+          },
+          {
+            "timestamp": 1794133788743,
+            "status": 200,
+            "durationMs": 18912
+          },
+          {
+            "timestamp": 1794133815022,
+            "status": 200,
+            "durationMs": 26155
+          },
+          {
+            "timestamp": 1794133834105,
+            "status": 200,
+            "durationMs": 16063
+          },
+          {
+            "timestamp": 1794133840218,
+            "status": 200,
+            "durationMs": 3875
+          },
+          {
+            "timestamp": 1794133840424,
+            "status": 200,
+            "durationMs": 4109
+          },
+          {
+            "timestamp": 1794133840738,
+            "status": 200,
+            "durationMs": 6477
+          },
+          {
+            "timestamp": 1794133845424,
+            "status": 200,
+            "durationMs": 4927
+          },
+          {
+            "timestamp": 1794133847513,
+            "status": 200,
+            "durationMs": 7224
+          },
+          {
+            "timestamp": 1794133850165,
+            "status": 200,
+            "durationMs": 6871
+          },
+          {
+            "timestamp": 1794133851637,
+            "status": 200,
+            "durationMs": 6084
+          },
+          {
+            "timestamp": 1794133852328,
+            "status": 200,
+            "durationMs": 4665
+          },
+          {
+            "timestamp": 1794133860555,
+            "status": 200,
+            "durationMs": 6879
+          },
+          {
+            "timestamp": 1794133860558,
+            "status": 200,
+            "durationMs": 7975
+          },
+          {
+            "timestamp": 1794133870811,
+            "status": 200,
+            "durationMs": 6988
+          },
+          {
+            "timestamp": 1794133875344,
+            "status": 200,
+            "durationMs": 4562
+          },
+          {
+            "timestamp": 1794133883685,
+            "status": 200,
+            "durationMs": 31831
+          },
+          {
+            "timestamp": 1794133897045,
+            "status": 200,
+            "durationMs": 12954
+          },
+          {
+            "timestamp": 1794133903346,
+            "status": 200,
+            "durationMs": 29717
+          },
+          {
+            "timestamp": 1794133904059,
+            "status": 200,
+            "durationMs": 6649
+          },
+          {
+            "timestamp": 1794133906995,
+            "status": 200,
+            "durationMs": 6427
+          },
+          {
+            "timestamp": 1794133912050,
+            "status": 200,
+            "durationMs": 5018
+          },
+          {
+            "timestamp": 1794133922058,
+            "status": 200,
+            "durationMs": 7323
+          },
+          {
+            "timestamp": 1794133929572,
+            "status": 200,
+            "durationMs": 7279
+          },
+          {
+            "timestamp": 1794133933358,
+            "status": 200,
+            "durationMs": 11116
+          },
+          {
+            "timestamp": 1794133936761,
+            "status": 200,
+            "durationMs": 6236
+          },
+          {
+            "timestamp": 1794133947167,
+            "status": 200,
+            "durationMs": 13676
+          },
+          {
+            "timestamp": 1794133963312,
+            "status": 200,
+            "durationMs": 6248
+          },
+          {
+            "timestamp": 1794133971040,
+            "status": 200,
+            "durationMs": 21511
+          },
+          {
+            "timestamp": 1794133980906,
+            "status": 200,
+            "durationMs": 7081
+          },
+          {
+            "timestamp": 1794133991714,
+            "status": 200,
+            "durationMs": 85523
+          },
+          {
+            "timestamp": 1794133996279,
+            "status": 200,
+            "durationMs": 12584
+          },
+          {
+            "timestamp": 1794133997222,
+            "status": 200,
+            "durationMs": 13579
+          },
+          {
+            "timestamp": 1794134002753,
+            "status": 200,
+            "durationMs": 5232
+          },
+          {
+            "timestamp": 1794134006132,
+            "status": 200,
+            "durationMs": 14021
+          },
+          {
+            "timestamp": 1794134007075,
+            "status": 200,
+            "durationMs": 7718
+          },
+          {
+            "timestamp": 1794134015496,
+            "status": 200,
+            "durationMs": 9262
+          },
+          {
+            "timestamp": 1794134019121,
+            "status": 200,
+            "durationMs": 11859
+          },
+          {
+            "timestamp": 1794134036733,
+            "status": 200,
+            "durationMs": 14659
+          },
+          {
+            "timestamp": 1794134044797,
+            "status": 200,
+            "durationMs": 11694
+          },
+          {
+            "timestamp": 1794134071517,
+            "status": 200,
+            "durationMs": 6250
+          },
+          {
+            "timestamp": 1794134080026,
+            "status": 200,
+            "durationMs": 7966
+          },
+          {
+            "timestamp": 1794134085653,
+            "status": 200,
+            "durationMs": 67376
+          },
+          {
+            "timestamp": 1794134086433,
+            "status": 200,
+            "durationMs": 5828
+          },
+          {
+            "timestamp": 1794134091566,
+            "status": 200,
+            "durationMs": 5545
+          },
+          {
+            "timestamp": 1794134101729,
+            "status": 200,
+            "durationMs": 7044
+          },
+          {
+            "timestamp": 1794134108130,
+            "status": 200,
+            "durationMs": 6171
+          },
+          {
+            "timestamp": 1794134118528,
+            "status": 200,
+            "durationMs": 7743
+          },
+          {
+            "timestamp": 1794134123411,
+            "status": 200,
+            "durationMs": 6645
+          },
+          {
+            "timestamp": 1794134142081,
+            "status": 200,
+            "durationMs": 20785
+          },
+          {
+            "timestamp": 1794134154400,
+            "status": 200,
+            "durationMs": 5551
+          },
+          {
+            "timestamp": 1794134180105,
+            "status": 200,
+            "durationMs": 35529
+          },
+          {
+            "timestamp": 1794134192345,
+            "status": 200,
+            "durationMs": 7587
+          },
+          {
+            "timestamp": 1794134192545,
+            "status": 200,
+            "durationMs": 9525
+          },
+          {
+            "timestamp": 1794134201405,
+            "status": 200,
+            "durationMs": 6181
+          },
+          {
+            "timestamp": 1794134213994,
+            "status": 200,
+            "durationMs": 10010
+          },
+          {
+            "timestamp": 1794134223551,
+            "status": 200,
+            "durationMs": 6578
+          },
+          {
+            "timestamp": 1794134224120,
+            "status": 200,
+            "durationMs": 6256
+          },
+          {
+            "timestamp": 1794134243940,
+            "status": 200,
+            "durationMs": 20180
+          },
+          {
+            "timestamp": 1794134250017,
+            "status": 200,
+            "durationMs": 5864
+          },
+          {
+            "timestamp": 1794134254599,
+            "status": 200,
+            "durationMs": 5026
+          },
+          {
+            "timestamp": 1794134290187,
+            "status": 200,
+            "durationMs": 5150
+          },
+          {
+            "timestamp": 1794134293657,
+            "status": 200,
+            "durationMs": 40839
+          },
+          {
+            "timestamp": 1794134296300,
+            "status": 200,
+            "durationMs": 5674
+          },
+          {
+            "timestamp": 1794134306720,
+            "status": 200,
+            "durationMs": 10610
+          },
+          {
+            "timestamp": 1794134313152,
+            "status": 200,
+            "durationMs": 6270
+          },
+          {
+            "timestamp": 1794134328745,
+            "status": 200,
+            "durationMs": 11959
+          },
+          {
+            "timestamp": 1794134376070,
+            "status": 200,
+            "durationMs": 26887
+          },
+          {
+            "timestamp": 1794134377685,
+            "status": 200,
+            "durationMs": 64367
+          },
+          {
+            "timestamp": 1794134401609,
+            "status": 200,
+            "durationMs": 21060
+          },
+          {
+            "timestamp": 1794134402502,
+            "status": 200,
+            "durationMs": 6002
+          },
+          {
+            "timestamp": 1794134446636,
+            "status": 200,
+            "durationMs": 13447
+          },
+          {
+            "timestamp": 1794134456966,
+            "status": 200,
+            "durationMs": 52194
+          },
+          {
+            "timestamp": 1794134466784,
+            "status": 200,
+            "durationMs": 9611
+          },
+          {
+            "timestamp": 1794134470385,
+            "status": 200,
+            "durationMs": 8259
+          },
+          {
+            "timestamp": 1794134473979,
+            "status": 200,
+            "durationMs": 4072
+          },
+          {
+            "timestamp": 1794134478248,
+            "status": 200,
+            "durationMs": 7257
+          },
+          {
+            "timestamp": 1794134479783,
+            "status": 200,
+            "durationMs": 5558
+          },
+          {
+            "timestamp": 1794134504429,
+            "status": 200,
+            "durationMs": 5576
+          },
+          {
+            "timestamp": 1794134507256,
+            "status": 200,
+            "durationMs": 24479
+          },
+          {
+            "timestamp": 1794134514009,
+            "status": 200,
+            "durationMs": 6040
+          },
+          {
+            "timestamp": 1794134522257,
+            "status": 200,
+            "durationMs": 7493
+          },
+          {
+            "timestamp": 1794134530557,
+            "status": 200,
+            "durationMs": 7342
+          },
+          {
+            "timestamp": 1794134546135,
+            "status": 200,
+            "durationMs": 9493
+          },
+          {
+            "timestamp": 1794134571289,
+            "status": 200,
+            "durationMs": 21050
+          }
+        ]
+      }
+    },
+    "evidence": "artifacts/hub-swarm-memory-20261108/v11/real-default-deadline/outcome.json"
+  },
+  "allCurrentCaseAttempts": [
+    {
+      "evidence": "artifacts/hub-swarm-memory-20261107/v5/real-first",
+      "ok": false,
+      "elapsedSeconds": 224,
+      "parentMaxTurns": 24,
+      "error": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"anthropic\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":45094,\"outcome\":\"transient\",\"statusCode\":503}]\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n"
+    },
+    {
+      "evidence": "artifacts/hub-swarm-memory-20261107/v5/real-route-fixed",
+      "ok": false,
+      "elapsedSeconds": 506.426,
+      "parentMaxTurns": 24,
+      "error": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"openai\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":45103,\"outcome\":\"transient\",\"statusCode\":502}]; parent ended with unfinished subagents; owned processes cancelled\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n"
+    },
+    {
+      "evidence": "artifacts/hub-swarm-memory-20261108/v9/real-recovered",
+      "ok": false,
+      "elapsedSeconds": 478.457,
+      "parentMaxTurns": 24,
+      "error": "cognitive turn budget exceeded: 24 model turns\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n"
+    },
+    {
+      "evidence": "artifacts/hub-swarm-memory-20261108/v10/real-corrected",
+      "ok": false,
+      "elapsedSeconds": 547.381,
+      "parentMaxTurns": 24,
+      "error": "cognitive turn budget exceeded: 24 model turns\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n"
+    },
+    {
+      "evidence": "artifacts/hub-swarm-memory-20261108/v10/real-default-budget",
+      "ok": false,
+      "elapsedSeconds": 758.553,
+      "parentMaxTurns": 40,
+      "error": "Completion blocked: child f29f661b-4e53-485b-afde-b08f8c6e88c5 ended Cancelled; delivery rejected, preserve failure and repair in a new bounded Run\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n"
+    },
+    {
+      "evidence": "artifacts/hub-swarm-memory-20261108/v11/real-linked",
+      "ok": false,
+      "elapsedSeconds": 754.549,
+      "parentMaxTurns": 40,
+      "error": "Completion blocked: child ef7997ac-bf5c-43e0-aa39-d3db358259a6 ended TimedOut; delivery rejected, preserve failure and repair in a new bounded Run\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n"
+    },
+    {
+      "evidence": "artifacts/hub-swarm-memory-20261108/v11/real-default-deadline",
+      "ok": true,
+      "elapsedSeconds": 837.417,
+      "parentMaxTurns": 40,
+      "error": null
+    }
+  ],
+  "currentCaseScore": {
+    "passed": 1,
+    "total": 7,
+    "classification": "corrected success after framework repairs and budget revisions; not first-attempt success or a same-budget performance comparison"
+  },
+  "earlierSeparateTaskHistory": "v2 invoice audit 0/2 retained separately, not erased or merged into this case",
+  "limits": [
+    "This certifies one bounded forward development task; unknown reverse engineering, rule generation and generalization still need held-out cases.",
+    "Actual-model replacement was exercised in the short-timeout failed run; full successful retry recovery is established by controlled real-process/HTTP acceptance, not a blanket real-model recovery claim.",
+    "Only one replacement per predecessor; readonly reviews and missing recipes require another bounded Run.",
+    "The successful task used 86 model responses and 2264116 reported prompt tokens; efficiency remains an optimization target, no billing estimate made.",
+    "9.12–9.20 and other open tasks remain pending; automatic experience truthfulness is not certified.",
+    "Candidate not installed. No desktop operation, model credential change, rule regeneration or cloud publication."
+  ],
+  "evidenceRoot": "artifacts/hub-swarm-memory-20261108/v11"
+}

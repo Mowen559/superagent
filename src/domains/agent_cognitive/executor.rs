@@ -266,7 +266,7 @@ impl AgentLoop {
         let plugin_registry = crate::services::brain::tools::registry::PluginRegistry::new();
         plugin_registry.register(Box::new(crate::services::brain::tools::plan_task::PlanTaskTool));
         let tool_gateway = Arc::new(ToolExecutionGateway::new(plugin_registry.get_tools_ref()));
-        let evolution_memory = EvolutionMemory::default_location();
+        let evolution_memory = EvolutionMemory::for_project(&config,&config.project_root);
         let steering_queue = Arc::new(SteeringQueue::default_location());
         let interaction_runtime = Arc::new(InteractionRuntime::default());
         let injected_steering_ids = events
@@ -544,7 +544,22 @@ impl AgentLoop {
         let run_id = uuid::Uuid::new_v4().to_string();
         start_run(&mut self.events, run_id.clone())?;
         self.save_session();
-        let result = self.run_active(prompt, images, &run_id).await;
+        let cognition = CognitiveRuntime::begin(prompt);
+        let child_read_only = cognition.task_progress().lock().unwrap_or_else(|e|e.into_inner()).is_read_only_scope();
+        let subagents = self.ctx.resolve::<crate::services::brain::subagent_runtime::SubagentRuntime>("subagent_runtime");
+        let admission = subagents.as_ref().map(|runtime|
+            runtime.bind_run_with_scope(&run_id, &self.runtime_config.project_root, self.tool_gateway.policy_mode(), child_read_only)
+        ).unwrap_or(Ok(()));
+        let mut result = match admission {
+            Ok(()) => self.run_active(prompt, images, &run_id, cognition).await,
+            Err(error) => Err(error),
+        };
+        if let Some(runtime) = subagents {
+            if result.is_ok() {if let Some(gap)=runtime.completion_gap(){result=Err(format!("Delegated delivery incomplete: {gap}"));}}
+            if let Err(error) = runtime.close_run().await {
+                result = Err(match result { Ok(_) => error, Err(original) => format!("{original}; {error}") });
+            }
+        }
         match &result {
             Ok(_) => finish_run(&mut self.events, &run_id, RunOutcome::Completed, None)?,
             Err(error) => finish_run(
@@ -568,6 +583,7 @@ impl AgentLoop {
         prompt: &str,
         initial_images: Vec<String>,
         run_id: &str,
+        mut cognition: CognitiveRuntime,
     ) -> Result<String, String> {
         // Clean legacy completed todo file if no tasks remain unfinished
         let todo_path = PathBuf::from(self.run_prelude_runtime.project_path()).join(".superagent_todo.md");
@@ -609,11 +625,14 @@ impl AgentLoop {
             eprintln!("[RegressionGuard] Warning: Failed to capture baseline snapshot: {e}");
         }
         let mut circuit_breaker = CircuitBreakerGuard::default();
-        let mut cognition = CognitiveRuntime::begin(prompt);
+        cognition.observe_project_context(run_prelude.project_note_evidence_count());
         cognition.task_progress().lock().unwrap_or_else(|e| e.into_inner())
             .configure_delivery(&self.runtime_config.project_root, self.session_ledger.session_id(), run_id)?;
         self.plugin_registry.register(Box::new(crate::services::brain::delivery_evidence::VerifyDeliveryTool(cognition.task_progress())));
         self.tool_gateway.bind_delivery_progress(&cognition.task_progress());
+        if let Some(runtime)=self.ctx.resolve::<crate::services::brain::subagent_runtime::SubagentRuntime>("subagent_runtime") {
+            runtime.bind_delivery_progress(&cognition.task_progress());
+        }
         self.plugin_registry.register(Box::new(crate::services::brain::delivery_evidence::PerformDeliveryActionTool(cognition.task_progress())));
         self.plugin_registry.register(Box::new(crate::services::brain::tools::plan_task::RunBoundPlanTaskTool(cognition.task_progress())));
         if let Ok(limit) = std::env::var("HUB_AGENT_MAX_MODEL_TURNS").unwrap_or_default().parse::<usize>() {
@@ -1024,7 +1043,7 @@ impl AgentLoop {
                                 cognition.observe_receipt(&receipt);
                                 let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
                                 let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
-                                cognition.observe_tool_execution_details(&receipt.name, None, is_succeeded, &output_str);
+                                cognition.observe_executed_tool_details(&receipt, None, &output_str);
                                 let stuck_state = self.stuck_detector.record_call(&receipt.name, "{}", is_succeeded);
                                 if let crate::domains::agent_cognitive::stuck_detector::StuckState::StuckDetected { reason, suggested_action } = stuck_state {
                                     let reflection_prompt = crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::build_stuck_reflection_prompt(
@@ -1114,7 +1133,7 @@ impl AgentLoop {
                             cognition.observe_receipt(&receipt);
                             let is_succeeded = receipt.status == crate::services::brain::tool_execution_gateway::ToolExecutionStatus::Succeeded;
                             let output_str = serde_json::to_string(&receipt.result).unwrap_or_default();
-                            cognition.observe_tool_execution_details(&receipt.name, cmd_arg, is_succeeded, &output_str);
+                            cognition.observe_executed_tool_details(&receipt, cmd_arg, &output_str);
                             let tool_result = receipt.result;
 
                             self.push_event(SessionEvent::ToolResult {
@@ -1266,10 +1285,7 @@ impl AgentLoop {
         }
         if completed {
             if let Some(new_lesson) = self.evolution_memory.distill_trajectory(prompt, &self.events, true) {
-                eprintln!(
-                    "\x1b[32m[Hermes Distillation] Successfully distilled new lesson: [{}] {} (Trap: {})\x1b[0m",
-                    new_lesson.domain, new_lesson.golden_solution, new_lesson.trap_pattern
-                );
+                eprintln!("[Hermes Distillation] Stored observed recovery candidate: {} (not a certified repair)",new_lesson.id);
             }
         }
     }
@@ -1328,6 +1344,11 @@ impl AgentLoop {
                 "read_tool_result",
                 "ask_user",
                 "invoke_subagent",
+                "check_worker_status",
+                "intervene_worker",
+                "cancel_subagent",
+                "retry_subagent",
+                "collect_subagent_changes",
                 "view_outline",
             ];
 

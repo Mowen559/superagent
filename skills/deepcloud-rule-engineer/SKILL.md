@@ -20,6 +20,12 @@ description: >
 
 ## 本地业务验收与受控外发顺序
 
+解析器先用移动诊断脚本的--list-parsers列出实际资源路径、指纹及Java状态，或用--parser-profile选择登记资源；默认公开对照解析器不代表APK/手机版本。资源缺失或指纹不符须报告，不递归猜测安装目录，不把JAR就绪当作手机已验证。
+
+嵌套eval还须检查当前页绑定：scripts/test-rule-mobile-context.cjs接受规则、实际生成的lazy源码、明确绑定的入口字段及可信解析器JAR，只运行外层并捕获/编译eval参数，不执行捕获代码或媒体。移动端MY_RULE.find_rule可能是当前页面脚本，不能由PC完整规则包上下文推导；按实际APK调用链核对绑定。无捕获则未覆盖，不算通过。
+
+移动端语法须单独检查：scripts/test-rule-mobile-syntax.cjs接受实际解析器JAR与工作区rule.json，可用--source补充从真实详情生成的lazy或嵌套eval源码。工具只编译不执行，记录解析器哈希与入口错误，不能认证Android实机、网络请求或播放。仓库中的Rhino 1.7.13仅为已知基线；手机版本未知时不得把基线错误当作该手机报错的已证唯一根因。收到具体点击报错，先调查实际点击源码及MY_RULE注入边界，禁止仅凭V8静态成功判移动端已修复。
+
 PC规则实际自检使用scripts/test-rule-live.cjs，先真实导入再执行home/search/detail/action；可用--request传入工作区请求JSON。该入口没有站点实现或验收答案，返回data供自行检查，不认证媒体解码、GUI或Android。test-rule.cjs是仿真，评分及退出码不能替代真实运行。PC导入说明先阅读references/pc-rule-import.md，遵循已选平台，禁止套用手机菜单。
 
 
@@ -43,32 +49,16 @@ PC规则实际自检使用scripts/test-rule-live.cjs，先真实导入再执行h
 
 ---
 
-## 一、PC 独有 Python 爬虫引擎协同与三阶加速梯队 (Hybrid Python-Engine Synergy)
+## 一、加解密、验证码与可选运行路径
 
-DeepCloud PC 桌面端内置专有的单文件 Python 边缘爬虫引擎（`scraper-service`，默认运行在 `127.0.0.1:18000`）。海阔规则必须具备**端机感知协同能力**，实现“手机端轻量脱机、PC 端重型算力”的无缝升降级：
 
-### 1. PC 端 Python 爬虫引擎的四大王牌资产
-1. **常驻无头浏览器池 (`fetcher.py / BrowserPool`)**：
-   - `static`：基于高性能异步网络库，毫秒级抓取；
-   - `dynamic`：基于 Playwright / Scrapling 常驻 Chromium 内核，自动执行客户端 JS 并完成 SPA 水合；
-   - `stealthy`：注入真实硬件指纹，轻松穿透 Cloudflare 5秒盾、Akamai 与滑块风控。
-2. **PySpider 插件与 MacCMS 协议中枢 (`pyspider.py / spider_runner.py`)**：
-   - 兼容成熟的 Python 爬虫插件源；
-   - 通过 `/api.php/provide/vod?spider=...` 统一输出标准多源数据。
-3. **局域网 52020 端口极速热推 (`hiker_service.py`)**：
-   - 自动扫描同一 WiFi 下的海阔设备，调用 `/saveRule` 将规则直接写入手机客户端 SQLite 数据库，免扫码、免复制口令！
-4. **微内核动态 Loader (`copilot_core.js`)**：
-   - 客户端规则只需一行引导代码，核心逻辑由本地 Python 服务实时分发，0 重启永久在线热更。
+- 默认还原目标实际协议并交付独立JS：请求认证、签名、响应解密及播放解析各自验证。加解密不是验证码/站点防护的通用解决器。
+- 独立JS可内嵌适用算法库；PC的CryptoUtil/Java兼容接口和Android实际能力分别核验。不能由支持AES或RSA推导任意应用协议已还原。
+- 图形验证码按规则提供输入/提交；WebView验证由客户端页面处理，需要交互时由用户完成，再复用当前设备会话Cookie并重新请求。存在Cookie不证明服务器已放行。
+- Python/无头浏览器仅在用户明确接受额外本地服务时作为可选方案；运行时免Python的任务不得暗中探测本地服务、调用原应用或加载远端动态实现。动态渲染、浏览器隐身选项不能保证通过Cloudflare、Akamai或任意滑块。
+- 遇到实际挑战、登录或授权缺口，报告原始失败类别与用户可操作入口，必要时等待用户完成验证；不以修改目标来源或伪造成功输出代替实测。
 
-### 2. 规则中的三阶端机协同加速梯队 (Acceleration Ladder)
-
-| 梯度 | 运行环境 | 适用场景 | 规则代码实现逻辑 |
-|---|---|---|---|
-| **Tier 1：轻量同构模式**<br>(Lightweight Isomorphic) | 双端脱机运行<br>(手机 + 电脑) | 公开、防爬弱、免密、小程序/移动端 REST API 站点。 | 纯 JS 编写，基于 `request(url, options)` 直接请求，毫秒级响应，零外部依赖。 |
-| **Tier 2：PC 引擎加速模式**<br>(Engine-Assisted Mode) | PC 桌面端运行<br>(或局域网打通) | 目标站有高防风控（如小红书详情 302 重定向、反爬验证码、SPA 纯动态渲染）。 | 规则脚本在 JS 中自动探测本地 `127.0.0.1:18000`。若在线，调度 Python 引擎的 `stealthy` 隐身浏览器池代理解析；若未开启，平滑降级走 Tier 1。 |
-| **Tier 3：全源 PySpider 沉淀**<br>(Full PySpider Pipeline) | 深度逆向与重度采集 | 具有高难度加密签名 (如 Wbi、SO 混淆、需本地持久化 Cookie 池) 的站点。 | 编写 `scraper-service` 对应的 Python 爬虫类 (`SpiderRunner`)，由 PC 引擎全托管调度，通过本地 Hiker API 统一向海阔视界输出。 |
-
-📖 详细端机协同代码参考详见：[`references/python-engine-synergy.md`](./references/python-engine-synergy.md)。
+当前路径与验证边界见 [加解密与验证处理](references/crypto-and-verification.md)。仅在用户选择本地引擎依赖时再读 [可选Python协同](references/python-engine-synergy.md)，其中接口示例须核验，不能视作已认证依赖或默认交付。
 
 ---
 
@@ -149,7 +139,7 @@ DeepCloud PC 桌面端内置专有的单文件 Python 边缘爬虫引擎（`scra
 - **免嗅探协议兜底**：
   若视频源有动态签名保护，使用海阔视界原生的网页嗅探协议：
   `url = playPageUrl + '#isVideo=true##noLoading#'`；
-  海阔视界客户端在后台自动静默嗅探拦截视频流并唤起硬件加速播放器秒播！
+  该协议只是请求客户端尝试嗅探；是否取得可播放地址、请求头及是否需要交互验证，须在实际目标客户端检查。
 
 ---
 

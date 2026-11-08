@@ -1,0 +1,119 @@
+{
+  "date": "2026-11-08",
+  "stage": "P8-B6",
+  "progress": {
+    "complete": 63,
+    "total": 106,
+    "9.8": "complete",
+    "9.9": "not complete: actual-model upstream failures, no business delivery"
+  },
+  "candidate": {
+    "sha256": "7f12bdb3243c5d356c2f81f76f4fa0744b4b6bc6227bc4158e35e0c9c124ece8",
+    "installed": false,
+    "manifestEntries": 39,
+    "sources": [
+      {
+        "path": "src/domains/model_gateway/routing.rs",
+        "sha256": "299d9261cd4848c73341804ac04b117e1f54b928ac3e80b2c29656c5e877dce2"
+      },
+      {
+        "path": "src/domains/model_gateway/providers/mod.rs",
+        "sha256": "1de5b9c8d47426295ce6351f58320c2121a3f82b5150c0b70b8d54310a042245"
+      },
+      {
+        "path": "src/domains/model_gateway/providers/tests.rs",
+        "sha256": "62add385ab13d59442d190f3bb6f09df97e0fae9170c42c5afc78b045c3cd3f0"
+      }
+    ]
+  },
+  "changes": [
+    "Recognized structured upstream_network_error is preserved as optional diagnosticCode on failed HTTP route receipts.",
+    "No raw provider body, credential, URL or account diagnostic is copied. Plain 502, prose keywords and unknown error codes cannot create diagnosis.",
+    "HTTP status, original classification and bounded retry policy remain unchanged."
+  ],
+  "validation": {
+    "rustPassed": 642,
+    "failed": 0,
+    "ignored": 2,
+    "filtered": [
+      "domains::code_review::tests::test_review_current_project_workspace"
+    ],
+    "realLocalHttp502Test": true,
+    "normalParentCases": [
+      {
+        "case": "pass",
+        "status": "completed"
+      },
+      {
+        "case": "text-only",
+        "status": "failed"
+      },
+      {
+        "case": "review-reject",
+        "status": "failed"
+      },
+      {
+        "case": "stale",
+        "status": "failed"
+      }
+    ],
+    "strictChangeAndSixMainSpecs": "passed"
+  },
+  "actualModel": {
+    "model": "gemini-3.8-flash-high",
+    "currentCaseAttempts": [
+      {
+        "name": "real-first",
+        "ok": false,
+        "elapsedSeconds": 224,
+        "error": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"anthropic\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":45094,\"outcome\":\"transient\",\"statusCode\":503}]\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n",
+        "interventions": 0
+      },
+      {
+        "name": "real-route-fixed",
+        "ok": false,
+        "elapsedSeconds": 506.426,
+        "error": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"openai\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":45103,\"outcome\":\"transient\",\"statusCode\":502}]; parent ended with unfinished subagents; owned processes cancelled\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n",
+        "interventions": 0
+      }
+    ],
+    "businessCompleted": 0,
+    "attemptDenominator": 2,
+    "earlierV2SeparateHistory": "0/2 business completions; retained in v2, different audit task",
+    "correctedAttemptSource": "v5/real-route-fixed: actual model launched two isolated workers; no host implementation or repair; parent and sorter failed on 502, normalizer cancelled; both reaped",
+    "diagnosisEvidence": "artifacts/hub-swarm-memory-20261108/v6/real-run-diagnosis.json",
+    "successfulModelRounds": 13,
+    "reportedPromptTokens": 173205,
+    "reportedCompletionTokens": 2608,
+    "proxyStatusCounts": {
+      "502": 8,
+      "200": 13,
+      "429": 1
+    },
+    "attributionLimit": "Read-only proxy log correlation by model, bounded run time and unique task file/function names; no raw prompts, headers, accounts or response prose copied",
+    "currentPreflight": {
+      "ok": false,
+      "kind": "TimeoutError",
+      "elapsedSeconds": 60.08
+    }
+  },
+  "limits": [
+    "9.9 real dual-worker business remains unverified. Do not infer task completion from child process count.",
+    "9.10 aggregate budget/negative certification, automatic memory C, default graph D and held-out E remain pending.",
+    "Original user proxy settings and model credentials unchanged; no proxy restart, desktop operation or cloud publication.",
+    "This candidate was not installed. Final check found desktop prebuilt binary differs from original frozen 4021fbc5 while root bin retains it; origin of this separate change is not attributed. Existing files were not restored or overwritten."
+  ],
+  "evidenceRoot": "artifacts/hub-swarm-memory-20261108/v6",
+  "observedDefaultAssets": [
+    {
+      "path": "D:\\抖音\\deepcloud\\bin\\hub.exe",
+      "sha256": "4021fbc50618e96239a64f3233d24e95f41b2878a5e71d7f284344b0827c0aa9",
+      "lastWriteEpoch": 1793946801.6920252
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\hub.exe",
+      "sha256": "824dcd04586f31e26db4e55c9479a4e4c6d30ef3236f2ca407e071270ee3ead3",
+      "lastWriteEpoch": 1794022545.72121
+    }
+  ]
+}

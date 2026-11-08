@@ -1,0 +1,260 @@
+{
+  "date": "2026-11-05",
+  "scope": [
+    "protected registered action receipts",
+    "deferred proposal/approved new-Run execution",
+    "local frontend Hub and skill resource wiring"
+  ],
+  "model": "gemini-3.8-flash-high",
+  "trials": {
+    "original_failed_proposal": {
+      "task_id": "0a7b920b-c258-463f-a46a-bb6efecd6335",
+      "status": "failed",
+      "model_turns": 6,
+      "tool_calls": 5,
+      "workspace": "C:\\Users\\刘本录\\.superagent\\runs\\0a7b920b-c258-463f-a46a-bb6efecd6335\\workspace"
+    },
+    "corrected_proposal": {
+      "task_id": "07e4f06e-a9e3-4734-ba22-bc27529d1de0",
+      "status": "completed",
+      "model_turns": 4,
+      "tool_calls": 3,
+      "workspace": "C:\\Users\\刘本录\\.superagent\\runs\\07e4f06e-a9e3-4734-ba22-bc27529d1de0\\workspace"
+    },
+    "approved_new_Run": {
+      "task_id": "46f82af8-3ba2-4a4a-a2dc-0a2442bd46a6",
+      "status": "completed",
+      "model_turns": 5,
+      "tool_calls": 4,
+      "workspace": "C:\\Users\\刘本录\\.superagent\\runs\\46f82af8-3ba2-4a4a-a2dc-0a2442bd46a6\\workspace"
+    },
+    "protected_receipt": {
+      "task_id": "125ca1cb-8183-4724-b914-79028f40360e",
+      "status": "completed",
+      "model_turns": 9,
+      "tool_calls": 8,
+      "workspace": "C:\\Users\\刘本录\\.superagent\\runs\\125ca1cb-8183-4724-b914-79028f40360e\\workspace"
+    }
+  },
+  "live_phase_binary": "candidate-v3: bce084cd72623f48af49e3df9031e69ee5f362fa1a04a6f7e38d1fffcdae2e51",
+  "installed_binary": "candidate-v4: a3f3b2c1dd8f058ba77fb168459704f1eb02ef5792039713bfa2fcabf76075d5",
+  "version_boundary": "Proposal/approval dialogue used v3; later v4 changes were Skill root precedence/catalog selection. Their phase/executor/receipt logic is unchanged; final v4 core tests and real receipt/cold tests recorded separately.",
+  "runtime_human_corrections": 0,
+  "user_test_approval": "Supervisor supplied the preplanned ordinary-user approval in a new Run of the same Session, not an error correction",
+  "actual_approved_test": {
+    "exit_code": 0,
+    "stdout": "TAP version 13\n# Subtest: line amount uses quantity including zero\nok 1 - line amount uses quantity including zero\n  ---\n  duration_ms: 3.5089\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 435.8872\n"
+  },
+  "receipt_proof": {
+    "remote_command": "云6oooole/xxxxxx/ifdfmbe8mvrihecg",
+    "provider": "pasteme",
+    "roundtrip_verified": true,
+    "issued_receipts": {
+      "publication": {
+        "id": "publication",
+        "session_id": "run_b24ed63d9ffb42efa6536de7055fcf1e",
+        "run_id": "bc0dc485-ee3c-410f-a773-054399566fa7",
+        "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-closeout-20261105\\v1\\project\\rule.json",
+        "path": "\\\\?\\C:\\Users\\刘本录\\.superagent\\runs\\125ca1cb-8183-4724-b914-79028f40360e\\workspace\\publication.json",
+        "sha256": "f418a92d9365c7c7d2a0e5231dcb30045c585017de80349341596b977bf56921",
+        "bytes": 468,
+        "source": "runtime_file_observation; authorship requires matching tool provenance",
+        "observed_at": "2026-11-05T07:48:40.054134500+00:00",
+        "validator": "cloud-readback",
+        "verifier_sha256": null,
+        "domain_verified": false,
+        "checks": []
+      },
+      "command": {
+        "id": "command",
+        "session_id": "run_b24ed63d9ffb42efa6536de7055fcf1e",
+        "run_id": "bc0dc485-ee3c-410f-a773-054399566fa7",
+        "target": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-closeout-20261105\\v1\\project\\rule.json",
+        "path": "\\\\?\\C:\\Users\\刘本录\\.superagent\\runs\\125ca1cb-8183-4724-b914-79028f40360e\\workspace\\share-command.txt",
+        "sha256": "3d88046e2fc13fef6973da1890ac46cd2613fdc95cd28d9444038dda96475295",
+        "bytes": 35,
+        "source": "runtime_file_observation; authorship requires matching tool provenance",
+        "observed_at": "2026-11-05T07:48:40.054940900+00:00",
+        "validator": null,
+        "verifier_sha256": null,
+        "domain_verified": false,
+        "checks": []
+      }
+    },
+    "source_unchanged": true,
+    "new_cloud_creation": false,
+    "completion_ready": true
+  },
+  "cold_start": {
+    "staged": {
+      "passed": true,
+      "mode": "staged",
+      "exe": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-priorities-20261105\\v1\\bundle\\hub.exe",
+      "exe_sha256": "a3f3b2c1dd8f058ba77fb168459704f1eb02ef5792039713bfa2fcabf76075d5",
+      "cwd": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-staged-4SGdn4",
+      "data_dir": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-staged-4SGdn4\\全新数据",
+      "frontend_catalog_count": 37,
+      "rule_skill_path": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-priorities-20261105\\v1\\bundle\\skills\\deepcloud-rule-engineer",
+      "resource_sha256": "8931209c24ef1aae73b71ae3f6167a4870a056b26a4bf39cbb56c13d3d266059",
+      "service_reachable": true,
+      "no_model_call": true,
+      "no_gui": true,
+      "development_skill_env": false
+    },
+    "default": {
+      "passed": true,
+      "mode": "default",
+      "exe": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\hub.exe",
+      "exe_sha256": "a3f3b2c1dd8f058ba77fb168459704f1eb02ef5792039713bfa2fcabf76075d5",
+      "cwd": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-default-pXzyxI",
+      "data_dir": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-default-pXzyxI\\全新数据",
+      "frontend_catalog_count": 37,
+      "rule_skill_path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\skills\\deepcloud-rule-engineer",
+      "resource_sha256": "8931209c24ef1aae73b71ae3f6167a4870a056b26a4bf39cbb56c13d3d266059",
+      "service_reachable": true,
+      "no_model_call": true,
+      "no_gui": true,
+      "development_skill_env": false
+    },
+    "bundled_script_real_PC_runtime": {
+      "kind": "production_rule_entry",
+      "scope": "entry_execution_only_not_GUI_media_decode_or_user_acceptance",
+      "gui_used": false,
+      "android_verified": false,
+      "success": true,
+      "entry": "home",
+      "title": "Bundled runtime check",
+      "rule_sha256": "fa10aecce9a7f5f3219c9b1b853434f531d7295a62ae2b20f09d68b289f40906",
+      "data": [
+        {
+          "title": "BUNDLED_RUNTIME_REAL",
+          "url": "hiker://empty#data",
+          "col_type": "text_1"
+        }
+      ],
+      "private_test_root": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-staged-4SGdn4\\.superagent\\live-rule-yR1OWI",
+      "rule_unchanged": true
+    }
+  },
+  "installation": {
+    "updated": true,
+    "outputs": [
+      {
+        "label": "prebuilt",
+        "dir": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin",
+        "backup": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-priorities-20261105\\v1\\local-resource-backups\\prebuilt",
+        "old_files": [
+          {
+            "name": "hub.exe",
+            "sha256": "c917740d988fce450db1fdaa356f79f19ae9bba7dcb503e0b7763dd14bfecbcf"
+          }
+        ],
+        "exe_sha256": "a3f3b2c1dd8f058ba77fb168459704f1eb02ef5792039713bfa2fcabf76075d5",
+        "resource_count": 38
+      },
+      {
+        "label": "root-bin",
+        "dir": "D:\\抖音\\deepcloud\\bin",
+        "backup": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-priorities-20261105\\v1\\local-resource-backups\\root-bin",
+        "old_files": [],
+        "exe_sha256": "a3f3b2c1dd8f058ba77fb168459704f1eb02ef5792039713bfa2fcabf76075d5",
+        "resource_count": 38
+      }
+    ],
+    "no_cloud_upload": true,
+    "no_desktop_restart": true
+  },
+  "source_files": [
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\intent.rs",
+      "sha256": "369f139822ad0e0233befefab71c4196c7724a6f99b6cf802e104204dd3caa0f"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\capability_scout.rs",
+      "sha256": "a1b9fad7db5f0a32fa387cc819e37917574f798379c14be877f822a70cb4f1c5"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\domains\\agent_cognitive\\executor.rs",
+      "sha256": "e26068265dd3c91fb97b858e4a54c7362d567ee64f9375d5d714b32f3f6a68e0"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\cognitive_runtime.rs",
+      "sha256": "d3f48f8b550c8fa6edce749b14aa6cec3ca0ebaf4b46fe95f1b9d26a140203f4"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\delivery_evidence.rs",
+      "sha256": "e49f065524c6f29a50fe6ca7e2cccaaed0c828699f8e4f9c8b0d036fd099a772"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\task_progress.rs",
+      "sha256": "e539dc244ceaefb476d3c51f1d531b1466718d6335c6afd719689f05c53fa317"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\services\\brain\\tool_execution_gateway.rs",
+      "sha256": "a51bb9393b2ae22be950e41e29c72526ffa4001b17435691a4821f23407d39af"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\src\\routes\\agents\\skills.rs",
+      "sha256": "f49df6cac0a3cf3633145cd5ed9ff7b7b5b98fae4cef9cbf2a92041979d30b1e"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\super-agent\\scripts\\publish_verified_rule.cjs",
+      "sha256": "1b5583170e73c5c9e7906bdde2d3e162ec707b7bafad40b0eb5c2b23cd3b5abe"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\core\\sidecar-process-utils.js",
+      "sha256": "cb480b0615710b9e90c7a5578fe9821261a570134074bcc332864a7fce95235b"
+    },
+    {
+      "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\scripts\\hub-bundle-assets.cjs",
+      "sha256": "4109fd1f568603d8b66f8069f64f6329ed2c0f7cf62ed31b7283f533fcab8347"
+    }
+  ],
+  "tests": {
+    "rust": {
+      "passed": 587,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "log": "rust-tests-v4-final.log"
+    },
+    "node": {
+      "frontend": 14,
+      "resolution": 2,
+      "PC_live_tool": 6,
+      "publisher": 11,
+      "total": 33
+    }
+  },
+  "preserved_failures": [
+    "Initial Rust suite: 582 passed/3 process startup/PID/timeout failures; original assertions retained and later passed",
+    "Frontend first suite: startup deadline and repeated fs.cpSync failure; identical resource copies now skipped; original port deadline retained",
+    "Original proposal task failed: unexecuted policy denial poisoned the DoD test gate; retained and fixed in both executor paths",
+    "Cold staged v3 twice found legacy global hiker-rule-creator alias instead of the bundle; source precedence/catalog fixed, user file not edited",
+    "Initial publisher tests could not create temp fixtures because output parent was absent; fixture now creates its own parent",
+    "OpenSpec initially placed new 4.x tasks under group5; moved and revalidated",
+    "One host PC-tool test command used a nonexistent filename; original not-run log preserved, corrected to the existing six-test suite."
+  ],
+  "limitations": [
+    "Receipt edit rejection covers registered native editing tools; arbitrary shell changes are detected at completion, not OS-blocked",
+    "Protection is active only for host-registered receipt_artifacts; arbitrary unregistered CLI outputs are not automatically certified",
+    "Request stage parsing is bounded heuristics; explicit approval was tested in a new Run, not automatic permission upgrade inside one Run",
+    "Cold new data proves resources/API startup, not an already configured model or all external dependencies",
+    "Local repository assets updated; no full installer build, external release upload or GUI restart/test",
+    "No unseen encrypted-app reverse-engineering/general intelligence or automatic experience promotion claim"
+  ],
+  "legacy_global_skill_modified_by_host": false,
+  "no_desktop_control": true,
+  "cleanup": {
+    "tasks_terminal": true,
+    "proxy_8045_untouched": true,
+    "desktop_processes_untouched": true,
+    "stopped": true,
+    "owned_pid": 40856
+  },
+  "plan_progress": {
+    "complete": 49,
+    "total": 80
+  },
+  "classification": "known cases after host platform fixes; not first-attempt autonomous generalization"
+}

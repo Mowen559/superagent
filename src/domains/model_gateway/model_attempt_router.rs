@@ -60,6 +60,9 @@ impl Default for ModelAttemptRouter {
 
 impl ModelAttemptRouter {
     pub fn classify(&self, error: &str) -> ModelErrorClass {
+        if let Some(class) = classify_route_receipts(error) {
+            return class;
+        }
         let error = error.to_ascii_lowercase();
         if contains_any(
             &error,
@@ -128,9 +131,121 @@ fn contains_any(haystack: &str, needles: &[&str]) -> bool {
     needles.iter().any(|needle| haystack.contains(needle))
 }
 
+fn classify_route_receipts(error: &str) -> Option<ModelErrorClass> {
+    let (summary, raw) = error.split_once(" Provider Route attempt(s); receipts=")?;
+    if !summary.contains("model request failed after ") {
+        return None;
+    }
+    let receipts: Vec<serde_json::Value> = serde_json::from_str(raw).ok()?;
+    let mut last_failure = None;
+    let mut circuit_open = false;
+    for receipt in receipts {
+        // These outcomes were classified at the provider boundary. Summary
+        // text, account/model names and duration digits must not reclassify them.
+        let class = match receipt.get("outcome")?.as_str()? {
+            "permanent" => ModelErrorClass::Permanent,
+            "authentication" => ModelErrorClass::Authentication,
+            "context_overflow" => ModelErrorClass::ContextOverflow,
+            "rate_limited" => ModelErrorClass::RateLimited,
+            "transient" => ModelErrorClass::Transient,
+            "succeeded" => continue,
+            "circuit_open" => {
+                circuit_open = true;
+                continue;
+            }
+            _ => return None,
+        };
+        last_failure = Some(class);
+    }
+    last_failure.or_else(|| circuit_open.then_some(ModelErrorClass::Transient))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn route_error(outcomes: &[&str]) -> String {
+        let receipts: Vec<_> = outcomes
+            .iter()
+            .map(|outcome| {
+                serde_json::json!({
+                    "accountId": "account-401-429",
+                    "accountName": "connection timeout",
+                    "provider": "anthropic",
+                    "resolvedModel": "model-503",
+                    "attempt": 1,
+                    "durationMs": 50400,
+                    "outcome": outcome,
+                    "statusCode": 400
+                })
+            })
+            .collect();
+        format!(
+            "model request failed after {} Provider Route attempt(s); receipts={}",
+            receipts.len(),
+            serde_json::to_string(&receipts).unwrap()
+        )
+    }
+
+    #[test]
+    fn route_receipts_override_misleading_summary_and_metadata() {
+        let router = ModelAttemptRouter::default();
+        for (outcome, expected) in [
+            ("permanent", ModelErrorClass::Permanent),
+            ("context_overflow", ModelErrorClass::ContextOverflow),
+            ("authentication", ModelErrorClass::Authentication),
+            ("rate_limited", ModelErrorClass::RateLimited),
+            ("transient", ModelErrorClass::Transient),
+        ] {
+            assert_eq!(router.classify(&route_error(&[outcome])), expected);
+        }
+        assert!(
+            router
+                .retry_delay(1, &route_error(&["permanent"]))
+                .is_none()
+        );
+        assert!(
+            router
+                .retry_delay(1, &route_error(&["transient"]))
+                .is_some()
+        );
+        assert!(
+            router
+                .retry_delay(1, &route_error(&["rate_limited"]))
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn route_receipts_use_last_actual_failure_and_keep_legacy_fallback() {
+        let router = ModelAttemptRouter::default();
+        assert_eq!(
+            router.classify(&route_error(&["rate_limited", "permanent", "circuit_open"])),
+            ModelErrorClass::Permanent
+        );
+        assert_eq!(
+            router.classify(&route_error(&["permanent", "transient"])),
+            ModelErrorClass::Transient
+        );
+        assert_eq!(
+            router.classify(&route_error(&["circuit_open"])),
+            ModelErrorClass::Transient
+        );
+        assert_eq!(
+            router.classify("503 temporarily unavailable"),
+            ModelErrorClass::Transient
+        );
+        assert_eq!(
+            router.classify("invalid request schema"),
+            ModelErrorClass::Permanent
+        );
+        assert_eq!(
+            router.classify(
+                "model request failed after 1 Provider Route attempt(s); receipts=not-json"
+            ),
+            ModelErrorClass::Transient
+        );
+    }
 
     #[test]
     fn classifies_recovery_owners_without_retrying_them() {
@@ -173,13 +288,25 @@ mod tests {
 
         // Conversational task always picks Fast Brain
         assert_eq!(
-            DualBrainRouter::select_tier(ReasoningMode::Adaptive, TaskKind::Conversational, 0, 0, 0),
+            DualBrainRouter::select_tier(
+                ReasoningMode::Adaptive,
+                TaskKind::Conversational,
+                0,
+                0,
+                0
+            ),
             BrainTier::Fast
         );
 
         // Deliberate mode always picks Slow Brain
         assert_eq!(
-            DualBrainRouter::select_tier(ReasoningMode::Deliberate, TaskKind::Conversational, 0, 0, 0),
+            DualBrainRouter::select_tier(
+                ReasoningMode::Deliberate,
+                TaskKind::Conversational,
+                0,
+                0,
+                0
+            ),
             BrainTier::Slow
         );
 

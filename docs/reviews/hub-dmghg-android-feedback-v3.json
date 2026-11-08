@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "79d5e8ba40811b1ab4d2408ca6275b02a684435b4a36b1d952094b236b8e7c35"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39871",
+  "model": "gemini-3.8-flash-high",
+  "classification": "sparse_real_user_workflow",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "DMGHG-Android-real-user-playback-failure",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-android-feedback-20261104\\project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-android-feedback-20261104\\project",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 1200,
+        "prompt": "我在Android手机导入你给的动漫共和国纯JS规则后，点击某一集播放就报错，信息在USER_FEEDBACK.txt。rule.json从原云口令恢复，与此前交付SHA一致。请按规则Skill自行调查播放脚本和目标端兼容问题，修正后交付新版JSON和简短复测步骤，保持独立JS无需额外本机服务。能实际验证的请验证，未测手机实机不要写通过；先给文件，不发布云条目。"
+      },
+      "events": [],
+      "status": "infra_failed",
+      "classification": "actual_user_mobile_feedback_repair",
+      "prior_exposure": null,
+      "error": "Error: [SuperAgent] 启动任务失败: 403 Forbidden (Workspace has not been opened by the local control plane: \\\\?\\D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-android-feedback-20261104\\project)",
+      "duration_ms": 43,
+      "tool_calls": 0,
+      "model_turns": 0,
+      "usage_events": [],
+      "token_usage": null,
+      "passed": null
+    }
+  ],
+  "configured_models": [],
+  "model_readiness": {
+    "source": "explicit legacy backend configured-provider health; catalog cannot advertise configured model",
+    "model": "gemini-3.8-flash-high"
+  },
+  "request_file_sha256": "90d32c7d8762abd98d0fe00e77370dc2a084423b4268666942a6e3c893dd7add",
+  "frozen_definitions_sha256": "9f2a1a3143c2a57aeed0aa62ae43c57063b57e0b8324a23af5416f3adb3ad2ae",
+  "planned_task_ids": [
+    "DMGHG-Android-real-user-playback-failure"
+  ],
+  "selected_task_ids": [
+    "DMGHG-Android-real-user-playback-failure"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

@@ -68,6 +68,7 @@ impl ToolExecutor for VerifyTaskTool {
 [Tool Projection: verify_task_tool]
 - Role: Test-Driven Verification Gate (SWE-agent style)
 - Rule: NEVER finish an execution task without running tests/checks. Use `verify_task_tool` to confirm all assertions pass before claiming completion.
+- Receipt: exit 0 alone is process success. Inspect quality_evidence.eligible. Inline node -e checks do not form quality receipts; save assertions as a scoped check-*.cjs and run node check-name.cjs, or run the existing project test command. Preserve frozen checkers.
 "#.trim().to_string())
     }
 

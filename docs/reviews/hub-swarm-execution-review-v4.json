@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-07",
+  "stage": "P8-B4 candidate",
+  "author": "Codex runtime implementation and controlled model fixtures; actual upstream model calls: 0",
+  "progress": {
+    "complete": 62,
+    "total": 106,
+    "completedPreviousBatch": [
+      "9.6",
+      "9.7"
+    ],
+    "9.8": "implemented candidate slice; full normal parent completion HTTP evidence pending, not checked off"
+  },
+  "candidate": {
+    "sha256": "dd41d5bb1bdceb51f1369725a418762c44e3c89fd845e1131d9a6353d0f5fb08",
+    "manifestEntries": 39,
+    "installed": false,
+    "sources": [
+      {
+        "path": "src/services/brain/task_progress.rs",
+        "sha256": "441d008ccc635c94781c82f7466ba715e03e73bd0f9a6ea17d9ee161c8eb0334"
+      },
+      {
+        "path": "src/services/brain/task_progress_tests.rs",
+        "sha256": "274aad9770fabe81596014b9328c771017ee932cb15fa98d4c3254f823355a86"
+      },
+      {
+        "path": "src/services/brain/subagent_runtime.rs",
+        "sha256": "65f83fe1576e43b08cddf8774e699b983e610e6e10540eafded551bf8e0798e2"
+      },
+      {
+        "path": "src/services/brain/subagent_runtime_tests.rs",
+        "sha256": "76fce317ec2e7515f7fa68654db611cae6f6a09b54735b34f2493513c3a1f55b"
+      },
+      {
+        "path": "src/services/brain/tool_execution_gateway.rs",
+        "sha256": "a0627b524d208a07db5445dd566ebe9f8cdf8bf97189d3011cf7dc5cf678cd0b"
+      },
+      {
+        "path": "src/services/brain/cognitive_runtime.rs",
+        "sha256": "62cbcf3c6abbb97f76df9596ece2842e491bd3f6ac8287d3e8eebd9c18532eef"
+      },
+      {
+        "path": "src/domains/agent_cognitive/executor.rs",
+        "sha256": "f23257eabb5463fca165fa557c180d90b7a42a4406a13894f915828b10d5eed4"
+      }
+    ]
+  },
+  "tests": {
+    "rust": {
+      "passed": 640,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": [
+        "domains::code_review::tests::test_review_current_project_workspace"
+      ],
+      "evidence": "artifacts/hub-swarm-memory-20261106/v4/regression-current.log"
+    },
+    "build": "hub and superagent passed",
+    "openspec": "change strict and 6 main specs passed",
+    "controlledHttp": {
+      "controlObservations": 61,
+      "deliveryObservations": 182,
+      "globalGuardRequests": 17,
+      "pollingObservationsAreNotAssertionCounts": true,
+      "fourCases": [
+        "owned snapshot / fingerprint / conflict / idempotent apply / completed recovery",
+        "crashed owner / no orphan / no replay",
+        "parent timeout reconciles child",
+        "parent cancel reconciles child"
+      ],
+      "businessVerified": false
+    }
+  },
+  "newEvidence": [
+    "Actual owned worktree child produces artifact; parent merge alone remains blocked; actual Node validator releases quality gate; later file change and change during check invalidate it.",
+    "Critical review remains rejected after unrelated test, empty review or unrelated-file review; matching clean reanalysis clears rejection.",
+    "Duplicate/no-op collection cannot become a fresh mutation receipt. Gateway strips adapter-forged parent verification and freezes requested review scope.",
+    "Management API collection invalidates existing TaskProgress verification bindings and physical delivery receipts."
+  ],
+  "limits": [
+    "The existing TaskContract dependency workflow is connected; global unbound workflow templates retain HTTP 501.",
+    "No claim that full task 9.8 acceptance or real Gemini autonomous dual-worker business completion has passed.",
+    "Code fingerprint follows existing admitted code manifest, not all binary assets/dependencies. Tool permissions are not an OS sandbox.",
+    "Critical child failure requires a new bounded repair Run; no silent replacement of failed history.",
+    "Automatic memory C, default graph D, held-out E and default local installation remain pending."
+  ],
+  "unchanged": {
+    "installed": false,
+    "defaultHubSha256": "4021fbc50618e96239a64f3233d24e95f41b2878a5e71d7f284344b0827c0aa9",
+    "acceptedRuleSha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+    "newCloudPublication": false,
+    "guiUsed": false
+  },
+  "evidenceRoot": "artifacts/hub-swarm-memory-20261106/v4"
+}

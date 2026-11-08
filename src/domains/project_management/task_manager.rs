@@ -10,6 +10,7 @@ use crate::services::agent::AgentMessage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TaskControl {
+    Subagent(crate::services::brain::subagent_runtime::SubagentControl),
     UserResponse {
         request_id: String,
         response: String,
@@ -385,6 +386,13 @@ impl TaskManager {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .get(task_id)
             .is_some_and(|sender| sender.send(control).is_ok())
+    }
+
+    pub fn has_control(&self,task_id:&str)->bool{
+        self.control_bus.lock().unwrap_or_else(|e|e.into_inner()).get(task_id).is_some_and(|s|!s.is_closed())
+    }
+    pub fn owns_active_run(&self,task_id:&str)->bool{
+        self.has_control(task_id)||self.run_handles.lock().unwrap_or_else(|e|e.into_inner()).get(task_id).is_some_and(|h|!h.is_finished())
     }
 
     pub fn remove_control(&self, task_id: &str) {

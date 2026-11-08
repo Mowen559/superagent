@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-08",
+  "stage": "P8-B7",
+  "progress": {
+    "complete": 64,
+    "total": 106,
+    "9.10": "completed",
+    "9.9": "pending upstream recovery and successful actual-model business task"
+  },
+  "budget": {
+    "candidateSha256": "7f12bdb3243c5d356c2f81f76f4fa0744b4b6bc6227bc4158e35e0c9c124ece8",
+    "maxConcurrentWorkersPerParent": 2,
+    "maxDelegationDepth": 1,
+    "parentTimeoutSeconds": 120,
+    "actualUpstreamCallsInContractSuites": 0,
+    "modelMode": "controlled local HTTP; actual child processes",
+    "requiredCases": [
+      "real exit(17) fails and reaps",
+      "parent cancellation and timeout reap",
+      "readonly arbitrary role rejects file write and shell",
+      "critical review and stale parent fingerprint reject completion",
+      "parent service crash reconciles without replay",
+      "third active worker rejected and leaf tools exclude delegation"
+    ],
+    "fixtureHashes": [
+      {
+        "path": "scripts/test_swarm_control.cjs",
+        "sha256": "dbd2b05dad6084349748cc460d33158058681c3a2e87e8f5a834df61b199a2c3"
+      },
+      {
+        "path": "scripts/test_swarm_delivery.cjs",
+        "sha256": "b2a550b78a4893aba703f771b8bfe088ad0305cc1e01fb3ba3ef679745e571ff"
+      },
+      {
+        "path": "scripts/test_swarm_completion.cjs",
+        "sha256": "81cae18d0711ddc73cf7056041dc7c470b2466df32ff6f432c9239a0c019e2c7"
+      },
+      {
+        "path": "src/services/brain/subagent_runtime_tests.rs",
+        "sha256": "76fce317ec2e7515f7fa68654db611cae6f6a09b54735b34f2493513c3a1f55b"
+      }
+    ],
+    "evidenceRule": "Each case must pass its process/file/status assertions; topology or queue counts alone are insufficient."
+  },
+  "validation": {
+    "ownedProcessRustPassed": 20,
+    "globalGuardRequests": 17,
+    "controlHttpObservations": 58,
+    "recoveryCases": [
+      "owned snapshot / fingerprint / conflict / idempotent apply / completed recovery",
+      "crashed owner / no orphan / no replay",
+      "parent timeout reconciles child",
+      "parent cancel reconciles child"
+    ],
+    "parentCompletionCases": [
+      {
+        "kind": "pass",
+        "status": "completed"
+      },
+      {
+        "kind": "text-only",
+        "status": "failed"
+      },
+      {
+        "kind": "review-reject",
+        "status": "failed"
+      },
+      {
+        "kind": "stale",
+        "status": "failed"
+      }
+    ]
+  },
+  "evidenceRoot": "artifacts/hub-swarm-memory-20261108/v7",
+  "scope": "Controlled model transport with real worker processes, physical files and termination; no actual-model intelligence certification. Global aggregate token budget enforcement is not claimed by this acceptance cap.",
+  "currentPreflight": {
+    "ok": false,
+    "kind": "TimeoutError",
+    "elapsedSeconds": 60.05
+  },
+  "installed": false
+}

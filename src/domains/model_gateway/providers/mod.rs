@@ -445,7 +445,7 @@ impl LlmProvider {
                         attempt_started,
                         class,
                         Some(status.as_u16()),
-                    ));
+                    ).with_proxy_diagnostic(&provider_error));
                     if runtime.should_try_next(class, attempt < candidate_count) {
                         break;
                     }

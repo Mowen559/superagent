@@ -58,6 +58,40 @@ pub struct DynamicIntent {
 
 pub struct DynamicIntentEngine;
 
+/// Current authorization phase, separated from proposed future actions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CurrentRequestStage { Execution, ProposalOnly, InvestigationOnly }
+
+impl CurrentRequestStage {
+    pub fn classify(prompt: &str) -> Self {
+        let quoted = regex::Regex::new(r#"(?s)```.*?(?:```|$)|“[^”]*”|「[^」]*」|"[^"\n]*"|(?:^|[ \t(])'[^'\n]*'"#).unwrap();
+        let normalized = quoted.replace_all(prompt, " ").to_lowercase();
+        // A trailing, unqualified no-change instruction governs the current
+        // task. Exact clause boundaries avoid treating "don't change file B"
+        // as a ban on an otherwise authorized edit to file A.
+        let no_changes = regex::Regex::new(r"(?:^|[，,。.;；\n])\s*(?:请|先)?(?:不要|禁止|别)(?:修改|改动)(?:任何)?(?:文件|代码)\s*[。.!！]*\s*$").unwrap();
+        if no_changes.is_match(&normalized) { return Self::InvestigationOnly; }
+        let mut prefix = normalized.trim_start();
+        for _ in 0..3 {
+            if let Some(rest) = ["这次", "本轮", "please ", "请你", "请", "帮我"].iter().find_map(|p| prefix.strip_prefix(p)) {
+                prefix = rest.trim_start_matches([' ', ':', '：']);
+            } else { break; }
+        }
+        if ["只做规划","只给方案","只要方案","只制定计划","仅做规划","planning only","plan only","proposal only"]
+            .iter().any(|p| prefix.starts_with(p)) { return Self::ProposalOnly; }
+        if ["只做调查","只做分析","只做复核","只做审查","只分析","仅分析","只检查","只做逆向理解","investigation only","analysis only","read-only investigation"]
+            .iter().any(|p| prefix.starts_with(p)) { return Self::InvestigationOnly; }
+        let clauses: Vec<_> = normalized.split(['，','。','；',';', '\n']).filter(|c| {
+            !["不用等","无需等","不必等","无需确认","不用确认","do not wait","don't wait","no approval needed"].iter().any(|p| c.contains(p))
+        }).collect();
+        let planning = clauses.iter().any(|c| ["先","first","本轮","这次"].iter().any(|p| c.contains(p)))
+            && clauses.iter().any(|c| ["方案","计划","选项","proposal","plan","options"].iter().any(|p| c.contains(p)));
+        let deferred = clauses.iter().any(|c| ["等我确认","待我确认","等我选择","等我选定","等我批准","确认后再","同意后再","批准后再","选定后再","选择后再","暂不实施","先不要改","先别改","wait for my approval","wait for my confirmation","until i approve","until i confirm","after my approval"]
+            .iter().any(|p| c.contains(p)));
+        if planning && deferred { Self::ProposalOnly } else { Self::Execution }
+    }
+}
+
 impl DynamicIntentEngine {
     /// 对用户输入进行深度意图解析、能力自省与信息鸿沟评估
     pub fn analyze(prompt: &str) -> DynamicIntent {
@@ -71,7 +105,8 @@ impl DynamicIntentEngine {
         let target_symbols = Self::extract_symbols(prompt);
 
         // 3. 提取否定约束与保护路径 (特别遵循不改动 common 铁律)
-        let constraints = Self::extract_constraints(&normalized);
+        let mut constraints = Self::extract_constraints(&normalized);
+        if CurrentRequestStage::classify(prompt) != CurrentRequestStage::Execution { constraints.read_only_mode = true; }
         if constraints.read_only_mode {
             goal = if goal == ActionGoal::ArchitectureExploration {
                 goal
@@ -557,5 +592,40 @@ mod tests {
                 .suggested_inspection_tools
                 .contains(&"project_index".to_string())
         );
+    }
+
+    #[test]
+    fn deferred_proposals_are_current_phase_even_after_problem_description() {
+        for prompt in [
+            "当前代码报错。请先调查，给出修复方案，等我确认后再修改。",
+            "这个接口失败，请先给两个可选修复方案，选定后再实施。",
+            "First inspect the current module and propose options; wait for my approval before modifying it.",
+        ] {
+            assert_eq!(CurrentRequestStage::classify(prompt), CurrentRequestStage::ProposalOnly, "{prompt}");
+            assert!(DynamicIntentEngine::analyze(prompt).constraints.read_only_mode);
+        }
+    }
+
+    #[test]
+    fn quoted_phases_and_explicit_immediate_execution_are_not_deferred() {
+        for prompt in [
+            "请修改代码中的字符串“先给方案，确认后再改”，替换成“执行完成”。",
+            "请修复当前代码。示例：```先给方案，等我确认后再改```",
+            "请先给方案，无需等我确认，直接实施并验证。",
+            "方案已确认，现在按方案修改代码并测试。",
+        ] {
+            assert_eq!(CurrentRequestStage::classify(prompt), CurrentRequestStage::Execution, "{prompt}");
+        }
+    }
+
+    #[test]
+    fn final_global_no_change_clause_is_read_only_but_scoped_or_quoted_text_is_not() {
+        for prompt in ["调查本项目，不要修改文件。","PARENT_CONTROL_HOLD 调查本项目，不要修改文件。","请调查调用链；请不要改动任何代码！"] {
+            assert_eq!(CurrentRequestStage::classify(prompt),CurrentRequestStage::InvestigationOnly,"{prompt}");
+            assert!(DynamicIntentEngine::analyze(prompt).constraints.read_only_mode);
+        }
+        for prompt in ["请修复A，不要修改文件B。","修改invoice.js，不要改动common。","请修改代码中的字符串“不要修改文件”。","请修复代码：```不要修改文件```","不要修改文件；现在修改invoice.js并测试。"] {
+            assert_eq!(CurrentRequestStage::classify(prompt),CurrentRequestStage::Execution,"{prompt}");
+        }
     }
 }

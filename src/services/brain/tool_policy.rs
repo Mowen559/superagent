@@ -115,7 +115,11 @@ impl ToolPolicy {
     }
 
     pub fn evaluate(&self, name: &str, arguments: &Value) -> (ToolRisk, ToolPolicyDecision) {
-        let risk = classify_tool_risk(name, arguments);
+        // Shell prefixes cannot establish read-only behavior: even echo can
+        // redirect into a file, and git/cargo may mutate workspace state.
+        let risk = if self.mode == ToolPolicyMode::ReadOnly && name == "run_command" {
+            ToolRisk::ProcessControl
+        } else { classify_tool_risk(name, arguments) };
         let decision = match self.mode {
             ToolPolicyMode::Audit => ToolPolicyDecision::Allow,
             ToolPolicyMode::ReadOnly if risk == ToolRisk::ReadOnly => ToolPolicyDecision::Allow,
@@ -138,6 +142,8 @@ impl ToolPolicy {
 
 pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
     match name {
+        "collect_subagent_changes" if arguments.get("Action").and_then(Value::as_str)==Some("inspect") => ToolRisk::ReadOnly,
+        "collect_subagent_changes" => ToolRisk::WorkspaceMutation,
         "view_file"
         | "plan_task"
         | "update_task_progress"
@@ -147,13 +153,15 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "find_by_name"
         | "search_graph"
         | "knowledge_search_tool"
-        | "super_memory"
         | "lsp"
         | "read_tool_result"
         | "capability_status"
         | "project_index"
         | "repo_map_tool"
+        | "code_review"
         | "check_worker_status" => ToolRisk::ReadOnly,
+        "super_memory" if matches!(arguments.get("action").and_then(Value::as_str), Some("retrieve" | "search" | "list")) => ToolRisk::ReadOnly,
+        "super_memory" => ToolRisk::WorkspaceMutation,
         "knowledge_corpus_tool" if corpus_operation(arguments) == "list" => ToolRisk::ReadOnly,
         "knowledge_corpus_tool" if corpus_operation(arguments) == "remove" => ToolRisk::Destructive,
         "knowledge_corpus_tool" => ToolRisk::WorkspaceMutation,
@@ -166,7 +174,7 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "manage_task" => ToolRisk::WorkspaceMutation,
         "run_command" if is_read_only_command(arguments) => ToolRisk::ReadOnly,
         "run_command" if is_safe_sandbox_command(arguments) => ToolRisk::WorkspaceMutation,
-        "verify_delivery" | "requirement_engine" | "run_command" | "verify_task_tool" | "manage_process" | "invoke_subagent" | "intervene_worker"
+        "verify_delivery" | "requirement_engine" | "run_command" | "verify_task_tool" | "manage_process" | "invoke_subagent" | "retry_subagent" | "intervene_worker"
         | "reload_plugins" | "request_reload" | "skill_tool" | "native_harness" => {
             ToolRisk::ProcessControl
         }
@@ -202,6 +210,16 @@ fn corpus_operation(arguments: &Value) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn project_memory_writes_and_revoke_obey_read_only_policy() {
+        let policy=super::ToolPolicy::new(super::ToolPolicyMode::ReadOnly);
+        for action in ["store","revoke", "unknown"] {
+            assert_eq!(policy.evaluate("super_memory",&serde_json::json!({"action":action})),(super::ToolRisk::WorkspaceMutation,super::ToolPolicyDecision::Deny));
+        }
+        for action in ["retrieve","search","list"] {
+            assert_eq!(policy.evaluate("super_memory",&serde_json::json!({"action":action})),(super::ToolRisk::ReadOnly,super::ToolPolicyDecision::Allow));
+        }
+    }
     #[test]
     fn allows_safe_dev_commands_without_approval_in_auto_edit_mode() {
         let policy = ToolPolicy::new(ToolPolicyMode::AutoEdit);
@@ -264,6 +282,16 @@ mod tests {
                 ToolPolicyDecision::Deny
             );
         }
+    }
+
+    #[test]
+    fn plan_never_uses_shell_prefixes_as_read_only_authority() {
+        let policy=ToolPolicy::new(ToolPolicyMode::ReadOnly);
+        for command in ["echo BYPASS > forbidden.txt","git branch -D main","git status; node attack.cjs","cargo check","dir","cat source.js"] {
+            assert_eq!(policy.evaluate("run_command",&json!({"CommandLine":command})),(ToolRisk::ProcessControl,ToolPolicyDecision::Deny),"{command}");
+        }
+        assert_eq!(policy.evaluate("view_file",&json!({"AbsolutePath":"source.js"})).1,ToolPolicyDecision::Allow);
+        assert_eq!(ToolPolicy::new(ToolPolicyMode::Audit).evaluate("run_command",&json!({"CommandLine":"dir"})).1,ToolPolicyDecision::Allow);
     }
 
     #[test]

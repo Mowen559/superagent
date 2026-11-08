@@ -243,3 +243,137 @@ SDK SHALL 将补充要求提交为action=steer和response，用户回答提交�
 #### Scenario: Upload response precedes readback failure
 - **WHEN** 发布已返回ID但回读失败
 - **THEN** 保存该ID供只读复验，禁止再次创建发布副本，且不泄露管理凭据
+
+### Requirement: Process permission risk is not file-change evidence
+系统 SHALL 保留进程命令的原始安全风险及验证失效行为，但不得仅凭成功退出将命令记成文件修改或关闭实施步骤。成功前台命令可提供观察或合格质量收据；文件修改须另有真实编辑收据或受信任的变更证据。
+
+#### Scenario: Node inspection has conservative write permission risk
+- **WHEN** run_command成功读取JSON并打印内容且被安全策略保守标为WorkspaceMutation
+- **THEN** 权限与旧验证失效仍按原风险处理，进度仅增加观察，不增加修改计数、不关闭实施步骤
+
+### Requirement: Successful inspection plateau prompts a strategy review
+系统 SHALL 在实施任务连续至少8次成功观察且没有真实编辑、认证验证或用户答复时，提示智能体复用已有证据、说明剩余假设并采取可区分假设的检查，必要时询问用户。此提醒不阻止合法调查、不强制变更文件、不放宽验收或权限；只读调查不因读取次数而被要求实施。
+
+#### Scenario: Inspections succeed without advancing requested implementation
+- **WHEN** 实施Run连续8次成功读取或进程观察，仍没有真实编辑或验证
+- **THEN** 下一轮显示调查停滞提醒，实施步骤仍按原证据门禁判断；真实编辑、质量收据或相关用户答复后重置该提醒
+
+### Requirement: Delivery closeout uses the remaining verified work
+系统 SHALL 在受控动作均已尝试且来源验证仍有效时，将缺失必需文件、完整交付复验或已有证据支持的最终答复投影为当前执行策略。此投影不得重试动作、自动通过子任务或替代独立验证；来源变更或验证失败时恢复本地修复指导。
+
+#### Scenario: Published source remains valid but instructions are missing
+- **WHEN** 受控动作已尝试、来源哈希和验证器仍有效，而README等必需产物缺失
+- **THEN** 当前策略明确列出缺失文件及工作区，复用已有动作结果完成这些文件，不要求重新调查历史目录或再创建外部条目
+
+#### Scenario: Valid closeout becomes stale
+- **WHEN** 收尾阶段来源文件、宿主配置或验证器改变
+- **THEN** 收尾快捷策略不再适用，原失效/复验门禁继续阻止完成和动作重试
+
+### Requirement: Plan type errors are actionable without coercion
+系统 SHALL 对交付计划中已观察到的版本类型错误及空验证器字段，返回带字段路径、实际值类型及合法写法的聚合错误；不得把字符串版本静默转为数字、自动选验证器或更改已有Run契约。
+
+#### Scenario: Version is quoted and validator is empty
+- **WHEN** 计划包含delivery.version="1"及多个validator=""
+- **THEN** 一次返回全部对应字段的纠错信息，保留原契约、权限、计划与验证证据，只有正确重提交才能接受
+
+### Requirement: Managed receipts retain their issued contents
+宿主动作 MAY 声明receipt_artifacts产物ID；系统 SHALL 在动作尝试后记录这些实际文件的路径和指纹，拒绝已识别的原生编辑覆盖，并在交付验收时检查回执未被删除或修改。读取回执和补写其他交付文件仍允许。动作失败或回读失败不恢复创建额度，捕获已有回执不能使失败变成成功。
+
+#### Scenario: Model rewrites an issued publication receipt
+- **WHEN** 受控动作产出已声明回执后，模型通过write_to_file或编辑别名试图替换该文件
+- **THEN** 工具不执行并提示读取现有回执、另写说明文件，不丢弃原provider、ID或回读状态
+
+#### Scenario: Arbitrary shell bypass changes a receipt
+- **WHEN** 原生工具以外的路径修改了已冻结回执
+- **THEN** 全量verify_delivery及完成门禁失效，不能以重新计算指纹洗白；此机制不被声明为操作系统写隔离
+
+### Requirement: Deferred implementation stays in the current phase
+系统 SHALL 对当前请求中明确的“先调查/给方案、待用户确认后再实施”采用提案或调查阶段，不把未来实现动词当成本轮执行授权。引用文本和代码示例中的同名词不得单独改变阶段；新请求明确批准实施时重新判断。此机制是有边界的请求解析，不宣称完整自然语言理解。
+
+#### Scenario: Proposal request follows the problem description
+- **WHEN** 用户先描述错误再要求给出修复方案，等确认后再修改
+- **THEN** 当前任务只调查和答复，原生业务写入不能执行，不能强造实施或代码测试步骤
+
+#### Scenario: Implementation request quotes a staged instruction
+- **WHEN** 用户要求修复代码中的字符串或说明，其中引用“先给方案，确认后再改”
+- **THEN** 引用内容本身不把实际立即实施请求降级为只读
+
+
+### Requirement: Model retry classification preserves structured route outcomes
+系统 SHALL 在模型路由返回可解析的Provider Route收据时使用最后一个实际失败尝试的outcome进行外层重试分类，不由摘要request failed或账号/模型名/耗时中的数字改判；跳过成功与未发请求的熔断项，纯熔断记录按有界临时故障处理。旧式非结构化错误保留原兼容分类。
+
+#### Scenario: Permanent route failure contains misleading text
+- **WHEN** 结构化收据记录400永久错误且摘要含request failed、账号或耗时含503/401等片段
+- **THEN** 外层不再重试；429或503收据仍有界重试，不把故障分类修复宣称为上游或业务恢复
+
+
+### Requirement: Swarm metadata never certifies execution
+系统 MUST 区分角色注册、真实子进程执行及业务验证。未接真实协调器时health报告unverified且healthy=false，spawn/shutdown返回不可执行而不产生假状态变更。预置工作流不得含未发生的成功或批准；无执行收据时execute不改变工作流并明确失败。
+
+#### Scenario: Registered roles have no actual workers
+- **WHEN** 蜂群只有默认角色目录且执行协调器尚未接入
+- **THEN** API报告managerReady与executionReady不同状态，运行数量为零，调用启动/关闭不返回成功或新增运行节点
+
+#### Scenario: Workflow has no bound executor
+- **WHEN** 对模板或空流程发起execute但未绑定真实执行器
+- **THEN** 返回不可执行，步骤/阶段/时间戳和输出保持不变，不填固定成功正文
+
+### Requirement: Swarm delivery binds owned child Runs and receipts
+系统 SHALL 用父Run/Session、来源项目、权限及实际子进程绑定委派，基于真实工具和匹配指纹的验收收据决定交付。子模型文字、入队、选举、心跳和工作进程结束均不能独立认证业务成功。
+
+#### Scenario: Reviewer rejects a produced artifact
+- **WHEN** 编码子任务产生文件而审查或独立验收失败
+- **THEN** 总任务不成功，保留作者/指纹与失败，交回有界修复；取消和超时均清理所属子进程
+
+#### Scenario: Parent read-only scope caps an arbitrary role
+- **WHEN** 宿主判定当前父Run为只读调查，而模型以自由角色名委派子任务
+- **THEN** 准入前冻结的只读范围将子工具策略限制为plan，实际模型schema包含所属监督能力，写文件和shell命令均拒绝，不凭角色字符串提升权限
+
+#### Scenario: Git discovers an ancestor instead of the bound execution root
+- **WHEN** 父执行目录没有自身Git根而worktree请求可能向上找到宿主仓库
+- **THEN** 系统不使用祖先仓库，改用父执行根当前代码的独立受管基座；基座建立失败则在启动子进程前拒绝，不替换项目来源、不回退共享工作区，并保留明确失败
+
+#### Scenario: Current input is isolated and collected explicitly
+- **WHEN** 父Run含未提交或未跟踪代码，隔离子任务完成后提交其成果
+- **THEN** 子工作树来自父执行根当前内容，只有所属父Run按最新proposalDigest显式合并且无路径/回执/文件冲突时才写入父执行根，重发与重启均不自动重放副作用
+
+#### Scenario: Managed parent dies after children started
+- **WHEN** 父进程崩溃、取消或超时且未发出子终态
+- **THEN** 从独占子账本及进程创建身份对账并保存明确失败/取消/超时，PID复用不触发裸PID终止，已结束子任务不重新启动，父业务状态不由子文字推导
+
+#### Scenario: Delegated completion requires current parent validation
+- **WHEN** 子任务仅返回成功文字、产物未合并、父目录已变化或审查工具记录关键问题
+- **THEN** 当前Run的TaskContract依赖工作流不就绪且阻止父结题；只有真实合并收据与同一父Run代码指纹的前台成功验证才能推进，重复无改动合并不产生新修改证据，模型不能提交指纹或批准来放行
+
+#### Scenario: Proxy identifies its upstream network failure
+- **WHEN** 实际失败HTTP响应的结构化error.code或error.gateway_error.error_code为upstream_network_error
+- **THEN** 路由失败收据保留脱敏diagnosticCode，既有outcome和重试上限不变，普通502或错误正文关键词不得伪造此诊断，不向模型透传原始错误正文或凭据
+
+### Requirement: Automatic memory shares source project ownership
+系统 SHALL 将显式笔记、自动反思和执行经验绑定同一来源项目的规范身份与程序托管目录，不能使用隔离Run或当前cwd作为长期作用域；历史库保留来源，不静默迁移或采用无归属数据。
+
+#### Scenario: New Run and restart retain the original note owner
+- **WHEN** 同一来源项目的两个隔离Run执行显式笔记或自动反思，且影子Git目录或cwd不同
+- **THEN** 项目笔记目标不变、自动候选标记来源与未验证状态，不写回来源代码目录；旧托管库只读召回并显示legacy来源
+
+#### Scenario: Copied evolution data belongs to a different project
+- **WHEN** 项目经验文件的sourceProject与当前来源不一致或文件无归属
+- **THEN** 加载失败且不静默采用，旧全局历史库保持原样，不据召回宣称本次业务验证
+
+### Requirement: Quality receipt eligibility is explicit to the model
+系统 SHALL 对成功但不能形成质量证据的验证命令返回网关生成的资格与恢复指导，不能一边声称全部验证成功一边不给模型解释结题门禁。
+
+#### Scenario: Inline assertions exit successfully without an accepted quality receipt
+- **WHEN** verify_task_tool或内联Node/Python命令成功退出但未满足既有质量命令识别规则
+- **THEN** 返回eligible=false和保存独立检查脚本/执行已有测试的指导，保持verification=false，提供方不能伪造该资格，正常测试命令的既有资格与业务验证器门槛不变
+
+### Requirement: Bounded replacement preserves failed child history
+系统 SHALL 在所属父Run中以明确关系重试已回收的非只读隔离实现任务，冻结原任务和权限、限制每旧任务一次替代且不允许替代链。旧失败或取消终态不变，审查/调查失败不得使用此通道绕过。
+
+#### Scenario: Cancelled implementation is replaced and verified
+- **WHEN** 同一父Run显式重试已取消且回收的隔离实现任务
+- **THEN** 复用原冻结请求启动唯一替代，保留replacesSubagentId和旧终态；替代成功且成果已按规则收集、父任务按当前子生命周期与文件指纹重新验证后才允许结题
+
+#### Scenario: Replacement is invalid or does not succeed
+- **WHEN** 旧任务仍在运行、归属不符、是只读审查、已被替代、或替代失败
+- **THEN** 拒绝不合法重试或继续阻止交付，不把取消记录简单忽略；重启缺原配方时不自动重跑

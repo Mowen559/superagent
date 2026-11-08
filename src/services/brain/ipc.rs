@@ -10,6 +10,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", content = "payload")]
 pub enum IpcMessage {
+    SubagentControl(super::subagent_runtime::SubagentControl),
     Prompt(String),
     Spawn {
         role: String,
@@ -95,6 +96,7 @@ impl IpcClient {
 pub async fn start_worker_loop(mut engine: crate::domains::agent_cognitive::executor::AgentLoop) {
     let steering_queue = engine.steering_queue.clone();
     let interaction_runtime = engine.interaction_runtime.clone();
+    let subagents = engine.ctx.resolve::<super::subagent_runtime::SubagentRuntime>("subagent_runtime");
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<IpcMessage>();
 
@@ -109,6 +111,9 @@ pub async fn start_worker_loop(mut engine: crate::domains::agent_cognitive::exec
             }
             if let Ok(msg) = serde_json::from_str::<IpcMessage>(&line) {
                 match &msg {
+                    IpcMessage::SubagentControl(control) => {
+                        if let Some(runtime) = &subagents { runtime.handle_control(control.clone()); }
+                    }
                     IpcMessage::Intervene(instruction) => {
                         let _ = steering_queue.enqueue(
                             super::steering_queue::SteeringSource::Supervisor,

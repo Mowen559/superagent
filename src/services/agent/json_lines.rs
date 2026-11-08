@@ -24,6 +24,7 @@ use super::types::{AgentMessage, AgentResult, AgentSession, ExecOptions, TokenUs
 /// event mapper and read when deriving the final result.
 #[derive(Default)]
 pub struct JsonState {
+    pub subagent_session: Option<String>,
     pub session_id: String,
     pub active_model: String,
     /// Latest COMPLETE assistant turn (the deliverable).
@@ -113,6 +114,9 @@ pub async fn run(
             while let Some(control) = rx.recv().await {
                 // For superagent IPC, we serialize it as UserResponse or Intervene.
                 let msg = match control {
+                    crate::domains::project_management::task_manager::TaskControl::Subagent(control) => {
+                        serde_json::json!({"type":"SubagentControl","payload":control})
+                    }
                     crate::domains::project_management::task_manager::TaskControl::UserResponse {
                         request_id,
                         response,
@@ -239,7 +243,18 @@ pub async fn run(
         let duration_ms = started.elapsed().as_millis() as i64;
         let tail = stderr_tail.lock().await.trim().to_string();
 
-        let result = finalize(&state, status, timed_out, cancelled, duration_ms, &tail);
+        let mut result = finalize(&state, status, timed_out, cancelled, duration_ms, &tail);
+        if let Some(session)=&state.subagent_session {
+            // The process tree has been terminated/reaped before touching its
+            // lease. Only the child ledger determines reconciled child states.
+            match crate::services::brain::subagent_journal::after_parent_exit(session,&result.status){
+                Ok(frames)=>for frame in frames{let _=msg_tx.send(AgentMessage::Log{level:"subagent".into(),content:frame.to_string()}).await;},
+                Err(error)=>{
+                    let _=msg_tx.send(AgentMessage::Log{level:"error".into(),content:format!("subagent reconciliation failed: {error}")}).await;
+                    if result.status=="completed"{result.status="failed".into();result.error=format!("child lifecycle reconciliation failed: {error}");}
+                }
+            }
+        }
         drop(msg_tx);
         let _ = res_tx.send(result);
     });

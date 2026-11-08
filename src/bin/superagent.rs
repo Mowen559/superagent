@@ -3,7 +3,6 @@
 //! 可以通过修改自身代码，并触发重新编译实现热重载自举
 
 use hub_rs::domains::agent_cognitive::executor::AgentLoop;
-use hub_rs::services::brain::subagent_runtime::SubagentRuntime;
 use hub_rs::services::brain::tools::fs::{ReadFileTool, WriteFileTool};
 use hub_rs::services::brain::tools::harness_acp::HarnessAcpClientTool;
 use hub_rs::services::brain::tools::interaction::AskUserTool;
@@ -15,9 +14,6 @@ use hub_rs::services::brain::tools::reload_plugins::ReloadPluginsTool;
 use hub_rs::services::brain::tools::self_evolve::RequestReloadTool;
 use hub_rs::services::brain::tools::shell::RunCommandTool;
 use hub_rs::services::brain::tools::skill_tool::SkillTool;
-use hub_rs::services::brain::tools::subagent::{
-    CancelSubagentTool, CheckWorkerStatusTool, InterveneWorkerTool, InvokeSubagentTool,
-};
 use hub_rs::services::brain::tools::todo::ManageTaskTool;
 use hub_rs::services::brain::tools::tool_result::ReadToolResultTool;
 use hub_rs::services::brain::tools::web::WebFetchTool;
@@ -117,24 +113,7 @@ async fn main() {
     engine.register_tool(Box::new(AskUserTool::new(
         engine.interaction_runtime.clone(),
     )));
-    let parent_session_id = engine.session_id().to_string();
-    let subagent_runtime = Arc::new(SubagentRuntime::new(
-        &parent_session_id,
-        engine.steering_queue.clone(),
-    ));
-    engine
-        .ctx
-        .provide("subagent_runtime", subagent_runtime.clone());
-    engine.register_tool(Box::new(InvokeSubagentTool::new(
-        subagent_runtime.clone(),
-        &parent_session_id,
-    )));
-    engine.register_tool(Box::new(CheckWorkerStatusTool::new(
-        subagent_runtime.clone(),
-        &parent_session_id,
-    )));
-    engine.register_tool(Box::new(InterveneWorkerTool::new(subagent_runtime.clone())));
-    engine.register_tool(Box::new(CancelSubagentTool::new(subagent_runtime)));
+    hub_rs::services::brain::subagent_runtime::register_tools(&mut engine, None);
 
     // 注册任务与进程管理工具
     engine.register_tool(Box::new(ManageTaskTool::new(cwd_path.clone())));

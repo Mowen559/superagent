@@ -1,0 +1,100 @@
+{
+  "date": "2026-11-07",
+  "stage": "P8-B5",
+  "progress": {
+    "complete": 63,
+    "total": 106,
+    "completed": "9.8",
+    "9.9": "actual model trial in progress; separate outcome"
+  },
+  "candidate": {
+    "sha256": "824dcd04586f31e26db4e55c9479a4e4c6d30ef3236f2ca407e071270ee3ead3",
+    "manifestEntries": 39,
+    "installed": false
+  },
+  "rust": {
+    "passed": 640,
+    "failed": 0,
+    "ignored": 2,
+    "filtered": [
+      "domains::code_review::tests::test_review_current_project_workspace"
+    ]
+  },
+  "normalParentCompletion": [
+    {
+      "case": "pass",
+      "status": "completed",
+      "error": null,
+      "children": 1
+    },
+    {
+      "case": "text-only",
+      "status": "failed",
+      "error": "Completion blocked: child 79871615-a945-4bd2-9f32-c48a5818a8c4 has uncollected artifacts; inspect/apply before parent validation",
+      "children": 1
+    },
+    {
+      "case": "review-reject",
+      "status": "failed",
+      "error": "Completion blocked: code_review gate-20 rejected or failed; repair and rerun actual review before delivery",
+      "children": 1
+    },
+    {
+      "case": "stale",
+      "status": "failed",
+      "error": "Completion blocked: delegated changes require a successful foreground parent quality check bound to the current code fingerprint; child success text is insufficient",
+      "children": 1
+    }
+  ],
+  "evidence": "artifacts/hub-swarm-memory-20261107/v5/completion-fixed/acceptance.json",
+  "newFix": "Managed worker omitted code_review though CLI registered it. Register existing tool at execution root and classify read-only; reject explicit paths escaping workspace.",
+  "failedStrongerAcceptance": "completion-final failed actual critical receipt check because code_review returned not_found; retained, not counted as successful critical review.",
+  "scope": "Controlled responses author Codex; actual Hub parent/child processes, physical file and frozen test execution. Not Gemini autonomy certification. Actual model preflight success and separate real trial do not backfill these cases.",
+  "installed": false,
+  "actualModel": {
+    "preflight": {
+      "ok": true,
+      "http": 200,
+      "model": "gemini-3.8-flash-high",
+      "elapsedSeconds": 35.02
+    },
+    "firstAttempt": {
+      "ok": false,
+      "error": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"anthropic\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":45094,\"outcome\":\"transient\",\"statusCode\":503}]\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n",
+      "elapsedSeconds": 224,
+      "taskId": "d0f66aa9-825e-4052-be86-738da6b6da3c",
+      "interventions": 0
+    },
+    "correctedAttempt": "failed after 506 seconds; parent and sorter received upstream 502; normalizer cancelled; both children reaped; details in v6",
+    "completedBusinessTasks": 0,
+    "correctedOutcome": {
+      "name": "real-route-fixed",
+      "ok": false,
+      "elapsedSeconds": 506.426,
+      "error": "model request failed after 3 attempt(s) (Transient): model request failed after 1 Provider Route attempt(s); receipts=[{\"accountId\":\"__default__\",\"accountName\":\"Default provider\",\"provider\":\"openai\",\"resolvedModel\":\"gemini-3.8-flash-high\",\"attempt\":1,\"durationMs\":45103,\"outcome\":\"transient\",\"statusCode\":502}]; parent ended with unfinished subagents; owned processes cancelled\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n",
+      "interventions": 0
+    }
+  },
+  "sourceIdentity": [
+    {
+      "path": "src/services/brain/worker.rs",
+      "sha256": "9308b25b51613ae78bda791f8e7ef89f8787c64059f794845e20ccf2dabb6f3c"
+    },
+    {
+      "path": "src/services/brain/tool_policy.rs",
+      "sha256": "a7f757f94ca230b55dba29def0845f1fac037fe8638b2f0d3876ac972ddd58d1"
+    },
+    {
+      "path": "src/services/brain/tools/code_review.rs",
+      "sha256": "4946b54abcae2198f27c476ed9d3f52a72bd249ded5f539b4f0aff6eba9f601c"
+    },
+    {
+      "path": "scripts/test_swarm_completion.cjs",
+      "sha256": "81cae18d0711ddc73cf7056041dc7c470b2466df32ff6f432c9239a0c019e2c7"
+    },
+    {
+      "path": "scripts/test_swarm_real.cjs",
+      "sha256": "0d3cd1f76ece8e45fb50f809fa0c817c9922581d01fa5a71a201253af6810cc2"
+    }
+  ]
+}

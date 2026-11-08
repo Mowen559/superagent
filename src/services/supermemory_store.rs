@@ -1,6 +1,6 @@
 use crate::config::runtime::RuntimeConfig;
 use crate::models::memory::{
-    KnowledgeDocumentRecord, SupermemoryLogEntry, SupermemoryRecord, SupermemoryStoreData,
+    KnowledgeDocumentRecord, MemoryContext, SupermemoryLogEntry, SupermemoryRecord, SupermemoryStoreData,
 };
 use serde::Serialize;
 use std::collections::HashSet;
@@ -21,6 +21,8 @@ pub struct ScoredMemoryRecord {
     pub keyword_score: f32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vector_score: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<MemoryContext>,
 }
 
 /// Local JSON memory store with atomic checkpoints and Corpus Manifest
@@ -88,7 +90,7 @@ impl SupermemoryStore {
         query_embedding: Option<&[f32]>,
         node_type: Option<&str>,
     ) -> Result<Vec<ScoredMemoryRecord>, String> {
-        self.search_scored_internal(query, limit, query_embedding, node_type, None)
+        self.search_scored_internal(query, limit, query_embedding, node_type, None, None)
     }
 
     pub fn search_scored_ids_result(
@@ -98,7 +100,11 @@ impl SupermemoryStore {
         query_embedding: Option<&[f32]>,
         allowed_ids: &HashSet<String>,
     ) -> Result<Vec<ScoredMemoryRecord>, String> {
-        self.search_scored_internal(query, limit, query_embedding, None, Some(allowed_ids))
+        self.search_scored_internal(query, limit, query_embedding, None, Some(allowed_ids), None)
+    }
+
+    pub fn search_project_context_result(&self, query:&str, limit:usize, project:&Path, source_root:&Path) -> Result<Vec<ScoredMemoryRecord>,String> {
+        self.search_scored_internal(query,limit,None,None,None,Some((project,source_root)))
     }
 
     fn search_scored_internal(
@@ -108,19 +114,24 @@ impl SupermemoryStore {
         query_embedding: Option<&[f32]>,
         node_type: Option<&str>,
         allowed_ids: Option<&HashSet<String>>,
+        scope: Option<(&Path,&Path)>,
     ) -> Result<Vec<ScoredMemoryRecord>, String> {
         if query.trim().is_empty() || limit == 0 {
             return Ok(Vec::new());
         }
         let tokens = search_tokens(query);
-        let mut scored = self
-            .load_result()?
-            .memories
+        let data=self.load_result()?;
+        let contexts=data.memory_context;
+        let mut scored = data.memories
             .into_iter()
+            .filter(|m|crate::services::brain::project_memory::context_eligible(contexts.get(&m.id),scope))
             .filter(|memory| node_type.is_none_or(|kind| memory.node_type == kind))
             .filter(|memory| allowed_ids.is_none_or(|allowed| allowed.contains(memory.id.as_str())))
             .filter_map(|memory| {
-                let keyword_score = keyword_score(&memory, &tokens);
+                let keyword_score = if scope.is_some() && contexts.contains_key(&memory.id)
+                    && exact_note_reference(query, &memory.id) {
+                    1.0
+                } else { keyword_score(&memory, &tokens) };
                 let vector_score =
                     query_embedding
                         .zip(memory.embedding.as_deref())
@@ -135,6 +146,7 @@ impl SupermemoryStore {
                     None => keyword_score,
                 };
                 (score > 0.05).then_some(ScoredMemoryRecord {
+                    context: contexts.get(&memory.id).cloned(),
                     record: memory,
                     score,
                     keyword_score,
@@ -171,6 +183,7 @@ impl SupermemoryStore {
     }
 
     pub fn write_memory_result(&self, mut record: SupermemoryRecord) -> Result<(), String> {
+        crate::services::brain::project_memory::reject_sensitive(&record)?;
         if record.embedding.is_none() {
             record.embedding = best_effort_embedding(&format!(
                 "{} {} {}",
@@ -180,6 +193,7 @@ impl SupermemoryStore {
             ));
         }
         self.mutate(|data| {
+            data.memory_context.remove(&record.id);
             if let Some(existing) = data.memories.iter_mut().find(|item| item.id == record.id) {
                 *existing = record;
             } else {
@@ -187,6 +201,25 @@ impl SupermemoryStore {
             }
             refresh_stats(data);
             Ok(())
+        })
+    }
+
+    /// Fast project notes do not initialize or download an embedding model.
+    pub fn write_context_memory(&self, record:SupermemoryRecord, mut context:MemoryContext) -> Result<(),String> {
+        crate::services::brain::project_memory::reject_sensitive(&record)?;
+        crate::services::brain::project_memory::validate_context(&context)?;
+        self.mutate(|data| {
+            context.revision=data.memory_context.get(&record.id).map_or(1,|old|old.revision.saturating_add(1));
+            data.memory_context.insert(record.id.clone(),context);
+            if let Some(old)=data.memories.iter_mut().find(|m|m.id==record.id){*old=record;}else{data.memories.push(record);}
+            refresh_stats(data);Ok(())
+        })
+    }
+
+    pub fn revoke_context_memory(&self,id:&str)->Result<(),String>{
+        self.mutate(|data|{
+            let context=data.memory_context.get_mut(id).ok_or("No runtime project note with this key; origin files were not changed")?;
+            context.state="revoked".into();context.revision=context.revision.saturating_add(1);Ok(())
         })
     }
 
@@ -341,6 +374,7 @@ impl SupermemoryStore {
     }
 
     fn write_checkpoint(&self, data: &SupermemoryStoreData) -> Result<(), String> {
+        crate::services::brain::project_memory::reject_sensitive(data)?;
         let parent = self.store_path.parent().unwrap_or_else(|| Path::new("."));
         std::fs::create_dir_all(parent)
             .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
@@ -400,6 +434,16 @@ fn keyword_score(memory: &SupermemoryRecord, tokens: &[String]) -> f32 {
     matched as f32 / tokens.len() as f32
 }
 
+fn exact_note_reference(query: &str, id: &str) -> bool {
+    if id.chars().count()<4 || id.chars().any(|c|!c.is_alphanumeric() && c!='_' && c!='-') { return false; }
+    let query=query.to_lowercase();let id=id.to_lowercase();
+    let word=|c:char|c.is_ascii_alphanumeric()||c=='_'||c=='-';
+    query.match_indices(&id).any(|(start,_)| {
+        (!id.chars().next().is_some_and(word) || !query[..start].chars().next_back().is_some_and(word))
+            && (!id.chars().next_back().is_some_and(word) || !query[start+id.len()..].chars().next().is_some_and(word))
+    })
+}
+
 fn search_tokens(query: &str) -> Vec<String> {
     let normalized = query.to_lowercase();
     let mut tokens = normalized
@@ -422,6 +466,16 @@ fn search_tokens(query: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn exact_project_note_identifiers_survive_long_questions_without_prefix_collisions() {
+        assert!(exact_note_reference("只读查询：本项目 ticket_reference 约定是什么？说明来源与验证范围，不要猜测。","ticket_reference"));
+        assert!(exact_note_reference("之前记录的发版标记约定具体是什么？","发版标记约定"));
+        for query in ["ticket_reference_backup", "prefix_ticket_reference", "ticket_reference-backup", "myticket_reference", "ticket_reference2"] {
+            assert!(!exact_note_reference(query,"ticket_reference"),"{query}");
+        }
+        assert!(!exact_note_reference("ab 所指何事","ab"));
+        assert!(!exact_note_reference("two words", "two words"));
+    }
     use super::*;
     use crate::models::memory::{KnowledgeChunkRecord, KnowledgeDocumentRecord};
 

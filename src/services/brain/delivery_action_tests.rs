@@ -106,3 +106,108 @@ fn managed_action_is_exposed_to_model_only_when_host_configured() {
     let (_dir,work,profile)=fixture();progress.lock().unwrap().configure_delivery_profile(&work,"s","r",Some(&profile)).unwrap();
     assert!(tool.prompt_projection().unwrap().contains("Host-managed"),"executor filters non-core tools without a projection");
 }
+
+#[test]
+fn closeout_strategy_advances_only_with_fresh_source_and_never_retries_action() {
+    let (_dir,work,profile)=fixture();
+    let mut state=DeliveryEvidence::new(&work,"s","r").unwrap();state.load_profile(&profile).unwrap();
+    fs::write(work.join("rule.json"),r#"{"canary":"expected"}"#).unwrap();
+    state.verify(&["rule".into()]).unwrap();
+    assert!(state.managed_closeout_strategy().is_none(),"unattempted action still requires its normal workflow");
+    state.perform_action("publish").unwrap();
+    let missing=state.managed_closeout_strategy().unwrap();
+    assert!(missing.contains("publication.json")&&missing.contains("Write the missing"));
+    assert!(!work.join("publication.json").exists(),"guidance must not manufacture files");
+    assert!(state.completion_gap().is_some());
+    fs::write(work.join("publication.json"),"{}").unwrap();
+    assert!(state.managed_closeout_strategy().unwrap().contains("Call verify_delivery for ALL"));
+    state.verify(&[]).unwrap();
+    assert!(state.managed_closeout_strategy().unwrap().contains("give the final answer now"));
+    fs::write(work.join("rule.json"),"changed").unwrap();
+    assert!(state.managed_closeout_strategy().is_none(),"changed source must restore normal recovery, not closeout");
+    assert!(state.completion_gap().is_some());
+    assert!(state.perform_action("publish").unwrap_err().contains("already attempted"));
+}
+
+#[test]
+fn closeout_projection_rejects_changed_profile_and_business_verifier() {
+    let (dir,work,profile)=fixture();
+    let mut state=DeliveryEvidence::new(&work,"s","r").unwrap();state.load_profile(&profile).unwrap();
+    fs::write(work.join("rule.json"),r#"{"canary":"expected"}"#).unwrap();
+    state.verify(&["rule".into()]).unwrap();state.perform_action("publish").unwrap();
+    assert!(state.managed_closeout_strategy().is_some());
+    let before=fs::read(&profile).unwrap();fs::write(&profile,b"changed profile").unwrap();
+    assert!(state.managed_closeout_strategy().is_none());
+    fs::write(&profile,before).unwrap();fs::write(dir.path().join("oracle.py"),"changed verifier").unwrap();
+    assert!(state.managed_closeout_strategy().is_none());
+    assert!(state.completion_gap().is_some());
+}
+
+#[test]
+fn invalid_plan_shape_preserves_run_authority_and_fresh_evidence() {
+    use crate::domains::agent_cognitive::executor::ToolExecutor;
+    use std::sync::{Arc,Mutex};
+    let (_dir,work,profile)=fixture();
+    let progress=Arc::new(Mutex::new(crate::services::brain::task_progress::TaskProgress::default()));
+    progress.lock().unwrap().configure_delivery_profile(&work,"s","r",Some(&profile)).unwrap();
+    fs::write(work.join("rule.json"),r#"{"canary":"expected"}"#).unwrap();
+    progress.lock().unwrap().verify_delivery(&["rule".into()]).unwrap();
+    let before=progress.lock().unwrap().snapshot();
+    let mut args=crate::services::brain::task_understanding::tests::sample();
+    args["delivery"]=json!({"version":"1","scope":"implementation","target":"wrong-target","artifacts":[]});
+    let tool=crate::services::brain::tools::plan_task::RunBoundPlanTaskTool(progress.clone());
+    assert!(tool.execute(args).unwrap_err().contains("delivery.version"));
+    assert_eq!(progress.lock().unwrap().snapshot(),before);
+}
+
+fn receipt_fixture() -> (tempfile::TempDir,PathBuf,PathBuf) {
+    let (dir,work,profile)=fixture();
+    let action=dir.path().join("action.py");
+    let script=fs::read_to_string(&action).unwrap().replace("print(json.dumps(",
+        "pathlib.Path(sys.argv[3],'publication.json').write_text(json.dumps({'provider':'issued','public_id':'KEEP'}))\nprint(json.dumps(");
+    fs::write(&action,script).unwrap();
+    let mut value:Value=serde_json::from_slice(&fs::read(&profile).unwrap()).unwrap();
+    value["validators"][1]["script_sha256"]=json!(file_sha256(&action).unwrap());
+    value["actions"][0]["receipt_artifacts"]=json!(["cloud"]);
+    fs::write(&profile,serde_json::to_vec(&value).unwrap()).unwrap();
+    (dir,work,profile)
+}
+
+#[test]
+fn issued_receipt_blocks_native_alias_edit_before_executor_and_detects_shell_tampering() {
+    use crate::services::brain::tool_execution_gateway::{ToolExecutionGateway,ToolExecutionRequest,ToolExecutionStatus};
+    use std::sync::{Arc,Mutex,atomic::{AtomicUsize,Ordering}};
+    struct Counter(Arc<AtomicUsize>);
+    impl crate::domains::agent_cognitive::executor::ToolExecutor for Counter {
+        fn name(&self)->&'static str {"write_to_file"} fn description(&self)->&'static str {"test"}
+        fn parameters_schema(&self)->Value {json!({})}
+        fn execute(&self,_:Value)->Result<Value,String>{self.0.fetch_add(1,Ordering::SeqCst);Ok(json!({"status":"success"}))}
+    }
+    let (_dir,work,profile)=receipt_fixture();
+    let progress=Arc::new(Mutex::new(crate::services::brain::task_progress::TaskProgress::default()));
+    progress.lock().unwrap().configure_delivery_profile(&work,"s","r",Some(&profile)).unwrap();
+    fs::write(work.join("rule.json"),r#"{"canary":"expected"}"#).unwrap();
+    progress.lock().unwrap().verify_delivery(&["rule".into()]).unwrap();
+    progress.lock().unwrap().perform_delivery_action("publish").unwrap();
+    let count=Arc::new(AtomicUsize::new(0));let registry=Arc::new(Mutex::new(HashMap::new()));
+    registry.lock().unwrap().insert("write_to_file".into(),Arc::new(Counter(count.clone())) as Arc<dyn crate::domains::agent_cognitive::executor::ToolExecutor>);
+    let gateway=ToolExecutionGateway::new(registry);gateway.bind_delivery_progress(&progress);
+    let result=gateway.execute(ToolExecutionRequest{call_id:"overwrite".into(),name:"write_file".into(),arguments:json!({"path":work.join("publication.json"),"content":"{}"})});
+    assert_eq!(result.status,ToolExecutionStatus::PolicyDenied);assert_eq!(result.result["kind"],"managed_receipt_immutable");assert_eq!(count.load(Ordering::SeqCst),0);
+    let result=gateway.execute(ToolExecutionRequest{call_id:"readme".into(),name:"write_to_file".into(),arguments:json!({"TargetFile":work.join("README.md"),"CodeContent":"explanation"})});
+    assert_eq!(result.status,ToolExecutionStatus::Succeeded);assert_eq!(count.load(Ordering::SeqCst),1);
+    progress.lock().unwrap().verify_delivery(&[]).unwrap();
+    fs::write(work.join("publication.json"),"{}").unwrap();
+    assert!(progress.lock().unwrap().verify_delivery(&[]).unwrap_err().contains("modified after issuance"));
+    assert!(progress.lock().unwrap().completion_gap().is_some());
+}
+
+#[test]
+fn deferred_stage_denies_writes_but_new_approval_run_allows_execution() {
+    use crate::services::brain::{cognitive_runtime::CognitiveRuntime,tool_policy::ToolRisk};
+    let current=CognitiveRuntime::begin("当前文件报错，请先调查并给出修复方案，等我确认后再修改。");
+    assert!(current.task_progress().lock().unwrap().rejects_mutation("write_to_file",ToolRisk::WorkspaceMutation));
+    assert!(!current.task_progress().lock().unwrap().rejects_mutation("view_file",ToolRisk::ReadOnly));
+    let approved=CognitiveRuntime::begin("方案已经确认，现在修改代码并验证。");
+    assert!(!approved.task_progress().lock().unwrap().is_read_only_scope());
+}

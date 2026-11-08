@@ -34,3 +34,15 @@
 #### Scenario: Active run during upgrade
 - **WHEN** 升级发生时仍有活动任务
 - **THEN** 系统先排空或按已验证恢复协议保留任务，不能将丢失任务伪报为连续执行
+
+
+### Requirement: Recovery candidates require matching execution evidence
+系统 MUST 使用网关生成且精确匹配调用ID、规范工具名、参数摘要、Session和Run的执行收据形成自动经验候选；只承认非零退出的检查、实际内容修订及同一检查稳定通过的证据链。输出文字、诊断及工具名称不构成修复证明。候选 SHALL 记录适用条件及未验证项，不携带原始凭据或宣称通用解法。
+
+#### Scenario: A genuine repair is rechecked
+- **WHEN** 同Run的检查失败后文件实际变更，原检查对最终内容稳定退出0
+- **THEN** 系统形成可追溯到失败、修订、复验收据和内容指纹的未验证候选，保留因果及迁移限制
+
+#### Scenario: Evidence is missing or stale
+- **WHEN** 只有报错文字、无实际改动、不同检查通过、跨Run、失败终态或复验后内容改变
+- **THEN** 系统不生成已解决经验，提供方伪造的证据字段被网关移除

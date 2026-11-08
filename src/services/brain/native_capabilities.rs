@@ -40,7 +40,7 @@ pub fn snapshot(root: &Path, config: &RuntimeConfig, registered: Option<Vec<Stri
     let project = root.to_string_lossy();
     let graph = graph_readiness(&config.codebase_memory_db_path(Some(&project)));
     let memory_path = config.supermemory_store_path(Some(&project));
-    let memory = match SupermemoryStore::new(config, Some(&project)).load_result() {
+    let mut memory = match SupermemoryStore::new(config, Some(&project)).load_result() {
         Ok(data) => {
             json!({"state":if !memory_path.exists(){"missing"}else if data.memories.is_empty(){"empty"}else{"ready"},"path":memory_path,"records":data.memories.len(),"scope":"current_project"})
         }
@@ -48,6 +48,16 @@ pub fn snapshot(root: &Path, config: &RuntimeConfig, registered: Option<Vec<Stri
             json!({"state":"invalid","path":memory_path,"reason":"Project memory could not be read or parsed"})
         }
     };
+    let origin = crate::infrastructure::fs_path::resolve_origin_project_from_baseline(root, &[]);
+    let notes_path = config.project_notes_path(&origin);
+    let notes = match SupermemoryStore::from_path(&notes_path).load_result() {
+        Ok(data) => {
+            let eligible = data.memories.iter().filter(|record| super::project_memory::context_eligible(data.memory_context.get(&record.id), Some((&origin, root)))).count();
+            json!({"state":if !notes_path.exists(){"missing"}else if eligible==0{"empty"}else{"ready"},"path":notes_path,"project":origin,"records":data.memories.len(),"eligible_records":eligible,"validation":"unverified_history"})
+        },
+        Err(_) => json!({"state":"invalid","path":notes_path,"reason":"Persistent project notes could not be read or parsed"}),
+    };
+    memory["project_notes"] = notes;
     json!({"schema_version":1,"workspace":root,"registered_tools":registered,
         "graph":graph,"understand":{"ready":graph["ready"],"tool":"project_index","depends_on":"graph","metadata_path":config.knowledge_graph_path(Some(&project))},
         "supermemory":memory,

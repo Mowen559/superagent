@@ -38,6 +38,14 @@ pub enum ProgressUpdate {
 pub struct TaskProgress {
     facts: super::run_facts::RunFacts,
     read_only_scope: bool,
+    subagents: Option<std::sync::Weak<super::subagent_runtime::SubagentRuntime>>,
+    run_root: Option<std::path::PathBuf>,
+    session_id: String,
+    run_id: String,
+    parent_verification: Option<serde_json::Value>,
+    review_rejection: Option<String>,
+    rejected_review_scope: Option<serde_json::Value>,
+    memory_only_scope: bool,
     delivery: Option<super::delivery_evidence::DeliveryEvidence>,
     contract: Option<TaskContract>,
     evidence: VecDeque<Evidence>,
@@ -59,8 +67,42 @@ impl TaskProgress {
         if let Some(path) = profile {
             delivery.load_profile(path)?;
         }
-        *self = Self { delivery: Some(delivery), facts: super::run_facts::RunFacts::new(session,run), read_only_scope:self.read_only_scope, ..Self::default() };
+        *self = Self { run_root: Some(std::fs::canonicalize(root).map_err(|e|e.to_string())?), session_id:session.into(), run_id:run.into(), subagents:self.subagents.clone(), delivery: Some(delivery), facts: super::run_facts::RunFacts::new(session,run), read_only_scope:self.read_only_scope, memory_only_scope:self.memory_only_scope, ..Self::default() };
         Ok(())
+    }
+
+    pub fn bind_subagents(&mut self, runtime: std::sync::Weak<super::subagent_runtime::SubagentRuntime>) { self.subagents=Some(runtime); }
+
+    pub(crate) fn execution_evidence_context(&self) -> Option<(std::path::PathBuf,String,String)> {
+        Some((self.run_root.clone()?,self.session_id.clone(),self.run_id.clone()))
+    }
+
+    /// Gateway-only physical observation; no caller/model supplies this fingerprint.
+    pub fn verification_stamp(&self) -> Result<Option<serde_json::Value>, String> {
+        let Some(runtime)=self.subagents.as_ref().and_then(|r|r.upgrade()) else {return Ok(None);};
+        if runtime.delivery_projection(&self.run_id)["childCount"] == 0 {return Ok(None);}
+        let root=self.run_root.as_ref().ok_or("delegated delivery is not bound to a parent workspace")?;
+        let fingerprint=crate::domains::version_control::change_set::workspace_fingerprint(root)?;
+        Ok(Some(serde_json::json!({"parentSessionId":self.session_id,"parentRunId":self.run_id,"workspaceFingerprint":fingerprint,"delegationEpoch":runtime.delivery_projection(&self.run_id)["evidenceEpoch"]})))
+    }
+
+    pub fn delegation_snapshot(&self) -> serde_json::Value {
+        let Some(runtime)=self.subagents.as_ref().and_then(|r|r.upgrade()) else {return serde_json::Value::Null;};
+        let mut state=runtime.delivery_projection(&self.run_id);
+        if state["childCount"] == 0 {return state;}
+        if state["gap"].is_null() && state["requiresParentVerification"] == true {
+            let current=self.verification_stamp();
+            let valid=matches!(&current,Ok(Some(stamp)) if self.parent_verification.as_ref().is_some_and(|r| &r["stamp"]==stamp));
+            if valid {state["state"]=serde_json::json!("verified_quality");state["parentVerification"]=self.parent_verification.clone().unwrap();}
+            else {state["gap"]=serde_json::json!("delegated changes require a successful foreground parent quality check bound to the current code fingerprint; child success text is insufficient");}
+        }
+        state
+    }
+
+    pub fn delivery_gate_gap(&self) -> Option<String> {self.review_rejection.clone().or_else(||self.delegation_gap())}
+
+    pub fn delegation_gap(&self) -> Option<String> {
+        self.delegation_snapshot()["gap"].as_str().map(str::to_string)
     }
 
     pub fn verify_delivery(&mut self, ids: &[String]) -> Result<serde_json::Value, String> {
@@ -73,8 +115,14 @@ impl TaskProgress {
     pub fn managed_command_guard(&self,name:&str,args:&serde_json::Value)->Option<String> {
         self.delivery.as_ref().and_then(|d|d.managed_command_guard(name,args))
     }
+    pub fn receipt_edit_guard(&self,name:&str,args:&serde_json::Value)->Option<String> {
+        self.delivery.as_ref().and_then(|d|d.receipt_edit_guard(name,args))
+    }
     pub fn delivery_guidance(&self)->String {
         self.delivery.as_ref().map(|d|d.action_guidance()).unwrap_or_default()
+    }
+    pub fn managed_closeout_strategy(&self)->Option<String> {
+        self.delivery.as_ref().and_then(|d|d.managed_closeout_strategy())
     }
     pub fn host_physical_delivery_complete(&self)->bool {
         self.delivery.as_ref().is_some_and(|d|d.host_physical_delivery_complete())
@@ -117,8 +165,10 @@ impl TaskProgress {
 
     pub fn set_read_only_scope(&mut self, value: bool) { self.read_only_scope = value; }
     pub fn is_read_only_scope(&self) -> bool { self.read_only_scope }
+    pub fn set_memory_only_scope(&mut self,value:bool) { self.memory_only_scope=value; }
     pub fn rejects_mutation(&self, name: &str, risk: ToolRisk) -> bool {
-        self.read_only_scope && (matches!(risk,ToolRisk::WorkspaceMutation|ToolRisk::Destructive) || name=="perform_delivery_action")
+        (self.read_only_scope && (matches!(risk,ToolRisk::WorkspaceMutation|ToolRisk::Destructive) || name=="perform_delivery_action"))
+            || (self.memory_only_scope && name!="super_memory" && risk!=ToolRisk::ReadOnly)
     }
     pub fn planned_execution(&self) -> Option<bool> {
         self.contract.as_ref().and_then(|p| {
@@ -152,13 +202,24 @@ impl TaskProgress {
 
     pub fn observe(&mut self, receipt: &ToolExecutionReceipt) {
         self.facts.observe(receipt);
+        if receipt.name == "code_review" {
+            if receipt.status != ToolExecutionStatus::Succeeded || receipt.result["stats"]["critical_count"].as_u64().is_some_and(|n|n>0) {self.review_rejection=Some(format!("code_review {} rejected or failed; repair and rerun actual review before delivery",receipt.call_id));self.rejected_review_scope=Some(receipt.result["review_scope"].clone());}
+            else if receipt.result["total_files_analyzed"].as_u64().is_some_and(|n|n>0) && receipt.result["stats"]["critical_count"]==0
+                && (receipt.result["review_scope"].is_null() || self.rejected_review_scope.as_ref()==Some(&receipt.result["review_scope"])) {self.review_rejection=None;self.rejected_review_scope=None;}
+        }
+        if receipt.result.get("parent_verification_error").is_some() || (receipt.risk==ToolRisk::ProcessControl && matches!(receipt.status,ToolExecutionStatus::Failed|ToolExecutionStatus::Panicked)) {self.parent_verification=None;}
+        if receipt.verification {
+            if let Some(stamp)=receipt.result.get("parent_workspace_verification") {
+                if stamp["parentSessionId"]==self.session_id && stamp["parentRunId"]==self.run_id {self.parent_verification=Some(serde_json::json!({"receiptId":receipt.call_id,"stamp":stamp}));}
+            }
+        }
         if matches!(
             receipt.name.as_str(),
             "plan_task" | "revise_task_plan" | "update_task_progress" | "manage_task"
         ) {
             return;
         }
-        if !receipt.verification && matches!(
+        if receipt.name!="super_memory" && !receipt.verification && matches!(
             receipt.risk,
             ToolRisk::WorkspaceMutation | ToolRisk::Destructive
         ) && matches!(
@@ -196,6 +257,8 @@ impl TaskProgress {
             EvidenceKind::UserInput
         } else if receipt.name == "perform_delivery_action" {
             EvidenceKind::Mutation
+        } else if receipt.is_process_observation() {
+            EvidenceKind::Observation
         } else if matches!(
             receipt.risk,
             ToolRisk::WorkspaceMutation | ToolRisk::Destructive
@@ -352,6 +415,7 @@ impl TaskProgress {
     }
 
     pub fn completion_gap(&self) -> Option<String> {
+        if let Some(gap)=self.delivery_gate_gap() {return Some(gap); }
         if let Some(gap) = self.delivery.as_ref().and_then(|d| d.completion_gap()) { return Some(gap); }
         let plan = self.contract.as_ref()?;
         if let Some(step) = plan.steps.iter().find(|s| !self.step_satisfied(&s.id)) {
@@ -367,6 +431,8 @@ impl TaskProgress {
     pub fn snapshot(&self) -> serde_json::Value {
         serde_json::json!({
             "current_run_facts": self.facts.snapshot(),
+            "delegation": self.delegation_snapshot(),
+            "review_rejection":self.review_rejection,
             "has_plan": self.has_plan(),
             "delivery_evidence": self.delivery.as_ref().map(|d| d.snapshot()),
             "plan_revision": self.plan_revision,

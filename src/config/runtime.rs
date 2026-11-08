@@ -132,6 +132,18 @@ impl RuntimeConfig {
         self.shadow_git_root.join("supermemory_store.json")
     }
 
+    pub fn project_notes_path(&self, project: &Path) -> PathBuf {
+        use sha2::Digest;
+        let canonical=std::fs::canonicalize(project).unwrap_or_else(|_|project.to_path_buf());
+        let id=sha2::Sha256::digest(canonical.to_string_lossy().as_bytes()).iter().map(|b|format!("{b:02x}")).collect::<String>();
+        self.projects_root.join(".project-memory").join(id).join("supermemory.json")
+    }
+
+    pub fn legacy_project_notes_path(&self, project:&Path)->PathBuf {
+        let managed=self.project_notes_path(project);
+        self.shadow_git_root.join("project-notes").join(managed.parent().unwrap().file_name().unwrap()).join("supermemory.json")
+    }
+
     /// Get knowledge graph file candidates
     pub fn knowledge_graph_candidates(&self, project_path: Option<&str>) -> Vec<PathBuf> {
         let mut candidates = Vec::new();

@@ -6,6 +6,22 @@ use super::tool_policy::ToolRisk;
 use serde_json::json;
 
 #[test]
+fn critical_review_requires_actual_clean_reanalysis_not_success_text_or_unrelated_test() {
+    let mut p=TaskProgress::default();
+    let mut review=receipt("reject","code_review",ToolRisk::ReadOnly,false);
+    review.result=json!({"stats":{"critical_count":1},"total_files_analyzed":1,"review_scope":["source.js"]});
+    p.observe(&review);assert!(p.completion_gap().unwrap().contains("code_review"));
+    p.observe(&receipt("test","run_command",ToolRisk::ProcessControl,true));
+    assert!(p.completion_gap().is_some());
+    review.result=json!({"stats":{"critical_count":0},"total_files_analyzed":0});
+    p.observe(&review);assert!(p.completion_gap().is_some(),"empty review cannot dismiss findings");
+    review.call_id="unrelated".into();review.result=json!({"stats":{"critical_count":0},"total_files_analyzed":1,"review_scope":["other.js"]});
+    p.observe(&review);assert!(p.completion_gap().is_some(),"reviewing an unrelated file cannot clear rejection");
+    review.call_id="clean".into();review.result=json!({"stats":{"critical_count":0},"total_files_analyzed":1,"review_scope":["source.js"]});
+    p.observe(&review);assert!(p.completion_gap().is_none());
+}
+
+#[test]
 fn run_bound_planning_rejects_weakened_delivery_before_acknowledgement() {
     use crate::domains::agent_cognitive::executor::ToolExecutor;
     use crate::services::brain::tools::plan_task::RunBoundPlanTaskTool;
@@ -55,6 +71,21 @@ fn receipt(id: &str, name: &str, risk: ToolRisk, verification: bool) -> ToolExec
         risk,
         verification,
     }
+}
+
+#[test]
+fn native_note_does_not_invalidate_code_check_or_create_a_quality_receipt() {
+    let mut runtime=TaskProgress::default();
+    let contract=TaskContract::from_value(json!({"interpretation":"verify current code","success_criteria":["actual check"],
+        "steps":[{"id":"verify","goal":"check code","acceptance":"quality passed","evidence_kind":"verification"}]})).unwrap();
+    runtime.apply_plan(contract);
+    runtime.observe(&receipt("quality","run_command",ToolRisk::ProcessControl,true));
+    runtime.observe(&receipt("note","super_memory",ToolRisk::WorkspaceMutation,false));
+    assert!(complete(&mut runtime,"verify",&["note"]).is_err());
+    complete(&mut runtime,"verify",&["quality"]).unwrap();
+    assert!(runtime.completion_gap().is_none());
+    runtime.observe(&receipt("edit","replace_in_file",ToolRisk::WorkspaceMutation,false));
+    assert!(runtime.completion_gap().is_some());
 }
 
 #[test]
@@ -174,6 +205,19 @@ fn foreground_process_facts_are_citable_observations_but_not_mutation_or_verific
         runtime.observe(&bad);
         assert!(complete(&mut runtime, "inspect", &[id]).is_err());
     }
+}
+
+#[test]
+fn conservative_process_risk_cannot_bind_a_structured_mutation_step() {
+    let mut progress = TaskProgress::default();
+    progress.apply_plan(plan());
+    let mut command = receipt("inspect-risk", "run_command", ToolRisk::WorkspaceMutation, false);
+    command.result = json!({"exit_code":0,"stdout":"unchanged JSON contents"});
+    progress.observe(&command);
+    complete(&mut progress, "inspect", &["inspect-risk"]).unwrap();
+    assert!(complete(&mut progress, "change", &["inspect-risk"]).is_err());
+    progress.observe(&receipt("real-edit", "write_to_file", ToolRisk::WorkspaceMutation, false));
+    complete(&mut progress, "change", &["real-edit"]).unwrap();
 }
 
 #[test]

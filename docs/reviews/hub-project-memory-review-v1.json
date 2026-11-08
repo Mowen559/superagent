@@ -1,0 +1,194 @@
+{
+  "date": "2026-11-05",
+  "scope": "P4 narrow native project-note persistence, validity, provenance labels, correction and note-vs-code completion semantics; task 5.8 only",
+  "implementation_author": "Codex host changed Hub Rust code; Hub itself authored/stored/recalled/revoked the fixture note using native tools",
+  "model": "gemini-3.8-flash-high",
+  "candidate_sha256": "0542cf6c47d6b633993fc318e62ea3608b98ad55675f6dbca2fa442d146bd725",
+  "source_identity": "D:/抖音/deepcloud/super-agent/artifacts/hub-project-memory-20261105/v2/source-identity.json",
+  "first_failed_candidate": {
+    "status": "failed",
+    "task_id": "5ce576df-077d-491e-8548-a8ee0aa53d4f",
+    "turns": 6,
+    "source": "actual production SDK / native tool receipt",
+    "observations": "Hub stored and retrieved actual note, then default code-quality completion gate rejected note-only task",
+    "raw_state_preserved": true,
+    "regression": "593 passed, 2 ignored, 1 filtered; pre-readback-gate correction version",
+    "binary_sha256": "4818dc096fdb9e96f51e3862f01abf7511c71fb4c7771ab4d30e5f74b6caaafa",
+    "raw_report": "artifacts/hub-project-memory-20261105/v1/teach-run.json"
+  },
+  "corrected_trials": [
+    {
+      "id": "teach",
+      "task_id": "3591516a-a170-4440-93bb-ba41430e050e",
+      "session_id": "run_33eb2de09ecc4bf8aeabb76a7fba5201",
+      "status": "completed",
+      "turns": 3,
+      "tool_calls": 2,
+      "duration_ms": 31858,
+      "tool_errors": []
+    },
+    {
+      "id": "recall-after-restart",
+      "task_id": "d12c9006-b907-4eb3-b260-6fa6213dc23a",
+      "session_id": "run_d4d969f72fa84c728b316957f0077df3",
+      "status": "completed",
+      "turns": 8,
+      "tool_calls": 7,
+      "duration_ms": 74406,
+      "tool_errors": [
+        {
+          "tool": "list_dir",
+          "kind": "internal_trace_not_task_evidence"
+        }
+      ]
+    },
+    {
+      "id": "isolation",
+      "task_id": "0e7177a5-9b7d-41d9-9765-74902dcc1bfa",
+      "session_id": "run_cba085017e6c4975aab62fed2848a986",
+      "status": "completed",
+      "turns": 7,
+      "tool_calls": 10,
+      "duration_ms": 52168,
+      "tool_errors": [
+        {
+          "tool": "list_dir",
+          "kind": "internal_trace_not_task_evidence"
+        },
+        {
+          "tool": "skill_tool",
+          "kind": "policy_denied"
+        }
+      ]
+    },
+    {
+      "id": "revoke",
+      "task_id": "61855ae0-3545-46db-8d1d-503b7160cce7",
+      "session_id": "run_5f3a6bd951f642b6853cebb0b3b88838",
+      "status": "completed",
+      "turns": 4,
+      "tool_calls": 3,
+      "duration_ms": 30225,
+      "tool_errors": []
+    },
+    {
+      "id": "recall-after-revoke",
+      "task_id": "40aabc4d-294e-4037-b6b2-c08a715a2984",
+      "session_id": "run_ffbe74e15b114c1aac4f1bb51f7cac1f",
+      "status": "completed",
+      "turns": 5,
+      "tool_calls": 5,
+      "duration_ms": 44110,
+      "tool_errors": []
+    }
+  ],
+  "independent_checks": {
+    "passed": true,
+    "source": "D:/抖音/deepcloud/super-agent/artifacts/hub-project-memory-20261105/v2/trial-proof.json",
+    "restart": {
+      "before_pid": 43148,
+      "after_pid": 40548,
+      "same_cache": true
+    },
+    "distinct_sessions": 5,
+    "source_files_unchanged": true,
+    "other_project_cannot_recall": true,
+    "revoked_note_not_in_new_model_request": true,
+    "default_sdk_passed_fields": "Raw SDK passed=null and all_passed=false because no built-in oracle; independent trial-proof owns these checks, raw reports unchanged"
+  },
+  "participation": {
+    "explicit_native_recall": true,
+    "automatic_prelude_blocks_in_restart_query": 0,
+    "interpretation": "Long Chinese query did not automatically receive the note. Native list/retrieve supplied actual evidence after extra investigation; not an automatic-recall or efficiency certification."
+  },
+  "assistance": {
+    "explicit_tool_requested_in_teach_and_revoke": true,
+    "host_fixture_and_independent_checker": true,
+    "first_failure_led_to_host_code_fix": true,
+    "runtime_user_corrections_in_corrected_trials": 0,
+    "known_capability_test_not_unseen_transfer": true
+  },
+  "regressions": {
+    "final": {
+      "passed": 597,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "log": "D:/抖音/deepcloud/super-agent/artifacts/hub-project-memory-20261105/v2/regression-complete.log"
+    },
+    "initial_v1": {
+      "passed": 591,
+      "failed": 2,
+      "errors": "existing Windows child-process 10-second timeouts while compiling",
+      "log": "artifacts/memory-regression-v1.log",
+      "unchanged_assertion_rerun": "artifacts/hub-project-memory-20261105/v1/regression-final.log (593 passed)"
+    },
+    "superseded_compiles": "D:/抖音/deepcloud/super-agent/artifacts/hub-project-memory-20261105/v2/orchestration-notes.json",
+    "change_spec_validation": "passed; D:/抖音/deepcloud/super-agent/artifacts/hub-project-memory-20261105/v2/spec-validation-final.log",
+    "main_specs": "6 passed; D:/抖音/deepcloud/super-agent/artifacts/hub-project-memory-20261105/v1/specs-validation.log",
+    "assertions_or_timeouts_relaxed": false
+  },
+  "local_installation": {
+    "updated": true,
+    "targets": [
+      {
+        "target": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin",
+        "binary_sha256": "0542cf6c47d6b633993fc318e62ea3608b98ad55675f6dbca2fa442d146bd725",
+        "old": {
+          "hub.exe": "a3f3b2c1dd8f058ba77fb168459704f1eb02ef5792039713bfa2fcabf76075d5",
+          "hub-bundle-manifest.json": "92acc66c64d5742adcff627315de2f5e27d5ad962f8a81d80b9c3b20aae51e73"
+        },
+        "backup": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-project-memory-20261105\\v2\\local-resource-backups\\prebuilt",
+        "verified_files": 38
+      },
+      {
+        "target": "D:\\抖音\\deepcloud\\bin",
+        "binary_sha256": "0542cf6c47d6b633993fc318e62ea3608b98ad55675f6dbca2fa442d146bd725",
+        "old": {
+          "hub.exe": "a3f3b2c1dd8f058ba77fb168459704f1eb02ef5792039713bfa2fcabf76075d5",
+          "hub-bundle-manifest.json": "92acc66c64d5742adcff627315de2f5e27d5ad962f8a81d80b9c3b20aae51e73"
+        },
+        "backup": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-project-memory-20261105\\v2\\local-resource-backups\\root-bin",
+        "verified_files": 38
+      }
+    ],
+    "desktop_started": false,
+    "user_config_changed": false
+  },
+  "cold_start": {
+    "passed": true,
+    "mode": "default",
+    "exe": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\hub.exe",
+    "exe_sha256": "0542cf6c47d6b633993fc318e62ea3608b98ad55675f6dbca2fa442d146bd725",
+    "cwd": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-default-F9gCBU",
+    "data_dir": "C:\\Users\\刘本录\\AppData\\Local\\Temp\\Hub中文冷启动-default-F9gCBU\\全新数据",
+    "frontend_catalog_count": 37,
+    "rule_skill_path": "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\skills\\deepcloud-rule-engineer",
+    "resource_sha256": "8931209c24ef1aae73b71ae3f6167a4870a056b26a4bf39cbb56c13d3d266059",
+    "service_reachable": true,
+    "no_model_call": true,
+    "no_gui": true,
+    "development_skill_env": false
+  },
+  "limitations": [
+    "Only runtime-managed project notes; legacy records remain labelled unverified, not comprehensively migrated or revoked through native note action.",
+    "Hermes global store remains a separate unscoped historical system; wording downgraded, full lifecycle governance and skill promotion not implemented.",
+    "Long natural queries still need better memory routing and relevance recall. Corrected lookup tasks took 8/7/5 turns; two blocked internal-trace directory requests and one read-only Skill policy denial are preserved.",
+    "No unseen task transfer comparison, independent graph freshness/Understand certification, or entire ordinary-user rule-generation workflow certification.",
+    "Not a model-weights change or Hub autonomous self-modification; no new cloud publication or desktop interaction."
+  ],
+  "unchanged_rule": "User-accepted Android v2 and existing cloud ID unchanged",
+  "next_priority": "Improve natural-request memory routing and automatic context coverage with frozen positive/negative and no-memory controls; retain policy boundaries and distinguish hits from outcome benefit",
+  "plan_progress": "50/81 after independent review of task 5.8; 5.1–5.7 and 4.18 remain pending",
+  "shutdown": {
+    "owned_ports_39872_39874_not_listening": true,
+    "existing_model_proxy_8045_listening_pid": 10148,
+    "desktop_used": false
+  },
+  "verified_plan_progress": {
+    "complete": 50,
+    "total": 81,
+    "remaining": 31,
+    "source": "D:/抖音/deepcloud/super-agent/artifacts/hub-project-memory-20261105/v2/apply-final.json"
+  }
+}

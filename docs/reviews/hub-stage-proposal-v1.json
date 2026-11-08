@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "sdk": {
+    "path": "D:\\抖音\\deepcloud\\deepcloud-ui\\src\\lib\\agent-sdk\\client.ts",
+    "sha256": "79d5e8ba40811b1ab4d2408ca6275b02a684435b4a36b1d952094b236b8e7c35"
+  },
+  "transport": "production SDK runAgent + actual HTTP SSE",
+  "base": "http://127.0.0.1:39872",
+  "model": "gemini-3.8-flash-high",
+  "classification": "sparse_real_user_workflow",
+  "desktop": false,
+  "attempts": [
+    {
+      "id": "deferred-proposal",
+      "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-priorities-20261105\\v1\\proposal-project",
+      "request": {
+        "agent": "superagent",
+        "project": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-priorities-20261105\\v1\\proposal-project",
+        "prompt": "结算金额有误：单价12数量3应合计36，现在得到15。请先调查当前代码并给修复方案，等我确认后再修改；这一轮不要改文件。",
+        "model": "gemini-3.8-flash-high",
+        "workMode": "guarded",
+        "thinkingLevel": "high",
+        "timeoutSeconds": 900
+      },
+      "events": [
+        {
+          "kind": "trace-snapshot",
+          "turn": 1,
+          "session_id": "run_640a3d795b594b2bbac347b45b029cf1",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10147,
+          "completion_tokens": 10,
+          "duration_ms": 6372,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_640a3d795b594b2bbac347b45b029cf1\\turn_1.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0146999,
+          "prompt_tokens": 10147,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "list_dir",
+          "input": {}
+        },
+        {
+          "kind": "tool-result",
+          "tool": "list_dir",
+          "output": "{\"files\":[\"[DIR] .superagent\",\"[FILE] calc.cjs\",\"[FILE] calc.test.cjs\"]}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 2,
+          "session_id": "run_640a3d795b594b2bbac347b45b029cf1",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10283,
+          "completion_tokens": 134,
+          "duration_ms": 4823,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_640a3d795b594b2bbac347b45b029cf1\\turn_2.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0282999,
+          "prompt_tokens": 10283,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "C:\\Users\\刘本录\\.superagent\\runs\\0a7b920b-c258-463f-a46a-bb6efecd6335\\workspace\\calc.cjs"
+          }
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "C:\\Users\\刘本录\\.superagent\\runs\\0a7b920b-c258-463f-a46a-bb6efecd6335\\workspace\\calc.test.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: exports.total = (price, qty) => price + qty;\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":48,\"file_path\":\"C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\0a7b920b-c258-463f-a46a-bb6efecd6335\\\\workspace\\\\calc.cjs\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: const {test}=require('node:test'),a=require('node:assert/strict'),{total}=require('./calc.cjs');\\n2: test('line amount uses quantity including zero',()=>{a.equal(total(12,3),36);a.equal(total(5,0),0);a.equal(total(0,4),0)});\\n\",\"total_lines\":2,\"start_line\":1,\"end_line\":2,\"truncated\":false,\"bytes\":227,\"file_path\":\"C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\0a7b920b-c258-463f-a46a-bb6efecd6335\\\\workspace\\\\calc.test.cjs\",\"rtk_metrics\":{}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 3,
+          "session_id": "run_640a3d795b594b2bbac347b45b029cf1",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 10871,
+          "completion_tokens": 23,
+          "duration_ms": 8571,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_640a3d795b594b2bbac347b45b029cf1\\turn_3.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0870999,
+          "prompt_tokens": 10871,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "run_command",
+          "input": {
+            "CommandLine": "node --test calc.test.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "run_command",
+          "output": "{\"error\":\"Current objective is explicitly read-only; this operation is outside its scope\",\"kind\":\"read_only_task_scope\",\"recovery_state\":{\"active\":true,\"failure_class\":\"policy\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":0,\"hint\":\"Respect the tool boundary. Use the supported scoped tool/result reader or report the limitation; do not search internal prompts or bypass authorization.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 4,
+          "session_id": "run_640a3d795b594b2bbac347b45b029cf1",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 11200,
+          "completion_tokens": 413,
+          "duration_ms": 12239,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_640a3d795b594b2bbac347b45b029cf1\\turn_4.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.12,
+          "prompt_tokens": 11200,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "thinking",
+          "content": "【系统自检反思】: Completion review required: 【DoD 自动化验证门禁拦截 (第 1/3 次)】: 最近一次执行的验证未通过，错误原因: {\"error\":\"Current objective is explicitly read-only; this operation is outside its scope\",\"kind\":\"read_only_task_scope\",\"recovery_state\":{\"active\":true,\"failure_class\":\"policy\",\"attempts\":1,\"limit\":1,\n【必须行动】: 请根据报错根因进行针对性修复，并重新运行验证工具，直到测试全绿通过后再交付。. The preceding answer is a draft, not verified completion."
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 5,
+          "session_id": "run_640a3d795b594b2bbac347b45b029cf1",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 8453,
+          "completion_tokens": 66,
+          "duration_ms": 20188,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_640a3d795b594b2bbac347b45b029cf1\\turn_5.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.8453,
+          "prompt_tokens": 8453,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "tool-use",
+          "tool": "view_file",
+          "input": {
+            "AbsolutePath": "C:\\Users\\刘本录\\.superagent\\runs\\0a7b920b-c258-463f-a46a-bb6efecd6335\\workspace\\calc.cjs"
+          }
+        },
+        {
+          "kind": "tool-result",
+          "tool": "view_file",
+          "output": "{\"content\":\"1: exports.total = (price, qty) => price + qty;\\n\",\"total_lines\":1,\"start_line\":1,\"end_line\":1,\"truncated\":false,\"bytes\":48,\"file_path\":\"C:\\\\Users\\\\刘本录\\\\.superagent\\\\runs\\\\0a7b920b-c258-463f-a46a-bb6efecd6335\\\\workspace\\\\calc.cjs\",\"rtk_metrics\":{},\"recovery_state\":{\"active\":true,\"failure_class\":\"policy\",\"attempts\":1,\"limit\":1,\"observations_since_failure\":1,\"hint\":\"Respect the tool boundary. Use the supported scoped tool/result reader or report the limitation; do not search internal prompts or bypass authorization.\"}}"
+        },
+        {
+          "kind": "trace-snapshot",
+          "turn": 6,
+          "session_id": "run_640a3d795b594b2bbac347b45b029cf1",
+          "brain_tier": "Slow Brain",
+          "prompt_tokens": 12744,
+          "completion_tokens": 636,
+          "duration_ms": 37482,
+          "tools_count": 32,
+          "snapshot_file": ".superagent\\traces\\run_640a3d795b594b2bbac347b45b029cf1\\turn_6.json"
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2744,
+          "prompt_tokens": 12744,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "error",
+          "content": "Completion blocked: 【DoD 自动化验证门禁拦截 (第 2/3 次)】: 最近一次执行的验证未通过，错误原因: {\"error\":\"Current objective is explicitly read-only; this operation is outside its scope\",\"kind\":\"read_only_task_scope\",\"recovery_state\":{\"active\":true,\"failure_class\":\"policy\",\"attempts\":1,\"limit\":1,\n【必须行动】: 请根据报错根因进行针对性修复，并重新运行验证工具，直到测试全绿通过后再交付。"
+        },
+        {
+          "kind": "error",
+          "content": "Completion blocked: 【DoD 自动化验证门禁拦截 (第 2/3 次)】: 最近一次执行的验证未通过，错误原因: {\"error\":\"Current objective is explicitly read-only; this operation is outside its scope\",\"kind\":\"read_only_task_scope\",\"recovery_state\":{\"active\":true,\"failure_class\":\"policy\",\"attempts\":1,\"limit\":1,\n【必须行动】: 请根据报错根因进行针对性修复，并重新运行验证工具，直到测试全绿通过后再交付。"
+        },
+        {
+          "kind": "status",
+          "status": "failed"
+        }
+      ],
+      "status": "failed",
+      "classification": "phase_boundary",
+      "prior_exposure": null,
+      "workspace_opened_by_control_plane": true,
+      "task_id": "0a7b920b-c258-463f-a46a-bb6efecd6335",
+      "duration_ms": 91404,
+      "tool_calls": 5,
+      "model_turns": 6,
+      "usage_events": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.0146999,
+          "prompt_tokens": 10147,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0282999,
+          "prompt_tokens": 10283,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0870999,
+          "prompt_tokens": 10871,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.12,
+          "prompt_tokens": 11200,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.8453,
+          "prompt_tokens": 8453,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2744,
+          "prompt_tokens": 12744,
+          "max_tokens": 1000000
+        }
+      ],
+      "token_usage": [
+        {
+          "kind": "context-usage",
+          "percentage": 1.0146999,
+          "prompt_tokens": 10147,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0282999,
+          "prompt_tokens": 10283,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.0870999,
+          "prompt_tokens": 10871,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.12,
+          "prompt_tokens": 11200,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 0.8453,
+          "prompt_tokens": 8453,
+          "max_tokens": 1000000
+        },
+        {
+          "kind": "context-usage",
+          "percentage": 1.2744,
+          "prompt_tokens": 12744,
+          "max_tokens": 1000000
+        }
+      ],
+      "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\0a7b920b-c258-463f-a46a-bb6efecd6335\\workspace",
+      "passed": null
+    }
+  ],
+  "configured_models": [
+    "gemini-3.8-flash-high"
+  ],
+  "request_file_sha256": "639eb960948db6df8443be8a9c00e4c2135f66495343b938ad6d1fe9124aa1dc",
+  "frozen_definitions_sha256": "7d26ea60948c6e644e1f7da1b231526c62726b9826a204b8a6ab088e3898d885",
+  "planned_task_ids": [
+    "deferred-proposal"
+  ],
+  "selected_task_ids": [
+    "deferred-proposal"
+  ],
+  "selected_passed": false,
+  "all_passed": false
+}

@@ -167,9 +167,24 @@ pub struct ProviderAttemptReceipt {
     pub outcome: ProviderAttemptOutcome,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_code: Option<u16>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagnostic_code: Option<String>,
 }
 
 impl ProviderAttemptReceipt {
+    /// Keep only recognized machine codes. Upstream prose may contain secrets
+    /// or instructions and must never become model-visible diagnostics.
+    pub(crate) fn with_proxy_diagnostic(mut self, body: &str) -> Self {
+        if body.len() > 65_536 {return self;}
+        if let Ok(value)=serde_json::from_str::<serde_json::Value>(body) {
+            let error=&value["error"];
+            if error["code"]=="upstream_network_error" || error["gateway_error"]["error_code"]=="upstream_network_error" {
+                self.diagnostic_code=Some("upstream_network_error".into());
+            }
+        }
+        self
+    }
+
     pub fn new(
         candidate: &ProviderCandidate,
         attempt: usize,
@@ -186,6 +201,27 @@ impl ProviderAttemptReceipt {
             duration_ms,
             outcome,
             status_code,
+            diagnostic_code: None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod proxy_diagnostic_tests {
+    use super::*;
+    fn receipt()->ProviderAttemptReceipt {
+        serde_json::from_value(serde_json::json!({"accountId":"default","accountName":"default","provider":"openai","resolvedModel":"fixture","attempt":1,"durationMs":45000,"outcome":"transient","statusCode":502})).unwrap()
+    }
+    #[test]
+    fn structured_proxy_diagnostic_is_allowlisted_and_never_copies_prose() {
+        for body in [r#"{"error":{"code":"upstream_network_error","message":"SECRET_DIAGNOSTIC_CANARY"}}"#,r#"{"error":{"gateway_error":{"error_code":"upstream_network_error"}}}"#] {
+            let r=receipt().with_proxy_diagnostic(body);
+            assert_eq!(r.diagnostic_code.as_deref(),Some("upstream_network_error"));
+            let value=serde_json::to_value(&r).unwrap();assert_eq!(value["outcome"],"transient");assert_eq!(value["statusCode"],502);
+            assert!(!value.to_string().contains("SECRET_DIAGNOSTIC_CANARY"));
+        }
+        for body in ["upstream_network_error",r#"{"error":{"message":"upstream_network_error"}}"#,r#"{"error":{"code":"SECRET_DIAGNOSTIC_CANARY"}}"#] {
+            assert!(receipt().with_proxy_diagnostic(body).diagnostic_code.is_none());
         }
     }
 }

@@ -1,0 +1,749 @@
+{
+  "date": "2026-11-04",
+  "user_report": {
+    "platform": "Android",
+    "trigger": "click an episode to play",
+    "error": "JSEngine#24(eval) line7102 unterminated string literal"
+  },
+  "original_rule": {
+    "recovered_read_only_from": "云6oooole/xxxxxx/qdvjijbdhafvtgja",
+    "sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+    "matches_previous_delivery": true
+  },
+  "baseline_syntax": {
+    "kind": "mobile_parser_syntax",
+    "scope": "compile_only_no_execution_or_Android_device_acceptance",
+    "android_verified": false,
+    "language_version": 200,
+    "checks": [
+      {
+        "entry": "find_rule",
+        "passed": false,
+        "line": 6746,
+        "message": "missing ; before statement"
+      },
+      {
+        "entry": "searchFind",
+        "passed": false,
+        "line": 6746,
+        "message": "missing ; before statement"
+      },
+      {
+        "entry": "detail_find_rule",
+        "passed": false,
+        "line": 6746,
+        "message": "missing ; before statement"
+      }
+    ],
+    "parser": {
+      "sha256": "baa4f9015e3bc95e3c8f77a82598f0cc98415b727221e77e2557572a46fb177f",
+      "file": "rhino-1.7.13.jar"
+    },
+    "rule_sha256": "f3e214ead8fa7f89494d4ed3467e246d5e83d0c94813ddc8974a5093c36fdd95",
+    "rule_unchanged": true,
+    "passed": false
+  },
+  "baseline_is_users_exact_app_version": false,
+  "unique_root_cause_confirmed": false,
+  "host_business_rule_edits": false,
+  "host_role": "Supervisor supplied exact current-page context diagnosis, failure capture, generic tools/resources, phase clarification, progress cues and continuation. Hub authored and executed the business patch. Host independently verified the byte-identical delivery. Not an unassisted success.",
+  "startup": {
+    "compound_isolated_launch": "automatic policy rejection; not executed",
+    "safe_alternative": "direct existing bundled backend launch succeeded; no settings junction or credential copy",
+    "attempts": [
+      "docs/reviews/hub-dmghg-android-feedback-v1.json",
+      "docs/reviews/hub-dmghg-android-feedback-v2.json",
+      "docs/reviews/hub-dmghg-android-feedback-v3.json",
+      "docs/reviews/hub-dmghg-android-feedback-v4.json"
+    ],
+    "failures": "first2 catalog omitted configured model, third workspace not opened; retained"
+  },
+  "improvements": {
+    "checker": "skills/deepcloud-rule-engineer/scripts/test-rule-mobile-syntax.cjs",
+    "tests": "11 JS/Java diagnostic-tool tests passed; 577 Rust passed, 0 failed, 2 ignored, 1 filtered",
+    "skill": "manual authorized addition, not automatic promotion",
+    "harness": "legacy configured-provider readiness plus explicit SDK workspace opening",
+    "current_page_capture": "test-rule-mobile-context.cjs",
+    "resource_discovery": "mobile-parser-resources.cjs; --list-parsers; registered hashes; not Android certification",
+    "intelligence_generalization_proven": false,
+    "shell_actual_write_detection_limitation": "successful CLI alone does not certify mutation; trusted file-change evidence remains future work"
+  },
+  "verification": {
+    "new_rule": true,
+    "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+    "PC_regression": {
+      "passed": true,
+      "independent_js_runtime": true,
+      "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+      "checks": [
+        "pagination_distinct_and_matches_upstream",
+        "category:20",
+        "category:21",
+        "search:仙逆",
+        "search:斗破",
+        "detail_title_and_first_middle_last_episodes",
+        "lazy_production_runtime",
+        "no_local_bridge_or_install_paths",
+        "actual_media_bytes",
+        "null_output_decode_over_one_second"
+      ],
+      "observed": {
+        "home": 20,
+        "page2": 10,
+        "episodes": 165
+      },
+      "decoder": {
+        "audio-codec-name": "aac",
+        "video-params/w": "1920",
+        "video-params/h": "816",
+        "time-pos": "1.082000",
+        "decoded_video": true,
+        "outputs": {
+          "audio": "null",
+          "video": "null"
+        },
+        "diagnostic_codes": []
+      },
+      "decoder_attempts": [
+        {
+          "audio-codec-name": "aac",
+          "video-params/w": "1920",
+          "video-params/h": "816",
+          "time-pos": "1.082000",
+          "decoded_video": true,
+          "outputs": {
+            "audio": "null",
+            "video": "null"
+          },
+          "diagnostic_codes": []
+        }
+      ],
+      "android_verified": false,
+      "no_desktop": true,
+      "reference_note": "Native installed target used by host oracle for source identity and decoder only; rule executes JS remote requests in production sandbox"
+    },
+    "actual_generated_lazy": {
+      "passed": true,
+      "scope": "production_PC_detail_generated_action_only",
+      "android_verified": false,
+      "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+      "source_sha256": "55cc0873f9ef6d511abd6b4c60821f3c747a0b734796e1cc48eff39c3ce69bb4",
+      "chars": 785,
+      "home_cards": 20,
+      "detail_cards": 14,
+      "equals_Hub_extracted_source": true
+    },
+    "mobile_comparison_checks": {
+      "pc-live-verification.json": {
+        "passed": true,
+        "independent_js_runtime": true,
+        "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+        "checks": [
+          "pagination_distinct_and_matches_upstream",
+          "category:20",
+          "category:21",
+          "search:仙逆",
+          "search:斗破",
+          "detail_title_and_first_middle_last_episodes",
+          "lazy_production_runtime",
+          "no_local_bridge_or_install_paths",
+          "actual_media_bytes",
+          "null_output_decode_over_one_second"
+        ],
+        "observed": {
+          "home": 20,
+          "page2": 10,
+          "episodes": 165
+        },
+        "decoder": {
+          "audio-codec-name": "aac",
+          "video-params/w": "1920",
+          "video-params/h": "816",
+          "time-pos": "1.082000",
+          "decoded_video": true,
+          "outputs": {
+            "audio": "null",
+            "video": "null"
+          },
+          "diagnostic_codes": []
+        },
+        "decoder_attempts": [
+          {
+            "audio-codec-name": "aac",
+            "video-params/w": "1920",
+            "video-params/h": "816",
+            "time-pos": "1.082000",
+            "decoded_video": true,
+            "outputs": {
+              "audio": "null",
+              "video": "null"
+            },
+            "diagnostic_codes": []
+          }
+        ],
+        "android_verified": false,
+        "no_desktop": true,
+        "reference_note": "Native installed target used by host oracle for source identity and decoder only; rule executes JS remote requests in production sandbox"
+      },
+      "mobile-detail-context.json": {
+        "kind": "current_page_eval_capture",
+        "scope": "partial_page_binding_and_captured_compile_only",
+        "android_verified": false,
+        "network_or_media_executed": false,
+        "captured": [
+          {
+            "passed": true,
+            "line": 0,
+            "chars": 234006,
+            "sha256": "c718f119261c7d92cfadde2fd9c699807b3ebfa6612f31868417067a9fd2c787",
+            "message": ""
+          },
+          {
+            "passed": true,
+            "line": 0,
+            "chars": 234006,
+            "sha256": "c718f119261c7d92cfadde2fd9c699807b3ebfa6612f31868417067a9fd2c787",
+            "message": ""
+          }
+        ],
+        "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+        "action_sha256": "55cc0873f9ef6d511abd6b4c60821f3c747a0b734796e1cc48eff39c3ce69bb4",
+        "parser": {
+          "file": "rhino-1.7.14.jar",
+          "sha256": "c9290b0d801bf0dbbbc44338e0f769b7650a0c5d04e6bb1aeb85775c0211b003",
+          "profile": "public-rhino-1.7.14"
+        },
+        "binding": "detail_find_rule",
+        "outer_stop": "TypeError: diagnostic capture stops execution",
+        "rule_unchanged": true,
+        "covered": true,
+        "passed": true
+      },
+      "mobile-home-context.json": {
+        "kind": "current_page_eval_capture",
+        "scope": "partial_page_binding_and_captured_compile_only",
+        "android_verified": false,
+        "network_or_media_executed": false,
+        "captured": [
+          {
+            "passed": true,
+            "line": 0,
+            "chars": 234006,
+            "sha256": "c718f119261c7d92cfadde2fd9c699807b3ebfa6612f31868417067a9fd2c787",
+            "message": ""
+          },
+          {
+            "passed": true,
+            "line": 0,
+            "chars": 234006,
+            "sha256": "c718f119261c7d92cfadde2fd9c699807b3ebfa6612f31868417067a9fd2c787",
+            "message": ""
+          }
+        ],
+        "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+        "action_sha256": "55cc0873f9ef6d511abd6b4c60821f3c747a0b734796e1cc48eff39c3ce69bb4",
+        "parser": {
+          "file": "rhino-1.7.14.jar",
+          "sha256": "c9290b0d801bf0dbbbc44338e0f769b7650a0c5d04e6bb1aeb85775c0211b003",
+          "profile": "public-rhino-1.7.14"
+        },
+        "binding": "find_rule",
+        "outer_stop": "TypeError: diagnostic capture stops execution",
+        "rule_unchanged": true,
+        "covered": true,
+        "passed": true
+      },
+      "mobile-syntax.json": {
+        "kind": "mobile_parser_syntax",
+        "scope": "compile_only_no_execution_or_Android_device_acceptance",
+        "android_verified": false,
+        "language_version": 200,
+        "checks": [
+          {
+            "entry": "find_rule",
+            "passed": true,
+            "line": 0,
+            "message": ""
+          },
+          {
+            "entry": "searchFind",
+            "passed": true,
+            "line": 0,
+            "message": ""
+          },
+          {
+            "entry": "detail_find_rule",
+            "passed": true,
+            "line": 0,
+            "message": ""
+          },
+          {
+            "entry": "actual_generated_source",
+            "passed": true,
+            "line": 0,
+            "message": ""
+          }
+        ],
+        "parser": {
+          "sha256": "c9290b0d801bf0dbbbc44338e0f769b7650a0c5d04e6bb1aeb85775c0211b003",
+          "file": "rhino-1.7.14.jar",
+          "profile": "public-rhino-1.7.14",
+          "source": "registered_public_comparison_not_device_version"
+        },
+        "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+        "rule_unchanged": true,
+        "passed": true
+      }
+    },
+    "Android_device": false,
+    "cloud_publication": false,
+    "installed_Hub_replaced": false,
+    "host_capture_helper_initial_module_path_error_corrected": true,
+    "Hub_simulator_five_star_result_not_used_as_acceptance": true,
+    "Hub_proposed_phone_menu_not_certified": true
+  },
+  "services_cleanup": {
+    "stopped_owned_pid": 6020,
+    "model_proxy_8045_left_untouched": true,
+    "task_statuses": [
+      {
+        "id": "27120078-c47f-49b4-bf9a-0ffd66e7e189",
+        "status": "completed"
+      },
+      {
+        "id": "1cf83f2d-97cb-4411-a121-f91d36d3621f",
+        "status": "failed"
+      },
+      {
+        "id": "7b892b3c-91ce-41bb-b848-be8ccf6ddfb2",
+        "status": "failed"
+      },
+      {
+        "id": "adf77c45-0682-401a-99ca-1731722b2b99",
+        "status": "completed"
+      },
+      {
+        "id": "fd13f0b4-0a48-4c41-a00f-4f1f85ed0f1c",
+        "status": "cancelled"
+      },
+      {
+        "id": "0240e72a-09b9-4e06-bcd1-204fe6b39b9d",
+        "status": "failed"
+      },
+      {
+        "id": "58f95b92-5a70-4e1f-9d5c-d38b2383fca9",
+        "status": "failed"
+      },
+      {
+        "id": "638aa1ef-8de3-473b-a5c7-1eca6d61ce89",
+        "status": "failed"
+      },
+      {
+        "id": "40e08fac-bbec-42c8-82d9-6d043fdc75af",
+        "status": "cancelled"
+      },
+      {
+        "id": "00d56d4e-fcb8-49e7-80cb-0708ae16a186",
+        "status": "completed"
+      },
+      {
+        "id": "7275c6c4-7bcf-42ca-96d2-89f5c3de6506",
+        "status": "completed"
+      },
+      {
+        "id": "56fb8f34-cdcd-4a5b-a165-10e0e10201ea",
+        "status": "cancelled"
+      },
+      {
+        "id": "ee4afe7c-e114-44cc-b03d-8b4072b2ed80",
+        "status": "failed"
+      },
+      {
+        "id": "608b673d-4b2d-4a1c-9ec0-cdd916c1b2db",
+        "status": "cancelled"
+      },
+      {
+        "id": "4139605f-7eaa-4b6e-8dd8-0689f03ba63f",
+        "status": "completed"
+      },
+      {
+        "id": "e2d27ec5-24d7-4875-b07f-6be8b50b4e8d",
+        "status": "failed"
+      },
+      {
+        "id": "4bbaba4c-037b-4575-824c-d530a3c85793",
+        "status": "timeout"
+      },
+      {
+        "id": "271369a1-045b-472d-abd0-f1ce8335f2b7",
+        "status": "cancelled"
+      },
+      {
+        "id": "b08a639e-ebf6-4ba2-a0e5-73aee449b652",
+        "status": "cancelled"
+      },
+      {
+        "id": "95f804c4-e8bb-4aad-aa6d-8606ff90e140",
+        "status": "cancelled"
+      },
+      {
+        "id": "48e75ce2-71ab-439f-83cd-959f4817b77d",
+        "status": "completed"
+      },
+      {
+        "id": "b36bc9f3-739c-4410-b152-4894a4571677",
+        "status": "completed"
+      },
+      {
+        "id": "161483ca-2eef-4ec0-b45e-87c24b58b5eb",
+        "status": "completed"
+      },
+      {
+        "id": "8294404b-ffb6-4213-92b9-9d67175a7e78",
+        "status": "completed"
+      },
+      {
+        "id": "db6fb2ed-c841-4b49-8f91-ebfe6e83b33b",
+        "status": "completed"
+      },
+      {
+        "id": "7fd0d408-5e64-40a8-92c7-5c81a5e38970",
+        "status": "completed"
+      },
+      {
+        "id": "460a790e-6cc1-4087-a698-87f01c649e2d",
+        "status": "completed"
+      },
+      {
+        "id": "05dda478-06b5-48ef-8ce7-576c982e20f9",
+        "status": "completed"
+      },
+      {
+        "id": "00d01f3f-e911-4c89-827a-9fabd095fe9c",
+        "status": "completed"
+      },
+      {
+        "id": "32644d54-4340-4d16-a0ba-607091b6a030",
+        "status": "failed"
+      },
+      {
+        "id": "9229dee0-0bf8-4ae4-8e16-849ed2db3875",
+        "status": "failed"
+      },
+      {
+        "id": "ae18620d-33bd-49e0-ab9e-5f03aefb85c5",
+        "status": "completed"
+      },
+      {
+        "id": "a774bb0a-fd13-42ad-a75f-723facf018b7",
+        "status": "failed"
+      },
+      {
+        "id": "d5b2d293-5b99-44b4-9579-f094b0fa8029",
+        "status": "completed"
+      },
+      {
+        "id": "060786a2-4be9-4eac-91bf-3fcd37cdc8b6",
+        "status": "completed"
+      },
+      {
+        "id": "80e7eae6-9068-48fe-8506-a8372f81bd86",
+        "status": "timeout"
+      }
+    ],
+    "active_tasks": 0
+  },
+  "continuation_date": "2026-11-05",
+  "process_evidence_bug": {
+    "observed_in_current_trace_turn": 20,
+    "source": "C:/Users/刘本录/.superagent/runs/638aa1ef-8de3-473b-a5c7-1eca6d61ce89/workspace/.superagent/traces/run_7172f3c73365439dbade6c5e3817cb69/turn_20.json",
+    "false_mutation_count": 13,
+    "rule_original_sha256_unchanged": true,
+    "patch_scope": "permission risk unchanged; process success is observation, preserves prior verification invalidation",
+    "regression": "573 passed 0 failed 2 ignored 1 filtered",
+    "live_verification": {
+      "report": "docs/reviews/hub-dmghg-android-feedback-process-fix-v1.json",
+      "task_id": "58f95b92-5a70-4e1f-9d5c-d38b2383fca9",
+      "resume_session": "run_7172f3c73365439dbade6c5e3817cb69",
+      "after_inspection_mutations": 0,
+      "act_step": "in_progress",
+      "business_outcome": "failed at40 turns, rule unchanged",
+      "user_progress_cues": 1,
+      "user_platform_reference_followup": "artifacts/dmghg-android-feedback-20261104/user-reference-followup.json"
+    }
+  },
+  "inspection_plateau": {
+    "trigger": "at least8 successful observations since edit/check/user response; Execution only",
+    "scope": "advisory only, no forced edit or authorization/verification relaxation",
+    "tests": "577 passed 0 failed 2 ignored 1 filtered",
+    "live_verification": {
+      "report": "docs/reviews/hub-dmghg-android-feedback-plateau-v1.json",
+      "task_id": "0240e72a-09b9-4e06-bcd1-204fe6b39b9d",
+      "fresh_session": true,
+      "target_known": true,
+      "same_original_rule": true,
+      "reference_locations_supplied": true,
+      "advisory_confirmed_in_actual_trace_turn": 15,
+      "observations_at_trace": 12,
+      "plan_declared_before_advisory": true,
+      "no_causal_generalization_claim": true,
+      "user_side_reference_syntax_feedback": "artifacts/dmghg-android-feedback-20261104/plateau-user-baseline-feedback.json",
+      "host_target_protocol_or_fix_supplied": false,
+      "status": "failed",
+      "business_verified": false,
+      "business_outcome": "40 turns, original rule unchanged"
+    },
+    "candidate": "artifacts/dmghg-android-feedback-20261104/plateau-candidate.json"
+  },
+  "user_references": {
+    "user_supplied_apk_directory": "D:/抖音/deepcloud/references/hiker-decompiled-android/apk",
+    "apk": "海阔视界_V8.81_C5583_db53-64位.apk",
+    "apk_sha256": "90ec47fd70f092f418e27b7d203c0810048babaa1c8cb94b23e88fdd0b1c5007",
+    "located": [
+      "references/hiker-decompiled-android/source",
+      "references/hiker-decompiled-android/decompiled/sources",
+      "engine-service/hikerV8.66(1)",
+      "deepcloud-ui/海阔视界规则执行逻辑.md"
+    ],
+    "hiker_apk_binary_found": true,
+    "exact_Rhino_version_not_claimed": true,
+    "reference_move_performed_by_host": false
+  },
+  "historical_initial_hub_attempt": {
+    "task_id": "40e08fac-bbec-42c8-82d9-6d043fdc75af",
+    "report": "docs/reviews/hub-dmghg-android-feedback-v4.json",
+    "status": "cancelled",
+    "model": "gemini-3.8-flash-high",
+    "process_pid": 3204,
+    "executable": "D:/抖音/deepcloud/deepcloud-ui/native/prebuilt/bin/hub.exe",
+    "binary_sha256": "c917740d988fce450db1fdaa356f79f19ae9bba7dcb503e0b7763dd14bfecbcf",
+    "latest_source_build": false,
+    "skill_tool_initially_empty": true,
+    "platform_resource_repair": "artifacts/dmghg-android-feedback-20261104/platform-skill-repair.json",
+    "current_source_attempt": {
+      "task_id": "638aa1ef-8de3-473b-a5c7-1eca6d61ce89",
+      "report": "docs/reviews/hub-dmghg-android-feedback-current-v1.json",
+      "status": "failed",
+      "model_turns": 31,
+      "error": "upstream transient after3 attempts; status200 without usable model result",
+      "rule_unchanged": true
+    },
+    "legacy_attempt_status": "cancelled"
+  },
+  "historical_initial_candidate_build": {
+    "passed": true,
+    "sha256": "220f999fb4867e2a906e44b1df5d007844515ccdcd3c5a65907f152dc369c648",
+    "log": "artifacts/dmghg-android-feedback-20261104/current-hub-build-local-swagger.log",
+    "contains_process_evidence_fix": false
+  },
+  "matching_failure_reproduced": true,
+  "root_cause": {
+    "defect": "Android detail page binds MY_RULE.find_rule to current detail script; original lazy slices at a marker occurring only inside its quoted template, truncating the eval argument inside a string",
+    "reproduction": "original-detail-captured-eval.js:7102 unterminated string literal",
+    "evidence": "artifacts/dmghg-android-feedback-20261104/mobile-context-differential-reproduction.json",
+    "source_binding": "references/hiker-decompiled-android/decompiled/sources: ArticleListFragment dealRule/setFind_rule -> LazyRuleParser -> JSEngine.getMyRule",
+    "diagnosed_by": "host supervisor, relayed to Hub as runtime failure evidence",
+    "device_runtime_verified": false,
+    "legacy_BigInt_failure_not_proven_phone_cause": true
+  },
+  "attempt_history": [
+    {
+      "report": "docs/reviews/hub-dmghg-android-feedback-v1.json",
+      "attempts": [],
+      "raw_report_sha256": "861793939a9e872c155ff376fe77006cd871387e10c6ad4a09598cc8ad364a87"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-android-feedback-v2.json",
+      "attempts": [],
+      "raw_report_sha256": "861793939a9e872c155ff376fe77006cd871387e10c6ad4a09598cc8ad364a87"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-android-feedback-v3.json",
+      "attempts": [
+        {
+          "task_id": null,
+          "status": "infra_failed",
+          "model_turns": 0,
+          "classification": "actual_user_mobile_feedback_repair",
+          "execution_workspace": null
+        }
+      ],
+      "raw_report_sha256": "4d476cfc1047994635bc7d0f9e2d10f17fe7dab353445cd0993ba07fda2e16cd"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-android-feedback-v4.json",
+      "attempts": [
+        {
+          "task_id": "40e08fac-bbec-42c8-82d9-6d043fdc75af",
+          "status": "cancelled",
+          "model_turns": 0,
+          "classification": "actual_user_mobile_feedback_repair",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\40e08fac-bbec-42c8-82d9-6d043fdc75af\\workspace"
+        }
+      ],
+      "raw_report_sha256": "244de821ac9345faa7dc9b9ce0c8d12a4773484c946e7dd7c50007dc1a2c8827"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-android-feedback-current-v1.json",
+      "attempts": [
+        {
+          "task_id": "638aa1ef-8de3-473b-a5c7-1eca6d61ce89",
+          "status": "failed",
+          "model_turns": 31,
+          "classification": "known_original_rule_after_cancelled_stagnant_legacy_attempt",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\638aa1ef-8de3-473b-a5c7-1eca6d61ce89\\workspace"
+        }
+      ],
+      "raw_report_sha256": "50c9f1f6b722337928438dd541dacb0d1959936f3410d3b52cf089a24cc6375d"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-android-feedback-process-fix-v1.json",
+      "attempts": [
+        {
+          "task_id": "58f95b92-5a70-4e1f-9d5c-d38b2383fca9",
+          "status": "failed",
+          "model_turns": 40,
+          "classification": "known_failure_resumed_after_generic_progress_evidence_fix",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\58f95b92-5a70-4e1f-9d5c-d38b2383fca9\\workspace"
+        }
+      ],
+      "raw_report_sha256": "d3194708bc197e0f8f2517bfb39e583b26c5ecd67b1b038a1180825bcc3a9636"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-android-feedback-plateau-v1.json",
+      "attempts": [
+        {
+          "task_id": "0240e72a-09b9-4e06-bcd1-204fe6b39b9d",
+          "status": "failed",
+          "model_turns": 40,
+          "classification": "known_original_new_session_after_generic_engine_fixes_not_unseen_first_attempt",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\0240e72a-09b9-4e06-bcd1-204fe6b39b9d\\workspace"
+        }
+      ],
+      "raw_report_sha256": "3096dce56c609a28fa2f43e2fcc69f8e131363a7312abab998610f82426d44c0"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-mobile-evidence-first-v1.json",
+      "attempts": [
+        {
+          "task_id": "fd13f0b4-0a48-4c41-a00f-4f1f85ed0f1c",
+          "status": "cancelled",
+          "model_turns": 31,
+          "classification": "supervised_workflow_retarget_after_failed_full_repair_attempts",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\fd13f0b4-0a48-4c41-a00f-4f1f85ed0f1c\\workspace"
+        }
+      ],
+      "raw_report_sha256": "5db38b041a5c18ffab58312d3824e6e15b19e6e24c8c081642b4f2387301270d"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-apk-proposal-v1.json",
+      "attempts": [
+        {
+          "task_id": "adf77c45-0682-401a-99ca-1731722b2b99",
+          "status": "completed",
+          "model_turns": 37,
+          "classification": "clarified_proposal_only_scope_after_native_execution_misrouting; actual_APK_now_available",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\adf77c45-0682-401a-99ca-1731722b2b99\\workspace"
+        }
+      ],
+      "raw_report_sha256": "5842a78e26b5c42c7d130d259c101e713204537dc9bbd6d738d5af67c76b4764"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-mobile-choice-B-v1.json",
+      "attempts": [
+        {
+          "task_id": "7b892b3c-91ce-41bb-b848-be8ccf6ddfb2",
+          "status": "failed",
+          "model_turns": 40,
+          "classification": "ordinary_user_option_choice_after_Hub_APK_investigation_with_report_fact_check_request",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\7b892b3c-91ce-41bb-b848-be8ccf6ddfb2\\workspace"
+        }
+      ],
+      "raw_report_sha256": "146301fc1c4ce5d6b9f278c798f58580eb65fc0afc4ceeb11cec53c7da3c88fb"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-mobile-context-repair-v1.json",
+      "attempts": [
+        {
+          "task_id": "1cf83f2d-97cb-4411-a121-f91d36d3621f",
+          "status": "failed",
+          "model_turns": 40,
+          "classification": "supervisor-diagnosed_platform_context_defect_with_exact_error_reproduction; Hub_authors_business_repair",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\1cf83f2d-97cb-4411-a121-f91d36d3621f\\workspace"
+        }
+      ],
+      "raw_report_sha256": "ee05c1271241d6f511bebb4df9259c23d21a740957962a69ca1cceb4d1d0970b"
+    },
+    {
+      "report": "docs/reviews/hub-dmghg-mobile-patch-handoff-v1.json",
+      "attempts": [
+        {
+          "task_id": "27120078-c47f-49b4-bf9a-0ffd66e7e189",
+          "status": "completed",
+          "model_turns": 28,
+          "classification": "resume_after_budget; Hub_patch_exists; no_host_business_edits",
+          "execution_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\27120078-c47f-49b4-bf9a-0ffd66e7e189\\workspace"
+        }
+      ],
+      "raw_report_sha256": "e1df2a701136a87b70844e16113376d3eb3d4d31f9224968d67036acfb16c719"
+    }
+  ],
+  "hub": {
+    "task_id": "27120078-c47f-49b4-bf9a-0ffd66e7e189",
+    "status": "completed",
+    "model": "gemini-3.8-flash-high",
+    "model_turns": 28,
+    "source_candidate": {
+      "pid": 6020,
+      "port": 39872,
+      "sha256": "2c86a2eb7f5e7060fc46dd724ea72bc819b27542db128f3e9e3a1c4056d22302",
+      "source": "current-source build with process evidence and inspection plateau advisory",
+      "tests": "577 passed 0 failed 2 ignored 1 filtered",
+      "source_files": [
+        {
+          "path": "src/services/brain/cognitive_runtime.rs",
+          "sha256": "a01fa9b32aba8159ce69e0af5ddb8b2c8a3b55b1f973a07f3bbdacd7d0ed65d6"
+        },
+        {
+          "path": "src/services/brain/tool_execution_gateway.rs",
+          "sha256": "a948a3be2ff8119c0791f0832b0317f294b3d186589e1d779ed197a71ebd4807"
+        },
+        {
+          "path": "src/services/brain/task_progress.rs",
+          "sha256": "0b4d63233bd77ec18e45b37c08993e3904aa09ce94545a0d662bd8257dbd0ad5"
+        }
+      ],
+      "classification": "new session, known failed target and original rule; user platform references provided; not unseen autonomous generation"
+    },
+    "authored_business_patch": "patch_rule.js",
+    "source_workspace": "C:\\Users\\刘本录\\.superagent\\runs\\27120078-c47f-49b4-bf9a-0ffd66e7e189\\workspace",
+    "classification": "assisted_known_target_repair_with_host_diagnosis",
+    "prior_failed_40_turn_repair_wrote_script_but_did_not_execute": "1cf83f2d-97cb-4411-a121-f91d36d3621f"
+  },
+  "delivery": {
+    "directory": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\dmghg-android-feedback-20261104\\hub-mobile-candidate-v2",
+    "title": "动漫共和国 (纯JS直连测试版)",
+    "version": 2,
+    "original_cloud_id_updated": false,
+    "phone_retest_pending": false,
+    "plan_progress": "44/76; 4.18 and 4.19 remain pending"
+  },
+  "followup_cloud_publication": {
+    "user_authorized": true,
+    "remote_command": "云6oooole/xxxxxx/ifdfmbe8mvrihecg",
+    "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+    "review": "docs/reviews/hub-dmghg-mobile-v2-cloud-review-v1.json",
+    "old_cloud_entry_overwritten": false,
+    "android_phone_test_pending": false
+  },
+  "user_reported_mobile_acceptance": {
+    "remote_command": "云6oooole/xxxxxx/ifdfmbe8mvrihecg",
+    "verbatim": "手机实测可用。hub现在还存在哪些缺陷，帮我继续推进",
+    "date": "2026-11-05",
+    "source": "user_message",
+    "scope": "User-reported mobile usability of delivered v2; not direct host device testing or exhaustive platform coverage",
+    "rule_sha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e"
+  },
+  "android_phone_test_pending": false,
+  "host_direct_device_test": false
+}

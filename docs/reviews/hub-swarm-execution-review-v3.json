@@ -1,0 +1,154 @@
+{
+  "date": "2026-11-06",
+  "stage": "P8-B3",
+  "author": "Codex implemented runtime and controlled fixture responses; no actual upstream model call in this batch",
+  "progress": {
+    "complete": 62,
+    "total": 106,
+    "completedThisBatch": [
+      "9.6",
+      "9.7"
+    ],
+    "remaining": 44
+  },
+  "candidate": {
+    "sha256": "e5fb57ec2e020dbd964660f6e395439019e3f4637c053fc92ff362fab828765b",
+    "bundle": "artifacts/hub-swarm-memory-20261106/v3/candidate-tool-contract-bundle",
+    "manifestEntries": 39,
+    "installed": false
+  },
+  "tests": {
+    "fullRust": {
+      "passed": 636,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": [
+        "domains::code_review::tests::test_review_current_project_workspace"
+      ],
+      "log": "artifacts/hub-swarm-memory-20261106/v3/regression-final.log",
+      "scope": "functional code; subsequent model-tool description-only correction verified by 19 targeted tests and final rebuilt HTTP"
+    },
+    "latestTargetedRust": {
+      "passed": 19,
+      "failed": 0,
+      "log": "artifacts/hub-swarm-memory-20261106/v3/tool-contract-tests.log"
+    },
+    "build": "hub and superagent bins passed",
+    "controlledHttp": {
+      "controlObservations": 68,
+      "deliveryObservations": 202,
+      "pollCountsAreNotTestCounts": true,
+      "controlProof": "artifacts/hub-swarm-memory-20261106/v3/control-tool-contract/acceptance.json",
+      "deliveryProof": "artifacts/hub-swarm-memory-20261106/v3/delivery-tool-contract/acceptance.json",
+      "scope": "controlled model, real Hub processes; not intelligence certification",
+      "businessVerified": false
+    },
+    "globalProtection": {
+      "passed": true,
+      "requests": 17,
+      "checks": [
+        "unverified_health",
+        "registered_not_running",
+        "spawn_no_phantom_node",
+        "template_pending",
+        "execute_no_mutation",
+        "empty_flow_rejected",
+        "unknown_flow_404",
+        "shutdown_not_faked",
+        "volatile_blackboard",
+        "capability_scope"
+      ],
+      "proof": "artifacts/hub-swarm-memory-20261106/v3/control-tool-contract/global-guard.json",
+      "priorExtraLaunchRejection": "historical v2 rejection retained; this batch ran frozen checks using an already owned controlled test service"
+    }
+  },
+  "cases": [
+    {
+      "case": "owned snapshot / fingerprint / conflict / idempotent apply / completed recovery",
+      "parent": "d8e2b080-a280-4ca3-8d98-b539a66054b2",
+      "states": [
+        "succeeded",
+        "succeeded"
+      ],
+      "allReaped": true,
+      "businessVerified": false
+    },
+    {
+      "case": "crashed owner / no orphan / no replay",
+      "parent": "fb537ece-6ef9-40ac-9d54-e6bf53ed4b7e",
+      "states": [
+        "failed",
+        "failed"
+      ],
+      "allReaped": true,
+      "businessVerified": false
+    },
+    {
+      "case": "parent timeout reconciles child",
+      "parent": "e565c961-cce9-4769-803c-e9907cd86eb8",
+      "states": [
+        "timed_out"
+      ],
+      "allReaped": true,
+      "businessVerified": false
+    },
+    {
+      "case": "parent cancel reconciles child",
+      "parent": "b6fcf141-76f6-49b1-bc2a-ccf585d7dac9",
+      "states": [
+        "cancelled"
+      ],
+      "allReaped": true,
+      "businessVerified": false
+    }
+  ],
+  "capabilities": [
+    "current parent code snapshot including dirty/untracked admitted files; no ancestor/origin Git HEAD reuse",
+    "explicit digest-bound collection with ownership/conflict/protected-path guards and idempotent receipt",
+    "durable child journal plus exclusive session lease; recover abandoned children without rerun or merge replay",
+    "actual process birth identity, heartbeat, cancellation, timeout and parent-exit reconciliation"
+  ],
+  "failedAttemptsPreserved": [
+    {
+      "evidence": "compile-first.log",
+      "cause": "serde internal action tag conflicted with collect action field",
+      "fix": "internal operation field"
+    },
+    {
+      "evidence": "subagent-tests.log",
+      "cause": "Windows append-only handle could not truncate torn journal",
+      "fix": "read/write handle plus serialized seek to end under exclusive lease"
+    },
+    {
+      "evidence": "control-live and delivery-live",
+      "cause": "Git inherited IPC stdin and stalled",
+      "fix": "null stdin, bounded Git execution, owned process-tree containment"
+    },
+    {
+      "evidence": "delivery-live-v2",
+      "cause": "fixture assumed nested task status response",
+      "fix": "client reads actual flat Task API"
+    },
+    {
+      "evidence": "delivery-live-v3",
+      "cause": "fixture expected parent Timeout synchronously with child terminal frame",
+      "fix": "bounded poll for actual parent Timeout; assertion retained"
+    }
+  ],
+  "unchanged": {
+    "defaultHubSha256": "4021fbc50618e96239a64f3233d24e95f41b2878a5e71d7f284344b0827c0aa9",
+    "acceptedRuleSha256": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e",
+    "resourceFiles": 38,
+    "guiUsed": false,
+    "newCloudPublication": false
+  },
+  "limits": [
+    "Controlled model responses prove execution contracts, not Gemini reasoning/autonomous business completion. Prior actual-model 0/2 completed attempts remain historical failures.",
+    "9.8 workflow/evidence gate and 9.9 real-model dual-task completion remain pending.",
+    "Code-only manifest excludes binaries, large assets and generated directories; symlinks/junctions rejected. Not an OS sandbox or full dependency snapshot.",
+    "9.10 aggregate budget/negative-case business certification, automatic memory C, default graph D and held-out E remain pending.",
+    "Final candidate not installed; user default binary remains prior A protection version."
+  ],
+  "evidenceRoot": "artifacts/hub-swarm-memory-20261106/v3",
+  "sourceIdentity": "artifacts/hub-swarm-memory-20261106/v3/source-identity.json"
+}

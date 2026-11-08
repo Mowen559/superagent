@@ -49,7 +49,6 @@ pub async fn run_worker(
     }
     use crate::services::brain::capabilities::shell::LocalShellProvider;
     use crate::domains::agent_cognitive::executor::AgentLoop;
-    use crate::services::brain::subagent_runtime::SubagentRuntime;
     use crate::services::brain::tools::fs::{
         FindByNameTool, GrepSearchTool, ListDirectoryTool, MultiReplaceTool, ReadFileTool,
         ReplaceInFileTool, ViewOutlineTool, WriteFileTool,
@@ -63,9 +62,6 @@ pub async fn run_worker(
     use crate::services::brain::tools::shadow_git_tool::ShadowGitTool;
     use crate::services::brain::tools::shell::RunCommandTool;
     use crate::services::brain::tools::skill_tool::SkillTool;
-    use crate::services::brain::tools::subagent::{
-        CancelSubagentTool, CheckWorkerStatusTool, InterveneWorkerTool, InvokeSubagentTool,
-    };
     use crate::services::brain::tools::checkpoint::{
         CreateCheckpointTool, RevertToCheckpointTool,
     };
@@ -114,12 +110,8 @@ pub async fn run_worker(
     // 潜意识唤醒：从 SuperMemory 检索与当前 Prompt 最相关的项目规范与历史经验
     let app_paths = crate::config::app_paths::AppPaths::new();
     let runtime_config = crate::config::runtime::RuntimeConfig::from_env(&app_paths);
-    let store = crate::services::supermemory_store::SupermemoryStore::new(
-        &runtime_config,
-        Some(&project_path_str),
-    );
-
-    let relevant_memories = store.search(prompt, 5);
+    // Project notes are projected once by RunPrelude using the source-project
+    // managed store and legacy provenance; do not inject a second authority.
     let mut full_system_prompt = worker_system_prompt.to_string();
     if let Some(mode) = work_mode {
         full_system_prompt.push_str("\n\n# 当前协作工作模式 (Active Collaboration Mode)\n");
@@ -151,26 +143,6 @@ pub async fn run_worker(
         });
         full_system_prompt.push('\n');
     }
-    if !relevant_memories.is_empty() {
-        full_system_prompt.push_str("\n\n# 潜意识架构记忆库 (SuperMemory Subconscious Context)\n");
-        full_system_prompt.push_str("【系统已从宿主工程 SuperMemory 记忆库中预先召回与当前任务高度相关的工程规范与沉淀经验】：\n");
-        for (idx, mem) in relevant_memories.iter().enumerate() {
-            full_system_prompt.push_str(&format!(
-                "{}. [{}] {}\n   - 规范摘要: {}\n",
-                idx + 1,
-                mem.node_type,
-                mem.name,
-                mem.summary.trim()
-            ));
-        }
-        full_system_prompt.push_str("【执行红线】：你必须严格遵守上述记忆中的架构约束与经验。如有需要，可使用 `super_memory` 或 `skill_tool` 进行检索或沉淀。\n");
-        eprintln!(
-            "\x1b[35m[Subconscious Awakening] 🧠 Retrieved {} relevant memories from SuperMemory for prompt: {}\x1b[0m",
-            relevant_memories.len(),
-            prompt.chars().take(60).collect::<String>()
-        );
-    }
-
     // 动态技能侦测与挂载 (Proactive Domain Skill Scouting & Mounting)
     let matched_skills = crate::domains::agent_cognitive::capability_scout::CapabilityScout::scout_and_match_skills(prompt, &cwd_path);
     full_system_prompt.push_str(&crate::domains::agent_cognitive::capability_scout::CapabilityScout::render_task_skills(
@@ -238,8 +210,9 @@ pub async fn run_worker(
             effective_root.clone(),
         ),
     ));
+    agent.register_tool(Box::new(crate::services::brain::tools::code_review::CodeReviewTool::new(effective_root.clone())));
     agent.register_tool(Box::new(OpenclawTool));
-    agent.register_tool(Box::new(HermesTool::default()));
+    agent.register_tool(Box::new(HermesTool::new(crate::services::brain::evolution_memory::EvolutionMemory::for_project(&runtime_config,&effective_root))));
     agent.register_tool(Box::new(NativeHarnessTool));
     agent.register_tool(Box::new(
         crate::services::brain::tools::self_persona_tool::UpdateSelfPersonaTool::new(
@@ -251,26 +224,14 @@ pub async fn run_worker(
 
     agent.plugin_registry.load_dynamic_plugins_from(&effective_root);
 
-    let runtime = Arc::new(SubagentRuntime::new(
-        "worker",
-        crate::services::brain::steering_queue::SteeringQueue::default_location().into(),
-    ));
-    agent.register_tool(Box::new(InvokeSubagentTool::new(
-        runtime.clone(),
-        "worker".to_string(),
-    )));
-    agent.register_tool(Box::new(CheckWorkerStatusTool::new(
-        runtime.clone(),
-        "worker".to_string(),
-    )));
-    agent.register_tool(Box::new(InterveneWorkerTool::new(runtime.clone())));
-    agent.register_tool(Box::new(CancelSubagentTool::new(runtime.clone())));
+    crate::services::brain::subagent_runtime::register_tools(&mut agent, model.as_deref());
 
     agent.register_tool(Box::new(ReadToolResultTool::from_shared(agent.tool_result_store())));
 
     // 启动后台 Stdin 异步消息循环，打通与 Hub 主进程的双向交互（支持 AskUser 回复与动态干预）
     let interaction_runtime = agent.interaction_runtime.clone();
     let steering_queue = agent.steering_queue.clone();
+    let subagents = agent.ctx.resolve::<crate::services::brain::subagent_runtime::SubagentRuntime>("subagent_runtime");
     let stdin_handle = tokio::spawn(async move {
         use tokio::io::{AsyncBufReadExt, BufReader};
         use crate::services::brain::ipc::IpcMessage;
@@ -285,6 +246,9 @@ pub async fn run_worker(
             }
             if let Ok(msg) = serde_json::from_str::<IpcMessage>(&line) {
                 match msg {
+                    IpcMessage::SubagentControl(control) => {
+                        if let Some(runtime) = &subagents { runtime.handle_control(control); }
+                    }
                     IpcMessage::UserResponse {
                         request_id,
                         response,
@@ -305,11 +269,19 @@ pub async fn run_worker(
         }
     });
 
+    let heartbeat = std::env::var("HUB_PARENT_RUN_ID").ok().map(|_|tokio::spawn(async {
+        loop {tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            crate::services::brain::ipc::send_to_hub(crate::services::brain::ipc::IpcMessage::Heartbeat);
+        }
+    }));
     let run_res = agent.run_with_images(prompt, load_image_data_urls(&image_paths)).await;
+    if let Some(heartbeat)=heartbeat{heartbeat.abort();let _=heartbeat.await;}
     stdin_handle.abort();
 
     // 自动触发会话轨迹经验自省与自愈提炼，持久化写入 SuperMemory
-    let persisted_count = if run_res.is_ok() {
+    let allow_auto_persistence = !matches!(work_mode, Some(crate::services::brain::tool_policy::WorkMode::Plan))
+        && std::env::var("HUB_PARENT_RUN_ID").is_err();
+    let persisted_count = if run_res.is_ok() && allow_auto_persistence {
         crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
             &agent.events, &runtime_config, Some(&effective_root.to_string_lossy()))
     } else { 0 };
@@ -321,7 +293,7 @@ pub async fn run_worker(
     }
 
     // 自动技能结晶飞轮 (Auto-Skill Crystallization Flywheel)
-    if run_res.is_ok() {
+    if run_res.is_ok() && allow_auto_persistence {
         if let Some(crystallized) = crate::domains::agent_cognitive::skill_crystallizer::AutoSkillCrystallizer::crystallize_from_trajectory(
             prompt, &agent.events, &effective_root) {
             eprintln!("[Skill Crystallizer] Stored completed-Run skill '{}' at {}", crystallized.name, crystallized.path);

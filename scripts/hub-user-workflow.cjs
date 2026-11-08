@@ -40,7 +40,8 @@ if (args.includes('--identity')) {
   if (actual.toLowerCase() !== identity.binarySha256.toLowerCase()) throw Error('Runtime binary fingerprint mismatch');
   report.runtime = { ...identity, identity_path: identityPath, verified_binary_sha256: actual };
 }
-const persist = () => { fs.mkdirSync(path.dirname(output), { recursive: true }); const temporary=output+'.tmp'; fs.writeFileSync(temporary, JSON.stringify(report, null, 2)); fs.renameSync(temporary,output); };
+const { writeJsonCheckpoint } = require('./hub-workflow-checkpoint.cjs');
+const persist = () => { fs.mkdirSync(path.dirname(output), { recursive: true }); writeJsonCheckpoint(output, report); };
 // Redact signed URLs and any accidentally echoed credentials before persistence.
 function redact(value) {
   if (typeof value === 'string') return value.replace(/sk-[a-zA-Z0-9_-]{16,}/g, '[REDACTED_KEY]')
@@ -71,6 +72,10 @@ async function execute(definition) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ((definition.request.timeoutSeconds || 300) + 15) * 1000);
   try {
+    if(args.includes('--open-workspace')) {
+      await client.openWorkspace(definition.request.project);
+      attempt.workspace_opened_by_control_plane=true;persist();
+    }
     const submitted = await client.runAgent(definition.request);
     attempt.task_id = submitted.taskId; persist();
     const response = await fetch(`${client.getBaseUrl()}/api/agents/tasks/${encodeURIComponent(submitted.taskId)}/events`, { signal: controller.signal });
@@ -141,7 +146,14 @@ async function execute(definition) {
 (async () => {
   const models = await client.listModels();
   report.configured_models = models;
-  if (!models.includes(report.model)) throw Error('Requested model not configured');
+  if (!models.includes(report.model)) {
+    if (!args.includes('--verify-configured-health')) throw Error('Requested model not configured');
+    const health=await fetch(`${client.getBaseUrl()}/api/health`).then(r=>r.json());
+    const provider=health.statuses?.find(s=>s.key==='llm-provider');
+    if(provider?.state!=='ok'||!provider.message?.includes(`model ${report.model} via `))throw Error('Requested model not confirmed by backend health');
+    report.model_readiness={source:'explicit legacy backend configured-provider health; catalog cannot advertise configured model',model:report.model};
+    persist();
+  }
   let definitions;
   if (args.includes('--requests')) {
     definitions = JSON.parse(fs.readFileSync(option('--requests'), 'utf8'));

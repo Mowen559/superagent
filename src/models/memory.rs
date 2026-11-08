@@ -52,7 +52,26 @@ pub struct SupermemoryStoreData {
     pub logs: Vec<SupermemoryLogEntry>,
     pub stats: SupermemoryStats,
     #[serde(default)]
+    pub memory_context: std::collections::HashMap<String, MemoryContext>,
+    #[serde(default)]
     pub corpus: KnowledgeCorpusState,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemoryContext {
+    pub project: String,
+    pub source: String,
+    pub kind: String,
+    pub confidence: f32,
+    pub state: String,
+    pub revision: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_file: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,6 +145,7 @@ impl Default for SupermemoryStoreData {
             version: 1,
             memories: Vec::new(),
             logs: Vec::new(),
+            memory_context: std::collections::HashMap::new(),
             corpus: KnowledgeCorpusState::default(),
             stats: SupermemoryStats {
                 total_queries: 0,

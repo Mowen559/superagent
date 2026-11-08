@@ -1,4 +1,4 @@
-use crate::domains::agent_cognitive::intent::{ActionGoal, DynamicIntent, DynamicIntentEngine};
+use crate::domains::agent_cognitive::intent::{ActionGoal, CurrentRequestStage, DynamicIntent, DynamicIntentEngine};
 pub use crate::domains::model_gateway::model_attempt_router::BrainTier;
 use crate::services::brain::evolution_memory::{DistilledLesson, EvolutionReport};
 use crate::domains::agent_cognitive::verification_gate::{GateDecision, VerificationGateGuard, VerificationPolicy};
@@ -54,8 +54,10 @@ pub struct CognitiveRuntime {
     mutation_tool_calls: usize,
     inquiry_tool_calls: usize,
     successful_tools: usize,
+    project_context_observations: usize,
     failed_tools: usize,
     consecutive_failures: usize,
+    observations_since_progress: usize,
     completion_review_used: bool,
     max_model_turns: usize,
     plan: RunPlan,
@@ -64,6 +66,8 @@ pub struct CognitiveRuntime {
     distilled_lessons: Vec<DistilledLesson>,
     task_progress: SharedTaskProgress,
     proposal_only: bool,
+    memory_only_scope: bool,
+    memory_operation_verified: bool,
     recovery_hint: Option<String>,
     pub socratic_payload: Option<crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryPayload>,
     pub verification_gate: VerificationGateGuard,
@@ -77,35 +81,24 @@ impl CognitiveRuntime {
     pub fn with_mode(objective: &str, mode: ReasoningMode) -> Self {
         let mut intent = DynamicIntentEngine::analyze(objective);
         let normalized = objective.to_lowercase();
-        let mut scope_prefix = normalized.trim_start();
-        for _ in 0..3 {
-            if let Some(rest) = ["这次", "本轮", "please ", "请你", "请", "帮我"]
-                .iter()
-                .find_map(|prefix| scope_prefix.strip_prefix(prefix))
-            {
-                scope_prefix = rest.trim_start_matches([' ', ':', '：']);
-            } else {
-                break;
-            }
-        }
-        let proposal_only = [
-            "只做规划",
-            "只给方案",
-            "只要方案",
-            "只制定计划",
-            "仅做规划",
-            "planning only",
-            "plan only",
-            "proposal only",
-        ]
-        .iter()
-        .any(|marker| scope_prefix.starts_with(marker));
-        let investigation_only=["只做调查","只做分析","只做复核","只做审查","只分析","仅分析","只检查","只做逆向理解","investigation only","analysis only","read-only investigation"]
-            .iter().any(|marker|scope_prefix.starts_with(marker));
+        // Conservative explicit native-note routing. Mixed code requests retain
+        // their normal implementation gates; note receipts never certify code.
+        let note_prefix=normalized.trim_start().trim_start_matches("请").trim_start();
+        let note_prefix=note_prefix.strip_prefix("使用 ").or_else(||note_prefix.strip_prefix("使用")).or_else(||note_prefix.strip_prefix("please use ")).or_else(||note_prefix.strip_prefix("use ")).unwrap_or(note_prefix).trim_start();
+        let memory_only_scope=note_prefix.starts_with("super_memory")
+            && contains_any(&normalized,&["保存","记住","记录","撤销","store","revoke"])
+            && !matches!(intent.goal,ActionGoal::SurgicalExecution|ActionGoal::RefactoringModernization)
+            && (intent.goal!=ActionGoal::VerificationBenchmark || contains_any(&normalized,&["不用运行代码测试","不需要运行测试","无需代码测试","no code tests"]));
+        let stage = CurrentRequestStage::classify(objective);
+        let proposal_only = stage == CurrentRequestStage::ProposalOnly;
+        let investigation_only = stage == CurrentRequestStage::InvestigationOnly;
         let proposal_needs_workspace = contains_any(
             &normalized,
             &[
                 "当前",
+                "文件",
+                "代码",
+                "报错",
                 "现有",
                 "仓库",
                 "readme",
@@ -142,6 +135,12 @@ impl CognitiveRuntime {
             intent.capability.suggested_mutation_tools.clear();
             intent.capability.suggested_verification_tools.clear();
         }
+        if memory_only_scope {
+            task_kind=TaskKind::Investigative;
+            intent.capability.suggested_inspection_tools=vec!["super_memory".into()];
+            intent.capability.suggested_mutation_tools=vec!["super_memory".into()];
+            intent.capability.suggested_verification_tools.clear();
+        }
 
         let evidence_required = if proposal_only {
             proposal_needs_workspace
@@ -167,6 +166,10 @@ impl CognitiveRuntime {
         if investigation_only {
             default_anchors.push("Investigation-only scope: gather evidence and report findings. Do not change business source code or create an implementation step just to satisfy a completion gate; code mutation and implementation tests are not required for this read-only objective.".into());
         }
+        if memory_only_scope {
+            default_anchors.retain(|anchor|!anchor.starts_with("Verification Closed-Loop"));
+            default_anchors.push("Native project-note scope: only the requested super_memory mutation is authorized. Its runtime readback verifies the storage operation, never the truth of the note or code quality. Do not run code tests or edit project files for this task.".into());
+        }
 
         for path in &intent.constraints.protected_paths {
             default_anchors.push(format!("【IRONCLAD INVARIANT】Path '{}' is strictly protected from mutation under user mandate!", path));
@@ -178,13 +181,14 @@ impl CognitiveRuntime {
             ));
         }
 
-        let plan = if !proposal_only && intent.goal == ActionGoal::VerificationBenchmark {
+        let plan = if !proposal_only && !memory_only_scope && intent.goal == ActionGoal::VerificationBenchmark {
             RunPlan::for_verification()
         } else {
             RunPlan::for_task(task_kind)
         };
         let mut progress=TaskProgress::default();
-        progress.set_read_only_scope(investigation_only || intent.constraints.read_only_mode);
+        progress.set_read_only_scope(proposal_only || investigation_only || intent.constraints.read_only_mode);
+        progress.set_memory_only_scope(memory_only_scope);
         Self {
             objective: objective.chars().take(500).collect(),
             mode,
@@ -196,8 +200,10 @@ impl CognitiveRuntime {
             mutation_tool_calls: 0,
             inquiry_tool_calls: 0,
             successful_tools: 0,
+            project_context_observations:0,
             failed_tools: 0,
             consecutive_failures: 0,
+            observations_since_progress: 0,
             completion_review_used: false,
             max_model_turns: DEFAULT_MAX_MODEL_TURNS,
             plan,
@@ -206,6 +212,8 @@ impl CognitiveRuntime {
             distilled_lessons: Vec::new(),
             task_progress: std::sync::Arc::new(std::sync::Mutex::new(progress)),
             proposal_only,
+            memory_only_scope,
+            memory_operation_verified:false,
             recovery_hint:None,
             socratic_payload: crate::domains::agent_cognitive::socratic_inquiry::SocraticInquiryEngine::evaluate(objective, None),
             verification_gate: VerificationGateGuard::new(
@@ -233,6 +241,7 @@ impl CognitiveRuntime {
     }
 
     fn promote_execution(&mut self, require_action: bool) {
+        if self.memory_only_scope { return; }
         if self.proposal_only || self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).is_read_only_scope() { return; }
         self.task_kind=TaskKind::Execution;
         self.evidence_required=true;
@@ -248,6 +257,8 @@ impl CognitiveRuntime {
         if let Some(require_action)=execution { self.promote_execution(require_action); }
     }
     pub fn note_requirement_update(&mut self) {
+        self.project_context_observations=0;
+        self.memory_operation_verified=false;
         self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).note_requirement_update();
         self.plan.invalidate_verification();
         self.verification_gate.invalidate_verification();
@@ -255,6 +266,8 @@ impl CognitiveRuntime {
     }
 
     pub fn invalidate_after_rollback(&mut self) {
+        self.project_context_observations=0;
+        self.memory_operation_verified=false;
         self.task_progress.lock().unwrap_or_else(|e| e.into_inner()).invalidate_after_rollback();
         self.plan.reset_evidence();
         self.recovery_hint=None;
@@ -263,6 +276,13 @@ impl CognitiveRuntime {
 
     pub fn consecutive_failures(&self) -> usize {
         self.consecutive_failures
+    }
+    /// Only the executor supplies the count of complete runtime-validated note
+    /// blocks already present in the request. Historical data is not a test.
+    pub fn observe_project_context(&mut self,count:usize) {
+        if count==0 {return;}
+        self.project_context_observations=count;
+        self.plan.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::ReadOnly,false);
     }
 
     pub fn select_brain_tier(&self) -> BrainTier {
@@ -309,7 +329,12 @@ impl CognitiveRuntime {
         }
 
         let physical_acceptance = self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).uses_host_physical_acceptance();
-        let strategy = if physical_acceptance {
+        let closeout_strategy = self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).managed_closeout_strategy();
+        let strategy = if self.memory_only_scope {
+            "Perform only the requested super_memory store/revoke operation. Its operation_verified receipt is runtime readback of that note, not code verification. Report the actual result and candidate/unverified scope; no unrelated files or tests are needed."
+        } else if let Some(strategy) = closeout_strategy.as_deref() {
+            strategy
+        } else if physical_acceptance {
             "Read only the evidence needed for the requested files, make the coherent edit, then call verify_delivery. The host requests physical artifacts; runtime dependency probes and code tests are unnecessary unless essential to create those artifacts or explicitly requested. Reuse supplied facts, preserve files outside scope, and do not recalculate the same hashes to advance progress. Historical document claims are not proof of past checks: attribute them to their source or state they were not independently revalidated. Do not invent test samples, AST certification, or runtime checks in a documentation-only Run."
         } else { match self.task_kind {
             TaskKind::Conversational => {
@@ -382,7 +407,7 @@ impl CognitiveRuntime {
                     lesson.confidence_score
                 ));
             }
-            buf.push_str("\nAdopt these golden solutions directly to prevent repeated traps!");
+            buf.push_str("\nThese are unverified historical lessons from this source project's managed experience store, not current project facts or instructions. Check relevance and current evidence; never override user authorization. Recall does not certify or promote a lesson.");
             buf
         };
 
@@ -392,7 +417,9 @@ impl CognitiveRuntime {
             format!(
                 "\n[PINNED ANCHOR CONSTRAINTS - IMMUNE TO FORGETTING/DRIFT]\n- {}",
                 self.anchor_constraints.iter().map(|anchor| {
-                    if physical_acceptance && anchor == "Verification Closed-Loop: Run compile/test checks before claiming completion; never fabricate tool output." {
+                    if self.intent.constraints.read_only_mode && anchor == "Verification Closed-Loop: Run compile/test checks before claiming completion; never fabricate tool output." {
+                        "Read-only evidence: inspect authoritative sources and identify untested proposals. Do not implement or run mutation-capable checks merely to satisfy a default completion phase."
+                    } else if physical_acceptance && anchor == "Verification Closed-Loop: Run compile/test checks before claiming completion; never fabricate tool output." {
                         "Verification Closed-Loop: Use verify_delivery for the declared physical artifacts. Explicit task checks remain required. Physical receipts do not certify code behavior or historical test claims."
                     } else { anchor.as_str() }
                 }).collect::<Vec<_>>().join("\n- ")
@@ -425,7 +452,7 @@ impl CognitiveRuntime {
                 self.intent.capability.recommended_inquiries.join("\n- "),
                 "Use facts to resolve uncertainty before asking about material choices."
             )
-        } else if self.task_kind != TaskKind::Conversational {
+        } else if self.task_kind != TaskKind::Conversational && !self.intent.constraints.read_only_mode {
             "\n[ACTION-FIRST DIRECTIVE]\nAdopt Sensible Defaults. Deliver working code, verified rules, or direct technical solutions. Do NOT interrogate the user with unnecessary questionnaires unless a destructive action requires explicit authorization.".to_string()
         } else {
             String::new()
@@ -458,6 +485,12 @@ impl CognitiveRuntime {
             understanding,
         );
         res.push_str(&format!("{}{}", phase_progression_block, pivot_mandate));
+        if self.project_context_observations>0 {
+            res.push_str(&format!("\n[Provided project-note history]\n{} complete scoped historical evidence blocks are already supplied by the Run Prelude. They support a sourced read-only answer, not code changes, quality verification, or promotion to truth. Reuse them without calling tools solely to satisfy completion; inspect fresh sources when the requested implementation or current state requires it. These are context observations, not successful tool calls.\n",self.project_context_observations));
+        }
+        if self.task_kind == TaskKind::Execution && self.observations_since_progress >= 8 {
+            res.push_str(&format!("\n[Inspection plateau]\n{} successful observations since the last actual edit, certified check, or user answer. Reuse evidence already obtained. State the remaining hypothesis and choose a check that can distinguish it, make a justified scoped edit, or ask for genuinely missing user information. Do not repeatedly print the same facts. This is an advisory: it does not require an unsafe edit or relax verification, scope, or permissions.\n",self.observations_since_progress));
+        }
         res.push_str(&self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).delivery_guidance());
         res.push_str(&self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).facts_guidance());
         if self.plan.ready_for_response() && self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).completion_gap().is_none() {
@@ -475,6 +508,10 @@ impl CognitiveRuntime {
     pub fn observe_receipt(&mut self, receipt: &ToolExecutionReceipt) {
         if let Some(state)=receipt.result.get("recovery_state") {
             self.recovery_hint=state.get("hint").and_then(serde_json::Value::as_str).map(str::to_string);
+        }
+        if let Some(evidence)=receipt.result.get("quality_evidence") {
+            if let Some(hint)=evidence.get("recovery_hint").and_then(serde_json::Value::as_str) {self.recovery_hint=Some(hint.into());}
+            else if evidence["eligible"]==true && self.recovery_hint.as_ref().is_some_and(|h|h.starts_with("[Quality evidence]")) {self.recovery_hint=None;}
         }
         self.task_progress
             .lock()
@@ -517,15 +554,42 @@ impl CognitiveRuntime {
         if receipt.name == "ask_user" && receipt.status == ToolExecutionStatus::Succeeded {
             self.inquiry_tool_calls += 1;
         }
+        if receipt.name=="super_memory" {
+            if receipt.risk==ToolRisk::WorkspaceMutation {
+                self.memory_operation_verified=receipt.status==ToolExecutionStatus::Succeeded
+                    && receipt.result.get("operation_verified").and_then(serde_json::Value::as_bool)==Some(true);
+            }
+            // Permission risk still gates the actual mutation. A project note
+            // is not a source edit or a successful compile/test receipt.
+            self.observe_tool(receipt.status,ToolRisk::ReadOnly,false);
+            return;
+        }
+        // A conservative permission risk can invalidate old verification, but
+        // process success alone cannot prove a physical file change.
+        if receipt.is_process_observation() && !receipt.verification
+            && matches!(receipt.risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive) {
+            self.plan.invalidate_verification();
+        }
         let evidence_risk = if receipt.name=="perform_delivery_action" && receipt.status==ToolExecutionStatus::Succeeded {
             ToolRisk::WorkspaceMutation
         } else if receipt.is_process_observation() {
             ToolRisk::ReadOnly
         } else { receipt.risk };
         self.observe_tool(receipt.status, evidence_risk, receipt.verification);
+        if receipt.name == "ask_user" && receipt.status == ToolExecutionStatus::Succeeded
+            && receipt.result.get("response").and_then(serde_json::Value::as_str).is_some_and(|s|!s.trim().is_empty()) {
+            self.observations_since_progress = 0;
+        }
     }
 
     fn observe_tool(&mut self, status: ToolExecutionStatus, risk: ToolRisk, verification: bool) {
+        if status == ToolExecutionStatus::Succeeded {
+            if verification || matches!(risk, ToolRisk::WorkspaceMutation | ToolRisk::Destructive) {
+                self.observations_since_progress = 0;
+            } else if matches!(risk, ToolRisk::ReadOnly | ToolRisk::Network | ToolRisk::ProcessControl) {
+                self.observations_since_progress = self.observations_since_progress.saturating_add(1);
+            }
+        }
         if status==ToolExecutionStatus::Succeeded && matches!(risk,ToolRisk::WorkspaceMutation|ToolRisk::Destructive) && !verification {
             self.promote_execution(true);
         }
@@ -567,6 +631,12 @@ impl CognitiveRuntime {
             .observe_tool_execution(tool_name, command_arg, success, output_snippet);
     }
 
+    pub fn observe_executed_tool_details(&mut self, receipt:&ToolExecutionReceipt, command_arg:Option<String>, output:&str) {
+        if matches!(receipt.status,ToolExecutionStatus::Succeeded|ToolExecutionStatus::Failed|ToolExecutionStatus::Panicked) {
+            self.observe_tool_execution_details(&receipt.name,command_arg,receipt.status==ToolExecutionStatus::Succeeded,output);
+        }
+    }
+
     pub fn review_completion(&mut self, draft: &str) -> CompletionDecision {
         let host_physical=self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).host_physical_delivery_complete();
         if host_physical {self.plan.accept_host_physical_delivery();}
@@ -590,7 +660,10 @@ impl CognitiveRuntime {
         .iter()
         .any(|kw| normalized.contains(kw));
 
-        let integrity_gap = if self.task_kind == TaskKind::Execution
+        let delivery_gate_gap = {self.task_progress.lock().unwrap_or_else(|e|e.into_inner()).delivery_gate_gap()};
+        let integrity_gap = delivery_gate_gap.or_else(|| if self.memory_only_scope && !self.memory_operation_verified {
+            Some("The requested project-note operation has no successful runtime readback. Use super_memory for the authorized note operation; do not create code or tests to satisfy this scope.".into())
+        } else if self.task_kind == TaskKind::Execution
             && claims_written
             && self.mutation_tool_calls == 0
         {
@@ -600,13 +673,13 @@ impl CognitiveRuntime {
             && self.task_kind == TaskKind::Execution
         {
             Some("主动对齐拦截: Inspect the workspace first. Ask the user only about material choices that remain unresolved after inspection.".to_string())
-        } else if self.evidence_required && self.successful_tools == 0 {
+        } else if self.evidence_required && self.successful_tools == 0 && self.project_context_observations==0 {
             Some("No successful tool evidence supports this objective. Inspect authoritative sources and address tool failures before concluding.".to_string())
         } else {
             self.plan.completion_gap().map(|gap| format!(
                 "The Run plan is incomplete at: {gap}. Complete it with tool evidence; verification requires a successful quality check after the latest change."
             )).or_else(|| self.task_contract_gap())
-        };
+        });
 
         if let Some(reason) = integrity_gap {
             // Review is bounded, but its use must never become a bypass for
@@ -684,6 +757,128 @@ fn contains_any(value: &str, needles: &[&str]) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn complete_project_context_supports_read_only_answer_without_fabricated_tools() {
+        let mut runtime=CognitiveRuntime::with_mode("只读查询：本项目已有约定是什么，说明来源和范围",ReasoningMode::Adaptive);
+        runtime.observe_project_context(1);
+        assert_eq!(runtime.tool_calls,0);assert_eq!(runtime.successful_tools,0);assert_eq!(runtime.mutation_tool_calls,0);
+        assert!(runtime.next_guidance().unwrap().contains("These are context observations, not successful tool calls"));
+        assert_eq!(runtime.review_completion("根据运行时提供的项目候选笔记，约定值如下；该笔记尚未经过业务验证。"),CompletionDecision::Accept);
+        runtime.note_requirement_update();
+        assert_ne!(runtime.review_completion("新要求也已核查完毕，全部无需进一步取证。"),CompletionDecision::Accept);
+    }
+    #[test]
+    fn absent_context_and_project_history_do_not_certify_changes_tests_or_note_writes() {
+        let mut empty=CognitiveRuntime::with_mode("只读查询本项目约定",ReasoningMode::Adaptive);
+        empty.observe_project_context(0);
+        assert_ne!(empty.review_completion("项目全部约定已经完整核实。"),CompletionDecision::Accept);
+        for prompt in ["请修复 calc.cjs 并测试", "运行当前项目测试", "请使用 super_memory 保存项目笔记"] {
+            let mut runtime=CognitiveRuntime::with_mode(prompt,ReasoningMode::Adaptive);
+            runtime.observe_project_context(1);
+            assert_ne!(runtime.review_completion("已经完成全部要求，源码与测试及笔记操作都已验证。"),CompletionDecision::Accept,"{prompt}");
+        }
+    }
+    fn note_receipt(verified:bool)->ToolExecutionReceipt {
+        ToolExecutionReceipt {call_id:"note".into(),name:"super_memory".into(),status:ToolExecutionStatus::Succeeded,duration_ms:0,
+            result:serde_json::json!({"status":"stored","operation_verified":verified}),original_result_chars:0,truncated:false,stored_result_reference:None,
+            risk:ToolRisk::WorkspaceMutation,verification:false}
+    }
+    #[test]
+    fn explicit_project_note_uses_runtime_readback_without_code_tests() {
+        for prompt in ["请使用 super_memory 保存项目笔记，不要修改项目文件，也不用运行代码测试。", "请使用 super_memory 撤销本项目约定，不要改项目文件，只报告实际结果。"] {
+            let mut runtime=CognitiveRuntime::with_mode(prompt,ReasoningMode::Adaptive);
+            assert!(runtime.memory_only_scope,"{prompt}");
+            assert_eq!(runtime.task_kind,TaskKind::Investigative);
+            assert!(runtime.task_progress.lock().unwrap().rejects_mutation("run_command",ToolRisk::ProcessControl));
+            assert!(runtime.task_progress.lock().unwrap().rejects_mutation("write_to_file",ToolRisk::WorkspaceMutation));
+            assert!(!runtime.task_progress.lock().unwrap().rejects_mutation("super_memory",ToolRisk::WorkspaceMutation));
+            runtime.observe_receipt(&note_receipt(true));
+            assert_eq!(runtime.mutation_tool_calls,0,"a note is not a source edit");
+            assert_eq!(runtime.review_completion("项目笔记的操作已读回确认；笔记本身仍是未经业务验证的历史资料。"),CompletionDecision::Accept);
+        }
+        let mut runtime=CognitiveRuntime::with_mode("请使用 super_memory 保存项目笔记",ReasoningMode::Adaptive);
+        runtime.observe_receipt(&note_receipt(false));
+        assert_ne!(runtime.review_completion("笔记已全部保存并且核对完成。"),CompletionDecision::Accept);
+    }
+    #[test]
+    fn project_note_receipt_never_certifies_source_changes_or_requested_tests() {
+        for prompt in ["请修复 calc.cjs 并使用 super_memory 保存经验", "请使用 super_memory 保存经验，然后修复 calc.cjs", "请使用 super_memory 保存约定，然后运行代码测试"] {
+            let mut runtime=CognitiveRuntime::with_mode(prompt,ReasoningMode::Adaptive);
+            assert!(!runtime.memory_only_scope,"{prompt}");
+            runtime.observe_receipt(&note_receipt(true));
+            assert_eq!(runtime.mutation_tool_calls,0);
+            assert_ne!(runtime.review_completion("代码已经修改完毕，而且所有代码质量验证都已完成。"),CompletionDecision::Accept);
+        }
+    }
+    fn process_inspection_receipt() -> ToolExecutionReceipt {
+        ToolExecutionReceipt { call_id:"inspect-json".into(),name:"run_command".into(),
+            status:ToolExecutionStatus::Succeeded,duration_ms:0,result:serde_json::json!({"exit_code":0,"stdout":"20 lines"}),
+            original_result_chars:0,truncated:false,stored_result_reference:None,
+            risk:ToolRisk::WorkspaceMutation,verification:false }
+    }
+    #[test]
+    fn repeated_successful_inspection_prompts_strategy_review_without_action_evidence() {
+        let mut r=CognitiveRuntime::with_mode("请修复规则并验证",ReasoningMode::Adaptive);
+        for _ in 0..7 {r.observe_receipt(&process_inspection_receipt());}
+        assert!(!r.next_guidance().unwrap().contains("[Inspection plateau]"));
+        r.observe_receipt(&process_inspection_receipt());
+        assert!(r.next_guidance().unwrap().contains("[Inspection plateau]"));
+        assert_eq!(r.mutation_tool_calls,0);
+    }
+    #[test]
+    fn investigation_scope_is_not_forced_into_implementation_by_observation_count() {
+        let mut r=CognitiveRuntime::with_mode("只做调查：分析当前代码",ReasoningMode::Adaptive);
+        for _ in 0..12 {r.observe_receipt(&process_inspection_receipt());}
+        assert!(!r.next_guidance().unwrap().contains("[Inspection plateau]"));
+        assert_eq!(r.task_kind(),TaskKind::Investigative);
+    }
+    #[test]
+    fn edit_or_certified_check_resets_the_advisory() {
+        for verification in [false,true] {
+            let mut r=CognitiveRuntime::with_mode("请修复规则并验证",ReasoningMode::Adaptive);
+            for _ in 0..8 {r.observe_receipt(&process_inspection_receipt());}
+            r.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::WorkspaceMutation,verification);
+            assert!(!r.next_guidance().unwrap().contains("[Inspection plateau]"));
+        }
+    }
+    #[test]
+    fn a_real_user_answer_resets_the_observation_advisory() {
+        let mut r=CognitiveRuntime::with_mode("请修复规则并验证",ReasoningMode::Adaptive);
+        for _ in 0..8 {r.observe_receipt(&process_inspection_receipt());}
+        let mut reply=process_inspection_receipt();reply.name="ask_user".into();reply.risk=ToolRisk::ReadOnly;
+        reply.result=serde_json::json!({"response":"使用项目内的参考"});
+        r.observe_receipt(&reply);
+        assert!(!r.next_guidance().unwrap().contains("[Inspection plateau]"));
+    }
+    #[test]
+    fn process_risk_does_not_fabricate_a_file_change() {
+        let mut r=CognitiveRuntime::with_mode("请修复规则并验证",ReasoningMode::Adaptive);
+        let receipt=process_inspection_receipt();
+        r.observe_receipt(&receipt);
+        assert_eq!(receipt.risk,ToolRisk::WorkspaceMutation);
+        assert_eq!(r.mutation_tool_calls,0);
+        assert!(!r.plan.render().contains("[completed] Apply"));
+        assert_ne!(r.review_completion("已经修改规则并完成验证，可交付使用。"),CompletionDecision::Accept);
+    }
+    #[test]
+    fn actual_editor_receipt_still_advances_action() {
+        let mut r=CognitiveRuntime::with_mode("请修复规则并验证",ReasoningMode::Adaptive);
+        let mut receipt=process_inspection_receipt();r.observe_receipt(&receipt);
+        receipt.name="write_to_file".into();receipt.call_id="edit".into();receipt.result=serde_json::json!({"success":true});
+        r.observe_receipt(&receipt);
+        assert_eq!(r.mutation_tool_calls,1);
+        assert!(r.plan.render().contains("[completed] Apply"));
+    }
+    #[test]
+    fn potentially_mutating_process_still_invalidates_prior_verification() {
+        let mut r=CognitiveRuntime::with_mode("请修复规则并验证",ReasoningMode::Adaptive);
+        r.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::ReadOnly,false);
+        r.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::WorkspaceMutation,false);
+        r.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::ProcessControl,true);
+        assert!(r.plan.ready_for_response());
+        r.observe_receipt(&process_inspection_receipt());
+        assert!(!r.plan.ready_for_response());
+    }
     #[test]
     fn natural_delivery_scopes_and_new_turns_keep_their_execution_requirements() {
         for (prompt, expected) in [
@@ -887,6 +1082,7 @@ mod tests {
         use crate::services::brain::evolution_memory::DistilledLesson;
         let mut runtime = CognitiveRuntime::begin("修改配置");
         runtime.apply_distilled_lessons(vec![DistilledLesson {
+            recovery_evidence:None,
             id: "les_1".into(),
             updated_at: "2026-09-14T10:00:00Z".into(),
             domain: "config".into(),
@@ -1026,6 +1222,26 @@ mod tests {
         assert!(matches!(runtime.review_completion(draft), CompletionDecision::Blocked { .. }));
         runtime.verification_gate.max_retries = 0;
         assert!(matches!(runtime.review_completion(draft), CompletionDecision::Blocked { .. }));
+    }
+
+    #[test]
+    fn denied_process_is_not_a_failed_test_but_actual_execution_failure_still_blocks() {
+        let mut runtime=CognitiveRuntime::with_mode("当前代码报错，先给修复方案，等我确认后再改。",ReasoningMode::Adaptive);
+        let guidance=runtime.next_guidance().unwrap();
+        assert!(!guidance.contains("[ACTION-FIRST DIRECTIVE]"));
+        assert!(!guidance.contains("Run compile/test checks before claiming completion"));
+        runtime.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::ReadOnly,false);
+        let mut receipt=ToolExecutionReceipt {call_id:"denied".into(),name:"run_command".into(),status:ToolExecutionStatus::PolicyDenied,
+            duration_ms:0,result:serde_json::json!({"kind":"read_only_task_scope"}),original_result_chars:0,truncated:false,stored_result_reference:None,risk:ToolRisk::WorkspaceMutation,verification:false};
+        runtime.observe_receipt(&receipt);
+        runtime.observe_executed_tool_details(&receipt,Some("node --test".into()),"not executed: read-only scope");
+        assert_eq!(runtime.review_completion("已读取当前源码，建议修复计算方式；尚未实施或执行测试，等待用户确认。"),CompletionDecision::Accept);
+        let mut actual=CognitiveRuntime::with_mode("调查当前文件",ReasoningMode::Adaptive);
+        actual.observe_tool(ToolExecutionStatus::Succeeded,ToolRisk::ReadOnly,false);
+        receipt.status=ToolExecutionStatus::Failed;receipt.result=serde_json::json!({"exit_code":1});
+        actual.observe_receipt(&receipt);
+        actual.observe_executed_tool_details(&receipt,Some("node --test".into()),"actual test failed");
+        assert!(matches!(actual.review_completion("根据当前源码给出调查结论。"),CompletionDecision::Revise{..}|CompletionDecision::Blocked{..}));
     }
 
     #[test]

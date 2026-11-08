@@ -40,6 +40,10 @@ async function publish({workspace,artifact,expected,target,reuseOnly=false},{fet
  const remote=await parser.parseHikerRuleText(receipt.remote_command);assert.ok(remote.success&&remote.isRule,remote.error||'cloud readback failed; existing ID preserved');
  for(const key of ['title','version','url','class_name','class_url','find_rule','search_url','searchFind','detail_find_rule'])assert.deepEqual(remote.ruleData[key],baseline.ruleData[key],'cloud differs: '+key);
  assert.equal(sha(fs.readFileSync(artifact)),expected,'source changed during publication');
+ // Restore public provider metadata if an older model rewrote a legacy receipt.
+ // This happens only after a real readback; never create a new cloud entry.
+ receipt.provider='pasteme';receipt.code_id=receipt.remote_command.split('/').at(-1);
+ receipt.web_url='https://pasteme.tyrantg.com/'+receipt.code_id;
  receipt.roundtrip_verified=true;fs.writeFileSync(receiptFile,JSON.stringify(receipt,null,2)+'\n');
  return {passed:true,target,checks:['verified_source_hash','single_creation_attempt','production_cloud_readback','source_fields_equal'],remote_command:receipt.remote_command,source_sha256:expected};
 }

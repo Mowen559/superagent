@@ -69,6 +69,7 @@ impl ToolExecutor for HermesTool {
                     "query": query,
                     "matched_count": lessons.len(),
                     "lessons": lessons
+                    ,"scope":self.memory.scope_receipt()
                 }))
             }
             "record_lesson" => {
@@ -78,6 +79,7 @@ impl ToolExecutor for HermesTool {
                 let scenario = args.get("Query").and_then(|v| v.as_str()).unwrap_or(trap);
 
                 let lesson = DistilledLesson {
+                    recovery_evidence:None,
                     id: format!("lesson-{}", &uuid::Uuid::new_v4().to_string()[..8]),
                     domain: domain.to_string(),
                     trigger_scenario: scenario.to_string(),
@@ -92,6 +94,7 @@ impl ToolExecutor for HermesTool {
                 Ok(json!({
                     "status": "lesson_recorded",
                     "lesson": lesson,
+                    "scope":self.memory.scope_receipt(),
                     "message": "Lesson successfully distilled and persisted to Hermes memory."
                 }))
             }

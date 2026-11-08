@@ -61,6 +61,18 @@ impl ToolExecutor for CodeReviewTool {
             });
 
         let engine = CodeReviewEngine::new(self.workspace_root.clone());
+        if let Some(files)=&files {
+            if files.is_empty() || files.len()>64 {return Err("review requires 1..64 workspace files".into());}
+            let root=std::fs::canonicalize(&self.workspace_root).map_err(|e|e.to_string())?;
+            for file in files {
+                let relative=std::path::Path::new(file);
+                if relative.is_absolute() || file.contains(['\\',':']) || !relative.components().all(|c|matches!(c,std::path::Component::Normal(_))) {
+                    return Err("review files must be workspace-relative without traversal".into());
+                }
+                let actual=std::fs::canonicalize(root.join(relative)).map_err(|e|e.to_string())?;
+                if !actual.starts_with(&root) || !actual.is_file() {return Err("review file escapes execution workspace".into());}
+            }
+        }
         let report = engine
             .review_workspace(files.as_deref())
             .map_err(|e| format!("Code review failed: {}", e))?;

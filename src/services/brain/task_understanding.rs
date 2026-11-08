@@ -100,6 +100,9 @@ impl TaskContract {
     }
 
     pub fn from_value(value: Value) -> Result<Self, String> {
+        if let Some(delivery) = value.get("delivery") {
+            super::delivery_evidence::DeliveryContract::validate_model_value(delivery)?;
+        }
         let contract: Self = serde_json::from_value(value).map_err(|error| error.to_string())?;
         if let Some(delivery) = &contract.delivery { delivery.validate()?; }
         if contract.delivery.as_ref().is_some_and(|d| d.scope == super::delivery_evidence::DeliveryScope::ReadOnly)
@@ -354,5 +357,26 @@ pub(crate) mod tests {
         assert_eq!(feedback["issues"].as_array().unwrap().len(), 2);
         assert!(error.contains("interpretation: got 601"));
         assert!(error.contains("steps[0].goal: got 321"));
+    }
+
+    #[test]
+    fn captured_delivery_type_errors_report_all_locations_without_coercion() {
+        let mut value = sample();
+        value["delivery"] = json!({"version":"1","scope":"implementation","target":"original-app","artifacts":[
+            {"id":"readme","path":"README.md","validator":""},
+            {"id":"command","path":"share-command.txt","validator":""}]});
+        let error = TaskContract::from_value(value.clone()).unwrap_err();
+        let feedback: Value = serde_json::from_str(&error).unwrap();
+        assert_eq!(feedback["kind"], "invalid_task_plan");
+        assert_eq!(feedback["issues"].as_array().unwrap().len(), 3);
+        for path in ["delivery.version", "delivery.artifacts[0].validator", "delivery.artifacts[1].validator"] {
+            assert!(error.contains(path), "{error}");
+        }
+        assert!(error.contains("integer 1 (unquoted)"));
+        value["delivery"]["version"] = json!(1);
+        value["delivery"]["artifacts"][0]["validator"] = Value::Null;
+        value["delivery"]["artifacts"][1].as_object_mut().unwrap().remove("validator");
+        let valid = TaskContract::from_value(value).unwrap();
+        assert_eq!(valid.delivery.unwrap().artifacts.len(), 2);
     }
 }

@@ -2,6 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {publish}=require('./publish_verified_rule.cjs');
 const production=require('../../deepcloud-ui/native/runtime/hiker-rule-parser');
 function fixture(){
+ fs.mkdirSync(path.resolve(__dirname,'../artifacts/hub-natural-rule'),{recursive:true});
  const workspace=fs.mkdtempSync(path.resolve(__dirname,'../artifacts/hub-natural-rule/managed-publisher-'));
  const artifact=path.join(workspace,'rule.json');fs.writeFileSync(artifact,JSON.stringify({title:'managed-publication-canary',version:1,url:'hiker://empty',find_rule:'js:setResult([]);'}));
  const options={workspace,artifact,expected:crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex'),target:'test-target'};
@@ -49,4 +50,15 @@ test('redirected control directory is rejected before network or writes',async()
 test('Windows canonical paths from the Rust runtime are accepted',async()=>{
  const f=fixture();f.options.workspace=path.toNamespacedPath(f.options.workspace);f.options.artifact=path.toNamespacedPath(f.options.artifact);
  assert.equal((await publish(f.options,f.deps)).passed,true);assert.equal(f.state.posts,1);
+});
+
+test('read-only revalidation restores legacy public metadata without a new POST',async()=>{
+ const f=fixture();await publish(f.options,f.deps);
+ const p=path.join(f.options.workspace,'publication.json'),receipt=JSON.parse(fs.readFileSync(p,'utf8'));
+ delete receipt.provider;delete receipt.code_id;delete receipt.web_url;delete receipt.roundtrip_verified;
+ fs.writeFileSync(p,JSON.stringify(receipt));const before=f.state.posts;
+ await publish({...f.options,reuseOnly:true},f.deps);
+ const repaired=JSON.parse(fs.readFileSync(p,'utf8'));
+ assert.equal(f.state.posts,before);assert.equal(repaired.provider,'pasteme');assert.equal(repaired.code_id,'managed-test-id');
+ assert.equal(repaired.roundtrip_verified,true);assert.equal(repaired.remote_command,receipt.remote_command);
 });

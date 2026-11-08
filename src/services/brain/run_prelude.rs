@@ -1,5 +1,6 @@
 use crate::config::runtime::RuntimeConfig;
 use crate::domains::knowledge_graph::graph_service;
+#[cfg(test)]
 use crate::services::supermemory_store::SupermemoryStore;
 
 const MAX_PRELUDE_CHARS: usize = 6_000;
@@ -10,6 +11,7 @@ pub enum CapabilityRoute {
     ArchitectureGraph,
     WorkspaceInspection,
     KnowledgeRetrieval,
+    ProjectMemory,
     SkillDiscovery,
     UserInteraction,
 }
@@ -26,6 +28,9 @@ impl CapabilityRoute {
             Self::KnowledgeRetrieval => {
                 "Use cited knowledge evidence when relevant; call knowledge_search_tool for deeper retrieval."
             }
+            Self::ProjectMemory => {
+                "For project conventions and remembered decisions, reuse supplied project-note history first. If missing or unclear, query super_memory by exact key before broad file or Skill searches. No match is not proof of absence. Use files to verify current implementation, not to hunt for runtime notes."
+            }
             Self::SkillDiscovery => {
                 "Check skill_tool before inventing a workflow that may already be encoded as a skill."
             }
@@ -40,12 +45,14 @@ impl CapabilityRoute {
 pub struct RunPrelude {
     pub routes: Vec<CapabilityRoute>,
     prompt_projection: String,
+    project_note_evidence_count: usize,
 }
 
 impl RunPrelude {
     pub fn prompt_projection(&self) -> &str {
         &self.prompt_projection
     }
+    pub fn project_note_evidence_count(&self) -> usize { self.project_note_evidence_count }
 }
 
 /// Prepares one bounded, provenance-bearing context package for a Run. The
@@ -73,10 +80,13 @@ impl RunPreludeRuntime {
         let knowledge_root = crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
             std::path::Path::new(&self.project_path), &[]);
         let knowledge_path = knowledge_root.to_string_lossy();
-        let project_store = SupermemoryStore::new(&self.config, Some(&knowledge_path));
-        let memory_result = project_store.search_scored_result(objective, 5, None, None);
-        let memory_warning = memory_result.as_ref().err().cloned();
-        let memories = memory_result.unwrap_or_default().into_iter().map(|hit| hit.record).collect::<Vec<_>>();
+        let recalled = super::project_memory::recall(&self.config, std::path::Path::new(&self.project_path), Some(objective), 5);
+        let memory_warning = (!recalled.warnings.is_empty()).then(|| recalled.warnings.join("; "));
+        let memories = recalled.hits;
+        let mut project_note_evidence_count=0;
+        if !memories.is_empty() && !routes.contains(&CapabilityRoute::ProjectMemory) {
+            routes.insert(0,CapabilityRoute::ProjectMemory);
+        }
         if !memories.is_empty() && !routes.contains(&CapabilityRoute::KnowledgeRetrieval) {
             routes.push(CapabilityRoute::KnowledgeRetrieval);
         }
@@ -113,6 +123,23 @@ impl RunPreludeRuntime {
             &workspace_context(root_dir),
             MAX_PRELUDE_CHARS,
         );
+        // Preserve complete, bounded note blocks before optional inventories.
+        // This count reflects actual projected history, never tool executions.
+        let mut memory_chars=0;
+        for hit in memories {
+            let reliability=super::project_memory::reliability(hit.context.as_ref());
+            let context=serde_json::to_string(&hit.context).unwrap_or_else(|_|"null".into());
+            let memory=hit.record;
+            let source=if !memory.source_label.trim().is_empty() {memory.source_label.clone()}
+                else if !memory.file_path.trim().is_empty() {memory.file_path.clone()} else {format!("memory:{}",memory.id)};
+            let truncated=context.chars().count()>800 || memory.summary.chars().count()>MAX_EVIDENCE_CHARS || memory.name.chars().count()>200;
+            let block=format!("<knowledge-evidence source=\"{}\" name=\"{}\" reliability=\"{}\" truncated=\"{}\">\ncontext: {}\n{}\n</knowledge-evidence>\n",
+                sanitize(&source,400),sanitize(&memory.name,200),reliability,truncated,sanitize(&context,800),sanitize(&memory.summary,MAX_EVIDENCE_CHARS));
+            let chars=block.chars().count();
+            if memory_chars+chars>2_200 || projection.chars().count()+chars>MAX_PRELUDE_CHARS {continue;}
+            projection.push_str(&block);memory_chars+=chars;
+            if hit.context.is_some() && !truncated {project_note_evidence_count+=1;}
+        }
         if let Some(topo) = scan_workspace_topography(root_dir) {
             let mut bounded_topo = String::new();
             if topo.chars().count() > 1_500 {
@@ -127,32 +154,6 @@ impl RunPreludeRuntime {
         // 1.5 注入工作区匹配的沉淀技能主动推荐 (Proactively Recommended Skills)
         if let Some(skills_block) = scan_recommended_skills(root_dir, objective) {
             push_bounded(&mut projection, &skills_block, MAX_PRELUDE_CHARS);
-        }
-
-        // 2. 注入历史任务自省蒸馏出的工程经验准则 (Distilled Engineering Rules)
-        let store = SupermemoryStore::new(&self.config, Some(&knowledge_path));
-        let distilled_rules = store
-            .search_scored_result(objective, 3, None, Some("reflexion"))
-            .unwrap_or_default();
-        if !distilled_rules.is_empty() {
-            push_bounded(
-                &mut projection,
-                "<distilled-engineering-rules>\n",
-                MAX_PRELUDE_CHARS,
-            );
-            for hit in distilled_rules {
-                let rule_line = format!(
-                    "- [{}]: {}\n",
-                    sanitize(&hit.record.name, 100),
-                    sanitize(&hit.record.summary, 300)
-                );
-                push_bounded(&mut projection, &rule_line, MAX_PRELUDE_CHARS);
-            }
-            push_bounded(
-                &mut projection,
-                "</distilled-engineering-rules>\n",
-                MAX_PRELUDE_CHARS,
-            );
         }
 
         if !graph_nodes.is_empty() {
@@ -176,26 +177,10 @@ impl RunPreludeRuntime {
                 MAX_PRELUDE_CHARS,
             );
         }
-        for memory in memories {
-            let source = if !memory.source_label.trim().is_empty() {
-                memory.source_label.clone()
-            } else if memory.file_path.trim().is_empty() {
-                format!("memory:{}", memory.id)
-            } else {
-                memory.file_path.clone()
-            };
-            let block = format!(
-                "<knowledge-evidence source=\"{}\" name=\"{}\">\n{}\n</knowledge-evidence>\n",
-                sanitize(&source, 400),
-                sanitize(&memory.name, 200),
-                sanitize(&memory.summary, MAX_EVIDENCE_CHARS)
-            );
-            push_bounded(&mut projection, &block, MAX_PRELUDE_CHARS);
-        }
-
         RunPrelude {
             routes,
             prompt_projection: projection,
+            project_note_evidence_count,
         }
     }
 }
@@ -203,6 +188,9 @@ impl RunPreludeRuntime {
 fn route_objective(objective: &str) -> Vec<CapabilityRoute> {
     let objective = objective.to_ascii_lowercase();
     let mut routes = Vec::new();
+    if contains_any(&objective,&["约定","项目记忆","项目笔记","记录过","记住","memory","remember","convention"]) {
+        routes.push(CapabilityRoute::ProjectMemory);
+    }
     if contains_any(
         &objective,
         &[

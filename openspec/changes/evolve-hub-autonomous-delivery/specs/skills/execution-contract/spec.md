@@ -6,6 +6,24 @@
 
 ## ADDED Requirements
 
+### Requirement: Generated rules hand verification to the rule user
+规则遇到明确验证码/交互验证响应时 SHALL 通过实际目标客户端支持的规则弹窗及验证页面入口通知运行规则的用户，不用Hub聊天中的ask_user替代规则功能。取消不启动验证、不伪造业务成功；用户完成后仍重新请求原目标，服务端仍要求验证时保留可操作重试，不无限弹窗或更换来源。协议/签名错误不自动冒充验证码。
+
+#### Scenario: Headless action and callback verification
+- **WHEN** Hub生成的演示规则在PC生产运行库遇到受控验证码响应
+- **THEN** 验收实际弹窗动作与生成回调，模拟取消、仍失败、会话放行后重试，记录规则作者和宿主模拟范围；未操作GUI或Android时不声称实机弹窗已验证
+
+### Requirement: Bundled Hub resources are independently discoverable
+本地随包Hub SHALL 与磁盘技能资源共同部署，并记录二进制及资源的相对路径/哈希。前端寻址保留用户显式覆盖优先级，默认随包/组件路径存在时不得被开发目录的mtime覆盖。验证须包含中文非开发cwd及新数据目录启动；冷启动不等于所有外部工具或完整安装包已认证。
+
+#### Scenario: Fresh sidecar data directory
+- **WHEN** 使用随包程序从中文新数据目录启动，未设置开发技能根
+- **THEN** 仍可发现随程序分发的Skill与资源；验证输出记录实际程序路径和资源指纹，不依赖原仓库cwd
+
+#### Scenario: A legacy global alias shadows the same Skill name
+- **WHEN** 全局旧目录与随包Skill声明相同name
+- **THEN** 工作区/来源及HUB_SKILLS_ROOT显式选择仍优先；随包根优先于全局后备根，前端Superagent目录按实际运行时所选路径去重，不修改用户旧文件
+
 ### Requirement: Rule skills expose actual platform execution separately from simulation
 系统 SHALL 提供不含目标站协议的PC生产运行入口，使用真实导入器与规则执行库，在当前工作区内读取规则并隔离测试数据库；区分运行结果、仿真评分、媒体解码和用户验收。PC导入指引绑定产品源码文案，不由移动端模板推导。
 
@@ -74,3 +92,24 @@
 #### Scenario: Coached case improves but unseen case regresses
 - **WHEN** 候选技能修好已提示案例却使留出任务退化
 - **THEN** 系统不晋升该候选，现有有效技能保持不变，并报告退化证据
+
+### Requirement: Mobile rule syntax has separate evidence
+系统 SHALL 按目标Android解析器版本检查规则入口、嵌套eval源码及生成的lazy源码；PC V8成功不作为移动端语法通过证据。修复由Hub依据用户报错完成，保留原规则及实际失败，未操作Android实机时须明确待用户复测。
+
+#### Scenario: PC passes but mobile parser rejects generated source
+- **WHEN** 用户提供Android未结束字符串字面量等真实报错
+- **THEN** Hub调查对应解析器和实际规则源码，修订后分别报告语法/PC回归/Android实机验证范围，不把静态通过称作手机全功能通过
+
+### Requirement: Nested eval checks bind the current page explicitly
+系统 SHALL 将移动端当前页面的MY_RULE.find_rule绑定作为独立验证输入，捕获实际生成lazy中的eval参数并编译检查；不得执行被捕获代码或由此认证网络/媒体/手机实机。报告记录入口、解析器及规则指纹。没有捕获eval时报告未覆盖，不伪报通过。
+
+#### Scenario: Standalone action compiles but current detail binding truncates nested source
+- **WHEN** 同一lazy源码在首页绑定下捕获源码合法，在详情绑定下切入字符串中部
+- **THEN** 验证器保留两种绑定的真实编译差分和行号，禁止以PC完整规则包上下文覆盖移动端差异
+
+### Requirement: Rule parser resources are discoverable and fingerprinted
+系统 SHALL 为规则诊断工具提供可查询的解析器路径、来源范围和资源指纹，区分JAR就绪与手机认证；可信对照库可来自受管工具缓存，旧参考迁移后仍须正确解析或明确不可用。默认资源指纹不匹配时不得执行，也不得静默换解析器掩盖差异。
+
+#### Scenario: Parser library has moved or is not in a decompiler directory
+- **WHEN** 模型需要解析器且只有文件名、旧源码目录已迁移
+- **THEN** 工具可列出实际资源状态与路径，缺失或哈希不符显式失败，不要求模型递归猜测安装目录

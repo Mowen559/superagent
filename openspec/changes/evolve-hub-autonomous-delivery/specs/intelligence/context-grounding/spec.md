@@ -6,6 +6,42 @@
 
 ## ADDED Requirements
 
+### Requirement: Natural note queries reuse scoped context without artificial tool calls
+系统 SHALL 使明确引用有效项目笔记标识的自然长问题保持可召回，不因附加礼貌或验证范围说明而稀释精确标识匹配；ASCII标识需要完整边界，不把近似或前缀标识当成同一笔记。实际完整注入的项目笔记 SHALL 在运行时作为历史观察证据，独立记录数量，不伪造工具调用或代码质量凭据。笔记意图优先指向super_memory，无命中不等于笔记必不存在，其他业务调查仍按实际证据推进。
+
+#### Scenario: Long query has a complete note identifier
+- **WHEN** 长中文问题含完整有效笔记标识且存储作用域和版本仍有效
+- **THEN** 运行时注入有界且完整的历史证据块，模型可注明来源直接回答，无需重复调用工具凑完成门槛
+
+#### Scenario: Similar identifier and code task remain protected
+- **WHEN** 查询包含另一标识的后缀或前缀，或任务要求改代码和执行测试
+- **THEN** 不把相近标识当精确命中，历史上下文不能完成源码变更或质量测试步骤；撤销/过期/跨项目过滤继续生效
+
+### Requirement: Runtime project notes survive isolated Runs without writing origin source
+系统 SHALL 将super_memory新笔记保存到由运行时按规范化来源项目确定的程序管理缓存，内容和来源元数据同一原子检查点写入；模型不能指定其他项目或任意存储文件。笔记写入/撤销是变更操作，查询是只读操作。原始项目文件保持不变。
+
+#### Scenario: Store then recall after service restart
+- **WHEN** Hub在隔离Run记录项目约定，随后服务重启并在同一来源项目的新Session中召回
+- **THEN** 实际召回相同项目笔记并标记为历史记录及验证范围，不依赖上个Session正文或原项目源码写回
+
+#### Scenario: Explicit note operation is not a code edit
+- **WHEN** 用户仅要求原生项目笔记的保存或撤销，工具原子写入后读回核实状态
+- **THEN** 运行时依据该操作的读回证据完成笔记任务，不要求无关代码测试；笔记回执不计作源码变更或代码质量验证，不能帮助代码任务绕过实施及测试门槛
+
+### Requirement: Note context is explicit and recall respects validity
+记忆 MAY 带项目、类型、置信度、来源、修订号、来源文件相对路径/哈希、有效期和候选/有效/撤销状态。系统 SHALL 在自动上下文及原生记忆召回时排除跨项目、过期、撤销或来源哈希失效的记录；旧无元数据记录保留为明确未验证的历史数据，不自动升级事实或Skill。
+
+#### Scenario: Candidate history and stale source
+- **WHEN** 同时存在候选笔记、旧无元数据记录和来源文件已改变的摘要
+- **THEN** 前两者以未验证历史来源呈现，失效摘要不注入，匹配或置信度不充当业务认证
+
+### Requirement: Stored memory rejects identifiable credentials
+记忆检查点 SHALL 拒绝可识别的密钥、Bearer凭据及带敏感签名参数的媒体URL，错误不回显敏感值，已有检查点保持不变。该检查不被宣称为完整秘密检测；新增有效经验仍须独立验证才可晋升。
+
+#### Scenario: Non-secret canary resembles a credential
+- **WHEN** 测试写入明确非真实的密钥/Bearer/签名URL canary
+- **THEN** 写入失败且原文件哈希不变，不出现可召回敏感canary
+
 ### Requirement: Context capabilities expose distinct readiness and validation
 系统 SHALL 分别报告原生图谱、外部 Understand、记忆及压缩能力的注册、可用、就绪和已验证状态，并附证据范围；一个能力通过不得替代另一个能力认证。
 
@@ -56,3 +92,15 @@
 #### Scenario: Memory hit does not improve result
 - **WHEN** 对照任务显示记忆命中但正确率未提高且成本增加
 - **THEN** 报告如实呈现结果，不以命中次数宣称智能提升
+
+
+### Requirement: Automatic experience uses traceable project persistence
+系统 SHALL 将自动经验与显式项目笔记绑定同一来源项目身份和可追溯存储，记录每Run的stored/skipped/rejected/failed决策；stored须真实写入与读回，经验内容须关联匹配工具ID、修订和验证，不能只从error关键词与工具名宣称已学会。只读任务不自动写可召回经验，候选不得无留出验证进入活动Skill。
+
+#### Scenario: Write fails or no applicable lesson exists
+- **WHEN** 经验保存失败或本Run没有足够修订/验证证据
+- **THEN** 分别记录failed或skipped及原因，不打印已持久化成功，不生成虚构通用修法
+
+#### Scenario: Restart after an actual repair
+- **WHEN** 已验修复的经验经来源项目缓存保存后在新Session重启
+- **THEN** 自然请求可召回同一有效记录并标注来源，其他项目、撤销、过期或源码变更不得误用

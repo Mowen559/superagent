@@ -1,0 +1,172 @@
+{
+  "date": "2026-11-08",
+  "stage": "real-model regression and quality-feedback fix",
+  "progress": {
+    "complete": 65,
+    "total": 106,
+    "9.9": "not complete: final artifacts passed postmortem oracle, original parent Run failed after cancelled predecessor"
+  },
+  "model": "gemini-3.8-flash-high",
+  "upstreamPreflight": {
+    "ok": true,
+    "http": 200,
+    "elapsedSeconds": 4.59
+  },
+  "candidate": {
+    "sha256": "123825b328e74c23c434c7ed1b37082194c27f29c68891113572d4604fd3046c",
+    "manifestEntries": 39,
+    "installed": false,
+    "sources": [
+      {
+        "path": "src/services/brain/tool_execution_gateway.rs",
+        "sha256": "9ef291700150eb143b3cf1996bb3a5de5b39dd82da0598d8d39c4212c1f71ed3"
+      },
+      {
+        "path": "src/services/brain/cognitive_runtime.rs",
+        "sha256": "e11160324be1d1b4b9d6903101879c17de81f6c93571bc5d7c68df191f7c083e"
+      },
+      {
+        "path": "src/services/brain/tools/verify_task.rs",
+        "sha256": "60fbb6c3a3378fc27332796437dc2eb31f10835a0617d544a180c2ef2b79f399"
+      }
+    ]
+  },
+  "authorship": {
+    "runtimeChanges": "Codex",
+    "requirementsAndIndependentTests": "Codex",
+    "implementationAndWorkerSupervision": "Hub/Gemini; no host implementation edits",
+    "teaching": "generic gateway eligibility explanation and tool prompt; no target algorithm supplied by host"
+  },
+  "changes": [
+    "Successful inline checks expose gateway-authored quality_evidence eligibility and actionable scoped-check guidance.",
+    "Provider-forged quality_evidence is removed; process success, quality receipts and host business verification remain distinct.",
+    "Cognition consumes this feedback and clears its own eligibility hint after a recognized check. Existing eligibility rules and rejection gates unchanged."
+  ],
+  "tests": {
+    "rustPassed": 645,
+    "failed": 0,
+    "ignored": 2,
+    "filtered": [
+      "domains::code_review::tests::test_review_current_project_workspace"
+    ],
+    "controlledCompletionCases": "4 passed, including uncollected/critical review/stale fingerprint rejection",
+    "strictChangeAndSixMainSpecs": "passed"
+  },
+  "attempts": [
+    {
+      "attempt": "real-recovered",
+      "parentMaxTurns": 24,
+      "ok": false,
+      "error": "cognitive turn budget exceeded: 24 model turns\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n",
+      "elapsedSeconds": 478.457,
+      "humanRuntimeInterventions": 0,
+      "sessions": [
+        {
+          "session": "9a78974d-af6a-4c96-bb2d-aaea9a1e05d1.events",
+          "rounds": 14,
+          "promptTokens": 233894,
+          "completionTokens": 6645,
+          "toolCalls": 15
+        },
+        {
+          "session": "f77de7d2-6740-486a-8b2b-82c0339f4994.events",
+          "rounds": 18,
+          "promptTokens": 308148,
+          "completionTokens": 6362,
+          "toolCalls": 19
+        },
+        {
+          "session": "run_26a66f3ec96b4bcb8bf3019c4da4a38a.events",
+          "rounds": 24,
+          "promptTokens": 783100,
+          "completionTokens": 6440,
+          "toolCalls": 32
+        }
+      ]
+    },
+    {
+      "attempt": "real-corrected",
+      "parentMaxTurns": 24,
+      "ok": false,
+      "error": "cognitive turn budget exceeded: 24 model turns\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n",
+      "elapsedSeconds": 547.381,
+      "humanRuntimeInterventions": 0,
+      "sessions": [
+        {
+          "session": "a4c9cab5-0ccc-466b-a83c-97cb1b6ce2c8.events",
+          "rounds": 16,
+          "promptTokens": 258843,
+          "completionTokens": 4882,
+          "toolCalls": 17
+        },
+        {
+          "session": "bc45b499-edab-427b-be92-166c22d4acd8.events",
+          "rounds": 21,
+          "promptTokens": 379191,
+          "completionTokens": 4934,
+          "toolCalls": 22
+        },
+        {
+          "session": "run_ba074ea95e7643f287fe6c503749d137.events",
+          "rounds": 24,
+          "promptTokens": 815833,
+          "completionTokens": 3199,
+          "toolCalls": 34
+        }
+      ]
+    },
+    {
+      "attempt": "real-default-budget",
+      "parentMaxTurns": 40,
+      "ok": false,
+      "error": "Completion blocked: child f29f661b-4e53-485b-afde-b08f8c6e88c5 ended Cancelled; delivery rejected, preserve failure and repair in a new bounded Run\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n",
+      "elapsedSeconds": 758.553,
+      "humanRuntimeInterventions": 0,
+      "sessions": [
+        {
+          "session": "26fff841-d3cd-4fec-993e-7bda7702e4f2.events",
+          "rounds": 16,
+          "promptTokens": 249965,
+          "completionTokens": 3852,
+          "toolCalls": 15
+        },
+        {
+          "session": "3bcd9588-4894-49d8-afe1-3da99863d757.events",
+          "rounds": 9,
+          "promptTokens": 120465,
+          "completionTokens": 1126,
+          "toolCalls": 8
+        },
+        {
+          "session": "f29f661b-4e53-485b-afde-b08f8c6e88c5.events",
+          "rounds": 17,
+          "promptTokens": 260897,
+          "completionTokens": 2399,
+          "toolCalls": 16
+        },
+        {
+          "session": "run_b85a1be9e78c4730b8d015ec662616dd.events",
+          "rounds": 36,
+          "promptTokens": 1142332,
+          "completionTokens": 7709,
+          "toolCalls": 48
+        }
+      ]
+    }
+  ],
+  "historicalFailures": "Earlier v5 protocol and upstream failures and v2 separate-task failures remain separately archived; not backfilled as success.",
+  "artifactOnlyAcceptance": {
+    "scope": "independent postmortem artifact check only; original failed Run remains failed",
+    "exitCode": 0,
+    "stdout": "independent oracle passed\n",
+    "stderr": "",
+    "workspace": "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-swarm-memory-20261108\\v10\\real-default-budget\\data\\runs\\b8cbb8e7-98ac-4035-a109-28a67f947be3\\workspace",
+    "frozenCheckerUnchanged": true,
+    "authorship": "Hub/Gemini implementation; host requirements/tests/runtime fixes only"
+  },
+  "newFinding": "Parent cancelled an unfinished required worker and launched a replacement with a new correlation key. Replacement succeeded and artifacts integrated, but cancellation remains an unsatisfied required obligation. No explicit auditable replacement relation exists. Failure gate behaved as designed; bounded replacement recovery is the next implementation item.",
+  "next": "Bind a replacement to owned terminal/reaped predecessor with frozen purpose/permission/artifact scope, retain old terminal history, and require fresh review/validation. Do not blanket-ignore cancellation or failed review.",
+  "installed": false,
+  "cloudPublication": false,
+  "evidenceRoot": "artifacts/hub-swarm-memory-20261108/v10"
+}

@@ -101,117 +101,10 @@ impl ReflectionEngine {
     pub fn distill_trajectory_lessons(
         events: &[crate::services::brain::events::SessionEvent],
     ) -> Vec<DistilledLesson> {
-        use crate::services::brain::events::SessionEvent;
-        let mut lessons = Vec::new();
-
-        // 1. 扫描行级编译器语法错误或工具报错
-        for event in events {
-            if let SessionEvent::ToolResult { id: _, result } = event {
-                // 检查行级诊断
-                if let Some(diags) = result.get("diagnostics").and_then(|d| d.as_array()) {
-                    for diag in diags {
-                        if diag.get("severity").and_then(|s| s.as_str()) == Some("error") {
-                            let msg = diag
-                                .get("message")
-                                .and_then(|m| m.as_str())
-                                .unwrap_or("Syntax error");
-                            let line = diag.get("line").and_then(|l| l.as_u64()).unwrap_or(0);
-                            lessons.push(DistilledLesson {
-                                title: "Delimited Syntax & Compiler Guard".to_string(),
-                                trigger_pattern: format!("Compiler error at line {}: {}", line, msg),
-                                rule_guidance: format!(
-                                    "When editing files, strictly ensure delimiter balance and syntax completeness around line {}. Use replace_in_file with exact context matches.",
-                                    line
-                                ),
-                                severity: "warning".to_string(),
-                            });
-                        }
-                    }
-                }
-
-                // 检查越界或路径安全错误
-                if let Some(err) = result.as_str() {
-                    if err.contains("Security Error") && err.contains("outside the workspace") {
-                        lessons.push(DistilledLesson {
-                            title: "Workspace Boundary Enforcement".to_string(),
-                            trigger_pattern: "Security Error: path outside the workspace".to_string(),
-                            rule_guidance: "All operations must use paths within the current workspace root. Avoid ../ traversals outside target directories.".to_string(),
-                            severity: "blocker".to_string(),
-                        });
-                    }
-                }
-            }
-        }
-
-        // 2. 扫描终端执行与编译器自愈轨迹 (Compiler-in-the-loop self-healing distillation)
-        let mut last_error_cmd: Option<(String, String)> = None;
-        for (i, event) in events.iter().enumerate() {
-            if let SessionEvent::ToolCall { name, arguments, .. } = event {
-                if name == "run_command" {
-                    let cmd_str = arguments
-                        .get("command")
-                        .or_else(|| arguments.get("CommandLine"))
-                        .and_then(|c| c.as_str())
-                        .unwrap_or("")
-                        .to_string();
-
-                    // 寻找此调用对应的首个 ToolResult
-                    for next_event in events.iter().skip(i + 1) {
-                        if let SessionEvent::ToolResult { result, .. } = next_event {
-                            let output = if let Some(s) = result.as_str() {
-                                s.to_string()
-                            } else {
-                                result.to_string()
-                            };
-
-                            let is_failure = output.contains("Compilation failure")
-                                || output.contains("BUILD FAILURE")
-                                || output.contains("[ERROR]")
-                                || output.contains("error[E")
-                                || output.contains("error: ")
-                                || output.contains("failed with exit code");
-
-                            let is_success = output.contains("BUILD SUCCESS")
-                                || output.contains("test result: ok")
-                                || output.contains("Finished `release`");
-
-                            if is_failure {
-                                let err_line = output
-                                    .lines()
-                                    .find(|l| {
-                                        l.contains("[ERROR]")
-                                            || l.contains("error:")
-                                            || l.contains("Compilation failure")
-                                    })
-                                    .unwrap_or("Compiler error detected")
-                                    .trim()
-                                    .chars()
-                                    .take(150)
-                                    .collect::<String>();
-                                last_error_cmd = Some((cmd_str.clone(), err_line));
-                            } else if is_success {
-                                if let Some((failed_cmd, err_line)) = last_error_cmd.take() {
-                                    lessons.push(DistilledLesson {
-                                        title: format!("Compiler Self-Healing: {}", failed_cmd),
-                                        trigger_pattern: format!("Command '{}' failed with: {}", failed_cmd, err_line),
-                                        rule_guidance: format!(
-                                            "Prior build failure '{}' was successfully resolved by subsequent surgical edits. Always verify type signatures, imports, and syntax before running compile.",
-                                            err_line
-                                        ),
-                                        severity: "knowledge".to_string(),
-                                    });
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        // 去重
-        lessons.dedup_by(|a, b| a.title == b.title && a.trigger_pattern == b.trigger_pattern);
-        lessons
+        crate::services::brain::recovery_candidate::extract(events,false).into_iter().map(|evidence|DistilledLesson {
+            title:"Observed recovery candidate".into(),trigger_pattern:evidence.failure_reason.clone(),
+            rule_guidance:evidence.summary(),severity:"unverified_candidate".into(),evidence,
+        }).collect()
     }
 
     /// 将蒸馏后的经验准则持久化沉淀到超级记忆海马体 (SupermemoryStore)
@@ -225,18 +118,19 @@ impl ReflectionEngine {
             return 0;
         }
 
-        let store =
-            crate::services::supermemory_store::SupermemoryStore::new(config, project_path);
-        let count = lessons.len();
+        let workspace=project_path.map(std::path::Path::new).unwrap_or(&config.project_root);
+        let (project,path)=crate::services::brain::project_memory::managed_scope(config,workspace);
+        let store=crate::services::supermemory_store::SupermemoryStore::from_path(path);
+        let mut count=0;
 
         for lesson in lessons {
             let record_id = format!("distilled_{}", uuid::Uuid::new_v4().simple());
             let record = crate::models::memory::SupermemoryRecord {
-                id: record_id,
+                id: record_id.clone(),
                 name: lesson.title.clone(),
                 summary: format!(
-                    "Pattern: {}\nGuideline: {}",
-                    lesson.trigger_pattern, lesson.rule_guidance
+                    "Pattern: {}\nObservation: {}\nEvidence: {}",
+                    lesson.trigger_pattern, lesson.rule_guidance, serde_json::to_string(&lesson.evidence).unwrap_or_default()
                 ),
                 tags: vec!["distilled_rule".to_string(), "reflexion".to_string()],
                 file_path: "".to_string(),
@@ -247,11 +141,17 @@ impl ReflectionEngine {
                 updated_at: chrono::Utc::now().to_rfc3339(),
                 embedding: None,
             };
-            store.write_memory(record);
-            eprintln!(
-                "\x1b[32m[Reflexion Engine] 🧬 Distilled & persisted rule: {}\x1b[0m",
-                lesson.title
-            );
+            let result=(|| -> Result<(),String> {
+                let mut context=crate::services::brain::project_memory::new_context(&project,workspace,Some(&lesson.evidence.failure.session_id),Some(&lesson.evidence.failure.run_id))?;
+                context.source="automatic_reflection".into();context.kind="experience_candidate".into();
+                store.write_context_memory(record,context)?;
+                let saved=store.load_result()?;
+                if !saved.memories.iter().any(|r|r.id==record_id) || !saved.memory_context.get(&record_id).is_some_and(|c|c.project==crate::services::brain::project_memory::project_identity(&project)&&c.source=="automatic_reflection") {
+                    return Err("automatic candidate readback did not match".into());
+                }
+                Ok(())
+            })();
+            match result {Ok(())=>{count+=1;eprintln!("[Reflection] Stored unverified project candidate");},Err(_)=>eprintln!("[Reflection] Project candidate was not confirmed stored")}
         }
 
         count
@@ -264,6 +164,7 @@ pub struct DistilledLesson {
     pub trigger_pattern: String,
     pub rule_guidance: String,
     pub severity: String,
+    pub evidence: crate::services::brain::recovery_candidate::RecoveryCandidate,
 }
 
 #[cfg(test)]
@@ -337,9 +238,9 @@ mod tests {
         ];
 
         let lessons = ReflectionEngine::distill_trajectory_lessons(&events);
-        assert_eq!(lessons.len(), 1);
-        assert_eq!(lessons[0].title, "Delimited Syntax & Compiler Guard");
-        assert!(lessons[0].trigger_pattern.contains("42"));
-        assert!(lessons[0].rule_guidance.contains("delimiter balance"));
+        assert!(lessons.is_empty(),"diagnostic prose and a later edit are not verified recovery");
+        let verified=crate::services::brain::recovery_candidate::tests::successful_fixture(true);
+        let lessons=ReflectionEngine::distill_trajectory_lessons(&verified);
+        assert_eq!(lessons.len(),1);assert_eq!(lessons[0].evidence.state,"candidate");
     }
 }

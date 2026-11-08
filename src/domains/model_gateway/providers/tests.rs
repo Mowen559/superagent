@@ -22,6 +22,9 @@ use super::types::*;
 
     async fn test_server() -> String {
         let app = Router::new()
+            .route("/network-failed/v1/chat/completions",post(||async {
+                (StatusCode::BAD_GATEWAY,Json(json!({"error":{"code":"upstream_network_error","message":"SECRET_UPSTREAM_CANARY"}})))
+            }))
             .route(
                 "/rate-limited/v1/chat/completions",
                 post(|| async {
@@ -56,6 +59,18 @@ use super::types::*;
             axum::serve(listener, app).await.unwrap();
         });
         format!("http://{address}")
+    }
+
+    #[tokio::test]
+    async fn actual_http_failure_preserves_safe_proxy_network_diagnostic() {
+        let base=test_server().await;
+        let provider=LlmProvider::new(reqwest::Client::new());
+        let settings=LLMSettings{model:"test-model".into(),..LLMSettings::default()};
+        let error=provider.execute_route(&settings,vec![candidate("network-diagnostic",format!("{base}/network-failed"))],vec![json!({"role":"user","content":"hello"})],None).await.unwrap_err();
+        assert!(error.contains("upstream_network_error"),"{error}");
+        assert!(error.contains("\"diagnosticCode\""));assert!(error.contains("\"statusCode\":502"));
+        assert!(!error.contains("SECRET_UPSTREAM_CANARY"));assert!(!error.contains("test-key"));
+        assert_eq!(crate::domains::model_gateway::model_attempt_router::ModelAttemptRouter::default().classify(&error),ModelErrorClass::Transient);
     }
 
     #[tokio::test]
