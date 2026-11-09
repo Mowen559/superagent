@@ -24,7 +24,11 @@ impl ToolExecutor for HermesTool {
     }
 
     fn description(&self) -> &'static str {
-        "Hermes Episodic Reflection & Distillation: Query historical field lessons or explicitly record a newly verified trap/solution pair to evolve the agent's long-term heuristics."
+        "Hermes Episodic Reflection & Distillation: Query currently valid governed experiences or save an unverified trap/solution draft. Activation requires a trusted held-out pass; legacy ELO history does not grant authority."
+    }
+
+    fn prompt_projection(&self)->Option<String>{
+        Some("[hermes_workflow] Query current-project governed experiences with Action=query_lessons. Only currently valid held-out candidates are returned; legacy ELO counts are not proof. Action=record_lesson creates a quarantined proposal, never an active rule. list_mcps is metadata only. Use super_memory for explicit user notes. Never store credentials.".into())
     }
 
     fn parameters_schema(&self) -> Value {
@@ -63,7 +67,11 @@ impl ToolExecutor for HermesTool {
         match action {
             "query_lessons" => {
                 let query = args.get("Query").and_then(|v| v.as_str()).unwrap_or("");
-                let lessons = self.memory.retrieve_relevant_lessons(query).map_err(|e| e.to_string())?;
+                let lessons=if let Some((config,workspace))=self.memory.project_scope() {
+                    crate::services::brain::project_memory::recall(config,workspace,Some(query),100).hits.into_iter()
+                        .filter(|h|h.context.as_ref().is_some_and(|c|c.source=="governed_experience"))
+                        .take(3).map(|h|json!({"id":h.record.id,"name":h.record.name,"observation":h.record.summary,"source":h.record.source_label,"reliability":"trusted_profile_scope_only"})).collect::<Vec<_>>()
+                } else {vec![]};
                 Ok(json!({
                     "status": "success",
                     "query": query,
@@ -89,14 +97,13 @@ impl ToolExecutor for HermesTool {
                     usage_count: 1,
                     updated_at: chrono::Utc::now().to_rfc3339(),
                 };
-                self.memory.record_lesson(lesson.clone()).map_err(|e| e.to_string())?;
-
-                Ok(json!({
-                    "status": "lesson_recorded",
-                    "lesson": lesson,
-                    "scope":self.memory.scope_receipt(),
-                    "message": "Lesson successfully distilled and persisted to Hermes memory."
-                }))
+                let (config,workspace)=self.memory.project_scope().ok_or("Scoped project required for a lesson candidate")?;
+                let record=crate::models::memory::SupermemoryRecord {
+                    id:lesson.id.clone(),name:format!("Lesson candidate: {}",lesson.domain),
+                    summary:format!("Unverified draft. Scenario: {}\nTrap: {}\nProposed guidance: {}",lesson.trigger_scenario,lesson.trap_pattern,lesson.golden_solution),tags:vec!["experience_candidate".into()],file_path:String::new(),complexity:"unverified_candidate".into(),node_type:"reflexion".into(),source_graph_path:String::new(),source_label:"hermes_candidate".into(),updated_at:lesson.updated_at.clone(),embedding:None,
+                };
+                let saved=crate::services::brain::memory_persistence::persist_lesson_draft(config,workspace,record).map_err(|e|e.reason().to_string())?;
+                Ok(json!({"status":"candidate","candidate_id":saved.id,"scope":self.memory.scope_receipt(),"message":"隔离经验草稿已保存，未通过不同目标留出验证前不参与召回。"}))
             }
             "list_mcps" => Ok(json!({
                 "status": "success",

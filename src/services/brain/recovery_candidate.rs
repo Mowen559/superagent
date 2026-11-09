@@ -90,9 +90,17 @@ pub fn action_digest(name: &str, arguments: &Value) -> String {
 }
 fn hash(value: &str) -> bool { value.len()==64 && value.bytes().all(|b|b.is_ascii_hexdigit()) }
 
+pub fn is_current(candidate:&RecoveryCandidate,root:&std::path::Path)->bool {
+    crate::domains::version_control::change_set::workspace_fingerprint(root).ok().as_ref()==Some(&candidate.validation.after_fingerprint)
+}
+
 /// Only the latest Run is eligible. The live executor calls before RunFinished;
 /// postmortem reflection requires an explicit completed terminal event.
 pub fn extract(events: &[SessionEvent], allow_open_run: bool) -> Vec<RecoveryCandidate> {
+    extract_raw(events,allow_open_run).into_iter().filter(|c|super::project_memory::reject_sensitive(c).is_ok()).collect()
+}
+
+pub(crate) fn extract_raw(events: &[SessionEvent], allow_open_run: bool) -> Vec<RecoveryCandidate> {
     let mut run = None;
     let mut session = None;
     let mut pending = HashMap::new();
@@ -157,7 +165,7 @@ pub fn extract(events: &[SessionEvent], allow_open_run: bool) -> Vec<RecoveryCan
         }
     }
     if invalid || !pending.is_empty() || (!allow_open_run && !finished) {return vec![];}
-    candidate.into_iter().filter(|c|super::project_memory::reject_sensitive(c).is_ok()).collect()
+    candidate.into_iter().collect()
 }
 
 #[cfg(test)]

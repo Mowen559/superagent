@@ -92,6 +92,8 @@ impl ToolExecutor for NativeMemoryTool {
             }
             "revoke" => {
                 let key = key()?;
+                let governed=crate::services::brain::candidate_governance::Governance::new(&config,&self.workspace_root);
+                if let Ok(candidate)=governed.get(key){governed.revoke(key,candidate.revision)?;}
                 store.revoke_context_memory(key)?;
                 let data=store.load_result()?;
                 if !data.memory_context.get(key).is_some_and(|context|context.state=="revoked") {

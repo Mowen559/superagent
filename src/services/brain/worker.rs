@@ -278,25 +278,14 @@ pub async fn run_worker(
     if let Some(heartbeat)=heartbeat{heartbeat.abort();let _=heartbeat.await;}
     stdin_handle.abort();
 
-    // 自动触发会话轨迹经验自省与自愈提炼，持久化写入 SuperMemory
-    let allow_auto_persistence = !matches!(work_mode, Some(crate::services::brain::tool_policy::WorkMode::Plan))
-        && std::env::var("HUB_PARENT_RUN_ID").is_err();
-    let persisted_count = if run_res.is_ok() && allow_auto_persistence {
-        crate::domains::agent_cognitive::plan_reflection::ReflectionEngine::distill_and_persist(
-            &agent.events, &runtime_config, Some(&effective_root.to_string_lossy()))
-    } else { 0 };
-    if persisted_count > 0 {
-        eprintln!(
-            "\x1b[32m[SuperMemory] 🧬 Distilled & persisted {} golden rules to {}\x1b[0m",
-            persisted_count, effective_root.display()
-        );
-    }
+    // Automatic memory decisions have already been finalized and audited by AgentLoop.
+    let allow_auto_persistence=agent.automatic_memory_allowed();
 
     // 自动技能结晶飞轮 (Auto-Skill Crystallization Flywheel)
     if run_res.is_ok() && allow_auto_persistence {
         if let Some(crystallized) = crate::domains::agent_cognitive::skill_crystallizer::AutoSkillCrystallizer::crystallize_from_trajectory(
             prompt, &agent.events, &effective_root) {
-            eprintln!("[Skill Crystallizer] Stored completed-Run skill '{}' at {}", crystallized.name, crystallized.path);
+            eprintln!("[Skill Crystallizer] Stored quarantined candidate '{}' at {}", crystallized.name, crystallized.path);
         }
     }
 

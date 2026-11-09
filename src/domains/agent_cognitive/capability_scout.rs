@@ -264,7 +264,25 @@ if __name__ == "__main__":
     }
 
     pub fn discover_skills(workspace_root: &Path) -> Vec<MatchedSkill> {
-        Self::discover_skills_in(&Self::skill_roots(workspace_root))
+        let config=crate::config::runtime::RuntimeConfig::from_env(&crate::config::app_paths::AppPaths::new());
+        Self::discover_skills_with_config(workspace_root,&config)
+    }
+    pub(crate) fn discover_skills_with_config(workspace_root:&Path,config:&crate::config::runtime::RuntimeConfig)->Vec<MatchedSkill> {
+        let mut found=Self::discover_skills_in(&Self::skill_roots(workspace_root));
+        let (origin,_)=crate::services::brain::project_memory::managed_scope(config,workspace_root);
+        let legacy=crate::services::supermemory_store::SupermemoryStore::new(config,Some(&origin.to_string_lossy())).load_result();
+        if let Ok(data)=legacy {
+            let blocked:Vec<_>=data.memories.iter().filter(|r|r.node_type=="skill"&&r.tags.iter().any(|t|t=="superagent"))
+                .filter_map(|r|crate::infrastructure::fs_path::resolve_safe_path(&r.file_path,&origin).ok()).collect();
+            found.retain(|skill|!blocked.iter().any(|p|crate::infrastructure::fs_path::canonicalize_clean(p)==crate::infrastructure::fs_path::canonicalize_clean(Path::new(&skill.path))));
+        }
+        let store=crate::services::brain::candidate_governance::Governance::new(config,workspace_root);
+        for candidate in store.active().into_iter().filter(|c|c.kind==crate::services::brain::candidate_governance::CandidateKind::Skill) {
+            if let Ok(markdown)=store.read_candidate(&candidate.id) {
+                let path=store.payload_path(&candidate);let (_,_,instructions)=Self::parse_skill_file(&markdown,&path);
+                found.push(MatchedSkill{name:candidate.name,description:candidate.description,path:path.to_string_lossy().into(),instructions,score:0.0});
+            }
+        }found
     }
 
     fn discover_skills_in(skill_roots: &[PathBuf]) -> Vec<MatchedSkill> {
@@ -288,6 +306,7 @@ if __name__ == "__main__":
                         continue;
                     }
                     if let Ok(content) = std::fs::read_to_string(&path) {
+                        if content.contains("> 💎 **实战结晶资产**") || content.contains("deepcloud_candidate_state: candidate") {continue;}
                         let (name, desc, instructions) = Self::parse_skill_file(&content, &path);
                         if seen_names.insert(name.to_lowercase()) {
                             candidates.push(MatchedSkill {

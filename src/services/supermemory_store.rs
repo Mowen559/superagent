@@ -124,7 +124,7 @@ impl SupermemoryStore {
         let contexts=data.memory_context;
         let mut scored = data.memories
             .into_iter()
-            .filter(|m|crate::services::brain::project_memory::context_eligible(contexts.get(&m.id),scope))
+            .filter(|m|crate::services::brain::project_memory::record_eligible(m,contexts.get(&m.id),scope))
             .filter(|memory| node_type.is_none_or(|kind| memory.node_type == kind))
             .filter(|memory| allowed_ids.is_none_or(|allowed| allowed.contains(memory.id.as_str())))
             .filter_map(|memory| {

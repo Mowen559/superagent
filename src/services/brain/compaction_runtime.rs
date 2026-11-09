@@ -257,6 +257,10 @@ impl CompactionRuntime {
             summary,
             original_event_count: keep_start,
         });
+        // Terminal receipts and persistence audits remain physical session facts
+        // even when their surrounding conversational history is compacted.
+        candidate.extend(events[..keep_start].iter().filter(|e|matches!(e,
+            SessionEvent::RunStarted{..}|SessionEvent::RunFinished{..}|SessionEvent::MemoryPersistenceRecorded{..})).cloned());
         candidate.extend_from_slice(&events[keep_start..]);
         let after_tokens = projected_tokens(&candidate);
         if after_tokens >= before_tokens {
@@ -276,7 +280,7 @@ impl CompactionRuntime {
 }
 
 fn projected_tokens(events: &[SessionEvent]) -> usize {
-    let projection = Value::Array(events.iter().map(SessionEvent::to_llm_message).collect());
+    let projection = Value::Array(events.iter().filter(|e|!matches!(e,SessionEvent::MemoryPersistenceRecorded{..})).map(SessionEvent::to_llm_message).collect());
     estimate_json_tokens(&projection)
 }
 
@@ -319,6 +323,7 @@ fn build_checkpoint(events: &[SessionEvent], max_chars: usize) -> String {
 
 fn checkpoint_line(event: &SessionEvent) -> String {
     match event {
+        SessionEvent::MemoryPersistenceRecorded{..} => String::new(),
         SessionEvent::RunStarted { run_id, .. } => format!("run_started: {run_id}"),
         SessionEvent::RunFinished {
             run_id,
@@ -363,7 +368,7 @@ fn checkpoint_line(event: &SessionEvent) -> String {
         SessionEvent::ToolResult { id, result } => format!(
             "tool_result: id={} result={}",
             bounded(id, 120),
-            bounded(&result.to_string(), MAX_EVENT_CHARS)
+            bounded(&crate::services::brain::events::tool_result_for_model(result).to_string(), MAX_EVENT_CHARS)
         ),
         SessionEvent::SystemWarning(text) => {
             format!("system_warning: {}", bounded(text, MAX_EVENT_CHARS))

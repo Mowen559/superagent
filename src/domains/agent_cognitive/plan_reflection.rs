@@ -113,48 +113,11 @@ impl ReflectionEngine {
         config: &crate::config::runtime::RuntimeConfig,
         project_path: Option<&str>,
     ) -> usize {
-        let lessons = Self::distill_trajectory_lessons(events);
-        if lessons.is_empty() {
-            return 0;
-        }
-
         let workspace=project_path.map(std::path::Path::new).unwrap_or(&config.project_root);
-        let (project,path)=crate::services::brain::project_memory::managed_scope(config,workspace);
-        let store=crate::services::supermemory_store::SupermemoryStore::from_path(path);
-        let mut count=0;
-
-        for lesson in lessons {
-            let record_id = format!("distilled_{}", uuid::Uuid::new_v4().simple());
-            let record = crate::models::memory::SupermemoryRecord {
-                id: record_id.clone(),
-                name: lesson.title.clone(),
-                summary: format!(
-                    "Pattern: {}\nObservation: {}\nEvidence: {}",
-                    lesson.trigger_pattern, lesson.rule_guidance, serde_json::to_string(&lesson.evidence).unwrap_or_default()
-                ),
-                tags: vec!["distilled_rule".to_string(), "reflexion".to_string()],
-                file_path: "".to_string(),
-                complexity: lesson.severity,
-                node_type: "reflexion".to_string(),
-                source_graph_path: "".to_string(),
-                source_label: "PostMortemReflexion".to_string(),
-                updated_at: chrono::Utc::now().to_rfc3339(),
-                embedding: None,
-            };
-            let result=(|| -> Result<(),String> {
-                let mut context=crate::services::brain::project_memory::new_context(&project,workspace,Some(&lesson.evidence.failure.session_id),Some(&lesson.evidence.failure.run_id))?;
-                context.source="automatic_reflection".into();context.kind="experience_candidate".into();
-                store.write_context_memory(record,context)?;
-                let saved=store.load_result()?;
-                if !saved.memories.iter().any(|r|r.id==record_id) || !saved.memory_context.get(&record_id).is_some_and(|c|c.project==crate::services::brain::project_memory::project_identity(&project)&&c.source=="automatic_reflection") {
-                    return Err("automatic candidate readback did not match".into());
-                }
-                Ok(())
-            })();
-            match result {Ok(())=>{count+=1;eprintln!("[Reflection] Stored unverified project candidate");},Err(_)=>eprintln!("[Reflection] Project candidate was not confirmed stored")}
-        }
-
-        count
+        Self::distill_trajectory_lessons(events).into_iter().filter(|lesson| {
+            crate::services::brain::recovery_candidate::is_current(&lesson.evidence,workspace)
+                && crate::services::brain::memory_persistence::persist_reflection(config,workspace,&lesson.evidence).is_ok()
+        }).count()
     }
 }
 

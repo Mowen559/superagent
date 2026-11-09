@@ -11,6 +11,8 @@ pub mod eval_harness;
 pub mod events;
 pub mod evolution_memory;
 pub mod recovery_candidate;
+pub mod memory_persistence;
+pub mod candidate_governance;
 pub mod execution_coaching;
 pub mod native_capabilities;
 pub mod project_memory;

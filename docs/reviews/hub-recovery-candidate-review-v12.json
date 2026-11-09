@@ -1,0 +1,104 @@
+{
+  "date": "2026-11-08",
+  "stage": "P8-C2 自动经验候选的执行证据",
+  "progress": {
+    "complete": 67,
+    "total": 106,
+    "newlyCompleted": "9.12",
+    "next": "9.13"
+  },
+  "candidate": {
+    "sha256": "bada98a13d04ca0d426448a20dffb01ef05837a7ba42646292218a1aa542ec0f",
+    "manifestEntries": 39,
+    "unchangedResources": 38,
+    "sourceFilesVerified": 423,
+    "installed": false
+  },
+  "installed": false,
+  "changes": [
+    "删除EvolutionMemory和ReflectionEngine中的关键词/工具名称修法推断，共用保守提取器",
+    "网关在压缩后记录自身执行证据，剥离提供方伪造字段；按ID、规范工具、参数摘要、Session/Run匹配",
+    "失败必须来自实际前台检查非零退出，修订必须同时具备工作区变化及工作区内单目标文件内容SHA变化，再由相同检查稳定退出0",
+    "跨轮、无匹配调用、重复ID、不同检查、空改动、检查期间变化、复验后变化及失败终态均不能生成修复经验；写入前再次检查内容新鲜度",
+    "候选保留适用条件、未验证项及三段收据，不复制原始提示、命令、日志、路径或编辑正文；Evolution新候选不进入旧活动指导路径",
+    "两条写入路径读回后才确认保存，日志改为未验证候选；执行证据在活动/折叠模型投影中隐藏，保留账本审计"
+  ],
+  "validation": {
+    "libraryRegression": {
+      "passed": 655,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "filter": "domains::code_review::tests::test_review_current_project_workspace",
+      "evidence": "artifacts\\hub-swarm-memory-20261108\\v12\\regression-final.log"
+    },
+    "newTests": 7,
+    "httpCandidate": {
+      "ok": true,
+      "tasks": [
+        {
+          "phase": "repair",
+          "taskId": "e90c15dd-a32d-4457-905f-1e435e263824",
+          "status": "completed"
+        },
+        {
+          "phase": "prose",
+          "taskId": "cee55904-36cf-4364-a18c-199ef58e8c57",
+          "status": "completed"
+        }
+      ],
+      "controlledModelResponses": 7,
+      "executionCandidates": 1,
+      "reflectionCandidates": 1,
+      "failureCallId": "repair-0",
+      "revisionCallId": "repair-2",
+      "validationCallId": "repair-3",
+      "evidence": "artifacts\\hub-swarm-memory-20261108\\v12\\http-candidate-1\\acceptance.json"
+    },
+    "swarmRegression": {
+      "ok": true,
+      "cases": [
+        {
+          "kind": "pass",
+          "parentStatus": "completed"
+        },
+        {
+          "kind": "review-reject",
+          "parentStatus": "failed"
+        },
+        {
+          "kind": "stale",
+          "parentStatus": "failed"
+        }
+      ],
+      "evidence": "artifacts\\hub-swarm-memory-20261108\\v12\\http-swarm-retry\\acceptance.json"
+    },
+    "build": "hub和superagent成功；最终候选39条清单全部核验，38个资源与v11一致，423个Rust/构建输入核验未漂移",
+    "openspec": "本变更strict通过，6个主规范通过"
+  },
+  "retainedFailures": [
+    {
+      "evidence": "artifacts\\hub-swarm-memory-20261108\\v12\\candidate-tests-first.log",
+      "cause": "首次编译发现测试模块引用和已移动变量错误，修正后通过"
+    },
+    {
+      "evidence": "artifacts\\hub-swarm-memory-20261108\\v12\\regression-first.log",
+      "cause": "首轮全库654通过/1失败：自动反思误将Session/Run传入source_file/expiry，已恢复正确参数；Session/Run仍保留在候选证据中"
+    }
+  ],
+  "limits": [
+    "本轮模型为受控HTTP测试适配器，实际运行Hub、Node和文件写入；没有新增Gemini自主业务成绩，保留v11的1/7完整分母",
+    "只认证观测链，不证明语义根因、编辑因果、检查脚本完整性、独立业务正确性或跨目标迁移",
+    "目标文件超过16MiB、无法采集指纹、未识别命令、命令式编辑及批量收集可保守跳过；受限工作区扫描遵循忽略规则",
+    "既有显式/历史经验及活动Skill的统一候选晋升与撤回仍待9.14；本项不认证所有历史记忆可信",
+    "每Run保存决策/只读自动写入/全面敏感拒绝审计待9.13，跨Session自然召回与撤销业务验证待9.15",
+    "候选未安装，不改默认Hub或手机已验收规则"
+  ],
+  "assetsUnchanged": {
+    "D:\\抖音\\deepcloud\\bin\\hub.exe": "4021fbc50618e96239a64f3233d24e95f41b2878a5e71d7f284344b0827c0aa9",
+    "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\hub.exe": "824dcd04586f31e26db4e55c9479a4e4c6d30ef3236f2ca407e071270ee3ead3",
+    "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-cloud-publish\\dmghg-mobile-v2-20261105-r2\\project\\rule.json": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e"
+  },
+  "evidenceRoot": "artifacts\\hub-swarm-memory-20261108\\v12",
+  "sourceManifest": "artifacts\\hub-swarm-memory-20261108\\v12\\source-build-start.json"
+}

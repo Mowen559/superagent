@@ -4,6 +4,7 @@ use crate::services::brain::events::SessionEvent;
 
 /// Helper: Formats a compact fingerprint for a folded tool result
 pub fn format_folded_tool_result(tool_name: &str, result: &Value) -> String {
+    let result=crate::services::brain::events::tool_result_for_model(result);
     let raw_str = if let Some(s) = result.as_str() {
         s.to_string()
     } else {
@@ -142,7 +143,7 @@ pub fn project_events_with_micro_compaction(
         let evt = &events[i];
 
         // 过滤内部元审计事件，严禁作为 role: "system" 插入到对话流中间，破坏 OpenAI 协议
-        if matches!(evt, SessionEvent::RunStarted { .. } | SessionEvent::RunFinished { .. } | SessionEvent::LifecycleChanged { .. } | SessionEvent::TraceCheckpoint { .. }) {
+        if matches!(evt, SessionEvent::RunStarted { .. } | SessionEvent::RunFinished { .. } | SessionEvent::LifecycleChanged { .. } | SessionEvent::TraceCheckpoint { .. } | SessionEvent::MemoryPersistenceRecorded { .. }) {
             i += 1;
             continue;
         }

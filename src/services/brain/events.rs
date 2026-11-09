@@ -65,6 +65,9 @@ pub enum SessionEvent {
         item_ids: Vec<String>,
         content: String,
     },
+    MemoryPersistenceRecorded {
+        receipt: super::memory_persistence::MemoryAudit,
+    },
     TraceCheckpoint {
         turn: usize,
         brain_tier: String,
@@ -126,6 +129,7 @@ impl SessionEvent {
             Self::SteeringInjected { content, .. } => {
                 serde_json::json!({ "role": "user", "content": content })
             }
+            Self::MemoryPersistenceRecorded { .. } => serde_json::json!({"role":"system","content":"[memory_audit_internal]"}),
             Self::TraceCheckpoint { .. } => {
                 serde_json::json!({ "role": "system", "content": "[trace_checkpoint_internal]" })
             }
@@ -147,6 +151,7 @@ impl SessionEvent {
                 })
             }
             Self::ToolResult { id, result } => {
+                let result=tool_result_for_model(result);
                 serde_json::json!({
                     "role": "tool",
                     "tool_call_id": id,
@@ -155,6 +160,13 @@ impl SessionEvent {
             }
         }
     }
+}
+
+/// Execution provenance is retained in the ledger, without increasing model context.
+pub(crate) fn tool_result_for_model(result:&Value)->Value {
+    let mut result=result.clone();
+    if let Some(object)=result.as_object_mut(){object.remove(super::recovery_candidate::FIELD);}
+    result
 }
 
 use crate::domains::model_gateway::providers::LlmProvider;

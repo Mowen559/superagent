@@ -1,0 +1,320 @@
+{
+  "date": "2026-11-09",
+  "stage": "P8-C3 每Run自动记忆保存审计",
+  "progress": {
+    "complete": 68,
+    "total": 106,
+    "newlyCompleted": "9.13",
+    "next": "9.14"
+  },
+  "candidate": {
+    "sha256": "67bc111b2f8346afd9a947641f7a5a68c112d445e4170b652feefc6c0c8a75ba",
+    "manifestEntries": 39,
+    "unchangedResources": 38,
+    "sourceFilesVerified": 425,
+    "installed": false
+  },
+  "changes": [
+    "自动策略、执行经验、反思候选及运行摘要在最终RunFinished后统一处理；内部完成草稿只缓存报告，外层委派收尾失败不写成功候选",
+    "每Run四阶段均记录stored/skipped/rejected/failed、固定原因、实际读回ID及对象摘要，写入SessionLedger的MemoryPersistenceRecorded；审计不进入召回或模型投影",
+    "只读意图、ReadOnly策略及委派叶子跳过自动记忆，既有摘要和Skill结晶入口共用守卫；显式授权的笔记工具保留自身范围",
+    "原Layer Synthesis改为暂存并在最终完成且允许时写来源项目托管库，移除吞错write_memory后打印成功的路径",
+    "Evolution写入增加同进程和文件事务锁，所有读改写互斥，确认写入后实际读回对象；反思/摘要核对读回正文与所有权上下文",
+    "敏感候选在写入前拒绝；审计标识脱敏，错误使用固定原因，不复制输入、原始IO错误或秘密",
+    "上下文压缩保留物理Run边界和保存审计，但不把审计/私有执行证据放入摘要；重启补齐中断或历史缺失审计，注明未知/不重放"
+  ],
+  "validation": {
+    "libraryRegression": {
+      "passed": 666,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "filter": "domains::code_review::tests::test_review_current_project_workspace",
+      "evidence": "artifacts\\hub-memory-audit-20261109\\v13\\regression-first.log"
+    },
+    "newTests": 11,
+    "targetedFirstPassed": 10,
+    "targetedEvidence": "artifacts\\hub-memory-audit-20261109\\v13\\targeted-second.log",
+    "http": {
+      "ok": true,
+      "cases": [
+        {
+          "phase": "repair",
+          "taskId": "936ba46d-c88d-430e-bc48-4ab45c3b02d4",
+          "status": "completed",
+          "sessionId": "run_e6c51fce7e08473482df30c5836dd2aa",
+          "audit": {
+            "schemaVersion": 1,
+            "sessionId": "run_e6c51fce7e08473482df30c5836dd2aa",
+            "runId": "b1154d98-8526-4f01-85c3-d7c4ac16e34c",
+            "projectDigest": "4d2e9a69ad20f8982d36e4e06b52bac89368058992cbfe622799faa67cd79eec",
+            "decisions": [
+              {
+                "stage": "strategy_observation",
+                "status": "stored",
+                "reason": "write_and_readback_confirmed",
+                "recordIds": [
+                  "execution.inspect-act-verify"
+                ],
+                "readbackDigests": [
+                  "474af4fe3f539af042b19a57823cc6f060bd439b2352f99414f946405dbb93ff"
+                ]
+              },
+              {
+                "stage": "execution_candidate",
+                "status": "stored",
+                "reason": "write_and_readback_confirmed",
+                "recordIds": [
+                  "lesson-261beaab-b42d-4c42-a00f-aeb26af30cc5"
+                ],
+                "readbackDigests": [
+                  "f18fac94a01222c1636b4152353d65df58959c5b3425026208c71bcdf489f7d3"
+                ]
+              },
+              {
+                "stage": "reflection_candidate",
+                "status": "stored",
+                "reason": "write_and_readback_confirmed",
+                "recordIds": [
+                  "distilled_9633a83fc4664175b78b91e9ae41eec6"
+                ],
+                "readbackDigests": [
+                  "6bae7b38d9afb730c2ac28d184bca66b93be4701ef05a257c067d9bdb1cb31d4"
+                ]
+              },
+              {
+                "stage": "run_checkpoint",
+                "status": "skipped",
+                "reason": "not_requested",
+                "recordIds": [],
+                "readbackDigests": []
+              }
+            ]
+          }
+        },
+        {
+          "phase": "readonly",
+          "taskId": "378d341c-5ff8-4032-99ca-1eff718e5a32",
+          "status": "completed",
+          "sessionId": "run_cb8db58771fe4c29ae108f526e860af4",
+          "audit": {
+            "schemaVersion": 1,
+            "sessionId": "run_cb8db58771fe4c29ae108f526e860af4",
+            "runId": "3652f938-83cb-40ad-953f-3e8cbcde9afb",
+            "projectDigest": "4d2e9a69ad20f8982d36e4e06b52bac89368058992cbfe622799faa67cd79eec",
+            "decisions": [
+              {
+                "stage": "strategy_observation",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "execution_candidate",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "reflection_candidate",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "run_checkpoint",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              }
+            ]
+          }
+        },
+        {
+          "phase": "plan",
+          "taskId": "bd1930e5-70ff-4ce5-b71a-441d5f0a33b4",
+          "status": "completed",
+          "sessionId": "run_3785f111cf574bcc884e0d4262b09098",
+          "audit": {
+            "schemaVersion": 1,
+            "sessionId": "run_3785f111cf574bcc884e0d4262b09098",
+            "runId": "92fd5d78-fa51-43e6-abb0-acc372cdced0",
+            "projectDigest": "4d2e9a69ad20f8982d36e4e06b52bac89368058992cbfe622799faa67cd79eec",
+            "decisions": [
+              {
+                "stage": "strategy_observation",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "execution_candidate",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "reflection_candidate",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "run_checkpoint",
+                "status": "skipped",
+                "reason": "read_only_task",
+                "recordIds": [],
+                "readbackDigests": []
+              }
+            ]
+          }
+        },
+        {
+          "phase": "write-fail",
+          "taskId": "5285cb4c-92bf-425c-a55d-463fbe0ba78f",
+          "status": "completed",
+          "sessionId": "run_40e6266afc2245a3a78bfbe05353e0dc",
+          "audit": {
+            "schemaVersion": 1,
+            "sessionId": "run_40e6266afc2245a3a78bfbe05353e0dc",
+            "runId": "83ed6267-a92b-412c-b67b-9d36c27beb1d",
+            "projectDigest": "4d2e9a69ad20f8982d36e4e06b52bac89368058992cbfe622799faa67cd79eec",
+            "decisions": [
+              {
+                "stage": "strategy_observation",
+                "status": "failed",
+                "reason": "write_failed",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "execution_candidate",
+                "status": "failed",
+                "reason": "write_failed",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "reflection_candidate",
+                "status": "failed",
+                "reason": "write_failed",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "run_checkpoint",
+                "status": "skipped",
+                "reason": "not_requested",
+                "recordIds": [],
+                "readbackDigests": []
+              }
+            ]
+          }
+        },
+        {
+          "phase": "secret",
+          "taskId": "68f7c5ca-4116-4253-8e3e-bcc269b004fa",
+          "status": "failed",
+          "sessionId": "run_aa4637e9c662413f8dd05493b37c9410",
+          "audit": {
+            "schemaVersion": 1,
+            "sessionId": "run_aa4637e9c662413f8dd05493b37c9410",
+            "runId": "e17a2fe7-d235-4c83-a73b-4fae1398e1ec",
+            "projectDigest": "4d2e9a69ad20f8982d36e4e06b52bac89368058992cbfe622799faa67cd79eec",
+            "decisions": [
+              {
+                "stage": "strategy_observation",
+                "status": "stored",
+                "reason": "write_and_readback_confirmed",
+                "recordIds": [
+                  "investigation.evidence-first"
+                ],
+                "readbackDigests": [
+                  "15187fe0cbbedef4fc84d2a97ffe661a14de172249e622d6a4caf2644e4f64f0"
+                ]
+              },
+              {
+                "stage": "execution_candidate",
+                "status": "skipped",
+                "reason": "run_not_completed",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "reflection_candidate",
+                "status": "skipped",
+                "reason": "run_not_completed",
+                "recordIds": [],
+                "readbackDigests": []
+              },
+              {
+                "stage": "run_checkpoint",
+                "status": "skipped",
+                "reason": "run_not_completed",
+                "recordIds": [],
+                "readbackDigests": []
+              }
+            ]
+          }
+        }
+      ],
+      "controlledModelResponses": 17,
+      "evidence": "artifacts\\hub-memory-audit-20261109\\v13\\http-audit-2\\acceptance.json",
+      "sensitiveCase": "显式敏感笔记被拒绝，Run按真实结果failed；没有将其改写为成功。自动敏感候选的rejected状态另由库测试验证。",
+      "readonlyMemoryBytesUnchanged": true,
+      "blockedWriteSentinelsAndOriginalMemoryPreserved": true,
+      "canaryAbsentFromServiceLog": true
+    },
+    "swarm": {
+      "cases": [
+        {
+          "kind": "pass",
+          "parentStatus": "completed"
+        },
+        {
+          "kind": "review-reject",
+          "parentStatus": "failed"
+        },
+        {
+          "kind": "stale",
+          "parentStatus": "failed"
+        }
+      ],
+      "leafAudits": 6,
+      "leafDecisions": "全部四阶段skipped/delegated_run",
+      "evidence": "artifacts\\hub-memory-audit-20261109\\v13\\http-swarm-retry\\acceptance.json"
+    },
+    "build": "hub与superagent成功；39条候选清单核验，38个资源与v12一致，425个源码/构建输入未漂移",
+    "openspec": "变更strict及6个主规范通过"
+  },
+  "retainedFailures": [
+    {
+      "evidence": "artifacts\\hub-memory-audit-20261109\\v13\\targeted-first.log",
+      "cause": "新增内部事件后编译器指出压缩器穷举分支未覆盖，补齐隐藏/保留处理后通过"
+    },
+    {
+      "evidence": "artifacts\\hub-memory-audit-20261109\\v13\\http-audit-1\\acceptance-failed.json",
+      "cause": "前四组及敏感拒绝Run均已产生正确审计；验收脚本误假设失败Task也含成功receipt，未取得Session ID。改为精确关联本次唯一新增会话账本后5组通过，原失败保留"
+    }
+  ],
+  "limits": [
+    "本轮使用受控HTTP模型，真实运行Hub/Node/隔离文件写入及故障；没有新增Gemini自主业务评分，v11完整分母1/7保留",
+    "普通SessionLedger本身无法写盘时仅输出脱敏ledger_failed和真实决策，不能承诺进程退出后仍存在审计；重开账本可标记未知且不重放自动写入",
+    "未认证修改语义、因果和通用迁移；候选的统一晋升/撤回以及活动Skill隔离仍待9.14，真实模型跨Session召回与撤销待9.15",
+    "候选未安装；默认Hub及已验收手机规则保持原哈希，未覆盖其他未提交修改或发布新云口令"
+  ],
+  "assetsUnchanged": {
+    "D:\\抖音\\deepcloud\\bin\\hub.exe": "4021fbc50618e96239a64f3233d24e95f41b2878a5e71d7f284344b0827c0aa9",
+    "D:\\抖音\\deepcloud\\deepcloud-ui\\native\\prebuilt\\bin\\hub.exe": "824dcd04586f31e26db4e55c9479a4e4c6d30ef3236f2ca407e071270ee3ead3",
+    "D:\\抖音\\deepcloud\\super-agent\\artifacts\\hub-cloud-publish\\dmghg-mobile-v2-20261105-r2\\project\\rule.json": "d6466413b28076fe91e0fd1c65c77e2dea4e671a695baf51c30fe503578a011e"
+  },
+  "sourceManifest": "artifacts\\hub-memory-audit-20261109\\v13\\source-build-start.json",
+  "evidenceRoot": "artifacts\\hub-memory-audit-20261109\\v13"
+}

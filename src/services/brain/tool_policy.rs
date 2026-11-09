@@ -160,6 +160,8 @@ pub fn classify_tool_risk(name: &str, arguments: &Value) -> ToolRisk {
         | "repo_map_tool"
         | "code_review"
         | "check_worker_status" => ToolRisk::ReadOnly,
+        "skill_tool" if matches!(arguments.get("action").and_then(Value::as_str),Some("list"|"read"|"read_candidate"))=>ToolRisk::ReadOnly,
+        "hermes_workflow" if matches!(arguments.get("Action").or_else(||arguments.get("action")).and_then(Value::as_str),Some("query_lessons"|"list_mcps"))=>ToolRisk::ReadOnly,
         "super_memory" if matches!(arguments.get("action").and_then(Value::as_str), Some("retrieve" | "search" | "list")) => ToolRisk::ReadOnly,
         "super_memory" => ToolRisk::WorkspaceMutation,
         "knowledge_corpus_tool" if corpus_operation(arguments) == "list" => ToolRisk::ReadOnly,

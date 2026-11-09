@@ -1,0 +1,203 @@
+{
+  "date": "2026-11-09",
+  "stage": "P8-C4 候选经验与Skill统一晋升、撤销及读取门禁",
+  "progress": {
+    "complete": 69,
+    "total": 106,
+    "newlyCompleted": "9.14",
+    "next": "9.15"
+  },
+  "candidate": {
+    "sha256": "adce3f345c99c4fe0b09bb8403b18f41019dfe6223ef34f12cfcf01747c05fef",
+    "manifestEntries": 39,
+    "unchangedResources": 38,
+    "sourceFilesVerified": 427,
+    "installed": false
+  },
+  "evidenceRoot": "artifacts\\hub-candidate-governance-20261109\\v14",
+  "changes": [
+    "自动结晶、SkillTool保存/更新、自动经验和Hermes草稿进入项目隔离候选，正文不可变；正常发现和召回只加载有效活动版本。新失败版本不覆盖旧有效版本，撤销保留用户文件和证据。",
+    "统一管理API要求已打开项目、精确版本和固定受信留出套件；真实Node执行不同目标的固定裁判，实际退出码和指纹形成限时收据，不接受模型声称passed或调用方任意命令。",
+    "每次使用重新核对来源、正文、目标、裁判、套件、到期及撤销；验证期间并发撤销由revision比较阻止反向复活。旧三次成功计数及无留出证明的ELO历史不自动变成指导。",
+    "治理记忆还核对原托管记录同ID正文和自动来源；删除、改写、显式用户记录覆盖或tombstone均阻止旧治理正文继续投影。显式笔记继续原有来源/到期/撤销限制。",
+    "Hermes查询使用原生召回同一门禁和确切项目配置，查询为只读；补上模型工具菜单中的Hermes投影，避免已注册但模型看不到；就绪计数与实际可召回记录一致。",
+    "有效技能目录无匹配时返回无正文的unavailable查询收据，避免预期缺失导致只读任务失败；它不表示候选激活或业务验证通过。",
+    "Windows Node使用清理后的路径与较短程序托管输出目录，解决深候选路径工作目录262字符导致的CreateProcess 267；超时回收验证进程。"
+  ],
+  "validation": {
+    "libraryRegression": {
+      "passed": 681,
+      "failed": 0,
+      "ignored": 2,
+      "filtered": 1,
+      "filter": "domains::code_review::tests::test_review_current_project_workspace",
+      "seconds": 84.56,
+      "evidence": "artifacts\\hub-candidate-governance-20261109\\v14\\regression-discovery.log"
+    },
+    "newGovernanceTests": 15,
+    "build": {
+      "binaries": [
+        "hub",
+        "superagent"
+      ],
+      "passed": true,
+      "evidence": "artifacts\\hub-candidate-governance-20261109\\v14\\build-discovery.log"
+    },
+    "governanceHttp": {
+      "ok": true,
+      "completedRuns": 17,
+      "modelRequests": 34,
+      "modelResponses": 34,
+      "model": "scripted mock, not Gemini",
+      "toolMenuCheckedEveryRequest": [
+        "skill_tool",
+        "super_memory",
+        "hermes_workflow",
+        "capability_status"
+      ],
+      "skillAvailability": [
+        false,
+        true,
+        false,
+        false
+      ],
+      "nativeMemoryAvailability": [
+        false,
+        true,
+        false
+      ],
+      "hermesPlanAvailability": [
+        false,
+        true,
+        false
+      ],
+      "memoryEligibleCounts": [
+        0,
+        1,
+        0
+      ],
+      "matchingMemoryId": "lesson-c377d52d",
+      "heldOutFixtureCount": 1,
+      "assertionRowsPerFixture": 3,
+      "successfulOracleExecutions": 2,
+      "expectedFailedOracleExecutions": 1,
+      "evidence": "artifacts\\hub-candidate-governance-20261109\\v14\\http-governance-6\\acceptance.json"
+    },
+    "compatibility": {
+      "memoryAudit": {
+        "cases": 5,
+        "ok": true,
+        "runStatuses": [
+          {
+            "phase": "repair",
+            "status": "completed"
+          },
+          {
+            "phase": "readonly",
+            "status": "completed"
+          },
+          {
+            "phase": "plan",
+            "status": "completed"
+          },
+          {
+            "phase": "write-fail",
+            "status": "completed"
+          },
+          {
+            "phase": "secret",
+            "status": "failed"
+          }
+        ],
+        "evidence": "artifacts\\hub-candidate-governance-20261109\\v14\\http-memory-audit-discovery\\acceptance.json"
+      },
+      "swarmReplacement": {
+        "cases": 3,
+        "ok": true,
+        "runStatuses": [
+          {
+            "kind": "pass",
+            "status": "completed"
+          },
+          {
+            "kind": "review-reject",
+            "status": "failed"
+          },
+          {
+            "kind": "stale",
+            "status": "failed"
+          }
+        ],
+        "evidence": "artifacts\\hub-candidate-governance-20261109\\v14\\http-swarm-retry-discovery\\acceptance.json"
+      }
+    },
+    "integrity": {
+      "sourceFilesVerified": 427,
+      "preservedAssets": 3,
+      "testPortsReleased": true
+    },
+    "openspec": {
+      "change": "evolve-hub-autonomous-delivery",
+      "strictValidation": "change valid; 6 main specs passed",
+      "strictChangePassed": true,
+      "strictMainSpecsPassed": 6
+    }
+  },
+  "retainedAttempts": [
+    {
+      "evidence": "targeted-first.log",
+      "result": "候选name局部移动编译失败；已修复克隆，保留原记录"
+    },
+    {
+      "evidence": "targeted-second.log",
+      "result": "4通过/8失败；Windows扩展路径Node EISDIR及测试oracle转义错误已修复"
+    },
+    {
+      "evidence": "regression-first.log",
+      "result": "679通过/2失败；旧测试仍要求即时激活/自动召回，按更严格候选契约更新断言，未新增过滤"
+    },
+    {
+      "evidence": "regression-second.log",
+      "result": "680通过/1失败；原进程取消测试1秒内未获得PID，同条件单测重跑及后续全库通过，未修改/忽略此测试"
+    },
+    {
+      "evidence": "http-governance-1",
+      "result": "模型伪造passed正确被422拒绝，测试脚本错误假设响应必为JSON；修复读取文本响应"
+    },
+    {
+      "evidence": "http-governance-2",
+      "result": "实际Node启动失败；复现262字符cwd Windows267，改短输出目录后161字符cwd启动成功"
+    },
+    {
+      "evidence": "http-governance-3",
+      "result": "11次任务中8完成/3预期缺失查询失败；保留为部分通过，修复unavailable查询契约"
+    },
+    {
+      "evidence": "http-governance-4",
+      "result": "11次任务完成/22模拟响应，尚无Hermes菜单与查询一致性检查"
+    },
+    {
+      "evidence": "http-governance-5",
+      "result": "14次任务完成/28模拟响应；补充Hermes实际可见性、计划模式查询及最终精确二进制复验"
+    }
+  ],
+  "limits": [
+    "受控模拟模型和宿主编写的归一化草稿只验证真实Hub/Node执行与治理流程，不证明Gemini自主推理、跨任务迁移或业务规则正确；本阶段不增加真实模型成功率。",
+    "固定受信裁判的正确性是信任边界；一个不同目标及3行断言不等于通用泛化认证。真实失败修复后重启自然召回、另一项目隔离与撤销留待9.15。",
+    "来源指纹沿既有workspace_fingerprint忽略规则，跳过二进制/过大/生成资产；不承诺检测所有APK或大文件变更。",
+    "撤销/到期/指纹变更在下次读取时生效；无法追溯抹去已经注入模型的历史上下文。人工安装的技能没有被本阶段重新认证。",
+    "治理注册表保存当前验证收据，并非完整追加式生产治理事件日志；本阶段执行与失败证据另存artifacts。",
+    "候选未安装到默认Hub资源，未重新发布云口令，手机已确认规则及两个现有Hub二进制保持快照不变；发行切换属于9.20。",
+    "超时回收Node验证进程；受信裁判若自行派生进程，需要其自身管理派生进程生命周期。"
+  ],
+  "next": "9.15 使用真实模型完成失败修复，在重启新Session核对自然召回的同ID与来源，并验证另一项目隔离与撤销。",
+  "nextStatus": {
+    "task": "9.15",
+    "state": "not_completed",
+    "realProbes": [
+      503,
+      503
+    ],
+    "details": "docs/reviews/hub-memory-transfer-readiness-v15.json"
+  }
+}

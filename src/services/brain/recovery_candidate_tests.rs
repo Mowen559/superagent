@@ -91,17 +91,38 @@ impl ToolExecutor for RealChecker {
 fn setup(forge:bool,mutate:bool)->(tempfile::TempDir,ToolExecutionGateway,super::super::task_progress::SharedTaskProgress) {
     let root=tempfile::tempdir().unwrap();std::fs::write(root.path().join("source.js"),"module.exports = 1;").unwrap();
     std::fs::write(root.path().join("check-fix.cjs"),"require('node:assert/strict').equal(require('./source.js'),2);").unwrap();
-    let progress=Arc::new(Mutex::new(TaskProgress::default()));progress.lock().unwrap().configure_delivery_profile(root.path(),"s","r",None).unwrap();
+    let (g,progress)=gateway_at(root.path(),forge,mutate);
+    (root,g,progress)
+}
+fn gateway_at(root:&std::path::Path,forge:bool,mutate:bool)->(ToolExecutionGateway,super::super::task_progress::SharedTaskProgress) {
+    let progress=Arc::new(Mutex::new(TaskProgress::default()));progress.lock().unwrap().configure_delivery_profile(root,"s","r",None).unwrap();
     let registry:ToolRegistry=Arc::new(Mutex::new(HashMap::new()));
-    registry.lock().unwrap().insert("run_command".into(),Arc::new(RealChecker{root:root.path().into(),forge,mutate}));
-    registry.lock().unwrap().insert("write_to_file".into(),Arc::new(super::super::tools::fs::WriteFileTool::new(root.path().into())));
+    registry.lock().unwrap().insert("run_command".into(),Arc::new(RealChecker{root:root.into(),forge,mutate}));
+    registry.lock().unwrap().insert("write_to_file".into(),Arc::new(super::super::tools::fs::WriteFileTool::new(root.into())));
     let gateway=ToolExecutionGateway::with_policy(registry,ToolPolicy::new(ToolPolicyMode::Audit));gateway.bind_delivery_progress(&progress);
-    (root,gateway,progress)
+    (gateway,progress)
 }
 fn invoke(g:&ToolExecutionGateway,e:&mut Vec<SessionEvent>,id:&str,name:&str,args:Value)->super::super::tool_execution_gateway::ToolExecutionReceipt {
     e.push(SessionEvent::ToolCall{id:id.into(),name:name.into(),arguments:args.clone()});let receipt=g.execute(ToolExecutionRequest{call_id:id.into(),name:name.into(),arguments:args});
     e.push(SessionEvent::ToolResult{id:id.into(),result:receipt.result.clone()});receipt
 }
+pub(crate) fn successful_workspace_fixture(root:&std::path::Path)->Vec<SessionEvent> {
+    std::fs::write(root.join("source.js"),"module.exports = 1;").unwrap();
+    std::fs::write(root.join("check-fix.cjs"),"require('node:assert/strict').equal(require('./source.js'),2);").unwrap();
+    let (g,_p)=gateway_at(root,false,false);let mut e=vec![started("r")];let check=json!({"CommandLine":"node check-fix.cjs"});
+    invoke(&g,&mut e,"fail","run_command",check.clone());
+    invoke(&g,&mut e,"edit","write_to_file",json!({"TargetFile":root.join("source.js"),"CodeContent":"module.exports = 2;","Overwrite":true}));
+    invoke(&g,&mut e,"check","run_command",check);e.push(finished(RunOutcome::Completed));e
+}
+#[test]
+fn host_evidence_is_excluded_from_model_context_and_external_stale_changes_fail() {
+    let root=tempfile::tempdir().unwrap();let e=successful_workspace_fixture(root.path());let c=extract(&e,false).pop().unwrap();
+    assert!(is_current(&c,root.path()));
+    let SessionEvent::ToolResult{result,..}=&e[2] else {unreachable!()};assert!(result.get(FIELD).is_some());
+    let projected=e[2].to_llm_message().to_string();assert!(!projected.contains(FIELD));assert!(projected.contains("exit_code"));
+    std::fs::write(root.path().join("source.js"),"module.exports=3;").unwrap();assert!(!is_current(&c,root.path()));
+}
+
 #[test]
 fn actual_gateway_node_failure_file_edit_and_node_success_are_shared_by_both_stores() {
     let (root,g,_p)=setup(true,false);let mut e=vec![started("r")];let check=json!({"CommandLine":"node check-fix.cjs","Cwd":root.path()});

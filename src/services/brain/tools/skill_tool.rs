@@ -5,9 +5,7 @@ use crate::domains::agent_cognitive::capability_scout::CapabilityScout;
 
 use crate::config::app_paths::AppPaths;
 use crate::config::runtime::RuntimeConfig;
-use crate::models::memory::SupermemoryRecord;
 use crate::domains::agent_cognitive::executor::ToolExecutor;
-use crate::services::supermemory_store::SupermemoryStore;
 
 pub struct SkillTool {
     pub workspace_root: PathBuf,
@@ -16,14 +14,6 @@ pub struct SkillTool {
 impl SkillTool {
     pub fn new(workspace_root: PathBuf) -> Self {
         Self { workspace_root }
-    }
-
-    /// 智能定位宿主工程绝对路径（实现沙箱自愈逃逸）
-    fn resolve_project_path(&self) -> PathBuf {
-        crate::infrastructure::fs_path::resolve_origin_project_from_baseline(
-            &self.workspace_root,
-            &["skills", ".agents"],
-        )
     }
 
 
@@ -35,7 +25,7 @@ impl ToolExecutor for SkillTool {
     }
 
     fn description(&self) -> &'static str {
-        "Manage, read, and dynamically accumulate agent skills (custom engineering rules, conventions, and reusable workflows). Use action='list' to see available skills, action='read' to inspect instructions, and action='save' or 'update' to crystallize newly verified best practices, workflows, or troubleshooting procedures into durable workspace skills and SuperMemory."
+        "Manage, read, and dynamically accumulate agent skills (custom engineering rules, conventions, and reusable workflows). Use action='list' to see available skills, action='read' to inspect instructions, and action='save' or 'update' to crystallize newly verified best practices, workflows, or troubleshooting procedures into quarantined candidates. save/update never activate skills; read_candidate is explicit draft inspection."
     }
 
     fn prompt_projection(&self) -> Option<String> {
@@ -43,7 +33,8 @@ impl ToolExecutor for SkillTool {
             r#"
 [Tool Projection: skill_tool]
 - Role: Workspace Dynamic Skills Manager & Solidifier
-- Usage: List available skills using action='list', inspect instructions with action='read', or solidify high-value patterns and verified workflows with action='save'.
+- Usage: List available skills using action='list', inspect instructions with action='read', or save a quarantined draft with action='save'. Drafts require independent held-out validation before activation.
+- Inspect an unvalidated draft only with action='read_candidate', candidate_id from save/update; normal list/read exclude it. delete revokes a managed candidate and preserves files.
 - Read references/scripts outside the task workspace with action='read', skill_name, resource_path='references/file.md' (relative to that skill). Keep generated artifacts in the task workspace.
 "#
             .trim()
@@ -71,9 +62,10 @@ impl ToolExecutor for SkillTool {
             "properties": {
                 "action": {
                     "type": "string",
-                    "description": "The action to perform: 'list' (list available skills), 'read' (read a skill), 'save' (persist a newly discovered workflow/skill), 'update' (refine an existing skill), or 'delete' (remove an obsolete skill).",
-                    "enum": ["list", "read", "save", "update", "delete"]
+                    "description": "The action to perform: 'list' (list available skills), 'read' (read a skill), 'save' (persist a newly discovered workflow/skill), 'update' (refine an existing skill), 'delete' (revoke a managed candidate), or 'read_candidate' (inspect a quarantined draft).",
+                    "enum": ["list", "read", "save", "update", "delete", "read_candidate"]
                 },
+                "candidate_id":{"type":"string","description":"Managed candidate ID for explicit read_candidate or revoke via delete."},
                 "skill_name": {
                     "type": "string",
                     "description": "The unique name of the skill (e.g. 'mybatis-plus-paging', 'vault-credentials-pattern', 'liteflow-pipeline-setup'). Required for read, save, update, delete."
@@ -109,7 +101,6 @@ impl ToolExecutor for SkillTool {
         let action_opt = args.get("action").and_then(|v| v.as_str());
         let action = action_opt.unwrap_or("list");
 
-        let project_root = self.resolve_project_path();
         match action {
             "list" => {
                 let skills = CapabilityScout::discover_skills(&self.workspace_root)
@@ -124,9 +115,11 @@ impl ToolExecutor for SkillTool {
             "read" => {
                 let skill_name = args.get("skill_name").and_then(|v| v.as_str())
                     .ok_or_else(|| "skill_name is required for action 'read'".to_string())?;
-                let skill = CapabilityScout::discover_skills(&self.workspace_root).into_iter()
-                    .find(|s| s.name.eq_ignore_ascii_case(skill_name))
-                    .ok_or_else(|| format!("Skill '{}' not found in configured skill roots", skill_name))?;
+                let skill = match CapabilityScout::discover_skills(&self.workspace_root).into_iter()
+                    .find(|s|s.name.eq_ignore_ascii_case(skill_name)) {
+                    Some(skill)=>skill,
+                    None=>return Ok(json!({"status":"unavailable","available":false,"inspection_verified":true,"skill_name":skill_name,"reason":"not_in_effective_catalog","message":"查询完成；该技能当前不在有效目录中，未返回正文，也未激活任何候选。"})),
+                };
                 let root = std::path::Path::new(&skill.path).parent().ok_or("Skill has no resource root")?;
                 let path = match args.get("resource_path").and_then(|v| v.as_str()) {
                     Some(resource) => crate::infrastructure::fs_path::resolve_safe_path(resource, root)?,
@@ -192,111 +185,23 @@ impl ToolExecutor for SkillTool {
                     .and_then(|v| v.as_str())
                     .unwrap_or("workflow");
 
-                let mut write_dirs = vec![project_root.join(".agents").join("skills").join(&sanitized_name)];
-                if self.workspace_root != project_root {
-                    write_dirs.push(self.workspace_root.join(".agents").join("skills").join(&sanitized_name));
-                }
-
-                let mut exists = false;
-                for dir in &write_dirs {
-                    if dir.join("SKILL.md").exists() {
-                        exists = true;
-                        break;
-                    }
-                }
-
-                let full_content = format!(
-                    "---\nname: \"{}\"\ndescription: \"{}\"\ncategory: \"{}\"\nupdated_at: \"{}\"\n---\n\n{}\n",
-                    sanitized_name,
-                    description.replace('"', "\\\""),
-                    category,
-                    chrono::Utc::now().to_rfc3339(),
-                    instructions_raw.trim()
-                );
-
-                for dir in &write_dirs {
-                    let _ = fs::create_dir_all(dir);
-                    let skill_file = dir.join("SKILL.md");
-                    let _ = fs::write(&skill_file, &full_content);
-                }
-
-                // 同步注册到 SuperMemory 记忆库
-                let app_paths = AppPaths::new();
-                let config = RuntimeConfig::from_env(&app_paths);
-                let project_path_str = project_root.to_string_lossy().to_string();
-                let store = SupermemoryStore::new(&config, Some(&project_path_str));
-
-                let record = SupermemoryRecord {
-                    id: format!("skill:{}", sanitized_name),
-                    name: format!("Skill: {}", sanitized_name),
-                    summary: format!(
-                        "Skill: {}\nDescription: {}\n\nInstructions:\n{}",
-                        sanitized_name, description, instructions_raw
-                    ),
-                    tags: vec![
-                        "skill".to_string(),
-                        sanitized_name.clone(),
-                        "superagent".to_string(),
-                    ],
-                    file_path: format!(".agents/skills/{}/SKILL.md", sanitized_name),
-                    complexity: "skill_node".to_string(),
-                    node_type: "skill".to_string(),
-                    source_graph_path: "".to_string(),
-                    source_label: format!(".agents/skills/{}/SKILL.md", sanitized_name),
-                    updated_at: chrono::Utc::now().to_rfc3339(),
-                    embedding: None,
-                };
-                store.write_memory(record);
-                eprintln!(
-                    "\x1b[32m[SkillTool] 🎯 Solidified new skill '{}' to .agents/skills and SuperMemory at {}\x1b[0m",
-                    sanitized_name, project_path_str
-                );
-
-                let rel_path = format!(".agents/skills/{}/SKILL.md", sanitized_name);
-
-                Ok(json!({
-                    "status": "success",
-                    "action": if exists { "updated" } else { "created" },
-                    "skill_name": sanitized_name,
-                    "file_path": rel_path.clone(),
-                    "path": rel_path,
-                    "message": format!("Skill '{}' successfully crystallized into durable workspace skills and registered into SuperMemory.", sanitized_name)
-                }))
+                let config=RuntimeConfig::from_env(&AppPaths::new());
+                let store=crate::services::brain::candidate_governance::Governance::new(&config,&self.workspace_root);
+                let full_content=format!("---\nname: {}\ndescription: {}\ncategory: {}\n---\n\n{}\n",serde_json::to_string(&sanitized_name).map_err(|_|"skill_encoding_failed")?,serde_json::to_string(description).map_err(|_|"skill_encoding_failed")?,serde_json::to_string(category).map_err(|_|"skill_encoding_failed")?,instructions_raw);
+                let candidate=store.propose_skill(&sanitized_name,description,&full_content)?;
+                Ok(json!({"status":"candidate","action":"candidate_created","candidate_id":candidate.id,"skill_name":candidate.name,"revision":candidate.revision,"path":store.payload_path(&candidate),"message":"隔离候选已保存；尚未通过不同目标留出检查，未激活技能。"}))
             }
-            "delete" => {
-                let skill_name = args
-                    .get("skill_name")
-                    .and_then(|v| v.as_str())
-                    .ok_or_else(|| "skill_name is required for delete".to_string())?;
-
-                let sanitized_name: String = skill_name
-                    .chars()
-                    .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
-                    .collect();
-
-                let mut write_dirs = vec![project_root.join(".agents").join("skills").join(&sanitized_name)];
-                if self.workspace_root != project_root {
-                    write_dirs.push(self.workspace_root.join(".agents").join("skills").join(&sanitized_name));
-                }
-
-                let mut found = false;
-                for dir in &write_dirs {
-                    if dir.exists() {
-                        found = true;
-                        let _ = fs::remove_dir_all(dir);
-                    }
-                }
-
-                if !found {
-                    return Err(format!("Skill '{}' not found in candidate skill directories", skill_name));
-                }
-
-                Ok(json!({
-                    "status": "success",
-                    "action": "deleted",
-                    "skill_name": sanitized_name,
-                    "message": format!("Skill '{}' deleted successfully.", sanitized_name)
-                }))
+            "read_candidate"=>{
+                let id=args.get("candidate_id").and_then(Value::as_str).ok_or("candidate_id required")?;
+                let config=RuntimeConfig::from_env(&AppPaths::new());
+                let store=crate::services::brain::candidate_governance::Governance::new(&config,&self.workspace_root);
+                Ok(json!({"status":"candidate_data_only","content":store.read_candidate(id)?,"candidate":store.get(id)?}))
+            }
+            "delete"=>{
+                let id=args.get("candidate_id").and_then(Value::as_str).ok_or("candidate_id required; unmanaged user skills are not deleted by this tool")?;
+                let config=RuntimeConfig::from_env(&AppPaths::new());let store=crate::services::brain::candidate_governance::Governance::new(&config,&self.workspace_root);
+                let candidate=store.get(id)?;let revoked=store.revoke(id,candidate.revision)?;
+                Ok(json!({"status":"revoked","candidate":revoked}))
             }
             _ => Err(format!("Unknown action: {}", action)),
         }
@@ -347,56 +252,18 @@ mod tests {
     }
 
     #[test]
-    fn test_skill_lifecycle_save_list_read_update_delete() {
-        let temp_dir = tempdir().unwrap();
-        let tool = SkillTool::new(temp_dir.path().to_path_buf());
-
-        // 1. Initially empty
-        let list_res = tool.execute(json!({ "action": "list" })).unwrap();
-        assert!(!list_res["skills"].as_array().unwrap().iter().any(|s| s["name"] == "mybatis-paging"));
-
-        // 2. Save new skill
-        let save_res = tool.execute(json!({
-            "action": "save",
-            "skill_name": "mybatis-paging",
-            "description": "Standard MyBatis-Plus pagination best practice in DeepCloud",
-            "instructions": "# MyBatis Paging\nAlways use Page<T> and LambdaQueryWrapper.",
-            "category": "architecture"
-        })).unwrap();
-        assert_eq!(save_res["status"], "success");
-        assert_eq!(save_res["action"], "created");
-
-        // 3. Read skill
-        let read_res = tool.execute(json!({
-            "action": "read",
-            "skill_name": "mybatis-paging"
-        })).unwrap();
-        assert_eq!(read_res["skill_name"], "mybatis-paging");
-        let content = read_res["content"].as_str().unwrap();
-        assert!(content.contains("name: \"mybatis-paging\""));
-        assert!(content.contains("Always use Page<T> and LambdaQueryWrapper"));
-
-        // 4. List skills
-        let list_res2 = tool.execute(json!({ "action": "list" })).unwrap();
-        assert_eq!(list_res2["skills"].as_array().unwrap().iter().filter(|s| s["name"] == "mybatis-paging").count(), 1);
-
-        // 5. Update skill
-        let update_res = tool.execute(json!({
-            "action": "update",
-            "skill_name": "mybatis-paging",
-            "instructions": "# MyBatis Paging V2\nUpdated with SQL injection prevention."
-        })).unwrap();
-        assert_eq!(update_res["action"], "updated");
-
-        // 6. Delete skill
-        let del_res = tool.execute(json!({
-            "action": "delete",
-            "skill_name": "mybatis-paging"
-        })).unwrap();
-        assert_eq!(del_res["action"], "deleted");
-
-        // 7. Verify deletion
-        let list_res3 = tool.execute(json!({ "action": "list" })).unwrap();
-        assert!(!list_res3["skills"].as_array().unwrap().iter().any(|s| s["name"] == "mybatis-paging"));
+    fn test_skill_draft_versions_are_quarantined_and_revocation_preserves_evidence() {
+        let temp=tempdir().unwrap();let tool=SkillTool::new(temp.path().into());
+        let saved=tool.execute(json!({"action":"save","skill_name":"mybatis-paging","description":"Paging draft","instructions":"# MyBatis Paging\nAlways use Page<T> and LambdaQueryWrapper."})).unwrap();
+        assert_eq!(saved["status"],"candidate");let id=saved["candidate_id"].as_str().unwrap();
+        assert!(!temp.path().join(".agents").exists());assert!(std::path::Path::new(saved["path"].as_str().unwrap()).is_file());
+        let unavailable=tool.execute(json!({"action":"read","skill_name":saved["skill_name"]})).unwrap();assert_eq!(unavailable["available"],false);assert!(unavailable.get("content").is_none());assert_eq!(unavailable["status"],"unavailable");
+        let read=tool.execute(json!({"action":"read_candidate","candidate_id":id})).unwrap();assert!(read["content"].as_str().unwrap().contains("LambdaQueryWrapper"));
+        let list=tool.execute(json!({"action":"list"})).unwrap();assert!(!list["skills"].as_array().unwrap().iter().any(|s|s["name"]==saved["skill_name"]));
+        let updated=tool.execute(json!({"action":"update","skill_name":"mybatis-paging","instructions":"# Updated candidate"})).unwrap();assert_eq!(updated["status"],"candidate");assert_ne!(saved["candidate_id"],updated["candidate_id"]);
+        assert_eq!(read["content"],tool.execute(json!({"action":"read_candidate","candidate_id":id})).unwrap()["content"]);
+        let revoked=tool.execute(json!({"action":"delete","candidate_id":id})).unwrap();assert_eq!(revoked["status"],"revoked");assert_eq!(revoked["candidate"]["state"],"revoked");
+        assert!(tool.execute(json!({"action":"read_candidate","candidate_id":id})).is_ok());assert!(std::path::Path::new(saved["path"].as_str().unwrap()).is_file());
     }
+
 }

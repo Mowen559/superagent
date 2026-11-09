@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-09",
+  "task": "9.15",
+  "state": "environment_blocked_not_completed",
+  "planProgress": {
+    "complete": 69,
+    "total": 106,
+    "remaining": 37
+  },
+  "probes": [
+    {
+      "model": "gemini-3.8-flash-high",
+      "endpoint": "127.0.0.1:8045",
+      "request": "readiness only, no tools/business task",
+      "httpStatus": 503,
+      "responded": false,
+      "reason": "upstream_http_error",
+      "elapsedSeconds": 5.62
+    },
+    {
+      "model": "gemini-3.8-flash-high",
+      "endpoint": "127.0.0.1:8045",
+      "request": "second readiness only, no tools/business task",
+      "httpStatus": 503,
+      "responded": false,
+      "reason": "upstream_http_error",
+      "classifiedReasons": [],
+      "elapsedSeconds": 0.12
+    }
+  ],
+  "businessRunsStarted": 0,
+  "realModelMigrationScoreAdded": 0,
+  "reason": "代理模型列表HTTP 200且列出原模型，但普通与流式模型调用均HTTP 503；代理明确返回网关本地账号池暂无可用账号或全部冷却，Token pool is empty。",
+  "protocol": "artifacts\\hub-memory-transfer-20261109\\v15\\protocol.json",
+  "resume": "先恢复代理账号池中可调度的上游账号，再按原模型继续9.15；不需要更换API地址或重发密钥。",
+  "previousCompleted": "docs/reviews/hub-candidate-governance-review-v14.json",
+  "credentials": "沿用既有配置，未回显或写入本报告。",
+  "latestRecheck": {
+    "model": "gemini-3.8-flash-high",
+    "checks": [
+      {
+        "check": "models",
+        "httpStatus": 200,
+        "requestedModelListed": true,
+        "listedModelsCount": 35
+      },
+      {
+        "check": "stream",
+        "httpStatus": 503,
+        "errorFields": [
+          "message",
+          "type",
+          "param",
+          "code",
+          "is_server_error",
+          "gateway_error",
+          "upstream_error"
+        ],
+        "safeErrorMessage": "【网关调度受限】 网关诊断: 网关本地账号池当前暂无可用账号或全部可用账号处于限流冷却中。调度详情: Token pool is empty 建议: 请等待冷却结束（参考等待秒数），或在网关中添加更多正常账号。"
+      }
+    ]
+  },
+  "latestRecheckEvidence": "artifacts\\hub-memory-transfer-20261109\\v15\\proxy-recheck-20261109-141522.json"
+}

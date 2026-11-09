@@ -172,6 +172,9 @@ pub struct AgentLoop {
     session_lifecycle: SessionLifecycle,
     tool_gateway: std::sync::Arc<crate::services::brain::tool_execution_gateway::ToolExecutionGateway>,
     evolution_memory: EvolutionMemory,
+    pending_evolution_report:Option<crate::services::brain::evolution_memory::EvolutionReport>,
+    pending_memory_checkpoint:crate::services::brain::memory_persistence::PendingCheckpoint,
+    run_memory_read_only:bool,
     compaction_runtime: CompactionRuntime,
     model_attempt_router: ModelAttemptRouter,
     run_prelude_runtime: RunPreludeRuntime,
@@ -252,6 +255,9 @@ impl AgentLoop {
                 eprintln!("[Brain B] Failed to persist repaired runs: {}", error);
             }
         }
+        if crate::services::brain::memory_persistence::recover_missing_audits(&mut events,session_ledger.session_id())>0 {
+            if session_ledger.sync(&events).is_err(){eprintln!("[Memory audit] recovery ledger_failed; prior automatic writes were not replayed");}
+        }
         let session_lifecycle = SessionLifecycle::from_events(&events);
         if !events.is_empty() {
             eprintln!(
@@ -317,6 +323,7 @@ impl AgentLoop {
             session_lifecycle,
             tool_gateway,
             evolution_memory,
+            pending_evolution_report:None,pending_memory_checkpoint:None,run_memory_read_only:false,
             compaction_runtime: CompactionRuntime::default(),
             model_attempt_router: ModelAttemptRouter::default(),
             run_prelude_runtime,
@@ -330,59 +337,24 @@ impl AgentLoop {
 
     /// 澶氬眰璁板繂鍚堟垚 (Multi-layered Synthesis)
     /// 瀹氭湡鍘嬬缉鏈€杩戠殑浜嬩欢鍘嗗彶锛岀敓鎴愯蹇嗗揩鐓у瓨鍏?SuperMemory锛岄槻姝㈤暱绾夸换鍔′腑鏂墖銆?
+    pub fn automatic_memory_allowed(&self)->bool {
+        !self.run_memory_read_only
+            && self.tool_gateway.policy_mode()!=crate::services::brain::tool_policy::ToolPolicyMode::ReadOnly
+            && std::env::var_os("HUB_PARENT_RUN_ID").is_none()
+    }
+
     pub async fn synthesize_memory(&mut self) {
-        if self.events.len() < 10 {
-            return;
-        }
-        eprintln!(
-            "\x1b[35m[Memory Checkpoint] Triggers Layer-1 Synthesis for recent actions...\x1b[0m"
-        );
-
-        let recent_events: Vec<Value> = self
-            .events
-            .iter()
-            .rev()
-            .take(15)
-            .map(|e| e.to_llm_message())
-            .collect();
-        let prompt = "You are a memory synthesizer. Summarize the agent's recent actions and intermediate findings into a concise 'checkpoint' memory block. Focus ONLY on what was achieved, the current state, and the immediate next goal. Do not generate markdown wrapping, just plain text.";
-
-        let messages = vec![
-            json!({ "role": "system", "content": prompt }),
-            json!({ "role": "user", "content": format!("{:?}", recent_events) }),
-        ];
-
-        if let Ok((msg, _)) = self
-            .llm_provider
-            .chat_with_tools(messages, None, None)
-            .await
-        {
-            if let Some(content) = msg.get("content").and_then(|c| c.as_str()) {
-                let store = crate::services::supermemory_store::SupermemoryStore::new(
-                    &self.runtime_config,
-                    None,
-                );
-                use crate::models::memory::SupermemoryRecord;
-
-                store.write_memory(SupermemoryRecord {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    name: format!(
-                        "Layer Synthesis - {}",
-                        chrono::Utc::now().format("%H:%M:%S")
-                    ),
-                    summary: content.to_string(),
-                    tags: vec!["synthesis".to_string(), "checkpoint".to_string()],
-                    complexity: "layer1".to_string(),
-                    node_type: "synthesis".to_string(),
-                    source_graph_path: "agent_loop".to_string(),
-                    source_label: "checkpoint".to_string(),
-                    file_path: "".to_string(),
-                    updated_at: chrono::Utc::now().to_rfc3339(),
-                    embedding: None,
-                });
-                eprintln!("\x1b[32m[Memory Checkpoint] Successfully saved Layer-1 memory to SuperMemoryStore.\x1b[0m");
-            }
-        }
+        use crate::services::brain::memory_persistence::PersistenceFailure;
+        if !self.automatic_memory_allowed() || self.events.len()<10{return;}
+        let recent:Vec<Value>=self.events.iter().rev().take(15).map(|e|e.to_llm_message()).collect();
+        let messages=vec![json!({"role":"system","content":"Summarize observed actions and immediate next steps as an unverified run checkpoint. Do not infer completed work."}),json!({"role":"user","content":format!("{:?}",recent)})];
+        self.pending_memory_checkpoint=Some(match self.llm_provider.chat_with_tools(messages,None,None).await {
+            Ok((msg,_))=>match msg.get("content").and_then(Value::as_str) {
+                Some(content) if crate::services::brain::project_memory::reject_sensitive(&content).is_ok()=>Ok(content.chars().take(8000).collect()),
+                Some(_)=>Err(PersistenceFailure::Sensitive),None=>Err(PersistenceFailure::SynthesisFailed),
+            },
+            Err(_)=>Err(PersistenceFailure::SynthesisFailed),
+        });
     }
 
     pub fn push_event(&mut self, evt: SessionEvent) {
@@ -546,6 +518,7 @@ impl AgentLoop {
         self.save_session();
         let cognition = CognitiveRuntime::begin(prompt);
         let child_read_only = cognition.task_progress().lock().unwrap_or_else(|e|e.into_inner()).is_read_only_scope();
+        self.run_memory_read_only=child_read_only;self.pending_evolution_report=None;self.pending_memory_checkpoint=None;
         let subagents = self.ctx.resolve::<crate::services::brain::subagent_runtime::SubagentRuntime>("subagent_runtime");
         let admission = subagents.as_ref().map(|runtime|
             runtime.bind_run_with_scope(&run_id, &self.runtime_config.project_root, self.tool_gateway.policy_mode(), child_read_only)
@@ -569,7 +542,16 @@ impl AgentLoop {
                 Some(error.clone()),
             )?,
         }
-        self.save_session();
+        let audit=crate::services::brain::memory_persistence::finalize(
+            &self.runtime_config,&self.runtime_config.project_root,self.session_ledger.session_id(),&run_id,&self.events,
+            self.pending_evolution_report.as_ref(),crate::services::brain::memory_persistence::MemoryPolicy {
+                read_only_intent:self.run_memory_read_only,
+                read_only_policy:self.tool_gateway.policy_mode()==crate::services::brain::tool_policy::ToolPolicyMode::ReadOnly,
+                delegated:std::env::var_os("HUB_PARENT_RUN_ID").is_some(),
+            },&self.pending_memory_checkpoint);
+        self.events.push(SessionEvent::MemoryPersistenceRecorded{receipt:audit.clone()});
+        let ledger_ok=self.session_ledger.sync(&self.events).is_ok();
+        eprintln!("[Memory audit] ledger_{} {}",if ledger_ok{"confirmed"}else{"failed"},serde_json::to_string(&audit).unwrap_or_default());
         let terminal_transition = match &result {
             Ok(_) => self.transition_session(SessionStatus::Completed, None),
             Err(error) => self.transition_session(SessionStatus::Failed, Some(error.clone())),
@@ -694,6 +676,7 @@ impl AgentLoop {
                         compacted_events, before_tokens, after_tokens
                     );
                     self.save_session();
+                    self.run_memory_read_only |= cognition.task_progress().lock().unwrap_or_else(|e|e.into_inner()).is_read_only_scope();
                     self.synthesize_memory().await;
                 }
                 CompactionOutcome::Deferred {
@@ -1278,16 +1261,9 @@ impl AgentLoop {
         }
     }
 
-    fn record_evolution(&self, cognition: &mut CognitiveRuntime, prompt: &str, completed: bool) {
-        let report = cognition.evolution_report(completed);
-        if let Err(error) = self.evolution_memory.observe(&report) {
-            eprintln!("[Brain B] Failed to record evolution evidence: {error}");
-        }
-        if completed {
-            if let Some(new_lesson) = self.evolution_memory.distill_trajectory(prompt, &self.events, true) {
-                eprintln!("[Hermes Distillation] Stored observed recovery candidate: {} (not a certified repair)",new_lesson.id);
-            }
-        }
+    fn record_evolution(&mut self,cognition:&mut CognitiveRuntime,_prompt:&str,completed:bool) {
+        self.run_memory_read_only |= cognition.task_progress().lock().unwrap_or_else(|e|e.into_inner()).is_read_only_scope();
+        self.pending_evolution_report=Some(cognition.evolution_report(completed));
     }
 
     async fn call_llm_api(

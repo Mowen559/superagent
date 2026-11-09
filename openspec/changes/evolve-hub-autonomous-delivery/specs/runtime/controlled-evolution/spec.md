@@ -46,3 +46,35 @@
 #### Scenario: Evidence is missing or stale
 - **WHEN** 只有报错文字、无实际改动、不同检查通过、跨Run、失败终态或复验后内容改变
 - **THEN** 系统不生成已解决经验，提供方伪造的证据字段被网关移除
+
+
+### Requirement: Every run audits automatic memory persistence
+系统 MUST 在最终Run终态后记录自动策略、执行候选、反思候选和中间摘要的stored/skipped/rejected/failed决策、固定原因及实际读回ID/摘要；写盘或读回失败不得报告stored，普通审计不可成为可召回经验。只读意图、只读策略和委派叶子 SHALL 跳过自动写入与自动Skill结晶。敏感候选 MUST 在写入前拒绝且审计/日志不回显秘密。
+
+#### Scenario: A store write fails
+- **WHEN** 候选证据有效但写盘或实际读回失败
+- **THEN** 审计记录failed及脱敏原因，保留已有库，不打印保存成功
+
+#### Scenario: A read-only task completes
+- **WHEN** 用户要求只读调查或策略限制为只读
+- **THEN** 自动记忆及Skill写入全部跳过，仅普通会话审计记载原因
+
+#### Scenario: A process is interrupted
+- **WHEN** 尚无自动保存审计的Run在重新打开账本时被修补为interrupted
+- **THEN** 记录skipped中断审计，不重放写入或声称原任务已保存经验
+
+
+### Requirement: Candidate activation uses a single revocable gate
+系统 MUST 将自动经验、摘要、经验草稿和自动Skill保存在来源项目隔离候选区；没有不同目标留出证据的候选不得影响活动Skill或自动召回。晋升/撤销 SHALL 统一由治理状态和版本处理，保留原失败及旧正文，不按成功计数直接晋升。
+
+#### Scenario: A candidate has no held-out pass
+- **WHEN** 候选已保存但尚无受信套件生成的不同目标成功收据
+- **THEN** 活动技能发现和自动召回均不包含该候选，promote拒绝调用方伪造的成功声明
+
+#### Scenario: A held-out case is physically checked
+- **WHEN** 固定裁判针对不同目录与内容的留出目标真实执行成功，候选/来源/裁判/输入指纹及版本未变化
+- **THEN** 运行时允许限定候选晋升，记录套件及物理收据，但不据此宣称通用泛化
+
+#### Scenario: Validation becomes stale or candidate is withdrawn
+- **WHEN** 来源、正文、裁判、留出输入改变，证据过期或候选已撤销
+- **THEN** 后续发现和召回排除该候选，旧异步验证不能将已撤销候选重新激活

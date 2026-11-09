@@ -118,3 +118,20 @@ B11管理接口：POST /api/swarm/runs/{taskId}/children/{childId}/retry，请�
 
 
 C2经验收据（候选9.12）：ToolResult._execution_evidence为网关保留字段，提供方同名内容先移除。字段包括schemaVersion、sessionId、runId、callId、tool、actionDigest、before/afterFingerprint、status、checkEligible、verification、exitCode；不包含原始参数或输出。该收据仅证明观测事实，不能认证修改因果、检查完整性或通用解法；旧记录无此字段不参与自动修复提炼。
+
+2026-11-08 C2/v12：9.12完成，67/106；655项全库回归通过，实际HTTP双Run验证同一失败/修订/检查收据同时进入两条候选路径，普通错误文字不生成修法经验，蜂群三组门禁继续通过。候选未安装；每Run保存决策、只读限制、统一晋升及真实跨Session迁移仍待9.13～9.15。报告docs/reviews/hub-recovery-candidate-review-v12.json。
+
+
+C3内部审计增量（9.13，2026-11-09）：SessionEvent增加MemoryPersistenceRecorded，payload为receipt（schemaVersion、runId、sessionId、projectDigest、decisions）。每项包含stage、status、reason、recordIds、readbackDigests；仅stored允许携带经真实读回核验的ID与摘要。审计不进入项目召回或模型投影，不另建生命周期。异常IO只记录固定原因。终态后统一写入，原worker后置Reflection改由执行器协调，避免重复写入。
+
+2026-11-09 C3/v13：9.13完成，68/106；四阶段自动记忆保存由最终Run统一审计、写入后实际读回；只读/计划/叶子不自动写，原中间摘要先缓存，写盘失败与敏感拒绝如实记录。666项库回归及5组HTTP验收通过（敏感笔记Run按真实结果failed），蜂群替代成功/审查拒绝/旧指纹拒绝仍通过，6个叶子四阶段均skipped。候选未安装；保存决策审计不等于候选已晋升或具备迁移能力。报告docs/reviews/hub-memory-persistence-review-v13.json。
+
+
+C4管理契约（9.14）：GET /api/evolution/candidates?projectPath=<已打开项目>；POST /api/evolution/candidates/{id}/actions，请求严格为{projectPath,action:validate|promote|revoke,expectedRevision,suiteId?}，suiteId仅validate使用。409表示版本/状态/证据不满足，422表示受信配置/留出检查失败，403表示项目未打开；不接收调用方passed、command或证据文件。validate通过程序托管evolution/holdout-profiles.json中固定Node裁判执行，响应是实际验证状态；promote要求内容、来源、套件/目标/裁判指纹及时效仍匹配，revoke立即阻止后续挂载。SkillTool save/update返回candidate而非活动成功，read_candidate仅用于显式查看隔离草稿；普通list/read只显示当前有效技能。
+
+C4读取增量：skill_tool read的有效目录查询无匹配时返回{status:"unavailable",available:false,inspection_verified:true,reason:"not_in_effective_catalog"}，不含Skill正文；不再将预期不可用当作执行失败。inspection_verified仅表示本次只读目录查询，不能释放实现验证门禁或将候选激活。
+
+C4经验查询一致性：hermes_workflow query_lessons与super_memory及RunPrelude共用当前项目治理门禁，仅返回有效治理经验（id/name/observation/source/reliability），旧ELO历史不自动成为指导。只读查询不需要网络或写入权限；经验就绪计数同样包含有效治理记录，不把未晋升候选算作可用。
+
+
+2026-11-09 C4/v14：9.14完成，69/106。候选隔离、固定不同目标Node验证、版本晋升/撤销、来源及记忆原副本失效门禁落地；Hermes模型工具菜单与只读查询、原生记忆和就绪计数一致。681项库回归通过（0失败/2原忽略/1原过滤），精确候选二进制17次受控Run全部完成/34模拟响应，另5组记忆审计及3组蜂群门禁通过。留出范围仅1个不同目标/3行断言，真实Node通过2次/预期失败1次；不能作为真实模型迁移评分。候选未安装，3项原资产指纹不变。详细证据docs/reviews/hub-candidate-governance-review-v14.json；9.15真实模型重启自然召回仍待验证。

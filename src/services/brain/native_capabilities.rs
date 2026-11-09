@@ -52,7 +52,8 @@ pub fn snapshot(root: &Path, config: &RuntimeConfig, registered: Option<Vec<Stri
     let notes_path = config.project_notes_path(&origin);
     let notes = match SupermemoryStore::from_path(&notes_path).load_result() {
         Ok(data) => {
-            let eligible = data.memories.iter().filter(|record| super::project_memory::context_eligible(data.memory_context.get(&record.id), Some((&origin, root)))).count();
+            let eligible = data.memories.iter().filter(|record| super::project_memory::record_eligible(record,data.memory_context.get(&record.id), Some((&origin, root)))).count()
+                + super::candidate_governance::Governance::new(config,root).active_memories().len();
             json!({"state":if !notes_path.exists(){"missing"}else if eligible==0{"empty"}else{"ready"},"path":notes_path,"project":origin,"records":data.memories.len(),"eligible_records":eligible,"validation":"unverified_history"})
         },
         Err(_) => json!({"state":"invalid","path":notes_path,"reason":"Persistent project notes could not be read or parsed"}),

@@ -105,6 +105,7 @@ pub fn context_eligible(context: Option<&MemoryContext>, scope: Option<(&Path, &
     let Some(context) = context else {
         return true;
     };
+    if context.source.starts_with("automatic_"){return false;}
     if !matches!(context.state.as_str(), "candidate" | "active")
         || !context.confidence.is_finite()
         || !(0.0..=1.0).contains(&context.confidence)
@@ -131,6 +132,12 @@ pub fn context_eligible(context: Option<&MemoryContext>, scope: Option<(&Path, &
         }
         _ => false,
     }
+}
+
+pub fn record_eligible(record:&crate::models::memory::SupermemoryRecord,context:Option<&MemoryContext>,scope:Option<(&Path,&Path)>)->bool {
+    if matches!(record.node_type.as_str(),"synthesis"|"reflexion") && matches!(record.source_label.as_str(),"checkpoint"|"PostMortemReflexion") {return false;}
+    if record.node_type=="skill"&&record.tags.iter().any(|t|t=="superagent"){return false;}
+    context_eligible(context,scope)
 }
 
 pub fn reliability(context: Option<&MemoryContext>) -> &'static str {
@@ -196,7 +203,7 @@ pub fn recall(
             data.memories
                 .into_iter()
                 .filter(|m| {
-                    context_eligible(data.memory_context.get(&m.id), Some((&project, workspace)))
+                    record_eligible(m,data.memory_context.get(&m.id), Some((&project, workspace)))
                 })
                 .map(|record| ScoredMemoryRecord {
                     context: data.memory_context.get(&record.id).cloned(),
@@ -214,6 +221,19 @@ pub fn recall(
                 .filter(|hit| !seen.contains(&hit.record.id)),
         );
         seen.extend(reserved);
+    }
+    // Use immutable governed payloads, while honoring the original store's
+    // tombstone, expiry and source-file binding. Missing copies fail closed.
+    if let Ok(managed)=SupermemoryStore::from_path(config.project_notes_path(&project)).load_result() {
+        for mut record in super::candidate_governance::Governance::new(config,workspace).active_memories() {
+            let Some(mut context)=managed.memory_context.get(&record.id).cloned() else{continue;};
+            if !managed.memories.iter().any(|r|r.id==record.id){continue;}
+            context.source="governed_experience".into();
+            if !context_eligible(Some(&context),Some((&project,workspace))){continue;}
+            if query.is_some_and(|q|!format!("{} {}",record.name,record.summary).to_lowercase().contains(&q.to_lowercase())){continue;}
+            record.source_label=format!("validated_candidate:{}",record.id);
+            result.hits.push(ScoredMemoryRecord{record,context:Some(context),score:1.0,keyword_score:1.0,vector_score:None});
+        }
     }
     if query.is_some() {
         result.hits.sort_by(|a, b| {
@@ -311,13 +331,14 @@ mod tests {
         store.write_context_memory(record("explicit-note","scope_sentinel"),new_context(&project,&runs[0],None,None).unwrap()).unwrap();
         let legacy=cfg.legacy_project_notes_path(&project);let old=SupermemoryStore::from_path(&legacy);
         old.write_context_memory(record("old-note","legacy_sentinel"),new_context(&project,&origin,None,None).unwrap()).unwrap();let original=std::fs::read(&legacy).unwrap();
-        let events=crate::services::brain::recovery_candidate::tests::successful_fixture(true);
+        let events=crate::services::brain::recovery_candidate::tests::successful_workspace_fixture(&runs[0]);
         assert_eq!(ReflectionEngine::distill_and_persist(&events,&cfg,Some(&runs[0].to_string_lossy())),1);
         let mut next=cfg.clone();next.shadow_git_root=root.path().join("different-shadow");next.workspace_root=runs[1].clone();
         assert_eq!(managed_scope(&next,&runs[1]).1,path,"different Run/cwd must keep one managed destination");
         let data=SupermemoryStore::from_path(managed_scope(&next,&runs[1]).1).load_result().unwrap();assert_eq!(data.memories.len(),2);
         assert!(data.memory_context.values().any(|c|c.source=="automatic_reflection"&&c.kind=="experience_candidate"&&c.state=="candidate"&&c.project==project_identity(&origin)));
-        assert!(recall(&next,&runs[1],None,10).hits.len()>=2);
+        let eligible=recall(&next,&runs[1],None,10);
+        assert_eq!(eligible.hits.iter().map(|h|h.record.id.as_str()).collect::<Vec<_>>(),vec!["explicit-note"],"automatic candidates remain stored but must not be recalled before governance activation");
         let legacy_hit=recall(&cfg,&runs[1],Some("legacy_sentinel"),10);assert!(legacy_hit.hits.iter().any(|h|h.record.source_label.starts_with("legacy_managed_project_notes:")));
         assert_eq!(std::fs::read(legacy).unwrap(),original);assert!(!origin.join(".supermemory").exists());
         let other=root.path().join("other");std::fs::create_dir(&other).unwrap();assert!(recall(&cfg,&other,Some("scope_sentinel"),10).hits.is_empty());
